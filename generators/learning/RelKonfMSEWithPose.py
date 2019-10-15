@@ -363,5 +363,4 @@ class RelKonfMSEPose(AdversarialPolicy):
         print "Pre-and-post test errors", pre_mse, post_mse
         # wvals = self.W_model.predict([goal_flags, rel_konfs, collisions, poses])[0]
         collision_idxs = collisions[0].squeeze()[:, 0] == True
-        import pdb;
-        pdb.set_trace()
+
