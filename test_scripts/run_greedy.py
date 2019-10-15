@@ -67,7 +67,15 @@ def get_solution_file_name(config):
                    '_mse_weight_' + str(config.mse_weight) + \
                    '_use_region_agnostic_' + str(config.use_region_agnostic) + \
                    '_mix_rate_' + str(config.mixrate) + '/'
-        sampler_config = '/smpler_config_num_train_' + str(config.num_train) + '/'
+        sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
+        solution_file_dir = solution_file_dir + q_config + sampler_config
+    elif config.integrated_unregularized_sampler:
+        solution_file_dir += '/integrated/shortest_irsc/'
+        q_config = '/q_config_num_train_' + str(config.num_train) + \
+                   '_mse_weight_' + str(config.mse_weight) + \
+                   '_use_region_agnostic_' + str(config.use_region_agnostic) + \
+                   '_mix_rate_' + str(config.mixrate) + '/'
+        sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'
         solution_file_dir = solution_file_dir + q_config + sampler_config
     elif config.qlearned_hcount:
         solution_file_dir += '/qlearned_hcount_obj_already_in_goal/shortest_irsc' \
@@ -146,6 +154,7 @@ def parse_arguments():
     parser.add_argument('-qlearned_old_number_in_goal', action='store_true', default=False)
     parser.add_argument('-qlearned_new_number_in_goal', action='store_true', default=False)
     parser.add_argument('-integrated', action='store_true', default=False)
+    parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
     parser.add_argument('-pure_learned_q', action='store_true', default=False)
     parser.add_argument('-state_hcount', action='store_true', default=False)
     parser.add_argument('-use_region_agnostic', action='store_true', default=False)
@@ -213,9 +222,9 @@ def get_pap_gnn_model(mover, config):
     return pap_model
 
 
-def get_learned_smpler(sampler_seed):
+def get_learned_smpler(sampler_seed, use_unregularized):
     print "Creating the learned sampler.."
-    admon = create_imle_model(sampler_seed)
+    admon = create_imle_model(sampler_seed, use_unregularized)
     print "Created IMLE model with weight name", admon.weight_file_name
     return admon
 
@@ -245,8 +254,8 @@ def main():
         pap_model = get_pap_gnn_model(problem_env, config)
     else:
         pap_model = None
-    if config.integrated:
-        smpler = get_learned_smpler(config.sampler_seed)
+    if config.integrated or config.integrated_unregularized_sampler:
+        smpler = get_learned_smpler(config.sampler_seed, config.integrated_unregularized_sampler)
     else:
         smpler = None
 
