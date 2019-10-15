@@ -263,6 +263,7 @@ def main():
     plan_length = 0
     num_nodes = 0
     if is_problem_solved_before and not config.f:
+        print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
             success = trajectory['success']

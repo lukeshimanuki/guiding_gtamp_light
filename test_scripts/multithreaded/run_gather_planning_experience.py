@@ -27,6 +27,7 @@ def main():
     parser = argparse.ArgumentParser(description='Greedy Planner parameters')
     parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])
     parser.add_argument('-domain', type=str, default='two_arm_mover')
+    parser.add_argument('-n_objs_pack', type=int, default=1)
     parameters = parser.parse_args()
     pidx_begin = parameters.pidxs[0]
     pidx_end = parameters.pidxs[1]
@@ -35,6 +36,7 @@ def main():
         config = {
             'pidx': pidx,
             'domain': parameters.domain,
+            'n_objs_pack': parameters.n_objs_pack
         }
 
         configs.append(config)
