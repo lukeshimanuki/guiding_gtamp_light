@@ -1,4 +1,4 @@
-from trajectory_representation.sampler_trajectory import SamplerTrajectory
+from trajectory_representation.sampler_trajectory import SamplerTrajectory, SAHSSamplerTrajectory
 
 import pickle
 import os
@@ -15,6 +15,7 @@ else:
 
 def get_save_dir():
     save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
+    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/sampler_trajectory_data/'
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     return save_dir
@@ -41,11 +42,12 @@ def save_traj(traj, save_fname):
     pickle.dump(traj, open(save_fname, 'wb'))
 
 
-def process_plan_file(filename, pidx, key_configs):
+def process_plan_file(filename, pidx):
     print "Plan file name", filename
     plan_data = pickle.load(open(filename, 'r'))
     plan = plan_data['plan']
-    traj = SamplerTrajectory(pidx, key_configs)
+    #traj = SamplerTrajectory(pidx)
+    traj = SAHSSamplerTrajectory(pidx)
     traj.add_trajectory(plan)
     return traj
 
@@ -61,6 +63,7 @@ def parse_parameters():
 
 def get_processed_fname(raw_fname):
     traj_fname = 'pap_traj_' + raw_fname
+
     return traj_fname
 
 
@@ -71,7 +74,9 @@ def get_goal_entities():
 
 
 def get_raw_fname(parameters):
-    return 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
+    # fname = 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
+    fname = 'pidx_%d_planner_seed_0_train_seed_0_domain_two_arm_mover.pkl' % parameters.pidx
+    return fname
 
 
 def quit_if_already_done(fpath, config):
@@ -95,7 +100,7 @@ def main():
     # at all configs anyways. todo: reprocess the data using the full prm
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     # key_configs = np.delete(key_configs, 293, axis=0)
-    traj = process_plan_file(raw_dir + raw_fname, parameters.pidx, key_configs)
+    traj = process_plan_file(raw_dir + raw_fname, parameters.pidx)
     save_traj(traj, save_dir + processed_fname)
 
 

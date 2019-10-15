@@ -47,7 +47,7 @@ def get_place_base_poses(action, smples, mover):
 
 
 class SamplerTrajectory:
-    def __init__(self, problem_idx, key_configs):
+    def __init__(self, problem_idx):
         self.problem_idx = problem_idx
         self.paps_used = None
         self.states = []
@@ -89,7 +89,7 @@ class SamplerTrajectory:
         problem_env, openrave_env = self.create_environment()
         self.problem_env = problem_env
 
-        #admon = create_imle_model(1)
+        # admon = create_imle_model(1)
 
         state = None
         utils.viewer()
@@ -110,7 +110,6 @@ class SamplerTrajectory:
                 import pdb; pdb.set_trace()
                 """
                 ##############################################################################
-
 
                 action.execute()
                 obj_pose = utils.get_body_xytheta(action.discrete_parameters['object'])
@@ -143,4 +142,47 @@ class SamplerTrajectory:
         self.add_state_prime()
         print "Done!"
         openrave_env.Destroy()
-        # openravepy.RaveDestroy()
+
+
+class SAHSSamplerTrajectory(SamplerTrajectory):
+    def __init__(self, problem_idx):
+        SamplerTrajectory.__init__(self, problem_idx)
+
+    def add_trajectory(self, plan):
+        print "Problem idx", self.problem_idx
+        self.set_seed(self.problem_idx)
+        problem_env, openrave_env = self.create_environment()
+        self.problem_env = problem_env
+
+        state = None
+        utils.viewer()
+        for action_idx, action in enumerate(plan):
+            assert action.type == 'two_arm_pick_two_arm_place'
+            state = self.compute_state(action.discrete_parameters['object'], action.discrete_parameters['region'])
+            pick_action_info = action.continuous_parameters['pick']
+            place_action_info = action.continuous_parameters['place']
+
+            pick_parameters = pick_action_info['action_parameters']
+
+            pick_base_pose = utils.clean_pose_data(pick_action_info['q_goal'])
+            place_base_pose = utils.clean_pose_data(place_action_info['q_goal'])
+
+            action_info = {
+                'object_name': action.discrete_parameters['object'],
+                'region_name': action.discrete_parameters['region'],
+                'pick_base_ir_parameters': pick_parameters,
+                'place_abs_base_pose': place_base_pose,
+                'pick_abs_base_pose': pick_base_pose,
+            }
+            if action == plan[-1]:
+                reward = 0
+            else:
+                reward = -1
+
+            print action.discrete_parameters['object'], action.discrete_parameters['region']
+            action.execute()
+            self.add_sar_tuples(state, action_info, reward)
+
+        self.add_state_prime()
+        print "Done!"
+        openrave_env.Destroy()
