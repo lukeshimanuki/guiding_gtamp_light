@@ -128,7 +128,6 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-pidx', type=int, default=0)
     parser.add_argument('-train_seed', type=int, default=0)
-    parser.add_argument('-smpler_train_seed', type=int, default=0)
     parser.add_argument('-planner_seed', type=int, default=0)
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-num_node_limit', type=int, default=3000)

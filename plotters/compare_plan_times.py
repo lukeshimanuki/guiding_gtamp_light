@@ -113,7 +113,7 @@ def main():
     n_objs = int(sys.argv[1])
     t_limit = 300 * n_objs
 
-    domain = 'one_arm_mover'
+    domain = 'two_arm_mover'
     if domain == 'one_arm_mover':
         t_limit = 1000
 
@@ -150,9 +150,18 @@ def main():
                'loss_dql/num_train_5000/mse_weight_1.0/use_region_agnostic_False/mix_rate_1.0/' % (
                    domain, n_objs)
 
+    test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
+               'n_objs_pack_%d/integrated/shortest_irsc/' \
+               'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/smpler_num_train_5000/' % (domain, n_objs)
+
+    test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
+               'n_objs_pack_%d/integrated/shortest_irsc/' \
+               'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/unregularized_smpler_num_train_5000/' % (
+               domain, n_objs)
+
     test_files = os.listdir(test_dir)
     get_plan_times(test_dir, test_files, t_limit)
-    #get_num_nodes(test_dir, test_files, mode='irsc')
+    get_num_nodes(test_dir, test_files)
 
 
 if __name__ == '__main__':

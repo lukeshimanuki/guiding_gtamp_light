@@ -22,6 +22,10 @@ def get_save_dir():
 
 def get_raw_dir():
     raw_dir = ROOTDIR + '/planning_experience/raw/two_arm_mover/n_objs_pack_1//'
+    raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/' \
+                        'qlearned_hcount_obj_already_in_goal_old_number_in_goal/' \
+                        'shortest_irsc/loss_largemargin/num_train_5000/mse_weight_1.0/' \
+                        'use_region_agnostic_False/mix_rate_1.0/'
     return raw_dir
 
 
