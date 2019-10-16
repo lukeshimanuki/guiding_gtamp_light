@@ -113,10 +113,19 @@ def get_solution_file_name(config):
                              + str(config.use_region_agnostic) + '/'
     else:
         raise NotImplementedError
-    solution_file_name = 'pidx_' + str(config.pidx) + \
-                         '_planner_seed_' + str(config.planner_seed) + \
-                         '_train_seed_' + str(config.train_seed) + \
-                         '_domain_' + str(config.domain) + '.pkl'
+
+    if config.integrated or config.integrated_unregularized_sampler:
+        solution_file_name = 'pidx_' + str(config.pidx) + \
+                             '_planner_seed_' + str(config.planner_seed) + \
+                             '_train_seed_' + str(config.train_seed) + \
+                             '_smpler_seed_' + str(config.sampler_seed) + \
+                             '_domain_' + str(config.domain) + '.pkl'
+    else:
+        solution_file_name = 'pidx_' + str(config.pidx) + \
+                             '_planner_seed_' + str(config.planner_seed) + \
+                             '_train_seed_' + str(config.train_seed) + \
+                             '_domain_' + str(config.domain) + '.pkl'
+
     if not os.path.isdir(solution_file_dir):
         os.makedirs(solution_file_dir)
 
