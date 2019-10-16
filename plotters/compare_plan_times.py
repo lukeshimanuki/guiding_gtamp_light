@@ -158,6 +158,10 @@ def main():
                'n_objs_pack_%d/integrated/shortest_irsc/' \
                'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/unregularized_smpler_num_train_5000/' % (
                domain, n_objs)
+    test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
+               'n_objs_pack_%d/integrated/shortest_irsc/' \
+               'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/smpler_num_train_5000/' % (
+                   domain, n_objs)
 
     test_files = os.listdir(test_dir)
     get_plan_times(test_dir, test_files, t_limit)

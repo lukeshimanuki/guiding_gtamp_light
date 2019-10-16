@@ -1,24 +1,11 @@
 from gtamp_problem_environments.mover_env import Mover
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
-from generators.learning.AdMon import AdversarialMonteCarlo
 from generators.learning.utils.model_creation_utils import create_imle_model
 
 import numpy as np
 import random
 import sys
-
-
-def get_learned_smpler():
-    n_key_configs = 620
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 8
-    admon = AdversarialMonteCarlo(dim_action=dim_action, dim_state=dim_state,
-                                  save_folder='./generators/learning/learned_weights/',
-                                  tau=1.0,
-                                  explr_const=0.0)
-    admon.load_weights(agen_file='a_gen_epoch_30.h5')
-    return admon
 
 
 def get_pick_base_poses(action, smples):
@@ -47,7 +34,7 @@ def get_place_base_poses(action, smples, mover):
 
 
 class SamplerTrajectory:
-    def __init__(self, problem_idx):
+    def __init__(self, problem_idx, n_objs_pack):
         self.problem_idx = problem_idx
         self.paps_used = None
         self.states = []
@@ -56,12 +43,10 @@ class SamplerTrajectory:
         self.state_prime = []
         self.seed = None  # this defines the initial state
         self.problem_env = None
+        self.n_objs_pack = n_objs_pack
 
-    def compute_state(self, obj, region):
-        # todo the state of a concrete node consists of the object, region, and the collision vector.
-        if 'two_arm_mover' in self.problem_env.name:
-            goal_entities = ['square_packing_box1', 'home_region']
-        else:
+    def compute_state(self, obj, region, goal_entities):
+        if not 'two_arm_mover' in self.problem_env.name:
             raise NotImplementedError
         return ConcreteNodeState(self.problem_env, obj, region, goal_entities)
 
@@ -88,8 +73,10 @@ class SamplerTrajectory:
         self.set_seed(self.problem_idx)
         problem_env, openrave_env = self.create_environment()
         self.problem_env = problem_env
-
-        # admon = create_imle_model(1)
+        if 'two_arm' in problem_env.name:
+            goal_entities = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:self.n_objs_pack]]
+        else:
+            raise NotImplementedError
 
         state = None
         utils.viewer()
@@ -97,7 +84,8 @@ class SamplerTrajectory:
             if 'pick' in action.type:
                 associated_place = plan[action_idx + 1]
                 state = self.compute_state(action.discrete_parameters['object'],
-                                           associated_place.discrete_parameters['region'])
+                                           associated_place.discrete_parameters['region'],
+                                           goal_entities)
 
                 ## Visualization purpose
                 """
@@ -145,20 +133,25 @@ class SamplerTrajectory:
 
 
 class SAHSSamplerTrajectory(SamplerTrajectory):
-    def __init__(self, problem_idx):
-        SamplerTrajectory.__init__(self, problem_idx)
+    def __init__(self, problem_idx, n_objs_pack):
+        SamplerTrajectory.__init__(self, problem_idx, n_objs_pack)
 
     def add_trajectory(self, plan):
         print "Problem idx", self.problem_idx
         self.set_seed(self.problem_idx)
         problem_env, openrave_env = self.create_environment()
+
+        if 'two_arm' in problem_env.name:
+            goal_entities = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:self.n_objs_pack]]
+        else:
+            raise NotImplementedError
+
         self.problem_env = problem_env
 
-        state = None
-        utils.viewer()
+        #utils.viewer()
         for action_idx, action in enumerate(plan):
             assert action.type == 'two_arm_pick_two_arm_place'
-            state = self.compute_state(action.discrete_parameters['object'], action.discrete_parameters['region'])
+            state = self.compute_state(action.discrete_parameters['object'], action.discrete_parameters['region'], goal_entities)
             pick_action_info = action.continuous_parameters['pick']
             place_action_info = action.continuous_parameters['place']
 

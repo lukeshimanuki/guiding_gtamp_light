@@ -1,6 +1,6 @@
 import sys
 
-#from manipulation.constants import PARALLEL_LEFT_ARM, REST_LEFT_ARM, HOLDING_LEFT_ARM, FOLDED_LEFT_ARM, \
+# from manipulation.constants import PARALLEL_LEFT_ARM, REST_LEFT_ARM, HOLDING_LEFT_ARM, FOLDED_LEFT_ARM, \
 #    FAR_HOLDING_LEFT_ARM, LOWER_TOP_HOLDING_LEFT_ARM, REGION_Z_OFFSET
 
 from gtamp_utils.utils import *
@@ -25,6 +25,7 @@ OBST_COLOR = (1, 0, 0)
 OBST_TRANSPARENCY = .25
 
 N_OBJS = 10
+
 
 def generate_rand(min, max):
     return np.random.rand() * (max - min) + min
@@ -128,7 +129,7 @@ def create_doors(x_lim, y_lim, door_x, door_y, door_width, th, env):
     right_wall = box_body(env,
                           0.04 * 2, right_wall_size * 2, 1 * 2,
                           name='right_wall',
-                          color=(0, 0, 1))
+                          color=(0, 0, 0))
     if th == 0:
         place_body(env, left_wall, (door_x, door_y + left_wall_size + (door_width / 2.), th),
                    base_name='bottom_wall')
@@ -247,9 +248,10 @@ def create_shelf(env, obst_x, obst_width, obst_height, name_idx, stacked_obj_nam
         region = create_region(env, 'place_region_' + str(name_idx),
                                ((-1.0, 1.0), (-0.85, 0.85)),
                                'bottom_wall_' + str(name_idx), color=np.array((0, 0, 0, .5)))
-        #viewer()
-        #region.draw(env)
+        # viewer()
+        # region.draw(env)
         return region
+
 
 # remove region name entity_names
 
@@ -305,7 +307,7 @@ def create_shelves(env, shelf_shapes, shelf_xs, table_name):
     # regions = {'center': center_region, 'center_top': center_top_region,
     #           'left': left_region, 'left_top': left_top_region}
     #           'right': right_region, 'right_top': right_top_region}
-    #regions = {'center': center_region, 'center_top': center_top_region}
+    # regions = {'center': center_region, 'center_top': center_top_region}
     regions = {'center': center_region}
     return regions
 
@@ -335,7 +337,7 @@ def create_shelf_objs(env, obj_shapes):
     # left_top_objs = create_box_bodies(obj_shapes['ltop_obj_shapes'], color='green', name='ltop_obst',
     #                                  n_objs=n_objs, env=env)
     center_objs = create_box_bodies(obj_shapes['c_obj_shapes'], color='blue', name='c_obst', n_objs=N_OBJS, env=env)
-    #center_top_objs = create_box_bodies(obj_shapes['ctop_obj_shapes'], color='blue', name='ctop_obst', n_objs=N_OBJS,
+    # center_top_objs = create_box_bodies(obj_shapes['ctop_obj_shapes'], color='blue', name='ctop_obst', n_objs=N_OBJS,
     #                                    env=env)
     # right_objs = create_box_bodies(obj_shapes['r_obj_shapes'], color='red', name='r_obst',
     #                               n_objs=n_objs, env=env)
@@ -344,7 +346,7 @@ def create_shelf_objs(env, obj_shapes):
     # objects = {  # 'left': left_objs, 'left_top': left_top_objs,
     #    'center': center_objs, 'center_top': center_top_objs,
     #    'right': right_objs, 'right_top': right_top_objs}
-    #objects = {'center': center_objs, 'center_top': center_top_objs}
+    # objects = {'center': center_objs, 'center_top': center_top_objs}
     objects = {'center': center_objs}
     return objects
 
@@ -367,15 +369,15 @@ def generate_poses_and_place_shelf_objs(objects, regions, env):
     """
     center_objs = objects['center']
     center_region = regions['center']
-    #center_top_objs = objects['center_top']
-    #center_top_region = regions['center_top']
+    # center_top_objs = objects['center_top']
+    # center_top_region = regions['center_top']
 
     # place_objs_in_region(left_objs, left_region, env)
     # place_objs_in_region(left_top_objs, left_top_region, env)
     # place_objs_in_region(right_objs, right_region, env)
     # place_objs_in_region(right_top_objs, right_top_region, env)
     place_objs_in_region(center_objs, center_region, env)
-    #place_objs_in_region(center_top_objs, center_top_region, env)
+    # place_objs_in_region(center_top_objs, center_top_region, env)
 
     obj_poses = {obj.GetName(): get_pose(obj) for obj_list in objects.values() for obj in obj_list}
     return obj_poses
@@ -477,7 +479,10 @@ class MoverEnvironmentDefinition:
             (-entire_region_xy_extents[1] + entire_region_xy[1], entire_region_xy_extents[1] + entire_region_xy[1])),
                                  z=0.135, color=np.array((1, 1, 0, 0.25)))
 
-        packing_boxes = [b for b in env.GetBodies() if b.GetName().find('packing_box') != -1]
+        packing_box_names = ['square_packing_box1', 'rectangular_packing_box1', 'square_packing_box2',
+                             'rectangular_packing_box2', 'square_packing_box3', 'rectangular_packing_box3',
+                             'square_packing_box4', 'rectangular_packing_box4']
+        packing_boxes = [env.GetKinBody(pname) for pname in packing_box_names]
 
         place_objs_in_region(packing_boxes, loading_region, env)
         place_objs_in_region([robot], loading_region, env)
@@ -532,6 +537,14 @@ class MoverEnvironmentDefinition:
                                'home_region_extents': home_region_xy_extents,
                                'shelf_regions': shelf_regions,
                                'objects': objects}
+        # import pdb;pdb.set_trace()
+        """
+        # for corl presentation purpose
+        for p in packing_boxes: set_color(p, [0, 0, 0])
+        set_color('rectangular_packing_box3', [1, 0, 0])
+        set_color('rectangular_packing_box1', [0, 1, 0])
+        set_color('rectangular_packing_box4', [0, 1, 1])
+        """
 
     def get_problem_config(self):
         return self.problem_config

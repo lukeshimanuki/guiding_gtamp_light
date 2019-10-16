@@ -46,8 +46,8 @@ def process_plan_file(filename, pidx):
     print "Plan file name", filename
     plan_data = pickle.load(open(filename, 'r'))
     plan = plan_data['plan']
-    #traj = SamplerTrajectory(pidx)
-    traj = SAHSSamplerTrajectory(pidx)
+    # traj = SamplerTrajectory(pidx)
+    traj = SAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
     traj.add_trajectory(plan)
     return traj
 
@@ -65,12 +65,6 @@ def get_processed_fname(raw_fname):
     traj_fname = 'pap_traj_' + raw_fname
 
     return traj_fname
-
-
-def get_goal_entities():
-    goal_entities = ['square_packing_box1', 'home_region']
-
-    return goal_entities
 
 
 def get_raw_fname(parameters):
