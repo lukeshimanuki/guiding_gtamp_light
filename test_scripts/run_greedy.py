@@ -60,7 +60,6 @@ def get_solution_file_name(config):
     elif config.state_hcount:
         solution_file_dir += '/state_hcount/'
     elif config.integrated:
-        solution_file_dir += '/learned_sampler/'
         # What about the tamp-q? Take as its input
         solution_file_dir += '/integrated/shortest_irsc/'
         q_config = '/q_config_num_train_' + str(config.num_train) + \
