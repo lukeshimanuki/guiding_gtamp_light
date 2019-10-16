@@ -9,20 +9,12 @@ import socket
 def parse_args():
     parser = argparse.ArgumentParser(description='Process configurations')
     parser.add_argument('-n_data', type=int, default=100)
-    parser.add_argument('-a', default='ddpg')
-    parser.add_argument('-g', action='store_true')
-    parser.add_argument('-n_trial', type=int, default=-1)
-    parser.add_argument('-i', type=int, default=0)
-    parser.add_argument('-v', action='store_true')
-    parser.add_argument('-tau', type=float, default=0.999)
     parser.add_argument('-d_lr', type=float, default=1e-3)
     parser.add_argument('-g_lr', type=float, default=1e-4)
-    parser.add_argument('-algo', type=str, default='rel_konf_place_admon')
-    parser.add_argument('-n_score', type=int, default=5)
-    parser.add_argument('-otherpi', default='uniform')
-    parser.add_argument('-explr_p', type=float, default=0.3)
-    parser.add_argument('-domain', type=str, default='convbelt')
+    parser.add_argument('-algo', type=str, default='imle')
     parser.add_argument('-seed', type=int, default=0)
+    parser.add_argument('-tau', type=float, default=0.0)
+    parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
     args = parser.parse_args()
     return args
 
@@ -36,9 +28,6 @@ import tensorflow as tf
 
 tf.set_random_seed(configs.seed)
 
-from AdMon import AdversarialMonteCarlo
-from PlaceAdMonWithPose import PlaceAdmonWithPose
-from CMAESAdMonWithPose import CMAESAdversarialMonteCarloWithPose
 from RelKonfMSEWithPose import RelKonfMSEPose
 from RelKonfIMLE import RelKonfIMLEPose
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
@@ -111,14 +100,18 @@ def load_data(traj_dir):
     return all_states, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
 
 
-def get_data():
+def get_data(datatype):
     if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
         root_dir = './'
     else:
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/planning_experience/processed/'
-    states, poses, rel_konfs, actions, sum_rewards = load_data(
-        root_dir + '/planning_experience/processed/domain_two_arm_mover/'
-                   'n_objs_pack_1/irsc/sampler_trajectory_data/')
+
+    if datatype == 'n_objs_pack_4':
+        data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/sampler_trajectory_data/'
+    else:
+        data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
+
+    states, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -133,71 +126,6 @@ def get_data():
     return states, poses, rel_konfs, is_goal_flags, actions, sum_rewards
 
 
-def train_admon(config):
-    # Loads the processed data
-    states, _, actions, sum_rewards = get_data()
-    n_goal_flags = 2  # indicating whether it is a goal obj and goal region
-    n_key_configs = 618  # indicating whether it is a goal obj and goal region
-    dim_state = (n_key_configs + n_goal_flags, 2, 1)
-    dim_action = actions.shape[1]
-    savedir = './generators/learning/learned_weights/state_data_mode_%s_action_data_mode_%s/admon/' % (
-        state_data_mode, action_data_mode)
-    admon = AdversarialMonteCarlo(dim_action=dim_action, dim_state=dim_state, save_folder=savedir, tau=config.tau)
-    admon.train(states, actions, sum_rewards, epochs=100)
-
-
-def train_admon_with_pose(config):
-    states, poses, actions, sum_rewards = get_data()
-    n_goal_flags = 2  # indicating whether it is a goal obj and goal region
-    n_key_configs = 618  # indicating whether it is a goal obj and goal region
-    dim_state = (n_key_configs + n_goal_flags, 2, 1)
-    dim_action = actions.shape[1]
-    savedir = 'generators/learning/learned_weights/state_data_mode_%s_action_data_mode_%s/admon_with_pose/' % (
-        state_data_mode, action_data_mode)
-    admon = PlaceAdmonWithPose(dim_action=dim_action, dim_collision=dim_state,
-                               save_folder=savedir, tau=config.tau, config=config)
-    admon.train(states, poses, actions, sum_rewards, epochs=500)
-
-
-def train_place_admon_with_pose(config):
-    states, poses, key_configs, actions, sum_rewards = get_data()
-    actions = actions[:, 4:]
-    n_key_configs = states.shape[1]  # indicating whether it is a goal obj and goal region
-    dim_state = (n_key_configs, 6, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/state_data_mode_%s_action_data_mode_%s/place_admon/' % (
-        state_data_mode, action_data_mode)
-    admon = PlaceAdmonWithPose(dim_action=dim_action, dim_collision=dim_state,
-                               save_folder=savedir, tau=config.tau, config=config)
-
-    is_mse_pretrained = os.path.isfile(admon.save_folder + admon.pretraining_file_name)
-    if not is_mse_pretrained:
-        admon.pretrain_discriminator_with_mse(states, poses, actions, sum_rewards)
-
-    # But I have not loaded the weight?
-    admon.train(states, poses, actions, sum_rewards, epochs=500)
-
-
-def train_cmaes_place_admon_with_pose(config):
-    states, poses, rel_konfs, actions, sum_rewards = get_data()
-    n_key_configs = 615
-    dim_state = (n_key_configs, 6, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/state_data_mode_%s_action_data_mode_%s/cmaes_place_admon/' % (
-        state_data_mode, action_data_mode)
-    admon = CMAESAdversarialMonteCarloWithPose(dim_action=dim_action, dim_collision=dim_state,
-                                               save_folder=savedir, tau=config.tau, config=config)
-
-    actions = actions[:, 4:]
-    is_mse_pretrained = os.path.isfile(admon.save_folder + admon.pretraining_file_name)
-    if not is_mse_pretrained:
-        admon.pretrain_discriminator_with_mse(states, poses, actions, sum_rewards)
-    admon.disc_mse_model.load_weights(admon.save_folder + admon.pretraining_file_name)
-
-    # But I have not loaded the weight?
-    admon.train(states, poses, actions, sum_rewards, epochs=500)
-
-
 def train_rel_konf_place_mse(config):
     n_key_configs = 615
     dim_state = (n_key_configs, 2, 1)
@@ -208,13 +136,14 @@ def train_rel_konf_place_mse(config):
                            save_folder=savedir, tau=config.tau, config=config)
     admon.policy_model.summary()
 
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data()
+    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]  # now include relative goal pose
 
     admon.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
     pred = admon.w_model.predict([goal_flags, rel_konfs, states, poses])
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
 
 
 def train_rel_konf_place_admon(config):
@@ -227,27 +156,16 @@ def train_rel_konf_place_admon(config):
                             save_folder=savedir, tau=config.tau, config=config)
     print "Created IMLE-admon"
 
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data()
+    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]
-    #pred = admon.w_model.predict([goal_flags, rel_konfs, states, poses])
-    #import pdb;pdb.set_trace()
     admon.train(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def main():
-    if configs.algo == 'admon':
-        train_admon(configs)
-    elif configs.algo == 'admonpose':
-        train_admon_with_pose(configs)
-    elif configs.algo == 'placeadmonpose':
-        print "Training place only"
-        train_place_admon_with_pose(configs)
-    elif configs.algo == 'cmaes_placeadmonpose':
-        train_cmaes_place_admon_with_pose(configs)
-    elif configs.algo == 'rel_konf_place_mse':
+    if configs.algo == 'mse':
         train_rel_konf_place_mse(configs)
-    elif configs.algo == 'rel_konf_place_admon':
+    elif configs.algo == 'imle':
         train_rel_konf_place_admon(configs)
     else:
         raise NotImplementedError
