@@ -42,8 +42,8 @@ def get_solution_file_name(config):
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/'
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/'
-        solution_file_dir = root_dir + '/domain_%s/n_objs_pack_%d' \
+        root_dir = root_dir + '/planning_experience/raw/'
+        solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
         solution_file_dir = root_dir + '/test_results/sahs_results/using_weights_for_submission/domain_%s/n_objs_pack_%d' \
