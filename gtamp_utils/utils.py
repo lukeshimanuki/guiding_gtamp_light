@@ -224,7 +224,11 @@ def trans_from_xytheta(obj, xytheta):
     return trans
 
 
-def remove_drawn_configs(name, env):
+def remove_drawn_configs(name, env=None):
+    if env is None:
+        assert len(openravepy.RaveGetEnvironments()) == 1
+        env = openravepy.RaveGetEnvironments()[0]
+
     for body in env.GetBodies():
         if body.GetName().find(name) != -1:
             env.Remove(body)
