@@ -158,10 +158,13 @@ class PaPUniformGenerator(UniformGenerator):
                           cached_collisions=None, cached_holding_collisions=None, dont_check_motion_existence=False):
         # Not yet motion-planning-feasible
         target_obj = operator_skeleton.discrete_parameters['object']
+        operator_skeleton.discrete_parameters['object'] = target_obj
+        operator_skeleton.discrete_parameters['region'] = 'home_region'
         if target_obj in self.feasible_pick_params:
             self.op_feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         status = "NoSolution"
+
         stime = time.time()
         for curr_n_iter in range(10, self.max_n_iter, 10):
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
@@ -169,20 +172,20 @@ class PaPUniformGenerator(UniformGenerator):
                                                                                 n_parameters_to_try_motion_planning)
 
             if status == 'HasSolution':
-                # Don't break here, but try to get more parameters
+                #import pdb;pdb.set_trace()
+                #utils.two_arm_pick_object(target_obj, feasible_op_parameters[0]['pick'])## CORL
+                import pdb;pdb.set_trace()
                 break
                 """
                 if dont_check_motion_existence:
                     chosen_op_param = self.choose_one_of_params(feasible_op_parameters, status)
                     return chosen_op_param
                 else:
-                    chosen_op_param = self.get_pap_param_with_feasible_motion_plan(operator_skeleton,
-                                                                                   feasible_op_parameters,
-                                                                                   cached_collisions,
-                                                                                   cached_holding_collisions)
+                    chosen_op_param = self.get_pap_param_with_feasible_motion_plan(operator_skeleton, feasible_op_parameters, cached_collisions, cached_holding_collisions)
                     if chosen_op_param['is_feasible']:
                         return chosen_op_param
                 """
+
         print "Time taken", time.time() - stime, status
 
         if status == "NoSolution":
