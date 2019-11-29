@@ -1,12 +1,9 @@
 from keras.layers import *
 from keras.layers.merge import Concatenate
-from generators.learning.AdversarialPolicy import AdversarialPolicy
+from generators.learning.Policy import Policy
 from keras.models import Model
 from keras import backend as K
 
-import tensorflow as tf
-import time
-import os
 import socket
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
@@ -16,11 +13,7 @@ else:
 
 
 def G_loss(true_actions, pred):
-    # pred = Q(G(z))
-    # I don't have access to fake and real actions; what to do?
     return -K.mean(pred, axis=-1)
-
-
 
 
 def slice_x(x):
@@ -35,10 +28,10 @@ def slice_th(x):
     return x[:, 2:]
 
 
-class RelKonfMSEPose(AdversarialPolicy):
+class RelKonfMSEPose(Policy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         # todo try different weight initializations
-        AdversarialPolicy.__init__(self, dim_action, dim_collision, save_folder, tau)
+        Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
 
         self.dim_poses = 8
         self.dim_collision = dim_collision
@@ -62,11 +55,7 @@ class RelKonfMSEPose(AdversarialPolicy):
         self.q_output = self.construct_q_function()
         self.q_mse_model = self.construct_q_mse_model(self.q_output)
 
-        # self.reachability_output = self.construct_reachability_output()
-        # self.reachability_model = self.construct_reachability_model()
-
         self.policy_output = self.construt_self_attention_policy_output()
-        # self.policy_output = self.construct_policy_output()
         self.policy_model = self.construct_policy_model()
 
     def construct_reachability_model(self):
@@ -206,20 +195,6 @@ class RelKonfMSEPose(AdversarialPolicy):
         dim_combined = konf_goal_flag.shape[2]._value
         hidden_relevance = self.create_conv_layers(konf_goal_flag, dim_combined, use_pooling=True,
                                                    use_flatten=True)
-        """
-        n_conv_filters = 16
-        hidden_relevance = Conv2D(filters=n_conv_filters,
-                                  kernel_size=(1, 1),
-                                  strides=(1, 1),
-                                  activation='relu',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer
-                                  )(hidden_relevance)
-        hidden_relevance = Reshape((615, n_conv_filters, 1))(hidden_relevance)
-        #hidden_col_relevance = Concatenate(axis=2)([self.collision_input, hidden_relevance])
-        #hidden_col_relevance = self.create_conv_layers(hidden_col_relevance, n_dim=2 + n_conv_filters,
-        #                                               use_pooling=False)
-        """
 
         dense_num = 256
         hidden_action = Dense(dense_num, activation='relu',

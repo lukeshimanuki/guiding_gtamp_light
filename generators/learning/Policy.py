@@ -43,7 +43,7 @@ def tile(x):
     return K.tile(x, reps)
 
 
-class AdversarialPolicy:
+class Policy:
     def __init__(self, dim_action, dim_state, save_folder, tau):
         if not os.path.isdir(save_folder):
             os.makedirs(save_folder)
@@ -62,15 +62,16 @@ class AdversarialPolicy:
 
         self.dim_noise = dim_z
 
-        # get setup dimensions for inputs
+        # setup dimensions for inputs
         self.dim_action = dim_action
         self.dim_state = dim_state
         self.n_key_confs = dim_state[0]
 
+        # setup inputs
         self.tau = tau
-        self.noise_input = Input(shape=(self.dim_noise,), name='z', dtype='float32')
         self.tau_input = Input(shape=(1,), name='tau', dtype='float32')  # collision vector
         self.save_folder = save_folder
+        self.noise_input = Input(shape=(self.dim_noise,), name='z', dtype='float32')
 
         self.test_data = None
         self.desired_test_err = None
@@ -108,6 +109,7 @@ class AdversarialPolicy:
         return train_idxs, test_idxs
 
     def create_conv_layers(self, input, n_dim, use_pooling=True, use_flatten=True):
+        # a helper function for creating a NN that applies the same function for each key config
         n_filters = 32
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
