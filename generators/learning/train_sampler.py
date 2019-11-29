@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument('-n_data', type=int, default=100)
     parser.add_argument('-d_lr', type=float, default=1e-3)
     parser.add_argument('-g_lr', type=float, default=1e-4)
-    parser.add_argument('-algo', type=str, default='imle')
+    parser.add_argument('-algo', type=str, default='mse')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-tau', type=float, default=0.0)
     parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
@@ -28,8 +28,8 @@ import tensorflow as tf
 
 tf.set_random_seed(configs.seed)
 
-from RelKonfMSEWithPose import RelKonfMSEPose
-from RelKonfIMLE import RelKonfIMLEPose
+from PlaceMSE import PlaceMSE
+#from RelKonfIMLE import RelKonfIMLEPose
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 
@@ -132,18 +132,16 @@ def train_rel_konf_place_mse(config):
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' % (
         config.dtype, state_data_mode, action_data_mode)
-    admon = RelKonfMSEPose(dim_action=dim_action, dim_collision=dim_state,
+    policy = PlaceMSE(dim_action=dim_action, dim_collision=dim_state,
                            save_folder=savedir, tau=config.tau, config=config)
-    admon.policy_model.summary()
+    policy.policy_model.summary()
 
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]  # now include relative goal pose
 
-    admon.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-    pred = admon.w_model.predict([goal_flags, rel_konfs, states, poses])
-    import pdb;
-    pdb.set_trace()
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    pred = policy.w_model.predict([goal_flags, rel_konfs, states, poses])
 
 
 def train_rel_konf_place_admon(config):

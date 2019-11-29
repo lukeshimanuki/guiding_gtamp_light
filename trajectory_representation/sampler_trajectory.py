@@ -1,7 +1,6 @@
 from gtamp_problem_environments.mover_env import Mover
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
-from generators.learning.utils.model_creation_utils import create_imle_model
 
 import numpy as np
 import random

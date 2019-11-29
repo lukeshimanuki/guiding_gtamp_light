@@ -97,16 +97,42 @@ class Policy:
         K.set_value(self.opt_G.lr, g_lr)
         K.set_value(self.opt_D.lr, d_lr)
 
-    def compute_pure_mse(self, data):
-        return np.mean(np.power(self.disc_mse_model.predict([data['actions'], data['states'], data['poses']])
-                                - data['sum_rewards'], 2))
-
     def get_train_and_test_indices(self, n_data):
         test_idxs = np.random.randint(0, n_data, size=int(0.2 * n_data))
         train_idxs = list(set(range(n_data)).difference(set(test_idxs)))
         pickle.dump({'train': train_idxs, 'test': test_idxs},
                     open('data_idxs_seed_%s' % self.seed, 'wb'))
         return train_idxs, test_idxs
+
+    @staticmethod
+    def get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards, train_indices,
+                                test_indices):
+        train = {'states': states[train_indices, :],
+                 'poses': poses[train_indices, :],
+                 'actions': actions[train_indices, :],
+                 'rel_konfs': rel_konfs[train_indices, :],
+                 'sum_rewards': sum_rewards[train_indices, :],
+                 'goal_flags': goal_flags[train_indices, :]
+                 }
+        test = {'states': states[test_indices, :],
+                'poses': poses[test_indices, :],
+                'goal_flags': goal_flags[test_indices, :],
+                'actions': actions[test_indices, :],
+                'rel_konfs': rel_konfs[test_indices, :],
+                'sum_rewards': sum_rewards[test_indices, :]
+                }
+        return train, test
+
+    @staticmethod
+    def get_batch(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
+        indices = np.random.randint(0, actions.shape[0], size=batch_size)
+        cols_batch = np.array(cols[indices, :])  # collision vector
+        goal_flag_batch = np.array(goal_flags[indices, :])  # collision vector
+        a_batch = np.array(actions[indices, :])
+        pose_batch = np.array(poses[indices, :])
+        konf_batch = np.array(rel_konfs[indices, :])
+        sum_reward_batch = np.array(sum_rewards[indices, :])
+        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
 
     def create_conv_layers(self, input, n_dim, use_pooling=True, use_flatten=True):
         # a helper function for creating a NN that applies the same function for each key config

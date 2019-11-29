@@ -30,12 +30,12 @@ def slice_th(x):
 
 class RelKonfMSEPose(Policy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        # todo try different weight initializations
         Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
 
         self.dim_poses = 8
         self.dim_collision = dim_collision
 
+        # setup inputs
         self.action_input = Input(shape=(dim_action,), name='a', dtype='float32')  # action
         self.collision_input = Input(shape=dim_collision, name='s', dtype='float32')  # collision vector
         self.pose_input = Input(shape=(self.dim_poses,), name='pose', dtype='float32')  # pose
@@ -43,7 +43,7 @@ class RelKonfMSEPose(Policy):
         self.goal_flag_input = Input(shape=(615, 4, 1), name='goal_flag',
                                      dtype='float32')  # goal flag (is_goal_r, is_goal_obj)
 
-        # related to detecting whether a key config is relevant
+        # setup inputs related to detecting whether a key config is relevant
         self.cg_input = Input(shape=(dim_action,), name='cg', dtype='float32')  # action
         self.ck_input = Input(shape=(dim_action,), name='ck', dtype='float32')  # action
         self.collision_at_each_ck = Input(shape=(2,), name='ck', dtype='float32')  # action
@@ -54,7 +54,6 @@ class RelKonfMSEPose(Policy):
 
         self.q_output = self.construct_q_function()
         self.q_mse_model = self.construct_q_mse_model(self.q_output)
-
         self.policy_output = self.construt_self_attention_policy_output()
         self.policy_model = self.construct_policy_model()
 
@@ -259,35 +258,7 @@ class RelKonfMSEPose(Policy):
         q_output = place_value
         return q_output
 
-    def get_train_and_test_data(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, train_indices,
-                                test_indices):
-        train = {'states': states[train_indices, :],
-                 'poses': poses[train_indices, :],
-                 'actions': actions[train_indices, :],
-                 'rel_konfs': rel_konfs[train_indices, :],
-                 'sum_rewards': sum_rewards[train_indices, :],
-                 'goal_flags': goal_flags[train_indices, :]
-                 }
-        test = {'states': states[test_indices, :],
-                'poses': poses[test_indices, :],
-                'goal_flags': goal_flags[test_indices, :],
-                'actions': actions[test_indices, :],
-                'rel_konfs': rel_konfs[test_indices, :],
-                'sum_rewards': sum_rewards[test_indices, :]
-                }
-        return train, test
-
-    def get_batch(self, cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
-        indices = np.random.randint(0, actions.shape[0], size=batch_size)
-        cols_batch = np.array(cols[indices, :])  # collision vector
-        goal_flag_batch = np.array(goal_flags[indices, :])  # collision vector
-        a_batch = np.array(actions[indices, :])
-        pose_batch = np.array(poses[indices, :])
-        konf_batch = np.array(rel_konfs[indices, :])
-        sum_reward_batch = np.array(sum_rewards[indices, :])
-        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
-
-    def compute_pure_mse(self, data):
+    def compute_q_mse(self, data):
         pred = self.q_mse_model.predict(
             [data['actions'], data['goal_flags'], data['poses'], data['rel_konfs'], data['states']])
         return np.mean(np.power(pred - data['sum_rewards'], 2))
@@ -303,7 +274,7 @@ class RelKonfMSEPose(Policy):
                                                                        actions, sum_rewards,
                                                                        train_idxs, test_idxs)
         callbacks = self.create_callbacks_for_pretraining()
-        pre_mse = self.compute_pure_mse(self.test_data)
+        pre_mse = self.compute_q_mse(self.test_data)
         self.q_mse_model.fit([self.train_data['actions'], self.train_data['goal_flags'], self.train_data['poses'],
                               self.train_data['rel_konfs'], self.train_data['states']],
                              self.train_data['sum_rewards'], batch_size=32,
@@ -311,7 +282,7 @@ class RelKonfMSEPose(Policy):
                              verbose=2,
                              callbacks=callbacks,
                              validation_split=0.1)
-        post_mse = self.compute_pure_mse(self.test_data)
+        post_mse = self.compute_q_mse(self.test_data)
 
         print "Pre-and-post test errors", pre_mse, post_mse
 
