@@ -29,6 +29,8 @@ import tensorflow as tf
 tf.set_random_seed(configs.seed)
 
 from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
+from PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
+
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 
@@ -150,14 +152,14 @@ def train_rel_konf_place_admon(config):
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_admon/' % (
         config.dtype, state_data_mode, action_data_mode)
-    admon = RelKonfIMLEPose(dim_action=dim_action, dim_collision=dim_state,
-                            save_folder=savedir, tau=config.tau, config=config)
-    print "Created IMLE-admon"
+    policy = PlacePolicyIMLEFeedForward(dim_action=dim_action, dim_collision=dim_state,
+                                       save_folder=savedir, tau=config.tau, config=config)
+    print "Created IMLE"
 
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]
-    admon.train(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    policy.train(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def main():

@@ -37,7 +37,6 @@ class Policy:
         """
         self.tau = tau
         self.tau_input = Input(shape=(1,), name='tau', dtype='float32')  # collision vector
-        self.noise_input = Input(shape=(self.dim_noise,), name='z', dtype='float32')
         """
         self.save_folder = save_folder
 
