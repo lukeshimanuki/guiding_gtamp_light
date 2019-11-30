@@ -1,48 +1,14 @@
 from keras.optimizers import *
 from keras.layers import *
 from keras.callbacks import *
-
+from keras import initializers
 
 import os
-import sys
 import numpy as np
 import pickle
 
-INFEASIBLE_SCORE = -sys.float_info.max
 
-
-def tau_loss(tau):
-    def augmented_mse(score_data, D_pred):
-        # Determine which of Dpred correspond to fake val
-        neg_mask = tf.equal(score_data, INFEASIBLE_SCORE)
-        y_neg = tf.boolean_mask(D_pred, neg_mask)
-
-        # Determine which of Dpred correspond to true fcn val
-        pos_mask = tf.not_equal(score_data, INFEASIBLE_SCORE)
-        y_pos = tf.boolean_mask(D_pred, pos_mask)
-        score_pos = tf.boolean_mask(score_data, pos_mask)
-
-        # compute mse w.r.t true function values
-        mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
-        return mse_on_true_data + tau[0] * K.mean(y_neg)  # try to minimize the value of y_neg
-
-    return augmented_mse
-
-
-def G_loss(dummy, pred):
-    return -K.mean(pred, axis=-1)  # try to maximize the value of pred
-
-
-def noise(n, z_size):
-    # todo use the uniform over the entire action space here
-    return np.random.normal(size=(n, z_size)).astype('float32')
-
-
-def tile(x):
-    reps = [1, 1, 32]
-    return K.tile(x, reps)
-
-
+# Implements util functions and initializes dimension variables and directories.
 class Policy:
     def __init__(self, dim_action, dim_state, save_folder, tau):
         if not os.path.isdir(save_folder):
@@ -68,10 +34,12 @@ class Policy:
         self.n_key_confs = dim_state[0]
 
         # setup inputs
+        """
         self.tau = tau
         self.tau_input = Input(shape=(1,), name='tau', dtype='float32')  # collision vector
-        self.save_folder = save_folder
         self.noise_input = Input(shape=(self.dim_noise,), name='z', dtype='float32')
+        """
+        self.save_folder = save_folder
 
         self.test_data = None
         self.desired_test_err = None

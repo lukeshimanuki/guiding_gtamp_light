@@ -28,8 +28,7 @@ import tensorflow as tf
 
 tf.set_random_seed(configs.seed)
 
-from PlaceMSE import PlaceMSE
-#from RelKonfIMLE import RelKonfIMLEPose
+from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 
@@ -39,6 +38,7 @@ from gtamp_utils import utils
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
     cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
+    import pdb;pdb.set_trace()
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -101,7 +101,7 @@ def load_data(traj_dir):
 
 
 def get_data(datatype):
-    if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
+    if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
         root_dir = './'
     else:
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/planning_experience/processed/'
@@ -132,10 +132,10 @@ def train_rel_konf_place_mse(config):
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' % (
         config.dtype, state_data_mode, action_data_mode)
-    policy = PlaceMSE(dim_action=dim_action, dim_collision=dim_state,
-                           save_folder=savedir, tau=config.tau, config=config)
+    policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_state,
+                                       save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
-
+    import pdb;pdb.set_trace()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]  # now include relative goal pose

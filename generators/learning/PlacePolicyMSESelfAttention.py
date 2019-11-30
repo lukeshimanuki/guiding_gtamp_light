@@ -48,8 +48,8 @@ class PlaceMSE(Policy):
         self.ck_input = Input(shape=(dim_action,), name='ck', dtype='float32')  # action
         self.collision_at_each_ck = Input(shape=(2,), name='ck', dtype='float32')  # action
 
-        self.weight_file_name = 'admonpose_seed_%d' % config.seed
-        self.pretraining_file_name = 'pretrained_%d.h5' % config.seed
+        self.weight_file_name = 'place_mse_seed_%d' % config.seed
+        self.pretraining_file_name = 'pretrained_place_mse_%d.h5' % config.seed
         self.seed = config.seed
 
         self.policy_output = self.construct_self_attention_policy_output()
@@ -133,6 +133,4 @@ class PlaceMSE(Policy):
                               validation_split=0.1, shuffle=False)
         post_mse = self.compute_policy_mse(test_data)
         print "Pre-and-post test errors", pre_mse, post_mse
-        # wvals = self.W_model.predict([goal_flags, rel_konfs, collisions, poses])[0]
-        collision_idxs = collisions[0].squeeze()[:, 0] == True
 
