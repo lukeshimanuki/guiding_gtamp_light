@@ -45,7 +45,7 @@ class Policy:
         self.desired_test_err = None
         self.disc = None
         self.disc_mse_model = None
-        self.pretraining_file_name = None
+        self.weight_file_name = None
         self.seed = None
 
     @staticmethod
@@ -126,11 +126,11 @@ class Policy:
             H = Flatten()(H)
         return H
 
-    def create_callbacks_for_pretraining(self):
+    def create_callbacks_for_training(self):
         callbacks = [
             TerminateOnNaN(),
             EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=30, ),
-            ModelCheckpoint(filepath=self.save_folder + self.pretraining_file_name,
+            ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
                             verbose=False,
                             save_best_only=True,
                             save_weights_only=True),

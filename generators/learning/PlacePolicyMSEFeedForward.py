@@ -1,7 +1,6 @@
 from keras.layers import *
 from keras.layers.merge import Concatenate
 from keras.models import Model
-from keras import backend as K
 
 from PlacePolicyMSE import PlacePolicyMSE
 
@@ -9,6 +8,7 @@ from PlacePolicyMSE import PlacePolicyMSE
 class PlacePolicyMSEFeedForward(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
+        self.weight_file_name = 'place_mse_ff_seed_%d' % config.seed
 
     def construct_policy_output(self):
         tiled_pose = self.get_tiled_input(self.pose_input)
