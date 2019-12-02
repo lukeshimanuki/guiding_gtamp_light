@@ -92,6 +92,12 @@ def load_data(traj_dir):
         all_states.append(states)
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
+      
+        n_data = len(np.vstack(all_rel_konfs))
+        print n_data
+        if n_data > 5000:
+            break
+        
 
     all_rel_konfs = np.vstack(all_rel_konfs)
     all_states = np.vstack(all_states).squeeze(axis=1)
@@ -114,6 +120,7 @@ def get_data(datatype):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
 
+    print "Loading data from",data_dir
     states, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
