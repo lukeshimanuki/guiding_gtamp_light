@@ -147,6 +147,7 @@ class RelKonfIMLEPose(RelKonfMSEPose):
         return W
 
     def construct_value_output(self, tiled_pose):
+        # Computes the candidate goal configurations
         tiled_noise = self.get_tiled_input(self.noise_input)
         concat_value_input = Concatenate(axis=2)(
             [self.key_config_input, self.goal_flag_input, self.collision_input, tiled_pose, tiled_noise])

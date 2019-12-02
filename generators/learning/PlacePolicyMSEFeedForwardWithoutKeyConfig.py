@@ -5,20 +5,19 @@ from keras.models import Model
 from PlacePolicyMSE import PlacePolicyMSE
 
 
-class PlacePolicyMSEFeedForward(PlacePolicyMSE):
+class PlacePolicyMSEFeedForwardWithoutKeyConfig(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_mse_ff_seed_%d' % config.seed
 
     def construct_policy_output(self):
-        tiled_pose = self.get_tiled_input(self.pose_input)
-        concat_input = Concatenate(axis=2)(
-            [self.key_config_input, self.goal_flag_input, self.collision_input, tiled_pose])
-        H = Flatten()(concat_input)
-        dense_num = 256
+        self.goal_flag_input = Input(shape=(4,), name='goal_flag',
+                                     dtype='float32')
+        concat_input = Concatenate(axis=1)([self.goal_flag_input, self.pose_input])
+        dense_num = 64
         hidden_action = Dense(dense_num, activation='relu',
                               kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer)(H)
+                              bias_initializer=self.bias_initializer)(concat_input)
         hidden_action = Dense(dense_num, activation='relu',
                               kernel_initializer=self.kernel_initializer,
                               bias_initializer=self.bias_initializer)(hidden_action)

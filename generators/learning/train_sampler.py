@@ -29,7 +29,9 @@ import tensorflow as tf
 tf.set_random_seed(configs.seed)
 
 from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
+from PlacePolicyMSEFeedForwardWithoutKeyConfig import PlacePolicyMSEFeedForwardWithoutKeyConfig
 from PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
+from PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
 
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
@@ -40,7 +42,6 @@ from gtamp_utils import utils
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
     cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
-    import pdb;pdb.set_trace()
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -128,22 +129,50 @@ def get_data(datatype):
     return states, poses, rel_konfs, is_goal_flags, actions, sum_rewards
 
 
-def train_rel_konf_place_mse(config):
+def train_mse_ff(config):
     n_key_configs = 615
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' % (
         config.dtype, state_data_mode, action_data_mode)
+    policy = PlacePolicyMSEFeedForwardWithoutKeyConfig(dim_action=dim_action, dim_collision=dim_state,
+                                       save_folder=savedir, tau=config.tau, config=config)
+    policy.policy_model.summary()
+    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    actions = actions[:, 4:]
+    poses = poses[:, 4:8]
+    goal_flags = goal_flags[:, 0, :].squeeze()
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+
+
+def train_mse_ff_keyconfigs(config):
+    n_key_configs = 615
+    dim_state = (n_key_configs, 2, 1)
+    dim_action = 4
+    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' \
+              % (config.dtype, state_data_mode, action_data_mode)
     policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_state,
                                        save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
-    import pdb;pdb.set_trace()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, :8]  # now include relative goal pose
-
+    poses = poses[:, 4:8]
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-    pred = policy.w_model.predict([goal_flags, rel_konfs, states, poses])
+
+
+def train_mse_selfattention_keyconfigs(config):
+    n_key_configs = 615
+    dim_state = (n_key_configs, 2, 1)
+    dim_action = 4
+    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' \
+              % (config.dtype, state_data_mode, action_data_mode)
+    policy = PlacePolicyMSESelfAttention(dim_action=dim_action, dim_collision=dim_state,
+                                       save_folder=savedir, tau=config.tau, config=config)
+    policy.policy_model.summary()
+    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    actions = actions[:, 4:]
+    poses = poses[:, 4:8]
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def train_rel_konf_place_admon(config):
@@ -164,7 +193,11 @@ def train_rel_konf_place_admon(config):
 
 def main():
     if configs.algo == 'mse':
-        train_rel_konf_place_mse(configs)
+        train_mse_ff(configs)
+    elif configs.algo == 'mse_ff_keyconfigs':
+        train_mse_ff_keyconfigs(configs)
+    elif configs.algo == 'mse_selfattention_keyconfigs':
+        train_mse_selfattention_keyconfigs(configs)
     elif configs.algo == 'imle':
         train_rel_konf_place_admon(configs)
     else:
