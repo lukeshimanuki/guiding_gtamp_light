@@ -60,7 +60,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
 
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='key_config_transformation')(value)
         self.value_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.collision_input],
             outputs=value,
             name='value_model')
 
@@ -87,7 +87,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
         W = Lambda(compute_W, name='softmax')(query)
 
         self.w_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.collision_input],
             outputs=W,
             name='w_model')
         return W
