@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument('-n_data', type=int, default=100)
     parser.add_argument('-d_lr', type=float, default=1e-3)
     parser.add_argument('-g_lr', type=float, default=1e-4)
-    parser.add_argument('-algo', type=str, default='imle')
+    parser.add_argument('-algo', type=str, default='mse')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-tau', type=float, default=0.0)
     parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
@@ -28,8 +28,9 @@ import tensorflow as tf
 
 tf.set_random_seed(configs.seed)
 
-from RelKonfMSEWithPose import RelKonfMSEPose
-from RelKonfIMLE import RelKonfIMLEPose
+from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
+from PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
+
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 
@@ -39,6 +40,7 @@ from gtamp_utils import utils
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
     cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
+    import pdb;pdb.set_trace()
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -107,7 +109,7 @@ def load_data(traj_dir):
 
 
 def get_data(datatype):
-    if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
+    if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
         root_dir = './'
     else:
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/planning_experience/processed/'
@@ -139,18 +141,16 @@ def train_rel_konf_place_mse(config):
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' % (
         config.dtype, state_data_mode, action_data_mode)
-    admon = RelKonfMSEPose(dim_action=dim_action, dim_collision=dim_state,
-                           save_folder=savedir, tau=config.tau, config=config)
-    admon.policy_model.summary()
-
+    policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_state,
+                                       save_folder=savedir, tau=config.tau, config=config)
+    policy.policy_model.summary()
+    import pdb;pdb.set_trace()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]  # now include relative goal pose
 
-    admon.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-    pred = admon.w_model.predict([goal_flags, rel_konfs, states, poses])
-    import pdb;
-    pdb.set_trace()
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    pred = policy.w_model.predict([goal_flags, rel_konfs, states, poses])
 
 
 def train_rel_konf_place_admon(config):
@@ -159,14 +159,14 @@ def train_rel_konf_place_admon(config):
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_admon/' % (
         config.dtype, state_data_mode, action_data_mode)
-    admon = RelKonfIMLEPose(dim_action=dim_action, dim_collision=dim_state,
-                            save_folder=savedir, tau=config.tau, config=config)
-    print "Created IMLE-admon"
+    policy = PlacePolicyIMLEFeedForward(dim_action=dim_action, dim_collision=dim_state,
+                                       save_folder=savedir, tau=config.tau, config=config)
+    print "Created IMLE"
 
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :8]
-    admon.train(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    policy.train(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def main():
