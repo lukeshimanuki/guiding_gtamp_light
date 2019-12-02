@@ -36,7 +36,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
     def construct_policy_output(self):
         tiled_pose = self.get_tiled_input(self.pose_input)
         concat_input = Concatenate(axis=2)(
-            [self.key_config_input, self.goal_flag_input, tiled_pose])
+            [self.key_config_input, self.goal_flag_input, tiled_pose, self.collision_input])
 
         W = self.construct_query_output(concat_input)
         value = self.construct_value_output(concat_input)
@@ -56,10 +56,8 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
                        activation='linear',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer,
-                       name='value_output'
-                       )(value)
+                       name='value_output')(value)
 
-        # value = self.key_config_input
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='key_config_transformation')(value)
         self.value_model = Model(
             inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
@@ -86,7 +84,6 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
             x = K.squeeze(x, axis=-1)
             return K.softmax(x*100, axis=-1)
 
-        # What is W? It is the weight on each point
         W = Lambda(compute_W, name='softmax')(query)
 
         self.w_model = Model(

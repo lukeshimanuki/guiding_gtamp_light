@@ -164,6 +164,7 @@ def train_mse_ff_keyconfigs(config):
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, 4:8]
+    goal_flags = goal_flags[:, 0, :].squeeze()
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
@@ -176,9 +177,11 @@ def train_mse_selfattention_keyconfigs(config):
     policy = PlacePolicyMSESelfAttention(dim_action=dim_action, dim_collision=dim_state,
                                        save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
+    import pdb;pdb.set_trace()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, 4:8]
+
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
