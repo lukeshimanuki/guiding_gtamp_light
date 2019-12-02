@@ -36,7 +36,7 @@ def get_processed_poses_from_state(state):
     else:
         raise not NotImplementedError
 
-    pose = np.hstack([obj_pose, goal_obj_poses, robot_pose])
+    pose = np.hstack([obj_pose, robot_pose, goal_obj_poses])
     return pose
 
 
