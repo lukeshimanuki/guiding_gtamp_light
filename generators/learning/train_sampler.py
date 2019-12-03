@@ -32,6 +32,7 @@ from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
 from PlacePolicyMSEFeedForwardWithoutKeyConfig import PlacePolicyMSEFeedForwardWithoutKeyConfig
 from PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
 from PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
+from PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionDenseEvalNet
 
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
@@ -176,7 +177,7 @@ def train_mse_ff_keyconfigs(config):
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
-def train_mse_selfattention_keyconfigs(config):
+def train_mse_selfattention_conv_evalnet(config):
     n_key_configs = 615
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
@@ -192,6 +193,21 @@ def train_mse_selfattention_keyconfigs(config):
 
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
+def train_mse_selfattention_dense_evalnet(config):
+    n_key_configs = 615
+    dim_state = (n_key_configs, 2, 1)
+    dim_action = 4
+    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/' \
+              'selfattention_dense_evalnet/' \
+              % (config.dtype, state_data_mode, action_data_mode)
+    policy = PlacePolicyMSESelfAttention(dim_action=dim_action, dim_collision=dim_state,
+                                         save_folder=savedir, tau=config.tau, config=config)
+    policy.policy_model.summary()
+    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    actions = actions[:, 4:]
+    poses = poses[:, 4:8]
+
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 def train_rel_konf_place_admon(config):
     n_key_configs = 615
@@ -214,8 +230,10 @@ def main():
         train_mse_ff(configs)
     elif configs.algo == 'mse_ff_keyconfigs':
         train_mse_ff_keyconfigs(configs)
-    elif configs.algo == 'mse_selfattention_keyconfigs':
-        train_mse_selfattention_keyconfigs(configs)
+    elif configs.algo == 'mse_selfattention_conv_evalnet':
+        train_mse_selfattention_conv_evalnet(configs)
+    elif configs.algo == 'mse_selfattention_dense_evalnet':
+        train_mse_selfattention_dense_evalnet(configs)
     elif configs.algo == 'imle':
         train_rel_konf_place_admon(configs)
     else:
