@@ -82,8 +82,11 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         collision_input = Flatten()(self.collision_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
-                              kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer)(collision_input)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(collision_input)
+        evalnet = Dense(dense_num, activation='relu',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(615, activation='linear',
                               kernel_initializer=self.kernel_initializer,
                               bias_initializer=self.bias_initializer)(evalnet)
