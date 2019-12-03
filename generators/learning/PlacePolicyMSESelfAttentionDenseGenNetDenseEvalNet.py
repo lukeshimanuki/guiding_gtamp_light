@@ -28,11 +28,11 @@ def slice_th(x):
     return x[:, 2:]
 
 
-class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
+class PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_mse_selfattention_seed_%d' % config.seed
-        print "Created Self-attention Dense Eval Net"
+        print "Created Self-attention Dense Gen Net Dense Eval Net"
 
     def construct_policy_output(self):
         # generating candidate q_g
@@ -53,17 +53,16 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # Computes the candidate goal configurations
         # q_g = phi_2(x_i), for some x_i
         dim_value_input = concat_input.shape[2]._value
-        value = self.create_conv_layers(concat_input, dim_value_input, n_filters=128,
-                                        use_pooling=False, use_flatten=False)
-        value = Conv2D(filters=4,
-                       kernel_size=(1, 1),
-                       strides=(1, 1),
-                       activation='linear',
-                       kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer,
-                       name='value_output')(value)
+        concat_input = Flatten()(concat_input)
+        dense_num = 32
+        value = Dense(dense_num, activation='relu',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(concat_input)
+        value = Dense(615*4, activation='linear',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(value)
+        value = Reshape((615, 4))(value)
 
-        value = Lambda(lambda x: K.squeeze(x, axis=2), name='key_config_transformation')(value)
         self.value_model = Model(
             inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
             outputs=value,
@@ -86,7 +85,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                               bias_initializer=self.bias_initializer)(collision_input)
         evalnet = Dense(615, activation='linear',
                               kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer)(evalnet)
+                              bias_initializer=self.bias_initializer, name='qg_candidates')(evalnet)
 
         def compute_softmax(x):
             #x = K.squeeze(x, axis=-1)
