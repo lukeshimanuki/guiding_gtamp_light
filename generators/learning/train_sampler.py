@@ -65,7 +65,9 @@ def load_data(traj_dir):
             continue
 
         states = []
-        for s in traj.states:
+        poses = []
+        actions = []
+        for s, a in zip(traj.states, traj.actions):
             state_vec = s.collision_vector
             n_key_configs = state_vec.shape[1]
 
@@ -78,11 +80,15 @@ def load_data(traj_dir):
                 continue
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
+            poses.append(get_processed_poses_from_state(s))
+            actions.append(get_processed_poses_from_action(s, a))
 
         states = np.array(states)
-        poses = np.array([get_processed_poses_from_state(s) for s in traj.states])
-        actions = np.array([get_processed_poses_from_action(s, a)
-                            for s, a in zip(traj.states, traj.actions)])
+        poses = np.array(poses)
+        actions = np.array(actions)
+        #poses = np.array([get_processed_poses_from_state(s) for s in traj.states])
+        #actions = np.array([get_processed_poses_from_action(s, a)
+        #                    for s, a in zip(traj.states, traj.actions)])
 
         for s in traj.states:
             rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
@@ -90,7 +96,8 @@ def load_data(traj_dir):
 
         rewards = traj.rewards
         sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
-
+        if len(states) == 0:
+            continue
         all_poses.append(poses)
         all_states.append(states)
         all_actions.append(actions)
@@ -98,10 +105,9 @@ def load_data(traj_dir):
       
         n_data = len(np.vstack(all_rel_konfs))
         print n_data
-        if n_data > 100:
+        if n_data > 5000:
             break
 
-    import pdb;pdb.set_trace()
     all_rel_konfs = np.vstack(all_rel_konfs)
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions)

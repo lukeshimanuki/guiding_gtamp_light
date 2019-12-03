@@ -77,6 +77,9 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
         concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
         dim_input = concat_input.shape[2]._value
 
+        concat_input = self.collision_input
+        dim_input = self.collision_input.shape[2]._value
+
         # we want the same collision information for each of candidate q_gs
         evalnet = self.create_conv_layers(concat_input, dim_input, use_pooling=False, use_flatten=False)
         evalnet = Conv2D(filters=1,
@@ -85,6 +88,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
                          activation='linear',
                          kernel_initializer=self.kernel_initializer,
                          bias_initializer=self.bias_initializer)(evalnet)
+
         def compute_softmax(x):
             x = K.squeeze(x, axis=-1)
             x = K.squeeze(x, axis=-1)

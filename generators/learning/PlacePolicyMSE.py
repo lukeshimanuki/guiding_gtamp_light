@@ -18,12 +18,16 @@ class PlacePolicyMSE(PlacePolicy):
     def construct_policy_model(self):
         raise NotImplementedError
 
+    def load_weights(self):
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name)
+
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
         callbacks = self.create_callbacks_for_training()
+        import pdb;pdb.set_trace()
 
         actions = train_data['actions']
         goal_flags = train_data['goal_flags']
@@ -37,6 +41,8 @@ class PlacePolicyMSE(PlacePolicy):
                               verbose=2,
                               callbacks=callbacks,
                               validation_split=0.1, shuffle=False)
+        # load the best model
+        self.load_weights()
         post_mse = self.compute_policy_mse(test_data)
         print "Pre-and-post test errors", pre_mse, post_mse
 
