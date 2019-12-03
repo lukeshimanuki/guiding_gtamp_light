@@ -150,7 +150,9 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         #utils.viewer()
         for action_idx, action in enumerate(plan):
             assert action.type == 'two_arm_pick_two_arm_place'
-            state = self.compute_state(action.discrete_parameters['object'], action.discrete_parameters['region'], goal_entities)
+            state = self.compute_state(action.discrete_parameters['object'],
+                                       action.discrete_parameters['region'],
+                                       goal_entities)
             pick_action_info = action.continuous_parameters['pick']
             place_action_info = action.continuous_parameters['place']
 

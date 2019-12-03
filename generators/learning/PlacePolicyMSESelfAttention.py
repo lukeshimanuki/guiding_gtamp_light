@@ -36,15 +36,17 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
     def construct_policy_output(self):
         # generating candidate q_g
         tiled_pose = self.get_tiled_input(self.pose_input)
-        qk_q0_goalflags_input = Concatenate(axis=2)(
-            [self.key_config_input, self.goal_flag_input, tiled_pose])
-        candidate_qg = self.construct_value_output(qk_q0_goalflags_input)
-        candidate_qg = Reshape((615, 4, 1))(candidate_qg)
-        eval_net = self.construct_eval_net(candidate_qg, qk_q0_goalflags_input)
+        qk_goalflags_input = Concatenate(axis=2)(
+            [self.key_config_input, self.goal_flag_input])
+        candidate_qg = self.construct_value_output(qk_goalflags_input)
 
-        #candidate_qg = Reshape((615, 4))(candidate_qg)
-        #output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([W, value])
-        #return output
+        candidate_qg = Reshape((615,4,1))(candidate_qg)
+        evalnet_input = Concatenate(axis=2)([candidate_qg, self.goal_flag_input])
+        eval_net = self.construct_eval_net(evalnet_input)
+        candidate_qg = Reshape((615,4))(candidate_qg)
+
+        output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
+        return output
 
     def construct_value_output(self, concat_input):
         # Computes the candidate goal configurations
@@ -64,52 +66,33 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
             inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
             outputs=value,
             name='value_model')
-
         return value
 
-    def construct_eval_net(self, candidate_qg, qk_q0_goalflags_input):
+    def construct_eval_net(self, candidate_qg_goal_flag_input):
         # Computes how important each candidate q_g is.
         # w_i = phi_1(x_i)
         # It currently takes in candidate q_g as an input
 
-        concat_input = Concatenate(axis=2)([candidate_qg, qk_q0_goalflags_input])
-
+        # There currently are 615 candidate goal configurations
+        concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
         dim_input = concat_input.shape[2]._value
-        # relnet: this represents how relevant each collision info is when going from q_0 to q_g
-        relnet = self.create_conv_layers(concat_input, dim_input, use_pooling=False, use_flatten=False)
-        relnet = Conv2D(filters=1,
-                       kernel_size=(1, 1),
-                       strides=(1, 1),
-                       activation='linear',
-                       kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer)(relnet)
-        #relnet = Reshape((615))(relnet)
 
-        masking = relnet * self.collision_input
-        dim_masking = masking.shape[2]._value
-        evalnet = self.create_conv_layers(masking, dim_masking, use_pooling=False, use_flatten=False)
+        # we want the same collision information for each of candidate q_gs
+        evalnet = self.create_conv_layers(concat_input, dim_input, use_pooling=False, use_flatten=False)
         evalnet = Conv2D(filters=1,
-                        kernel_size=(1, 1),
-                        strides=(1, 1),
-                        activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        import pdb;pdb.set_trace()
-        """
-        def compute_W(x):
+                         kernel_size=(1, 1),
+                         strides=(1, 1),
+                         activation='linear',
+                         kernel_initializer=self.kernel_initializer,
+                         bias_initializer=self.bias_initializer)(evalnet)
+        def compute_softmax(x):
             x = K.squeeze(x, axis=-1)
             x = K.squeeze(x, axis=-1)
-            return x*self.collision_input
-            #return K.softmax(x*100, axis=-1)
+            return K.softmax(x*100, axis=-1)
 
-        W = Lambda(compute_W, name='softmax')(query)
-        """
+        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
 
-        self.w_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.collision_input],
-            outputs=masking,
-            name='w_model')
-        return masking
+        return evalnet
 
     def construct_policy_model(self):
         mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],

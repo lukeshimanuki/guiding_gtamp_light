@@ -41,6 +41,7 @@ from gtamp_utils import utils
 
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
+    cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (state_data_mode, action_data_mode)
     cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
@@ -63,10 +64,8 @@ def load_data(traj_dir):
         if len(traj.states) == 0:
             continue
 
-        # states = np.array([s.state_vec for s in traj.states])  # collision vectors
         states = []
         for s in traj.states:
-            # state_vec = np.delete(s.state_vec, [415, 586, 615, 618, 619], axis=1)
             state_vec = s.collision_vector
             n_key_configs = state_vec.shape[1]
 
@@ -74,6 +73,9 @@ def load_data(traj_dir):
             is_goal_obj = np.tile(is_goal_obj, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
             is_goal_region = utils.convert_binary_vec_to_one_hot(np.array([s.region in s.goal_entities]))
             is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
+
+            if s.region in s.goal_entities:
+                continue
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
 
@@ -81,6 +83,7 @@ def load_data(traj_dir):
         poses = np.array([get_processed_poses_from_state(s) for s in traj.states])
         actions = np.array([get_processed_poses_from_action(s, a)
                             for s, a in zip(traj.states, traj.actions)])
+
         for s in traj.states:
             rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
             all_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
@@ -95,10 +98,10 @@ def load_data(traj_dir):
       
         n_data = len(np.vstack(all_rel_konfs))
         print n_data
-        if n_data > 5000:
+        if n_data > 100:
             break
-        
 
+    import pdb;pdb.set_trace()
     all_rel_konfs = np.vstack(all_rel_konfs)
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions)
@@ -143,11 +146,11 @@ def train_mse_ff(config):
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' % (
         config.dtype, state_data_mode, action_data_mode)
     policy = PlacePolicyMSEFeedForwardWithoutKeyConfig(dim_action=dim_action, dim_collision=dim_state,
-                                       save_folder=savedir, tau=config.tau, config=config)
+                                                       save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 4:8]
+    poses = poses[:, :4]
     goal_flags = goal_flags[:, 0, :].squeeze()
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 

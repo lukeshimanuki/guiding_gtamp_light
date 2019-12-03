@@ -11,9 +11,12 @@ class PlacePolicyMSEFeedForwardWithoutKeyConfig(PlacePolicyMSE):
         self.weight_file_name = 'place_mse_ff_seed_%d' % config.seed
 
     def construct_policy_output(self):
+
         self.goal_flag_input = Input(shape=(4,), name='goal_flag',
                                      dtype='float32')
-        concat_input = Concatenate(axis=1)([self.goal_flag_input, self.pose_input])
+        key_config_input = Flatten()(self.key_config_input)
+        print "Without robot pose"
+        concat_input = Concatenate(axis=1)([self.goal_flag_input, key_config_input])
         dense_num = 64
         hidden_action = Dense(dense_num, activation='relu',
                               kernel_initializer=self.kernel_initializer,
