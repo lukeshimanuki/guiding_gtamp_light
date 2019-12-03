@@ -67,6 +67,7 @@ def load_data(traj_dir):
         states = []
         poses = []
         actions = []
+        traj_rel_konfs = []
         for s, a in zip(traj.states, traj.actions):
             state_vec = s.collision_vector
             n_key_configs = state_vec.shape[1]
@@ -82,17 +83,13 @@ def load_data(traj_dir):
             states.append(state_vec)
             poses.append(get_processed_poses_from_state(s))
             actions.append(get_processed_poses_from_action(s, a))
+            rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
+            traj_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
 
         states = np.array(states)
         poses = np.array(poses)
         actions = np.array(actions)
-        #poses = np.array([get_processed_poses_from_state(s) for s in traj.states])
-        #actions = np.array([get_processed_poses_from_action(s, a)
-        #                    for s, a in zip(traj.states, traj.actions)])
-
-        for s in traj.states:
-            rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
-            all_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
+        traj_rel_konfs = np.array(traj_rel_konfs)
 
         rewards = traj.rewards
         sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
@@ -102,13 +99,15 @@ def load_data(traj_dir):
         all_states.append(states)
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
-      
+        all_rel_konfs.append(traj_rel_konfs)
+
         n_data = len(np.vstack(all_rel_konfs))
+        assert len(np.vstack(all_states)) == n_data
         print n_data
         if n_data > 5000:
             break
 
-    all_rel_konfs = np.vstack(all_rel_konfs)
+    all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions)
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1

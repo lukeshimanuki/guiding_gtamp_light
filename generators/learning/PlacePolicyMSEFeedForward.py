@@ -15,7 +15,7 @@ class PlacePolicyMSEFeedForward(PlacePolicyMSE):
                                      dtype='float32')
         key_config_input = Flatten()(self.key_config_input)
         collision_input = Flatten()(self.collision_input)
-        concat_input = Concatenate(axis=1)([self.goal_flag_input, key_config_input])
+        concat_input = Concatenate(axis=1)([self.goal_flag_input, collision_input, key_config_input])
 
         dense_num = 64
         hidden_action = Dense(dense_num, activation='relu',

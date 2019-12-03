@@ -27,7 +27,6 @@ class PlacePolicyMSE(PlacePolicy):
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
         callbacks = self.create_callbacks_for_training()
-        import pdb;pdb.set_trace()
 
         actions = train_data['actions']
         goal_flags = train_data['goal_flags']

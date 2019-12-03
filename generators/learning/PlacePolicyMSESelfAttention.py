@@ -52,7 +52,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
         # Computes the candidate goal configurations
         # q_g = phi_2(x_i), for some x_i
         dim_value_input = concat_input.shape[2]._value
-        value = self.create_conv_layers(concat_input, dim_value_input, use_pooling=False, use_flatten=False)
+        value = self.create_conv_layers(concat_input, dim_value_input, n_filters=128, use_pooling=False, use_flatten=False)
         value = Conv2D(filters=4,
                        kernel_size=(1, 1),
                        strides=(1, 1),
@@ -81,7 +81,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
         dim_input = self.collision_input.shape[2]._value
 
         # we want the same collision information for each of candidate q_gs
-        evalnet = self.create_conv_layers(concat_input, dim_input, use_pooling=False, use_flatten=False)
+        evalnet = self.create_conv_layers(concat_input, dim_input, n_filters=32, use_pooling=False, use_flatten=False)
         evalnet = Conv2D(filters=1,
                          kernel_size=(1, 1),
                          strides=(1, 1),
