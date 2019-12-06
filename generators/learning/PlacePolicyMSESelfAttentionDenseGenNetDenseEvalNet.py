@@ -41,10 +41,10 @@ class PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet(PlacePolicyMSE):
             [self.key_config_input, self.goal_flag_input])
         candidate_qg = self.construct_value_output(qk_goalflags_input)
 
-        candidate_qg = Reshape((615,4,1))(candidate_qg)
+        candidate_qg = Reshape((615, 4, 1))(candidate_qg)
         evalnet_input = Concatenate(axis=2)([candidate_qg, self.goal_flag_input])
         eval_net = self.construct_eval_net(evalnet_input)
-        candidate_qg = Reshape((615,4))(candidate_qg)
+        candidate_qg = Reshape((615, 4))(candidate_qg)
 
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
@@ -56,11 +56,11 @@ class PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet(PlacePolicyMSE):
         concat_input = Flatten()(concat_input)
         dense_num = 32
         value = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(concat_input)
-        value = Dense(615*4, activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(value)
+                      kernel_initializer=self.kernel_initializer,
+                      bias_initializer=self.bias_initializer)(concat_input)
+        value = Dense(615 * 4, activation='linear',
+                      kernel_initializer=self.kernel_initializer,
+                      bias_initializer=self.bias_initializer)(value)
         value = Reshape((615, 4))(value)
 
         self.value_model = Model(
@@ -81,15 +81,15 @@ class PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet(PlacePolicyMSE):
         collision_input = Flatten()(self.collision_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
-                              kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer)(collision_input)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(collision_input)
         evalnet = Dense(615, activation='linear',
-                              kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer, name='qg_candidates')(evalnet)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer, name='qg_candidates')(evalnet)
 
         def compute_softmax(x):
-            #x = K.squeeze(x, axis=-1)
-            #x = K.squeeze(x, axis=-1)
+            # x = K.squeeze(x, axis=-1)
+            # x = K.squeeze(x, axis=-1)
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)

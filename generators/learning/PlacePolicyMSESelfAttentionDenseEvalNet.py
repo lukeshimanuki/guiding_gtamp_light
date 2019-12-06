@@ -4,29 +4,6 @@ from generators.learning.PlacePolicyMSE import PlacePolicyMSE
 from keras.models import Model
 from keras import backend as K
 
-import socket
-
-if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
-
-
-def G_loss(true_actions, pred):
-    return -K.mean(pred, axis=-1)
-
-
-def slice_x(x):
-    return x[:, 0:1]
-
-
-def slice_y(x):
-    return x[:, 1:2]
-
-
-def slice_th(x):
-    return x[:, 2:]
-
 
 class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
@@ -41,10 +18,10 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
             [self.key_config_input, self.goal_flag_input])
         candidate_qg = self.construct_value_output(qk_goalflags_input)
 
-        candidate_qg = Reshape((615,4,1))(candidate_qg)
+        candidate_qg = Reshape((615, 4, 1))(candidate_qg)
         evalnet_input = Concatenate(axis=2)([candidate_qg, self.goal_flag_input])
         eval_net = self.construct_eval_net(evalnet_input)
-        candidate_qg = Reshape((615,4))(candidate_qg)
+        candidate_qg = Reshape((615, 4))(candidate_qg)
 
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
@@ -79,18 +56,18 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
         dim_input = concat_input.shape[2]._value
 
-        collision_input = Flatten()(self.collision_input)
+        #collision_input = Flatten()(self.collision_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
-                              kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer)(collision_input)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(concat_input)
         evalnet = Dense(615, activation='linear',
-                              kernel_initializer=self.kernel_initializer,
-                              bias_initializer=self.bias_initializer)(evalnet)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
 
         def compute_softmax(x):
-            #x = K.squeeze(x, axis=-1)
-            #x = K.squeeze(x, axis=-1)
+            # x = K.squeeze(x, axis=-1)
+            # x = K.squeeze(x, axis=-1)
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
