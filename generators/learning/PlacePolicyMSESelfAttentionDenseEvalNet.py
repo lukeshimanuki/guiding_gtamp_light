@@ -56,7 +56,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
         dim_input = concat_input.shape[2]._value
 
-        #collision_input = Flatten()(self.collision_input)
+        concat_input = Flatten()(concat_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
