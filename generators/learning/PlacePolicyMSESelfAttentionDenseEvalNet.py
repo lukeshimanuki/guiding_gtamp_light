@@ -32,15 +32,30 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # Computes the candidate goal configurations
         # q_g = phi_2(x_i), for some x_i
         # todo: change the create_conv_layers activation to relu for generating value output.
-        value = self.create_conv_layers(concat_input, n_filters=128,
-                                        use_pooling=False, use_flatten=False)
+        #value = self.create_conv_layers(concat_input, n_filters=128,
+        #                                use_pooling=False, use_flatten=False)
+        n_dim = concat_input.shape[2]._value
+        n_filters = 32
+        H = Conv2D(filters=n_filters,
+                   kernel_size=(1, n_dim),
+                   strides=(1, 1),
+                   activation='relu',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(concat_input)
+        for _ in range(2):
+            H = Conv2D(filters=n_filters,
+                       kernel_size=(1, 1),
+                       strides=(1, 1),
+                       activation='relu',
+                       kernel_initializer=self.kernel_initializer,
+                       bias_initializer=self.bias_initializer)(H)
         value = Conv2D(filters=4,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer,
-                       name='value_output')(value)
+                       name='value_output')(H)
 
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='key_config_transformation')(value)
         self.value_model = Model(
