@@ -12,7 +12,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_mse_selfattention_seed_%d' % config.seed
-        print "Created Self-attention Dense Eval Net"
+        print "Created PlacePolicyMSESelfAttentionDenseEvalNet"
 
     def construct_policy_output(self):
         # generating candidate q_g
