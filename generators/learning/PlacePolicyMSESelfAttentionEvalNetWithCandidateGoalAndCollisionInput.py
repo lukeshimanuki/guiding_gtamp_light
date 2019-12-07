@@ -17,11 +17,11 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
 
     def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
-        collision_q0_input = Concatenate(axis=1)([collision_input, self.pose_input])
+        #collision_q0_input = Concatenate(axis=1)([collision_inputt])
         dense_num = 32
         H = Dense(dense_num, activation='relu',
                   kernel_initializer=self.kernel_initializer,
-                  bias_initializer=self.bias_initializer)(collision_q0_input)
+                  bias_initializer=self.bias_initializer)(collision_input)
         H = Dense(dense_num, activation='relu',
                   kernel_initializer=self.kernel_initializer,
                   bias_initializer=self.bias_initializer)(H)
