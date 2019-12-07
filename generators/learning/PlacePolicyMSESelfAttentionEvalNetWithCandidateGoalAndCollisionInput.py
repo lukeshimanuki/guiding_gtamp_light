@@ -17,10 +17,11 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
 
     def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
+        collision_q0_input = Concatenate(axis=1)([collision_input, self.pose_input])
         dense_num = 32
         H = Dense(dense_num, activation='relu',
                   kernel_initializer=self.kernel_initializer,
-                  bias_initializer=self.bias_initializer)(collision_input)
+                  bias_initializer=self.bias_initializer)(collision_q0_input)
         H = Dense(dense_num, activation='relu',
                   kernel_initializer=self.kernel_initializer,
                   bias_initializer=self.bias_initializer)(H)
@@ -30,11 +31,11 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         collision_summary = Reshape((615, 1, 1), name='collision_summary')(collision_summary)
         pose_input = RepeatVector(615)(self.pose_input)
         pose_input = Reshape((615, 4, 1))(pose_input)
-        concat_input = Concatenate(axis=2,  name='candidate_qg_and_collision_summary')([pose_input,
+        concat_input = Concatenate(axis=2,  name='candidate_qg_and_collision_summary')([
                                                                                         candidate_qg_input,
                                                                                         collision_summary])
         n_dim = concat_input.shape[2].value
-        n_filters = 64
+        n_filters = 256
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
