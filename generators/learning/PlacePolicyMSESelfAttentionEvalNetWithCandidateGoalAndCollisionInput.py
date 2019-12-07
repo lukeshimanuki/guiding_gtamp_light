@@ -22,7 +22,8 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
 
         concat_input = Concatenate(axis=2)([candidate_qg_input, collision_input])
         n_dim = concat_input.shape[2].value
-        H = Conv2D(filters=32,
+        n_filters = 128
+        H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
                    activation='linear',
@@ -31,14 +32,14 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                    name='evalnet_input')(concat_input)
         H = LeakyReLU()(H)
         for _ in range(2):
-            H = Conv2D(filters=32,
+            H = Conv2D(filters=n_filters,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
             H = LeakyReLU()(H)
-        value = Conv2D(filters=1,
+        value = Conv2D(filters=n_filters,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',
