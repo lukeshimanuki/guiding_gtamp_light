@@ -7,27 +7,6 @@ from keras import backend as K
 import socket
 import numpy as np
 
-if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
-
-
-def G_loss(true_actions, pred):
-    return -K.mean(pred, axis=-1)
-
-
-def slice_x(x):
-    return x[:, 0:1]
-
-
-def slice_y(x):
-    return x[:, 1:2]
-
-
-def slice_th(x):
-    return x[:, 2:]
-
 
 class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
@@ -78,14 +57,12 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
 
         # There currently are 615 candidate goal configurations
         concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
-        dim_input = concat_input.shape[2]._value
-
-        # collision_input = Flatten()(self.collision_input) # one that gets best performance
-        collision_input = Flatten()(concat_input)
+        concat_input = Flatten()(concat_input)
+        concat_input = Flatten()(self.collision_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(collision_input)
+                        bias_initializer=self.bias_initializer)(concat_input)
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)

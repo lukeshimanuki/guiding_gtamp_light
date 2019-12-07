@@ -194,6 +194,7 @@ def train_mse_selfattention_conv_evalnet(config):
     actions = actions[:, 4:]
     poses = poses[:, 4:8]
 
+
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
@@ -209,7 +210,7 @@ def train_mse_selfattention_dense_evalnet(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 4:8]
+    poses = poses[:, 0:4] # pose: [obj_pose, robot_pose, goal_object_poses]
 
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
@@ -226,7 +227,8 @@ def train_mse_selfattention_dense_gennet_dense_evalnet(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 4:8]
+    poses = poses[:, 0:4] # use the object pose to inform the collision net
+
 
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
