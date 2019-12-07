@@ -1,6 +1,8 @@
 from PlacePolicy import PlacePolicy
+from keras.callbacks import *
 
 import socket
+import numpy as np
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
     ROOTDIR = './'
@@ -20,6 +22,22 @@ class PlacePolicyMSE(PlacePolicy):
 
     def load_weights(self):
         self.policy_model.load_weights(self.save_folder + self.weight_file_name)
+
+    def compute_policy_mse(self, data):
+        pred = self.policy_model.predict(
+            [data['goal_flags'], data['rel_konfs'], data['states'], data['poses']])
+        return np.mean(np.power(pred - data['actions'], 2))
+
+    def create_callbacks_for_training(self):
+        callbacks = [
+            TerminateOnNaN(),
+            EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=5),
+            ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
+                            verbose=False,
+                            save_best_only=True,
+                            save_weights_only=True),
+        ]
+        return callbacks
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))

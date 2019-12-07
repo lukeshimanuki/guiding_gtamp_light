@@ -43,8 +43,9 @@ from gtamp_utils import utils
 
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
-    cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (state_data_mode, action_data_mode)
-    #cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
+    cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
+    state_data_mode, action_data_mode)
+    # cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -130,7 +131,7 @@ def get_data(datatype):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
 
-    print "Loading data from",data_dir
+    print "Loading data from", data_dir
     states, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
@@ -185,14 +186,16 @@ def train_mse_selfattention_conv_evalnet(config):
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' \
               % (config.dtype, state_data_mode, action_data_mode)
     policy = PlacePolicyMSESelfAttention(dim_action=dim_action, dim_collision=dim_state,
-                                       save_folder=savedir, tau=config.tau, config=config)
+                                         save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, 4:8]
 
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+
 
 def train_mse_selfattention_dense_evalnet(config):
     n_key_configs = 615
@@ -235,7 +238,7 @@ def train_rel_konf_place_admon(config):
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_admon/' % (
         config.dtype, state_data_mode, action_data_mode)
     policy = PlacePolicyIMLEFeedForward(dim_action=dim_action, dim_collision=dim_state,
-                                       save_folder=savedir, tau=config.tau, config=config)
+                                        save_folder=savedir, tau=config.tau, config=config)
     print "Created IMLE"
 
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)

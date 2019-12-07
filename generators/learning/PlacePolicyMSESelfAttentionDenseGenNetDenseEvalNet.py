@@ -106,7 +106,3 @@ class PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet(PlacePolicyMSE):
         mse_model.compile(loss='mse', optimizer=self.opt_D)
         return mse_model
 
-    def compute_policy_mse(self, data):
-        pred = self.policy_model.predict(
-            [data['goal_flags'], data['rel_konfs'], data['states'], data['poses']])
-        return np.mean(np.power(pred - data['actions'], 2))
