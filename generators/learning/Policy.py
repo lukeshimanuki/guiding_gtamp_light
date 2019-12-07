@@ -101,12 +101,13 @@ class Policy:
         sum_reward_batch = np.array(sum_rewards[indices, :])
         return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
 
-    def create_conv_layers(self, input, n_dim, n_filters=32, use_pooling=True, use_flatten=True):
+    def create_conv_layers(self, input, n_filters=32, use_pooling=True, use_flatten=True):
         # a helper function for creating a NN that applies the same function for each key config
+        n_dim = input.shape[2]._value
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
-                   activation='linear',
+                   activation='linear', # why does this have to be linear again? For predicting a value that will be soft-maxed, the values tend to saturate.
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(input)
         H = LeakyReLU()(H)

@@ -30,11 +30,10 @@ tf.set_random_seed(configs.seed)
 
 from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
 from PlacePolicyMSEFeedForwardWithoutKeyConfig import PlacePolicyMSEFeedForwardWithoutKeyConfig
+from PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
 from PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
 from PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionDenseEvalNet
 from PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet import PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet
-from PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
-    PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
 
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
@@ -45,7 +44,7 @@ from gtamp_utils import utils
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
     cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
-        state_data_mode, action_data_mode)
+    state_data_mode, action_data_mode)
     # cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
@@ -195,6 +194,7 @@ def train_mse_selfattention_conv_evalnet(config):
     actions = actions[:, 4:]
     poses = poses[:, 4:8]
 
+
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
@@ -210,7 +210,8 @@ def train_mse_selfattention_dense_evalnet(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 0:4]
+    poses = poses[:, 0:4] # pose: [obj_pose, robot_pose, goal_object_poses]
+
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
@@ -226,51 +227,41 @@ def train_mse_selfattention_dense_gennet_dense_evalnet(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 0:4]  # use the object pose to inform the collision net
+    poses = poses[:, 0:4] # use the object pose to inform the collision net
+
 
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
-def create_policy(config):
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
-              (config.dtype, state_data_mode, action_data_mode, config.algo)
-
+def train_rel_konf_place_admon(config):
     n_key_configs = 615
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
-    if config.algo == "sa_evalnet_qg_collision":
-        policy = PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(dim_action=dim_action,
-                                                                                      dim_collision=dim_state,
-                                                                                      save_folder=savedir,
-                                                                                      tau=config.tau,
-                                                                                      config=config)
-    else:
-        raise NotImplementedError
-    return policy
+    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_admon/' % (
+        config.dtype, state_data_mode, action_data_mode)
+    policy = PlacePolicyIMLEFeedForward(dim_action=dim_action, dim_collision=dim_state,
+                                        save_folder=savedir, tau=config.tau, config=config)
+    print "Created IMLE"
 
-
-def train(config):
-    policy = create_policy(config)
-    policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 0:4]   # pose: [obj_pose, robot_pose, goal_object_poses]
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    poses = poses[:, :8]
+    policy.train(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def main():
-    if configs.algo == 'ff':
+    if configs.algo == 'mse':
         train_mse_ff(configs)
-    elif configs.algo == 'ff_collision':
+    elif configs.algo == 'mse_ff_keyconfigs':
         train_mse_ff_keyconfigs(configs)
-    elif configs.algo == 'sa_conv_evalnet':
+    elif configs.algo == 'mse_selfattention_conv_evalnet':
         train_mse_selfattention_conv_evalnet(configs)
-    elif configs.algo == 'sa_dense_evalnet':
+    elif configs.algo == 'mse_selfattention_dense_evalnet':
         train_mse_selfattention_dense_evalnet(configs)
-    elif configs.algo == 'sa_dense_gennet_dense_evalnet':
+    elif configs.algo == 'mse_selfattention_dense_gennet_dense_evalnet':
         train_mse_selfattention_dense_gennet_dense_evalnet(configs)
-    elif configs.algo == 'sa_evalnet_qg_collision':
-        train(configs)
+    elif configs.algo == 'imle':
+        train_rel_konf_place_admon(configs)
     else:
         raise NotImplementedError
 
