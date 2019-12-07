@@ -87,7 +87,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         def compute_softmax(x):
             # x = K.squeeze(x, axis=-1)
             # x = K.squeeze(x, axis=-1)
-            return K.softmax(x, axis=-1)
+            return K.softmax(x*100, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
 

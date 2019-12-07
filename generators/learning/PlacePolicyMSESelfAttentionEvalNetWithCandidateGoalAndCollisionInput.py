@@ -15,17 +15,12 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         self.weight_file_name = 'place_mse_selfattention_seed_%d' % config.seed
         print "Created PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput"
 
-    def construct_eval_net(self, candidate_qg_goal_flag_input):
-        # Computes how important each candidate q_g is.
-        # w_i = phi_1(x_i)
-        # It currently takes in candidate q_g as an input
-
-        # There currently are 615 candidate goal configurations
+    def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
         collision_input = RepeatVector(615)(collision_input)
         collision_input = Reshape((615, 615*2, 1))(collision_input)
 
-        concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, collision_input])
+        concat_input = Concatenate(axis=2)([candidate_qg_input, collision_input])
         n_dim = concat_input.shape[2].value
         H = Conv2D(filters=32,
                    kernel_size=(1, n_dim),
