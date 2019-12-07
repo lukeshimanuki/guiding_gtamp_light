@@ -45,6 +45,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer,
                        name='eval_output')(H)
+
         def compute_softmax(x):
             x = K.squeeze(x, axis=-1)
             x = K.squeeze(x, axis=-1)
