@@ -31,11 +31,11 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         collision_summary = Reshape((615, 1, 1), name='collision_summary')(collision_summary)
         pose_input = RepeatVector(615)(self.pose_input)
         pose_input = Reshape((615, 4, 1))(pose_input)
-        concat_input = Concatenate(axis=2,  name='candidate_qg_and_collision_summary')([
+        concat_input = Concatenate(axis=2,  name='candidate_qg_and_collision_summary')([self.key_config_input,
                                                                                         candidate_qg_input,
                                                                                         collision_summary])
         n_dim = concat_input.shape[2].value
-        n_filters = 256
+        n_filters = 64
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
