@@ -27,7 +27,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         collision_summary = Dense(615*32, activation='linear',
                                   kernel_initializer=self.kernel_initializer,
                                   bias_initializer=self.bias_initializer)(H)
-        evalnet_input = Reshape((615*32, 1, 1), name='collision_summary')(collision_summary)
+        evalnet_input = Reshape((615, 32, 1), name='collision_summary')(collision_summary)
 
         concat_input = Concatenate(axis=2,  name='candidate_qg_and_collision_summary')([candidate_qg_input, evalnet_input])
         n_dim = concat_input.shape[2].value
