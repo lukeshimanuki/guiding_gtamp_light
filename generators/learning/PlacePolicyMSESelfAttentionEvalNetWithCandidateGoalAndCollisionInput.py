@@ -39,7 +39,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
             H = LeakyReLU()(H)
-        value = Conv2D(filters=n_filters,
+        value = Conv2D(filters=615,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',
