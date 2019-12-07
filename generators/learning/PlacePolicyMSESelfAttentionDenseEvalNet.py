@@ -17,14 +17,13 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
     def construct_policy_output(self):
         # generating candidate q_g
         tiled_pose = self.get_tiled_input(self.pose_input)
-        qk_goalflags_input = Concatenate(axis=2)(
-            [self.key_config_input, self.goal_flag_input])
-        candidate_qg = self.construct_value_output(qk_goalflags_input)
+        #qk_goalflags_input = Concatenate(axis=2)(
+        #    [self.key_config_input, self.goal_flag_input])
 
-        candidate_qg = Reshape((615, 4, 1))(candidate_qg)
-        evalnet_input = Concatenate(axis=2)([candidate_qg, self.goal_flag_input])
+        candidate_qg = self.construct_value_output(self.key_config_input)
+
+        evalnet_input = Reshape((615, 4, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
-        candidate_qg = Reshape((615, 4))(candidate_qg)
 
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
