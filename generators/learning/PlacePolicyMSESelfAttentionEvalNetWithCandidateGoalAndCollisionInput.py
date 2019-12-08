@@ -51,7 +51,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         """
 
         # collision values
-        dense_num = 64
+        dense_num = 8
         collision_input_1 = Flatten()(self.collision_input)
         collision_input = Concatenate(axis=1, name='collision_input')([collision_input_1, self.pose_input])
         evalnet = Dense(dense_num, activation='relu',
