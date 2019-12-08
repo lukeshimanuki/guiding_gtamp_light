@@ -44,8 +44,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
 
     def construct_eval_net(self, candidate_qg_input):
         q0_qg_eval = self.construct_candidate_qg_from_q0_eval(candidate_qg_input)
-        collision_input = Multiply()([q0_qg_eval, self.collision_input])
-        collision_input_1 = Flatten()(collision_input)
+        collision_input_1 = Flatten()(self.collision_input)
         #collision_input = Concatenate(axis=1, name='collision_input')([collision_input_1, self.pose_input])
         # May be reduce the dimensionality here?
         dense_num = 8
@@ -64,6 +63,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         evalnet = Dense(615, activation='linear',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)
+        evalnet = Multiply()([q0_qg_eval, evalnet])
 
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
