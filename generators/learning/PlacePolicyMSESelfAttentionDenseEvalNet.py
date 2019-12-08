@@ -15,16 +15,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         print "Created PlacePolicyMSESelfAttentionDenseEvalNet"
 
     def construct_policy_output(self):
-        # generating candidate q_g
-        tiled_pose = self.get_tiled_input(self.pose_input)
-        #qk_goalflags_input = Concatenate(axis=2)(
-        #    [self.key_config_input, self.goal_flag_input])
-
         candidate_qg = self.construct_value_output(self.key_config_input)
-
         evalnet_input = Reshape((615, 4, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
-
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
 
@@ -70,8 +63,6 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # It currently takes in candidate q_g as an input
 
         # There currently are 615 candidate goal configurations
-        #concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
-        #concat_input = Flatten()(concat_input)
         concat_input = Flatten()(self.collision_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',

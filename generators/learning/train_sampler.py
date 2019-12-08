@@ -36,6 +36,8 @@ from PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet import PlacePolicyMSESel
 from PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
     PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
 
+from PlacePolicyIMLESelfAttention import PlacePolicyIMLESelfAttention
+
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 
@@ -232,18 +234,24 @@ def train_mse_selfattention_dense_gennet_dense_evalnet(config):
 
 
 def create_policy(config):
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
-              (config.dtype, state_data_mode, action_data_mode, config.algo)
 
     n_key_configs = 615
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
     if config.algo == "sa_evalnet_qg_collision":
+        savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                  (config.dtype, state_data_mode, action_data_mode, config.algo)
         policy = PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(dim_action=dim_action,
                                                                                       dim_collision=dim_state,
                                                                                       save_folder=savedir,
                                                                                       tau=config.tau,
                                                                                       config=config)
+    elif config.algo == 'sa_imle':
+        savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                  (config.dtype, state_data_mode, action_data_mode, config.algo)
+        policy = PlacePolicyIMLESelfAttention(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
+                                              tau=config.tau, config=config)
+        import pdb;pdb.set_trace()
     else:
         raise NotImplementedError
     return policy
@@ -270,6 +278,8 @@ def main():
     elif configs.algo == 'sa_dense_gennet_dense_evalnet':
         train_mse_selfattention_dense_gennet_dense_evalnet(configs)
     elif configs.algo == 'sa_evalnet_qg_collision':
+        train(configs)
+    elif configs.algo == 'sa_imle':
         train(configs)
     else:
         raise NotImplementedError

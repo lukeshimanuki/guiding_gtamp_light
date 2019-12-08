@@ -1,5 +1,6 @@
 from PlacePolicy import PlacePolicy
 from keras.layers import *
+from keras.models import Model
 
 import numpy as np
 import time
@@ -18,14 +19,18 @@ def noise(z_size):
 
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.noise_input = None
+        PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
 
     def construct_policy_output(self):
         raise NotImplementedError
 
     def construct_policy_model(self):
-        raise NotImplementedError
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                      outputs=[self.policy_output],
+                      name='policy_model')
+        model.compile(loss='mse', optimizer=self.opt_D)
+        return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
         goal_flags, rel_konfs, collisions, poses = states
@@ -58,8 +63,8 @@ class PlacePolicyIMLE(PlacePolicy):
             os.makedirs(fdir)
         self.policy_model.save_weights(fdir + fname)
 
-
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+        # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards,
                                                              train_idxs, test_idxs)

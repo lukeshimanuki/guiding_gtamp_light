@@ -54,6 +54,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
         # q_g = phi_2(x_i), for some x_i
         dim_value_input = concat_input.shape[2]._value
         value = self.create_conv_layers(concat_input, dim_value_input, n_filters=128, use_pooling=False, use_flatten=False)
+        import pdb;pdb.set_trace()
         value = Conv2D(filters=4,
                        kernel_size=(1, 1),
                        strides=(1, 1),
