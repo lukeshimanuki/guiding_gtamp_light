@@ -3,6 +3,7 @@ from keras.layers.merge import Concatenate
 from generators.learning.PlacePolicyMSE import PlacePolicyMSE
 from keras.models import Model
 from keras import backend as K
+import tensorflow as tf
 
 import socket
 import numpy as np
@@ -16,19 +17,8 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         print "Created PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput"
 
     def construct_eval_net(self, candidate_qg_input):
-        collision_input = Flatten()(self.collision_input)
         # collision_q0_input = Concatenate(axis=1)([collision_inputt])
-        dense_num = 32
-        H = Dense(dense_num, activation='relu',
-                  kernel_initializer=self.kernel_initializer,
-                  bias_initializer=self.bias_initializer)(collision_input)
-        H = Dense(dense_num, activation='relu',
-                  kernel_initializer=self.kernel_initializer,
-                  bias_initializer=self.bias_initializer)(H)
-        collision_summary = Dense(615, activation='linear',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer)(H)
-        collision_summary = Reshape((615, 1, 1), name='collision_summary')(collision_summary)
+        """
         pose_input = RepeatVector(615)(self.pose_input)
         pose_input = Reshape((615, 4, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='candidate_qg_and_collision_summary')([pose_input,
@@ -58,13 +48,27 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                              kernel_initializer=self.kernel_initializer,
                              bias_initializer=self.bias_initializer,
                              name='pose_values')(H)
-        value = Add()([pose_values, collision_summary])
+        """
+
+        # collision values
+        dense_num = 32
+        collision_input_1 = Flatten()(self.collision_input)
+        collision_input = Concatenate(axis=1, name='collision_input')([collision_input_1, self.pose_input])
+        evalnet = Dense(dense_num, activation='relu',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(collision_input)
+        evalnet = Dense(dense_num, activation='relu',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
+        evalnet = Dense(615, activation='linear',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
 
         def compute_softmax(x):
-            x = K.squeeze(x, axis=-1)
-            x = K.squeeze(x, axis=-1)
+            # x = K.squeeze(x, axis=-1)
+            # x = K.squeeze(x, axis=-1)
             return K.softmax(x, axis=-1)
 
-        evalnet = Lambda(compute_softmax, name='softmax')(value)
+        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
 
         return evalnet

@@ -24,8 +24,8 @@ def get_processed_poses_from_state(state):
         #robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.robot_pose)
         #goal_obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_goal_obj_pose)
     elif state_data_mode == 'robot_rel_to_obj':
-        # is this the initial object pose?
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
+        # this is the initial robot pose, before picking an object. Is the collision information while holding the obj?
         robot_pose = utils.get_relative_robot_pose_wrt_body_pose(state.abs_robot_pose, state.abs_obj_pose)
         robot_pose = utils.encode_pose_with_sin_and_cos_angle(robot_pose)
         # I must preserve the locations different objects

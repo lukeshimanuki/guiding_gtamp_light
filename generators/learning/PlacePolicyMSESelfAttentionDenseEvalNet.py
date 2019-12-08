@@ -70,8 +70,8 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # It currently takes in candidate q_g as an input
 
         # There currently are 615 candidate goal configurations
-        concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
-        concat_input = Flatten()(concat_input)
+        #concat_input = Concatenate(axis=2)([candidate_qg_goal_flag_input, self.collision_input])
+        #concat_input = Flatten()(concat_input)
         concat_input = Flatten()(self.collision_input)
         dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
@@ -85,8 +85,6 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                         bias_initializer=self.bias_initializer)(evalnet)
 
         def compute_softmax(x):
-            # x = K.squeeze(x, axis=-1)
-            # x = K.squeeze(x, axis=-1)
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
