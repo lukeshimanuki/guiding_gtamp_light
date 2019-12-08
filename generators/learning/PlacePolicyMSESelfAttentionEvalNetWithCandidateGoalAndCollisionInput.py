@@ -16,7 +16,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         pose_input = Reshape((615, 4, 1))(pose_input)
         concat_input = Concatenate(axis=2)([candidate_qg_input, pose_input])
         n_dim = concat_input.shape[2]._value
-        n_filters = 512
+        n_filters = 32
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
@@ -24,7 +24,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(concat_input)
         for _ in range(2):
-            H = Conv2D(filters=256,
+            H = Conv2D(filters=32,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='relu',
@@ -33,13 +33,13 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         q0_qg_eval = Conv2D(filters=1,
                             kernel_size=(1, 1),
                             strides=(1, 1),
-                            activation='softmax',
+                            activation='linear',
                             kernel_initializer=self.kernel_initializer,
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
         q0_qg_eval = Reshape((615,))(q0_qg_eval)
-        q0_qg_eval = RepeatVector(2)(q0_qg_eval)
-        q0_qg_eval = Reshape((615, 2, 1))(q0_qg_eval)
+        #q0_qg_eval = RepeatVector(2)(q0_qg_eval)
+        #q0_qg_eval = Reshape((615, 2, 1))(q0_qg_eval)
         return q0_qg_eval
 
     def construct_eval_net(self, candidate_qg_input):
@@ -63,7 +63,8 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         evalnet = Dense(615, activation='linear',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)
-        evalnet = Multiply()([q0_qg_eval, evalnet])
+        evalnet = Add()([q0_qg_eval, evalnet])
+        evalnet = q0_qg_eval
 
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
