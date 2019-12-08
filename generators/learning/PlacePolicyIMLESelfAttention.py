@@ -8,7 +8,7 @@ from PlacePolicyIMLE import PlacePolicyIMLE
 class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_mse_ff_seed_%d' % config.seed
+        self.weight_file_name = 'place_imle_ff_seed_%d' % config.seed
 
     def construct_eval_net(self):
         concat_input = Flatten()(self.collision_input)
@@ -28,14 +28,17 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
     def construct_qg_candidate_generator(self):
         # todo take the noise into account
-        n_dim = self.key_config_input.shape[2]._value
+        noise_input = RepeatVector(615)(self.noise_input)
+        noise_input = Reshape((615, 4, 1))(noise_input)
+        concat_input = Concatenate(axis=2)([self.key_config_input, noise_input])
+        n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(self.key_config_input)
+                   bias_initializer=self.bias_initializer)(concat_input)
         for _ in range(2):
             H = Conv2D(filters=n_filters,
                        kernel_size=(1, 1),
@@ -53,7 +56,7 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='key_config_transformation')(value)
         self.value_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.noise_input],
             outputs=value,
             name='value_model')
         return value

@@ -19,14 +19,14 @@ def noise(z_size):
 
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        self.noise_input = None
+        self.noise_input = Input(shape=(4, ), name='noise_input', dtype='float32')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
 
     def construct_policy_output(self):
         raise NotImplementedError
 
     def construct_policy_model(self):
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                       outputs=[self.policy_output],
                       name='policy_model')
         model.compile(loss='mse', optimizer=self.opt_D)
@@ -124,7 +124,7 @@ class PlacePolicyIMLE(PlacePolicy):
                                       [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
                                       [t_actions]),
                                   callbacks=callbacks,
-                                  verbose=False)
+                                  verbose=True)
             after = self.policy_model.get_weights()
             gen_w_norm = np.linalg.norm(np.hstack([(a - b).flatten() for a, b in zip(before, after)]))
             print "Generator weight norm diff", gen_w_norm
@@ -143,5 +143,5 @@ class PlacePolicyIMLE(PlacePolicy):
             if patience > 50:
                 break
 
-            print "Val error", valid_err
+            print "Val error %.2f patience %d" % (valid_err, patience)
             print np.min(valid_errs)
