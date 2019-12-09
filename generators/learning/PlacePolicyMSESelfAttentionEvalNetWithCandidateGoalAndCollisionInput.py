@@ -14,7 +14,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
 
     def construct_q0_qg_eval(self, candidate_qg_input):
         pose_input = RepeatVector(615)(self.pose_input)
-        pose_input = Reshape((615, 20, 1))(pose_input)
+        pose_input = Reshape((615, self.dim_poses, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
         n_dim = concat_input.shape[2]._value
         n_filters = 8
@@ -31,7 +31,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        n_pose_features = 2
+        n_pose_features = 32
         q0_qg_eval = Conv2D(filters=n_pose_features,
                             kernel_size=(1, 1),
                             strides=(1, 1),
@@ -41,21 +41,22 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                             name='q0_qg_eval')(H)
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
-        q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
+        #q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
         q0_qg_eval = Reshape((615, n_pose_features, 1))(q0_qg_eval)
         return q0_qg_eval
 
     def construct_eval_net(self, candidate_qg_input):
         q0_qg_eval = self.construct_q0_qg_eval(candidate_qg_input)
-        collision_input = Multiply()([self.collision_input, q0_qg_eval])
+        #collision_input = Multiply()([self.collision_input, q0_qg_eval])
+        collision_input = self.collision_input
         collision_input = Flatten()(collision_input)
         dense_num = 8
 
         # Now what if I learn some features of q0 qg instead?
         collision_input = RepeatVector(615)(collision_input)
         collision_input = Reshape((615, 615*2, 1))(collision_input)
-        #concat_input = Concatenate(axis=2, name='evalnet_input')([collision_input, q0_qg_eval])
-        concat_input = collision_input
+        concat_input = Concatenate(axis=2, name='evalnet_input')([collision_input, q0_qg_eval])
+        #concat_input = collision_input
         n_dim = concat_input.shape[2]._value
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, n_dim),
