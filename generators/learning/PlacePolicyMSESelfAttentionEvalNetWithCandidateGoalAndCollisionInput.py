@@ -12,7 +12,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         self.weight_file_name = 'place_mse_selfattention_seed_%d' % config.seed
         print "Created PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput"
 
-    def construct_candidate_qg_from_q0_eval(self, candidate_qg_input):
+    def construct_q0_qg_eval(self, candidate_qg_input):
         pose_input = RepeatVector(615)(self.pose_input)
         pose_input = Reshape((615, 4, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
@@ -46,7 +46,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         return q0_qg_eval
 
     def construct_eval_net(self, candidate_qg_input):
-        q0_qg_eval = self.construct_candidate_qg_from_q0_eval(candidate_qg_input)
+        q0_qg_eval = self.construct_q0_qg_eval(candidate_qg_input)
         collision_input = Multiply()([self.collision_input, q0_qg_eval])
         collision_input = Flatten()(collision_input)
         dense_num = 8
