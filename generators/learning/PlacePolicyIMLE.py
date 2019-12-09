@@ -19,7 +19,7 @@ def noise(z_size):
 
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        self.dim_noise = 1
+        self.dim_noise = 10
         self.noise_input = Input(shape=(self.dim_noise, ), name='noise_input', dtype='float32')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
 

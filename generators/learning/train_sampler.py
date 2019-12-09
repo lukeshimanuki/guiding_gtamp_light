@@ -236,7 +236,8 @@ def train(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 0:4]  # pose: [obj_pose, robot_pose, goal_object_poses]
+    #poses = poses[:, 0:4]  # pose: [obj_pose, robot_pose, goal_object_poses]
+    poses = np.concatenate([poses[:, 0:4], poses[:, 8:]], axis=-1)
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
