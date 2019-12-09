@@ -81,11 +81,12 @@ def load_data(traj_dir):
             is_goal_region = utils.convert_binary_vec_to_one_hot(np.array([s.region in s.goal_entities]))
             is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
 
-            if s.region in s.goal_entities:
+            filter_movements_to_goal_region = s.region in s.goal_entities
+            if filter_movements_to_goal_region:
                 continue
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
-            poses.append(get_processed_poses_from_state(s))
+            poses.append(get_processed_poses_from_state(s, a))
             actions.append(get_processed_poses_from_action(s, a))
             rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
             traj_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
@@ -236,8 +237,8 @@ def train(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    #poses = poses[:, 0:4]  # pose: [obj_pose, robot_pose, goal_object_poses]
-    poses = np.concatenate([poses[:, 0:4], poses[:, 8:]], axis=-1)
+    poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
+    #poses = np.concatenate([poses[:, 0:4], poses[:, 8:]], axis=-1)
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
