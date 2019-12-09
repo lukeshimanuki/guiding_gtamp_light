@@ -41,7 +41,7 @@ def create_policy(config):
     n_key_configs = 615
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
-    if config.algo == "sa_evalnet_qg_collision":
+    if config.algo == "sa_mse":
         savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
                   (config.dtype, state_data_mode, action_data_mode, config.algo)
         policy = PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(dim_action=dim_action,

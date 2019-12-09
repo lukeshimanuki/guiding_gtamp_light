@@ -251,7 +251,7 @@ def main():
         train_mse_selfattention_dense_evalnet(configs)
     elif configs.algo == 'sa_dense_gennet_dense_evalnet':
         train_mse_selfattention_dense_gennet_dense_evalnet(configs)
-    elif configs.algo == 'sa_evalnet_qg_collision':
+    elif configs.algo == 'sa_mse':
         train(configs)
     elif configs.algo == 'sa_imle':
         train(configs)

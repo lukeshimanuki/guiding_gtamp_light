@@ -95,7 +95,6 @@ def main():
         seed=pidx
     )
     sampler = create_policy(placeholder_config)
-    import pdb;pdb.set_trace()
     sampler.load_weights()
 
     np.random.seed(pidx)

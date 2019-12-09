@@ -19,7 +19,8 @@ def noise(z_size):
 
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        self.noise_input = Input(shape=(615*4, ), name='noise_input', dtype='float32')
+        self.dim_noise = 1
+        self.noise_input = Input(shape=(self.dim_noise, ), name='noise_input', dtype='float32')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
 
     def construct_policy_output(self):
@@ -105,14 +106,14 @@ class PlacePolicyIMLE(PlacePolicy):
                 stime = time.time()
                 # train data
                 world_states = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
-                noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_action*615))
+                noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
                 generated_actions = self.generate_k_smples_for_multiple_states(world_states, noise_smpls)
                 chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions,
                                                                                   noise_smpls)
 
                 # validation data
                 t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
-                t_noise_smpls = noise(z_size=(n_test_data, num_smpl_per_state, self.dim_action*615))
+                t_noise_smpls = noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
                 t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
                 t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
                                                                                     t_noise_smpls)
