@@ -26,7 +26,6 @@ class Policy:
         else:
             dim_z = int(dim_action / 2)
 
-        self.dim_noise = dim_z
 
         # setup dimensions for inputs
         self.dim_action = dim_action
