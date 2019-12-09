@@ -1,7 +1,7 @@
 from gtamp_utils import utils
 import numpy as np
 
-state_data_mode = 'robot_rel_to_obj'
+state_data_mode = 'absolute'
 action_data_mode = 'pick_parameters_place_relative_to_object'
 
 
@@ -19,10 +19,9 @@ def make_konfs_relative_to_pose(obj_pose, key_configs):
 
 def get_processed_poses_from_state(state):
     if state_data_mode == 'absolute':
-        raise NotImplementedError
-        #obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
-        #robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.robot_pose)
-        #goal_obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_goal_obj_pose)
+        obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
+        robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
+        goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
     elif state_data_mode == 'robot_rel_to_obj':
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
         # this is the initial robot pose, before picking an object. Is the collision information while holding the obj?
@@ -34,8 +33,7 @@ def get_processed_poses_from_state(state):
         goal_obj_poses = np.hstack(goal_obj_poses)
     else:
         raise not NotImplementedError
-
-    pose = np.hstack([obj_pose, robot_pose, goal_obj_poses])
+    pose = np.hstack([obj_pose, goal_obj_poses, robot_pose])
     return pose
 
 
@@ -168,7 +166,8 @@ def get_processed_poses_from_action(state, action):
         rel_place_pose = utils.get_relative_robot_pose_wrt_body_pose(place_pose, obj_pose)
         place_pose = utils.encode_pose_with_sin_and_cos_angle(rel_place_pose)
 
-    unprocessed_place = utils.clean_pose_data(get_unprocessed_placement(place_pose, obj_pose))
+    """
+    unprocessed_place = utils.clean_pose_data(utils.get_unprocessed_placement(place_pose, obj_pose))
     target = utils.clean_pose_data(action['place_abs_base_pose'])
 
     is_recovered = np.all(np.isclose(unprocessed_place, target))
@@ -176,6 +175,7 @@ def get_processed_poses_from_action(state, action):
         assert is_recovered
     except:
         import pdb;pdb.set_trace()
+    """
     action = np.hstack([pick_pose, place_pose])
 
     return action
