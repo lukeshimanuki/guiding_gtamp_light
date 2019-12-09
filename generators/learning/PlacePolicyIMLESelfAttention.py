@@ -67,14 +67,14 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         noise_input = Reshape((615, 4, 1))(noise_input)
         concat_input = Concatenate(axis=2)([self.key_config_input, noise_input])
         n_dim = concat_input.shape[2]._value
-        n_filters = 256
+        n_filters = 32
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(concat_input)
-        for _ in range(1):
+        for _ in range(2):
             H = Conv2D(filters=n_filters,
                        kernel_size=(1, 1),
                        strides=(1, 1),
