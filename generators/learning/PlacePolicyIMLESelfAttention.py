@@ -57,6 +57,8 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         # Now what if I learn some features of q0 qg instead?
         collision_input = Multiply()([self.collision_input, q0_qg_eval])
         collision_input = Flatten()(collision_input)
+        collision_input = RepeatVector(615)(collision_input)
+        collision_input = Reshape((615, 615 * 2, 1))(collision_input)
         concat_input = collision_input
         n_dim = concat_input.shape[2]._value
         H = Conv2D(filters=dense_num,
