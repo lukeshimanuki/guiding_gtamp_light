@@ -1,6 +1,8 @@
-from generators.learning.utils.data_processing_utils import state_data_mode, action_data_mode
+from generators.learning.PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
+    PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
+from generators.learning.PlacePolicyIMLESelfAttention import PlacePolicyIMLESelfAttention
+from data_processing_utils import state_data_mode, action_data_mode
 
-from generators.learning.RelKonfIMLE import RelKonfIMLEPose
 
 import collections
 
@@ -31,4 +33,26 @@ def create_imle_model(seed, use_unregularized=False):
     dim_state = (n_key_configs, 2, 1)
     policy = RelKonfIMLEPose(dim_action, dim_state, savedir, 1.0, config)
     load_weights(policy, seed, use_unregularized)
+    return policy
+
+
+def create_policy(config):
+    n_key_configs = 615
+    dim_state = (n_key_configs, 2, 1)
+    dim_action = 4
+    if config.algo == "sa_evalnet_qg_collision":
+        savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                  (config.dtype, state_data_mode, action_data_mode, config.algo)
+        policy = PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(dim_action=dim_action,
+                                                                                      dim_collision=dim_state,
+                                                                                      save_folder=savedir,
+                                                                                      tau=config.tau,
+                                                                                      config=config)
+    elif config.algo == 'sa_imle':
+        savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                  (config.dtype, state_data_mode, action_data_mode, config.algo)
+        policy = PlacePolicyIMLESelfAttention(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
+                                              tau=config.tau, config=config)
+    else:
+        raise NotImplementedError
     return policy

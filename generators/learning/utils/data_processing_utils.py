@@ -104,12 +104,11 @@ def normalize_place_pose_wrt_region(pose, region):
     return place_pose
 
 
-def get_unprocessed_placement(placement, obj_abs_pose):
-    placement = utils.decode_pose_with_sin_and_cos_angle(placement)
+def get_absolute_placement_from_relative_placement(rel_placement, obj_abs_pose):
+    rel_placement = utils.decode_pose_with_sin_and_cos_angle(rel_placement)
     if action_data_mode == 'pick_parameters_place_relative_to_object':
         #abs_place = placement.squeeze() + obj_abs_pose.squeeze()
-        abs_place = utils.get_absolute_pose_from_relative_pose(placement, obj_abs_pose)
-
+        abs_place = utils.get_absolute_pose_from_relative_pose(rel_placement, obj_abs_pose)
     else:
         raise NotImplementedError
 

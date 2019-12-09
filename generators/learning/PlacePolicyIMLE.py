@@ -63,6 +63,11 @@ class PlacePolicyIMLE(PlacePolicy):
             os.makedirs(fdir)
         self.policy_model.save_weights(fdir + fname)
 
+    def load_weights(self):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + '.h5'
+        self.policy_model.load_weights(fdir+fname)
+
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))

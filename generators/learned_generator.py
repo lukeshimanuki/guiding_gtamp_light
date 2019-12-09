@@ -1,16 +1,13 @@
 from uniform import PaPUniformGenerator
 from generators.learning.utils.data_processing_utils import action_data_mode
-from generators.learning.utils.sampler_utils import generate_smpls
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils import data_processing_utils
 
 from gtamp_utils import utils
 from generators.learning.utils.sampler_utils import generate_policy_smpl_batch
-from generators.learning.RelKonfIMLE import noise
+from generators.learning.PlacePolicyIMLE import noise
 import time
 import numpy as np
-import pickle
-import os
 
 
 class LearnedGenerator(PaPUniformGenerator):
@@ -65,7 +62,8 @@ class LearnedGenerator(PaPUniformGenerator):
             # place_smpls, noises_used = generate_smpls(self.smpler_state, self.sampler, 1, self.noises_used)
             # place_smpls = place_smpls[0].squeeze()
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
-            place_smpl = data_processing_utils.get_unprocessed_placement(place_smpl, self.smpler_state.abs_obj_pose)
+            place_smpl = data_processing_utils.get_absolute_placement_from_relative_placement(place_smpl,
+                                                                                              self.smpler_state.abs_obj_pose)
             #place_smpls = [data_processing_utils.get_unprocessed_placement(s, self.smpler_state.abs_obj_pose) for s in self.policy_smpl_batch]
             self.policy_smpl_idx += 1
         else:
@@ -112,30 +110,3 @@ class LearnedGenerator(PaPUniformGenerator):
         utils.set_color(obj, orig_color)
         return feasible_op_parameters, status
 
-    """
-    def sample_next_point(self, operator_skeleton, n_iter, n_parameters_to_try_motion_planning=1,
-                          cached_collisions=None, cached_holding_collisions=None, dont_check_motion_existence=False):
-        # Not yet motion-planning-feasible
-        target_obj = operator_skeleton.discrete_parameters['object']
-        if target_obj in self.feasible_pick_params:
-            self.op_feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
-
-        status = "NoSolution"
-        for n_iter in range(10, n_iter, 10):
-            feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
-                                                                                n_iter,
-                                                                                n_parameters_to_try_motion_planning)
-            if status == 'HasSolution':
-                break
-        if status == "NoSolution":
-            return {'is_feasible': False}
-
-        if dont_check_motion_existence:
-            chosen_op_param = self.choose_one_of_params(feasible_op_parameters, status)
-        else:
-            chosen_op_param = self.get_pap_param_with_feasible_motion_plan(operator_skeleton,
-                                                                           feasible_op_parameters,
-                                                                           cached_collisions,
-                                                                           cached_holding_collisions)
-        return chosen_op_param
-        """

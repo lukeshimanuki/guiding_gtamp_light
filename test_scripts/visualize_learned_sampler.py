@@ -1,34 +1,17 @@
-from gtamp_problem_environments.mover_env import Mover
-from gtamp_utils import utils
-from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learned_generator import LearnedGenerator
+from generators.learning.utils.model_creation_utils import create_policy
+from generators.learning.utils.sampler_utils import generate_policy_smpl_batch
+from generators.learning.PlacePolicyIMLE import noise
+from generators.learning.utils import data_processing_utils
+from trajectory_representation.concrete_node_state import ConcreteNodeState
+from gtamp_problem_environments.mover_env import Mover
 
+from gtamp_utils import utils
 import numpy as np
 import random
 import pickle
 import sys
-
-
-def get_learned_smpler(algo):
-    n_key_configs = 620
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 8
-    weight_folder = './generators/learning/learned_weights/'
-    if algo == 'admon':
-        model = AdversarialMonteCarlo(dim_action=dim_action, dim_state=dim_state,
-                                      save_folder=weight_folder,
-                                      tau=1.0,
-                                      explr_const=0.0)
-    elif algo == 'admonpose':
-        model = AdversarialMonteCarloWithPose(dim_action=dim_action, dim_collision=dim_state,
-                                              save_folder=weight_folder,
-                                              tau=1.0,
-                                              explr_const=0.0)
-
-    else:
-        raise NotImplementedError
-    model.load_weights(agen_file='a_gen_epoch_10.h5')
-    return model
+import collections
 
 
 def get_pick_base_poses(action, smples):
@@ -56,10 +39,9 @@ def get_place_base_poses(action, smples, mover):
     return to_return
 
 
-def compute_state(obj, region, problem_env, key_configs):
-    # todo the state of a concrete node consists of the object, region, and the collision vector.
+def compute_state(obj, region, problem_env):
     goal_entities = ['square_packing_box1', 'home_region']
-    return ConcreteNodeState(problem_env, obj, region, goal_entities, key_configs)
+    return ConcreteNodeState(problem_env, obj, region, goal_entities)
 
 
 def create_environment(problem_idx):
@@ -68,41 +50,58 @@ def create_environment(problem_idx):
     return problem_env, openrave_env
 
 
-def visualize(plan, problem_idx, algo):
-    np.random.seed(problem_idx)
-    random.seed(problem_idx)
-
-    problem_env, openrave_env = create_environment(problem_idx)
+def visualize_in_training_env(problem_env, learned_sampler, plan):
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
 
     state = None
-    learned_smpler = get_learned_smpler(algo)
     utils.viewer()
     for action_idx, action in enumerate(plan):
         if 'pick' in action.type:
             associated_place = plan[action_idx + 1]
             state = compute_state(action.discrete_parameters['object'],
                                   associated_place.discrete_parameters['region'],
-                                  problem_env,
-                                  key_configs)
-            smpler = LearnedGenerator(action, problem_env, learned_smpler, state)
+                                  problem_env)
+            smpler = LearnedGenerator(action, problem_env, learned_sampler, state)
             smples = np.vstack([smpler.generate() for _ in range(10)])
             action.discrete_parameters['region'] = associated_place.discrete_parameters['region']
             pick_base_poses = get_pick_base_poses(action, smples)
             place_base_poses = get_place_base_poses(action, smples, problem_env)
             utils.visualize_path(place_base_poses)
-            import pdb;pdb.set_trace()
-
         action.execute()
+
+
+def visualize(problem_env, learned_sampler):
+    utils.viewer()
+    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+
+    state = compute_state('square_packing_box1', 'loading_region', problem_env)
+    import pdb;pdb.set_trace()
+    z_smpls = noise(z_size=(100, 4))
+    place_smpl = generate_policy_smpl_batch(state, learned_sampler, z_smpls)
+    obj_pose = utils.clean_pose_data(state.abs_obj_pose).squeeze()
+    place_smpl = [data_processing_utils.get_absolute_placement_from_relative_placement(p, obj_pose) for p in place_smpl]
+    pass
 
 
 def main():
     pidx = int(sys.argv[1])
     algo = str(sys.argv[2])
-    filename = './planning_experience/raw/two_arm_mover/n_objs_pack_1//' + 'seed_0_pidx_' + str(pidx) + '.pkl'
-    plan_data = pickle.load(open(filename, 'r'))
-    plan = plan_data['plan']
-    visualize(plan, pidx, algo)
+    plan = None
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
+    placeholder_config = placeholder_config_definition(
+        algo=algo,
+        tau=1.0,
+        dtype='n_objs_pack_4',
+        seed=pidx
+    )
+    sampler = create_policy(placeholder_config)
+    import pdb;pdb.set_trace()
+    sampler.load_weights()
+
+    np.random.seed(pidx)
+    random.seed(pidx)
+    problem_env, openrave_env = create_environment(pidx)
+    visualize(problem_env, sampler)
 
 
 if __name__ == '__main__':

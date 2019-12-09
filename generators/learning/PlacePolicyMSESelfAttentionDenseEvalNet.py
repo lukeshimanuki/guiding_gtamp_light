@@ -64,7 +64,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
 
         # There currently are 615 candidate goal configurations
         concat_input = Flatten()(self.collision_input)
-        dense_num = 32
+        dense_num = 8
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(concat_input)
