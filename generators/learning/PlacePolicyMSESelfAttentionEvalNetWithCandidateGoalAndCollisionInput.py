@@ -16,9 +16,8 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         pose_input = RepeatVector(615)(self.pose_input)
         pose_input = Reshape((615, 4, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
-        return concat_input
         n_dim = concat_input.shape[2]._value
-        n_filters = 32
+        n_filters = 8
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
@@ -32,7 +31,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        n_pose_features = 1
+        n_pose_features = 8
         q0_qg_eval = Conv2D(filters=n_pose_features,
                             kernel_size=(1, 1),
                             strides=(1, 1),
