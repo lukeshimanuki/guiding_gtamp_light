@@ -145,7 +145,7 @@ class PlacePolicyIMLE(PlacePolicy):
             else:
                 patience += 1
 
-            if patience > 50:
+            if patience > 20:
                 break
 
             print "Val error %.2f patience %d" % (valid_err, patience)
