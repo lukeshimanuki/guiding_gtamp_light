@@ -27,7 +27,8 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         collision_input = Flatten()(self.collision_input)
         collision_input = RepeatVector(615)(collision_input)
         collision_input = Reshape((615, 615 * 2, 1))(collision_input)
-        concat_input = Concatenate(axis=2)([collision_input, q0_qg])
+        #concat_input = Concatenate(axis=2)([collision_input, q0_qg])
+        concat_input = collision_input
         n_dim = concat_input.shape[2]._value
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, n_dim),
