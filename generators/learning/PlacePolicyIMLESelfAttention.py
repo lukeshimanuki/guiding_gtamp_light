@@ -95,8 +95,8 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
     def construct_qg_candidate_generator(self):
         # todo take the noise into account
-        noise_input = RepeatVector(615)(self.noise_input)
-        noise_input = Reshape((615, 4, 1))(noise_input)
+        #noise_input = RepeatVector(615)(self.noise_input)
+        noise_input = Reshape((615, 4, 1))(self.noise_input)
         concat_input = Concatenate(axis=2)([self.key_config_input, noise_input])
         n_dim = concat_input.shape[2]._value
         n_filters = 32
