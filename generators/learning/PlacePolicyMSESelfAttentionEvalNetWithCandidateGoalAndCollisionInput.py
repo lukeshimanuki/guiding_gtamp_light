@@ -39,7 +39,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                             kernel_initializer=self.kernel_initializer,
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
-        q0_qg_eval = Reshape((615, n_filters, 1))(q0_qg_eval)
+        q0_qg_eval = Reshape((615, n_pose_features, 1))(q0_qg_eval)
         #dense_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
         #                    outputs=[q0_qg_eval])
         return q0_qg_eval
