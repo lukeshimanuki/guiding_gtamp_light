@@ -15,9 +15,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
     def construct_candidate_qg_from_q0_eval(self, candidate_qg_input):
         pose_input = RepeatVector(615)(self.pose_input)
         pose_input = Reshape((615, 4, 1))(pose_input)
-        concat_input = Concatenate(axis=2)([candidate_qg_input, pose_input])
-        return concat_input
-        """
+        concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
         n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
@@ -33,18 +31,17 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        q0_qg_eval = Conv2D(filters=1,
+        q0_qg_eval = Conv2D(filters=32,
                             kernel_size=(1, 1),
                             strides=(1, 1),
                             activation='linear',
                             kernel_initializer=self.kernel_initializer,
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
-        q0_qg_eval = Reshape((615,))(q0_qg_eval)
-        #q0_qg_eval = RepeatVector(2)(q0_qg_eval)
-        #q0_qg_eval = Reshape((615, 2, 1))(q0_qg_eval)
+        q0_qg_eval = Reshape((615, 32, 1))(q0_qg_eval)
+        #dense_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        #                    outputs=[q0_qg_eval])
         return q0_qg_eval
-        """
 
     def construct_eval_net(self, candidate_qg_input):
         q0_qg_eval = self.construct_candidate_qg_from_q0_eval(candidate_qg_input)
@@ -53,7 +50,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         #collision_input = Concatenate(axis=1, name='collision_input')([collision_input_1, self.pose_input])
         # May be reduce the dimensionality here?
         """
-        evalnet = Dense(dense_num, activation='relu',
+        evalnet = Dense(dense_num, activa(tion='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(collision_input)
         evalnet = Dense(dense_num, activation='relu',
@@ -64,11 +61,10 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                         bias_initializer=self.bias_initializer)(evalnet)
         """
 
+        # Now what if I learn some features of q0 qg instead?
         collision_input = RepeatVector(615)(collision_input)
         collision_input = Reshape((615, 615*2, 1))(collision_input)
         concat_input = Concatenate(axis=2)([collision_input, q0_qg_eval])
-
-        # todo: now to this, I will attach the q0 qg information
         n_dim = concat_input.shape[2]._value
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, n_dim),
@@ -87,8 +83,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                    strides=(1, 1),
                    activation='linear',
                    kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer,
-                   name='q0_qg_eval')(H)
+                   bias_initializer=self.bias_initializer)(H)
 
         def take_the_first_row(x):
             return x[:, 0]
@@ -103,5 +98,4 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         conv_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input], outputs=[evalnet])
         dense_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input], outputs=[evalnet])
 
-        import pdb;pdb.set_trace()
         return evalnet

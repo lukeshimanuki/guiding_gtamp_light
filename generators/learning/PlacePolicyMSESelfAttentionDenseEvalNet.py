@@ -47,10 +47,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                        strides=(1, 1),
                        activation='linear',
                        kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer,
-                       name='value_output')(H)
+                       bias_initializer=self.bias_initializer)(H)
 
-        value = Lambda(lambda x: K.squeeze(x, axis=2), name='key_config_transformation')(value)
+        value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
         self.value_model = Model(
             inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
             outputs=value,
