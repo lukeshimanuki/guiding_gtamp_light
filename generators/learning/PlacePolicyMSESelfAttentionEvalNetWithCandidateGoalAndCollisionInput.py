@@ -17,28 +17,28 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         pose_input = Reshape((615, 4, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
         n_dim = concat_input.shape[2]._value
-        n_filters = 32
+        n_filters = 8
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(concat_input)
-        for _ in range(2):
-            H = Conv2D(filters=32,
+        for _ in range(1):
+            H = Conv2D(filters=n_filters,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        q0_qg_eval = Conv2D(filters=32,
+        q0_qg_eval = Conv2D(filters=n_filters,
                             kernel_size=(1, 1),
                             strides=(1, 1),
                             activation='linear',
                             kernel_initializer=self.kernel_initializer,
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
-        q0_qg_eval = Reshape((615, 32, 1))(q0_qg_eval)
+        q0_qg_eval = Reshape((615, n_filters, 1))(q0_qg_eval)
         #dense_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
         #                    outputs=[q0_qg_eval])
         return q0_qg_eval
