@@ -147,12 +147,16 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
 
         self.problem_env = problem_env
 
-        #utils.viewer()
+        # utils.viewer()
         for action_idx, action in enumerate(plan):
             assert action.type == 'two_arm_pick_two_arm_place'
+            target_obj = problem_env.env.GetKinBody(action.discrete_parameters['object'])
+            target_obj.Enable(False)
             state = self.compute_state(action.discrete_parameters['object'],
                                        action.discrete_parameters['region'],
                                        goal_entities)
+            target_obj.Enable(True)
+
             pick_action_info = action.continuous_parameters['pick']
             place_action_info = action.continuous_parameters['place']
 
@@ -174,9 +178,12 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
                 reward = -1
 
             print action.discrete_parameters['object'], action.discrete_parameters['region']
+            import pdb;
+            pdb.set_trace()
             action.execute()
             self.add_sar_tuples(state, action_info, reward)
 
         self.add_state_prime()
         print "Done!"
         openrave_env.Destroy()
+
