@@ -44,30 +44,37 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
 
     def construct_eval_net(self, candidate_qg_input):
         q0_qg_eval = self.construct_candidate_qg_from_q0_eval(candidate_qg_input)
-        collision_input_1 = Flatten()(self.collision_input)
-        #collision_input = Concatenate(axis=1, name='collision_input')([collision_input_1, self.pose_input])
-        # May be reduce the dimensionality here?
-        dense_num = 8
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(collision_input_1)
-        #evalnet = Reshape((dense_num,1))(evalnet)
-        #evalnet = MaxPool1D()(evalnet)
-        #evalnet = Reshape((dense_num/2, ))(evalnet)
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        #evalnet = Reshape((64,1))(evalnet)
-        #evalnet = MaxPool1D()(evalnet)
-        #evalnet = Reshape((32, ))(evalnet)
-        evalnet = Dense(615, activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        evalnet = Add()([q0_qg_eval, evalnet])
+        collision_input = Flatten()(self.collision_input)
+        collision_input = RepeatVector(615)(collision_input)
+        collision_input = Reshape((615, 615, 2))(collision_input)
+        n_filters = 32
+        n_dim = collision_input.shape[2]._value
+        H = Conv2D(filters=n_filters,
+                   kernel_size=(1, n_dim),
+                   strides=(1, 1),
+                   activation='relu',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(collision_input)
+        for _ in range(2):
+            H = Conv2D(filters=32,
+                       kernel_size=(1, 1),
+                       strides=(1, 1),
+                       activation='relu',
+                       kernel_initializer=self.kernel_initializer,
+                       bias_initializer=self.bias_initializer)(H)
+        q0_qg_eval = Conv2D(filters=1,
+                            kernel_size=(1, 1),
+                            strides=(1, 1),
+                            activation='linear',
+                            kernel_initializer=self.kernel_initializer,
+                            bias_initializer=self.bias_initializer,
+                            name='q0_qg_eval')(H)
+        q0_qg_eval = Reshape((615,))(q0_qg_eval)
         evalnet = q0_qg_eval
 
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
+        import pdb;pdb.set_trace()
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
 
