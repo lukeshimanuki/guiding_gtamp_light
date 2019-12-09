@@ -15,9 +15,9 @@ class PlacePolicyIMLEFeedForward(PlacePolicyIMLE):
         tiled_pose = self.get_tiled_input(self.pose_input)
         tiled_noise = self.get_tiled_input(self.noise_input)
         concat_input = Concatenate(axis=2)(
-            [self.key_config_input, self.goal_flag_input, self.collision_input, tiled_pose, tiled_noise])
+            [self.key_config_input, self.collision_input, tiled_noise])
         H = Flatten()(concat_input)
-        dense_num = 256
+        dense_num = 32
         hidden_action = Dense(dense_num, activation='relu',
                               kernel_initializer=self.kernel_initializer,
                               bias_initializer=self.bias_initializer)(H)

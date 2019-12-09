@@ -255,6 +255,8 @@ def main():
         train(configs)
     elif configs.algo == 'sa_imle':
         train(configs)
+    elif configs.algo == 'ff_imle':
+        train(configs)
     else:
         raise NotImplementedError
 

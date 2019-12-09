@@ -10,6 +10,12 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_imle_ff_seed_%d' % config.seed
 
+    def construct_policy_output(self):
+        candidate_qg = self.construct_qg_candidate_generator()
+        eval_net = self.construct_eval_net()
+        output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
+        return output
+
     def construct_eval_net(self):
         concat_input = Flatten()(self.collision_input)
         dense_num = 8
@@ -32,14 +38,14 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         noise_input = Reshape((615, 4, 1))(noise_input)
         concat_input = Concatenate(axis=2)([self.key_config_input, noise_input])
         n_dim = concat_input.shape[2]._value
-        n_filters = 32
+        n_filters = 256
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(concat_input)
-        for _ in range(2):
+        for _ in range(1):
             H = Conv2D(filters=n_filters,
                        kernel_size=(1, 1),
                        strides=(1, 1),
@@ -60,13 +66,6 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
             outputs=value,
             name='value_model')
         return value
-
-    def construct_policy_output(self):
-        candidate_qg = self.construct_qg_candidate_generator()
-        eval_net = self.construct_eval_net()
-        output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
-        return output
-
 
 
 
