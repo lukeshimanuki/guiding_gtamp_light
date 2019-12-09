@@ -62,7 +62,7 @@ def parse_parameters():
 
 
 def get_processed_fname(raw_fname):
-    traj_fname = 'pap_traj_' + raw_fname
+    traj_fname = 'no_collision_at_target_obj_pap_traj_' + raw_fname
 
     return traj_fname
 
