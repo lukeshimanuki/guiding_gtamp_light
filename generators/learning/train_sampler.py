@@ -241,7 +241,7 @@ def train(config):
     actions = actions[:, 4:]
     #poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
     #poses = np.concatenate([poses[:, 0:4], poses[:, 8:]], axis=-1)
-    poses = poses[:, :8]
+    poses = poses[:, :20]
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
