@@ -67,11 +67,40 @@ class PlacePolicyIMLE(PlacePolicy):
     def load_weights(self):
         fdir = ROOTDIR + '/' + self.save_folder + '/'
         fname = self.weight_file_name + '.h5'
+        print "Loading weight ", fdir+fname
         self.policy_model.load_weights(fdir+fname)
+
+    @staticmethod
+    def get_batch_based_on_rewards(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
+        indices = np.random.randint(0, actions.shape[0], size=batch_size)
+
+        n_data = actions.shape[0]
+        probability_of_being_sampled = np.exp(sum_rewards)/np.sum(np.exp(sum_rewards))
+        import pdb;pdb.set_trace()
+        indices = np.random.choice(n_data, batch_size, p=probability_of_being_sampled)
+        cols_batch = np.array(cols[indices, :])  # collision vector
+        goal_flag_batch = np.array(goal_flags[indices, :])  # collision vector
+        a_batch = np.array(actions[indices, :])
+        pose_batch = np.array(poses[indices, :])
+        konf_batch = np.array(rel_konfs[indices, :])
+        sum_reward_batch = np.array(sum_rewards[indices, :])
+        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
+
+    @staticmethod
+    def get_train_and_test_indices_based_on_sum_rewards(n_data, sum_rewards):
+        probability_of_being_sampled = (np.exp(sum_rewards)/np.sum(np.exp(sum_rewards))).squeeze()
+        indices_based_on_sum_rewards = np.random.choice(n_data, n_data, p=probability_of_being_sampled)
+
+        test_idxs = np.random.randint(0, n_data, size=int(0.2 * n_data))
+        train_idxs = list(set(range(n_data)).difference(set(test_idxs)))
+
+        test_idxs = indices_based_on_sum_rewards[test_idxs]
+        train_idxs = indices_based_on_sum_rewards[train_idxs]
+        return train_idxs, test_idxs
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         # todo factor this code
-        train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
+        train_idxs, test_idxs = self.get_train_and_test_indices_based_on_sum_rewards(len(actions), sum_rewards)
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards,
                                                              train_idxs, test_idxs)
 
@@ -90,6 +119,7 @@ class PlacePolicyIMLE(PlacePolicy):
         poses = train_data['poses']
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
+        sum_rewards = train_data['sum_rewards']
         callbacks = self.create_callbacks_for_training()
 
         gen_w_norm_patience = 10
@@ -102,6 +132,7 @@ class PlacePolicyIMLE(PlacePolicy):
             batch_size = 400
             col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
                 self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size=batch_size)
+
             if is_time_to_smpl_new_data:
                 stime = time.time()
                 # train data

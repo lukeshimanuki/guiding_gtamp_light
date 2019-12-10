@@ -245,6 +245,7 @@ def train(config):
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
+
 def main():
     if configs.algo == 'ff':
         train_mse_ff(configs)

@@ -8,7 +8,8 @@ import numpy as np
 def prepare_input(smpler_state):
     # poses = np.hstack(
     #    [utils.encode_pose_with_sin_and_cos_angle(utils.get_body_xytheta(obj).squeeze()), 0, 0, 0, 0]).reshape((1, 8))
-    poses = data_processing_utils.get_processed_poses_from_state(smpler_state)[None, :]
+    action = {'pick_abs_base_pose': np.array([0,0,0])}
+    poses = data_processing_utils.get_processed_poses_from_state(smpler_state, action)[None, :]
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
     # todo compute this only once, and store it in smpler state
@@ -23,7 +24,8 @@ def prepare_input(smpler_state):
 
     goal_flags = smpler_state.goal_flags
     collisions = smpler_state.collision_vector
-    poses = poses[:, :8]
+
+    poses = poses[:, :20]
 
     return goal_flags, rel_konfs, collisions, poses
 
@@ -96,7 +98,7 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     goal_flags = np.tile(goal_flags, (n_smpls, 1, 1, 1))
     rel_konfs = np.tile(rel_konfs, (n_smpls, 1, 1, 1))
     collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-    poses = poses[:, :4]
+    poses = poses[:, :20]
     poses = np.tile(poses, (n_smpls, 1))
     noise_batch = np.array(noise_batch).squeeze()
     pred_batch = policy.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_batch])
