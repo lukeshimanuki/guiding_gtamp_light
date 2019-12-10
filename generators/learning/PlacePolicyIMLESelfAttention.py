@@ -95,7 +95,7 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        value = Conv2D(filters=1,
+        value = Conv2D(filters=4,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',
