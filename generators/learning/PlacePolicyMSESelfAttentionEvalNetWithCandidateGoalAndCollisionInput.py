@@ -51,7 +51,6 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         q0_qg_eval = self.construct_q0_qg_eval(candidate_qg_input)
         collision_input = Multiply()([q0_qg_eval, self.collision_input])
         collision_input = Flatten()(collision_input)
-
         dense_num = 8
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
@@ -66,7 +65,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
 
-        evalnet = Add()([q0_qg_eval, evalnet])
+        #evalnet = Add()([q0_qg_eval, evalnet])
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
 
         return evalnet
