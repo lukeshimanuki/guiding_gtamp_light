@@ -239,7 +239,8 @@ def train(config):
     #poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
     #poses = poses[:, :20]
     poses = poses[:, 0:4]
-    policy.load_weights()
+    """
+    #policy.load_weights()
     q0qg_vals_b4_sm = policy.q0_qg_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
     q0qg_vals_after_sm = policy.q0_qg_after_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
     concat = policy.concat.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
@@ -251,7 +252,8 @@ def train(config):
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, 615, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
-    policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
+    """
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def main():
