@@ -25,7 +25,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # Computes the candidate goal configurations
         # q_g = phi_2(x_i), for some x_i
         # todo: change the create_conv_layers activation to relu for generating value output.
-        #value = self.create_conv_layers(concat_input, n_filters=128,
+        # value = self.create_conv_layers(concat_input, n_filters=128,
         #                                use_pooling=False, use_flatten=False)
         n_dim = concat_input.shape[2]._value
         n_filters = 32
@@ -75,7 +75,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                         bias_initializer=self.bias_initializer)(evalnet)
 
         def compute_softmax(x):
-            return K.softmax(x, axis=-1)
+            return K.softmax(x*100, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
 

@@ -98,7 +98,7 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     goal_flags = np.tile(goal_flags, (n_smpls, 1, 1, 1))
     rel_konfs = np.tile(rel_konfs, (n_smpls, 1, 1, 1))
     collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-    poses = poses[:, :20]
+    poses = poses[:, :4]
     poses = np.tile(poses, (n_smpls, 1))
     if len(noise_batch) > 1:
         noise_batch = np.array(noise_batch).squeeze()
