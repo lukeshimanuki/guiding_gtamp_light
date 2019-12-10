@@ -21,6 +21,7 @@ class PlacePolicyMSE(PlacePolicy):
         raise NotImplementedError
 
     def load_weights(self):
+        print "Loading weights", self.save_folder + self.weight_file_name
         self.policy_model.load_weights(self.save_folder + self.weight_file_name)
 
     def compute_policy_mse(self, data):
