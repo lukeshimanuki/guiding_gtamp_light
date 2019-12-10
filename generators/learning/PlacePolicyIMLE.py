@@ -170,7 +170,7 @@ class PlacePolicyIMLE(PlacePolicy):
 
             self.policy_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls, probability_of_being_sampled],
                                   [a_batch],
-                                  epochs=100,
+                                  epochs=10000,
                                   validation_data=(
                                       [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls, t_probability_of_being_sampled],
                                       [t_actions]),
