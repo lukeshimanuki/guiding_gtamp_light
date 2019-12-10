@@ -43,8 +43,8 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
             x = K.squeeze(x, axis=-1)
             x = K.squeeze(x, axis=-1)
             return K.softmax(x, axis=-1)
-        #q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
-        q0_qg_eval = Reshape((615,))(q0_qg_eval)
+        q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
+        q0_qg_eval = Reshape((615,1,1))(q0_qg_eval)
         return q0_qg_eval
 
     def construct_eval_net(self, candidate_qg_input):
@@ -64,7 +64,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                         bias_initializer=self.bias_initializer)(evalnet)
 
         def compute_softmax(x):
-            return K.softmax(x*100, axis=-1)
+            return K.softmax(x, axis=-1)
 
         evalnet = Add()([q0_qg_eval, evalnet])
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
