@@ -80,7 +80,7 @@ def visualize(problem_env, learned_sampler):
     utils.set_color(target_obj, [1,0,0])
 
     target_obj.Enable(False)
-    [obj.Enable(False) for obj in problem_env.objects]
+    #[obj.Enable(False) for obj in problem_env.objects]
     state = compute_state(target_obj_name, 'loading_region', problem_env)
 
     z_smpls = noise(z_size=(20, 4))

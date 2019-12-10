@@ -213,7 +213,7 @@ def train_mse_selfattention_dense_evalnet(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
-    poses = poses[:, 0:4]
+    poses = poses[:, 0:20]
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 

@@ -31,7 +31,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        n_pose_features = 32
+        n_pose_features = 4
         q0_qg_eval = Conv2D(filters=n_pose_features,
                             kernel_size=(1, 1),
                             strides=(1, 1),
@@ -55,8 +55,7 @@ class PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput(Place
         # Now what if I learn some features of q0 qg instead?
         collision_input = RepeatVector(615)(collision_input)
         collision_input = Reshape((615, 615*2, 1))(collision_input)
-        concat_input = Concatenate(axis=2, name='evalnet_input')([collision_input, q0_qg_eval])
-        #concat_input = collision_input
+        concat_input = collision_input
         n_dim = concat_input.shape[2]._value
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, n_dim),
