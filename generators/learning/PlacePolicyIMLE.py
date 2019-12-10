@@ -6,6 +6,8 @@ import numpy as np
 import time
 import os
 import socket
+from functools import partial
+
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
     ROOTDIR = './'
@@ -17,10 +19,15 @@ def noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
 
 
+def custom_loss(y_true, y_pred, weights):
+    return K.mean(K.abs(y_true - y_pred) * weights)
+
+
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         self.dim_noise = 4
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
+        self.weight_input = Input(shape=(1,), dtype='float32', name='weight_for_each_sample')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
 
     def construct_policy_output(self):
@@ -28,10 +35,12 @@ class PlacePolicyIMLE(PlacePolicy):
 
     def construct_policy_model(self):
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
-                              self.noise_input],
+                              self.noise_input, self.weight_input],
                       outputs=[self.policy_output],
                       name='policy_model')
-        model.compile(loss='mse', optimizer=self.opt_D)
+
+        cl4 = partial(custom_loss, weights=self.weight_input)
+        model.compile(loss=cl4, optimizer=self.opt_D)
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
@@ -39,8 +48,9 @@ class PlacePolicyIMLE(PlacePolicy):
         k_smpls = []
         k = noise_smpls.shape[1]
 
+        dummy = np.zeros((len(noise_smpls),1))
         for j in range(k):
-            actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
+            actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :], dummy])
             k_smpls.append(actions)
         new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
         return new_k_smpls
@@ -97,6 +107,8 @@ class PlacePolicyIMLE(PlacePolicy):
         t_poses = test_data['poses']
         t_rel_konfs = test_data['rel_konfs']
         t_collisions = test_data['states']
+        t_sum_rewards = test_data['sum_rewards']
+
         n_test_data = len(t_collisions)
 
         data_resampling_step = 1
@@ -127,6 +139,7 @@ class PlacePolicyIMLE(PlacePolicy):
                 world_states = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
                 noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
                 generated_actions = self.generate_k_smples_for_multiple_states(world_states, noise_smpls)
+
                 chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions,
                                                                                   noise_smpls)
 
@@ -141,12 +154,14 @@ class PlacePolicyIMLE(PlacePolicy):
 
             # I also need to tag on the Q-learning objective
             before = self.policy_model.get_weights()
+            probability_of_being_sampled = np.exp(sum_rewards) / np.sum(np.exp(sum_rewards))
+            t_probability_of_being_sampled = np.exp(t_sum_rewards) / np.sum(np.exp(t_sum_rewards))
 
-            self.policy_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
+            self.policy_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls, probability_of_being_sampled],
                                   [a_batch],
                                   epochs=100,
                                   validation_data=(
-                                      [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
+                                      [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls, t_probability_of_being_sampled],
                                       [t_actions]),
                                   callbacks=callbacks,
                                   verbose=False)
