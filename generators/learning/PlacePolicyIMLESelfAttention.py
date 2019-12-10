@@ -52,49 +52,25 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
     def construct_eval_net(self, candidate_qg_input):
         q0_qg_eval = self.construct_q0_qg_eval(candidate_qg_input)
+        collision_input = Flatten()(self.collision_input)
+
         dense_num = 8
-
-        # Now what if I learn some features of q0 qg instead?
-        #collision_input = Multiply()([self.collision_input, q0_qg_eval])
-        #collision_input = Flatten()(collision_input)
-        #collision_input = RepeatVector(615)(collision_input)
-        #collision_input = Reshape((615, 615 * 2, 1))(collision_input)
-        collision_input = self.collision_input
-        collision_input = Flatten()(collision_input)
-        collision_input = RepeatVector(615)(collision_input)
-        collision_input = Reshape((615, 615 * 2, 1))(collision_input)
-        concat_input = Concatenate(axis=2, name='evalnet_input')([collision_input, q0_qg_eval])
-        n_dim = concat_input.shape[2]._value
-        H = Conv2D(filters=dense_num,
-                   kernel_size=(1, n_dim),
-                   strides=(1, 1),
-                   activation='relu',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(concat_input)
-        H = Conv2D(filters=dense_num,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   activation='relu',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(H)
-        H = Conv2D(filters=615,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   activation='linear',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(H)
-
-        def take_the_first_row(x):
-            return x[:, 0]
-
-        H = Lambda(take_the_first_row, name='take_the_first_row')(H)
-        H = Reshape((615,))(H)
-        conv_evalnet = H
+        evalnet = Dense(dense_num, activation='relu',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(collision_input)
+        evalnet = Dense(dense_num, activation='relu',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
+        evalnet = Dense(615, activation='linear',
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
 
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
 
-        evalnet = Lambda(compute_softmax, name='softmax')(conv_evalnet)
+        evalnet = Add()([q0_qg_eval, evalnet])
+        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
+
         return evalnet
 
     def construct_qg_candidate_generator(self):
