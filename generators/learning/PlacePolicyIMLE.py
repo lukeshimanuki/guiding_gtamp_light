@@ -20,14 +20,15 @@ def noise(z_size):
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         self.dim_noise = 4
-        self.noise_input = Input(shape=(self.dim_noise, ), name='noise_input', dtype='float32')
+        self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
 
     def construct_policy_output(self):
         raise NotImplementedError
 
     def construct_policy_model(self):
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
+                              self.noise_input],
                       outputs=[self.policy_output],
                       name='policy_model')
         model.compile(loss='mse', optimizer=self.opt_D)
@@ -67,16 +68,15 @@ class PlacePolicyIMLE(PlacePolicy):
     def load_weights(self):
         fdir = ROOTDIR + '/' + self.save_folder + '/'
         fname = self.weight_file_name + '.h5'
-        print "Loading weight ", fdir+fname
-        self.policy_model.load_weights(fdir+fname)
+        print "Loading weight ", fdir + fname
+        self.policy_model.load_weights(fdir + fname)
 
     @staticmethod
     def get_batch_based_on_rewards(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
         indices = np.random.randint(0, actions.shape[0], size=batch_size)
 
         n_data = actions.shape[0]
-        probability_of_being_sampled = np.exp(sum_rewards)/np.sum(np.exp(sum_rewards))
-        import pdb;pdb.set_trace()
+        probability_of_being_sampled = np.exp(sum_rewards) / np.sum(np.exp(sum_rewards))
         indices = np.random.choice(n_data, batch_size, p=probability_of_being_sampled)
         cols_batch = np.array(cols[indices, :])  # collision vector
         goal_flag_batch = np.array(goal_flags[indices, :])  # collision vector
@@ -86,11 +86,9 @@ class PlacePolicyIMLE(PlacePolicy):
         sum_reward_batch = np.array(sum_rewards[indices, :])
         return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
 
-
-
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         # todo factor this code
-        train_idxs, test_idxs = self.get_train_and_test_indices_based_on_sum_rewards(len(actions), sum_rewards)
+        train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards,
                                                              train_idxs, test_idxs)
 
