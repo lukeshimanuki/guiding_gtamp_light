@@ -75,13 +75,13 @@ def visualize(problem_env, learned_sampler):
     utils.viewer()
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
 
-    target_obj_name = 'square_packing_box1'
+    target_obj_name = 'square_packing_box4'
     target_obj = problem_env.env.GetKinBody(target_obj_name)
     utils.set_color(target_obj, [1,0,0])
 
     target_obj.Enable(False)
+    [obj.Enable(False) for obj in problem_env.objects]
     state = compute_state(target_obj_name, 'loading_region', problem_env)
-    target_obj.Enable(True)
 
     z_smpls = noise(z_size=(20, 4))
     place_smpl = generate_policy_smpl_batch(state, learned_sampler, z_smpls)
@@ -92,7 +92,7 @@ def visualize(problem_env, learned_sampler):
 
 
 def main():
-    pidx = int(sys.argv[1])
+    seed = int(sys.argv[1])
     algo = str(sys.argv[2])
     plan = None
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
@@ -100,14 +100,14 @@ def main():
         algo=algo,
         tau=1.0,
         dtype='n_objs_pack_4',
-        seed=pidx
+        seed=seed
     )
     sampler = create_policy(placeholder_config)
     sampler.load_weights()
 
-    np.random.seed(pidx)
-    random.seed(pidx)
-    problem_env, openrave_env = create_environment(pidx)
+    np.random.seed(0)
+    random.seed(0)
+    problem_env, openrave_env = create_environment(0)
     visualize(problem_env, sampler)
 
 

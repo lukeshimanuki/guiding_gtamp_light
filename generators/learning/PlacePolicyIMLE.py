@@ -19,7 +19,7 @@ def noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
 
 
-def custom_loss(y_true, y_pred, weights):
+def weighted_abs_loss(y_true, y_pred, weights):
     return K.mean(K.abs(y_true - y_pred) * weights)
 
 
@@ -39,8 +39,8 @@ class PlacePolicyIMLE(PlacePolicy):
                       outputs=[self.policy_output],
                       name='policy_model')
 
-        cl4 = partial(custom_loss, weights=self.weight_input)
-        model.compile(loss=cl4, optimizer=self.opt_D)
+        cl4 = partial(weighted_abs_loss, weights=self.weight_input)
+        model.compile(loss='mse', optimizer=self.opt_D)
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):

@@ -101,5 +101,7 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     poses = poses[:, :20]
     poses = np.tile(poses, (n_smpls, 1))
     noise_batch = np.array(noise_batch).squeeze()
-    pred_batch = policy.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_batch])
+
+    dummy = np.zeros((len(collisions), 1))
+    pred_batch = policy.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_batch, dummy])
     return pred_batch

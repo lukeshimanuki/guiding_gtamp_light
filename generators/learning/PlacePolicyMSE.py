@@ -1,4 +1,5 @@
 from PlacePolicy import PlacePolicy
+from keras.layers import *
 
 import socket
 import numpy as np
@@ -50,4 +51,3 @@ class PlacePolicyMSE(PlacePolicy):
         self.load_weights()
         post_mse = self.compute_policy_mse(test_data)
         print "Pre-and-post test errors", pre_mse, post_mse
-
