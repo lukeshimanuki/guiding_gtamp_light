@@ -22,7 +22,7 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         pose_input = Reshape((615, self.dim_poses, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
         n_dim = concat_input.shape[2]._value
-        n_filters = 8
+        n_filters = 32
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
@@ -36,7 +36,7 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        n_pose_features = 32
+        n_pose_features = 1
         q0_qg_eval = Conv2D(filters=n_pose_features,
                             kernel_size=(1, 1),
                             strides=(1, 1),
@@ -44,10 +44,12 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
                             kernel_initializer=self.kernel_initializer,
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
+
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
-        #q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
-        q0_qg_eval = Reshape((615, n_pose_features, 1))(q0_qg_eval)
+
+        q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
+        q0_qg_eval = Reshape((615,))(q0_qg_eval)
         return q0_qg_eval
 
     def construct_eval_net(self, candidate_qg_input):
