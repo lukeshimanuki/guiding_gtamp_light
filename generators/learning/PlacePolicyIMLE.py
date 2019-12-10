@@ -86,17 +86,7 @@ class PlacePolicyIMLE(PlacePolicy):
         sum_reward_batch = np.array(sum_rewards[indices, :])
         return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
 
-    @staticmethod
-    def get_train_and_test_indices_based_on_sum_rewards(n_data, sum_rewards):
-        probability_of_being_sampled = (np.exp(sum_rewards)/np.sum(np.exp(sum_rewards))).squeeze()
-        indices_based_on_sum_rewards = np.random.choice(n_data, n_data, p=probability_of_being_sampled)
 
-        test_idxs = np.random.randint(0, n_data, size=int(0.2 * n_data))
-        train_idxs = list(set(range(n_data)).difference(set(test_idxs)))
-
-        test_idxs = indices_based_on_sum_rewards[test_idxs]
-        train_idxs = indices_based_on_sum_rewards[train_idxs]
-        return train_idxs, test_idxs
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         # todo factor this code

@@ -28,7 +28,7 @@ class PlacePolicyMSE(PlacePolicy):
         return np.mean(np.power(pred - data['actions'], 2))
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
-        train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
+        train_idxs, test_idxs = self.get_train_and_test_indices_based_on_sum_rewards(len(actions), sum_rewards)
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
