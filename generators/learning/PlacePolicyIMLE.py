@@ -154,7 +154,7 @@ class PlacePolicyIMLE(PlacePolicy):
 
             # I also need to tag on the Q-learning objective
             before = self.policy_model.get_weights()
-            probability_of_being_sampled = np.exp(sum_rewards) / np.sum(np.exp(sum_rewards))
+            probability_of_being_sampled = np.exp(sum_reward_batch) / np.sum(np.exp(sum_reward_batch))
             t_probability_of_being_sampled = np.exp(t_sum_rewards) / np.sum(np.exp(t_sum_rewards))
 
             self.policy_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls, probability_of_being_sampled],
