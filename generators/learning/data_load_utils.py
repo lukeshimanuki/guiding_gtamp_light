@@ -83,9 +83,6 @@ def aggregate_data(train_dir, fname_keyword):
             return
 
 
-
-
-
 def setup_planner_result_dir(parent_dir, args):
     alg = args.pi
     if alg == 'unif':

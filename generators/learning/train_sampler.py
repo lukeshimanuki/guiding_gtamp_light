@@ -35,10 +35,8 @@ from PlacePolicyMSEFeedForwardWithoutKeyConfig import PlacePolicyMSEFeedForwardW
 from PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
 from PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionDenseEvalNet
 from PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet import PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet
-
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
-
 from gtamp_utils import utils
 
 
