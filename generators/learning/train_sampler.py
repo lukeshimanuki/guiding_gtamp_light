@@ -243,9 +243,15 @@ def train(config):
     q0qg_vals_b4_sm = policy.q0_qg_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
     q0qg_vals_after_sm = policy.q0_qg_after_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
     concat = policy.concat.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
-    import pdb;
-    pdb.set_trace()
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    evalnet_b4 = policy.evalnet_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
+    evalnet = policy.evalnet.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
+
+    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+    key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
+    key_configs = key_configs.reshape((1, 615, 4, 1))
+    key_configs = key_configs.repeat(len(poses), axis=0)
+    policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
 def main():

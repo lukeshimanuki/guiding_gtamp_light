@@ -118,10 +118,14 @@ class PlacePolicyMSESelfAttentionAbsolutePoses(PlacePolicyMSE):
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
 
+        self.evalnet_b4_sm = Model(
+            inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+            outputs=evalnet, name='q0qg_model')
+
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         self.evalnet = Model(
             inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
-            outputs=q0_qg_eval, name='q0qg_model')
+            outputs=evalnet, name='q0qg_model')
 
         return evalnet
 
