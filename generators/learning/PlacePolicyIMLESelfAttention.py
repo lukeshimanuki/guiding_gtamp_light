@@ -36,7 +36,7 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        n_pose_features = 2
+        n_pose_features = 32
         q0_qg_eval = Conv2D(filters=n_pose_features,
                             kernel_size=(1, 1),
                             strides=(1, 1),
@@ -46,7 +46,7 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
                             name='q0_qg_eval')(H)
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
-        q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
+        #q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
         q0_qg_eval = Reshape((615, n_pose_features, 1))(q0_qg_eval)
         return q0_qg_eval
 
@@ -55,11 +55,15 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         dense_num = 8
 
         # Now what if I learn some features of q0 qg instead?
-        collision_input = Multiply()([self.collision_input, q0_qg_eval])
+        #collision_input = Multiply()([self.collision_input, q0_qg_eval])
+        #collision_input = Flatten()(collision_input)
+        #collision_input = RepeatVector(615)(collision_input)
+        #collision_input = Reshape((615, 615 * 2, 1))(collision_input)
+        collision_input = self.collision_input
         collision_input = Flatten()(collision_input)
         collision_input = RepeatVector(615)(collision_input)
         collision_input = Reshape((615, 615 * 2, 1))(collision_input)
-        concat_input = collision_input
+        concat_input = Concatenate(axis=2, name='evalnet_input')([collision_input, q0_qg_eval])
         n_dim = concat_input.shape[2]._value
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, n_dim),

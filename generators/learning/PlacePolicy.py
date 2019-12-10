@@ -10,7 +10,7 @@ class PlacePolicy(Policy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
 
-        self.dim_poses = 4
+        self.dim_poses = 8
         self.dim_collision = dim_collision
 
         # setup inputs
