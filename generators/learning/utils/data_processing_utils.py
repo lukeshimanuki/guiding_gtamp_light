@@ -2,7 +2,7 @@ from gtamp_utils import utils
 import numpy as np
 
 state_data_mode = 'absolute'
-action_data_mode = 'pick_parameters_place_relative_to_object'
+action_data_mode = 'absolute'
 
 
 # action_data_mode = 'absolute'
