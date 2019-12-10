@@ -1,6 +1,7 @@
 from PlacePolicy import PlacePolicy
 from keras.layers import *
 from keras.models import Model
+from keras.callbacks import *
 
 import numpy as np
 import time
@@ -95,6 +96,16 @@ class PlacePolicyIMLE(PlacePolicy):
         konf_batch = np.array(rel_konfs[indices, :])
         sum_reward_batch = np.array(sum_rewards[indices, :])
         return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
+
+    def create_callbacks_for_training(self):
+        callbacks = [
+            TerminateOnNaN(),
+            ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
+                            verbose=False,
+                            save_best_only=True,
+                            save_weights_only=True),
+        ]
+        return callbacks
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         # todo factor this code
