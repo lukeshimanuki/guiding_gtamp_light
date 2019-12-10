@@ -48,8 +48,8 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
 
-        q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
-        q0_qg_eval = Reshape((615,))(q0_qg_eval)
+        #q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
+        #q0_qg_eval = Reshape((615,))(q0_qg_eval)
         return q0_qg_eval
 
     def construct_eval_net(self, candidate_qg_input):
