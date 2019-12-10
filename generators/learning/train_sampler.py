@@ -238,8 +238,9 @@ def train(config):
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     # poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
-    # poses = np.concatenate([poses[:, 0:4], poses[:, 8:]], axis=-1)
-    poses = poses[:, :20]
+    #poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
+    #poses = poses[:, :20]
+    poses = poses[:, 0:4]
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
@@ -254,14 +255,8 @@ def main():
         train_mse_selfattention_dense_evalnet(configs)
     elif configs.algo == 'sa_dense_gennet_dense_evalnet':
         train_mse_selfattention_dense_gennet_dense_evalnet(configs)
-    elif configs.algo == 'sa_mse':
-        train(configs)
-    elif configs.algo == 'sa_imle':
-        train(configs)
-    elif configs.algo == 'ff_imle':
-        train(configs)
     else:
-        raise NotImplementedError
+        train(configs)
 
 
 if __name__ == '__main__':
