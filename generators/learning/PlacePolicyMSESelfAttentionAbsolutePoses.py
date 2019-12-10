@@ -59,7 +59,7 @@ class PlacePolicyMSESelfAttentionAbsolutePoses(PlacePolicyMSE):
         pose_input = Reshape((615, self.dim_poses, 1))(pose_input)
         concat_input = Concatenate(axis=2, name='qg_pose')([candidate_qg_input, pose_input])
         n_dim = concat_input.shape[2]._value
-        n_filters = 256
+        n_filters = 32
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
@@ -82,12 +82,15 @@ class PlacePolicyMSESelfAttentionAbsolutePoses(PlacePolicyMSE):
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
         def compute_softmax(x):
+            x = K.squeeze(x, axis=-1)
+            x = K.squeeze(x, axis=-1)
             return K.softmax(x, axis=-1)
+        self.q0_qg_b4_sm = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                           outputs=q0_qg_eval, name='q0qg_model')
         q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
         q0_qg_eval = Reshape((615, 1, 1))(q0_qg_eval)
-        #q0_qg_model =  Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
-        #                  outputs=q0_qg_eval, name='q0qg_model')
-        #import pdb;pdb.set_trace()
+        self.q0_qg_after_sm = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                                 outputs=q0_qg_eval, name='q0qg_model')
 
         return q0_qg_eval
 
@@ -99,6 +102,8 @@ class PlacePolicyMSESelfAttentionAbsolutePoses(PlacePolicyMSE):
         q0_qg_eval = self.construct_q0_qg_eval(candidate_qg_goal_input)
         collision_input = Multiply()([q0_qg_eval, self.collision_input])
         concat_input = Flatten()(collision_input)
+        self.concat = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                             outputs=collision_input, name='concat_input')
         dense_num = 8
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,

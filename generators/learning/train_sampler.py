@@ -190,8 +190,6 @@ def train_mse_selfattention_conv_evalnet(config):
     policy = PlacePolicyMSESelfAttention(dim_action=dim_action, dim_collision=dim_state,
                                          save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
-    import pdb;
-    pdb.set_trace()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, 4:8]
@@ -241,6 +239,11 @@ def train(config):
     #poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
     #poses = poses[:, :20]
     poses = poses[:, 0:4]
+    #policy.load_weights()
+    #q0qg_vals_b4_sm = policy.q0_qg_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
+    #q0qg_vals_after_sm = policy.q0_qg_after_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
+    #import pdb;
+    #pdb.set_trace()
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
