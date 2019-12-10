@@ -77,7 +77,7 @@ class PlacePolicyMSESelfAttentionAbsolutePoses(PlacePolicyMSE):
         q0_qg_eval = Conv2D(filters=n_pose_features,
                             kernel_size=(1, 1),
                             strides=(1, 1),
-                            activation='linear',
+                            activation='relu',
                             kernel_initializer=self.kernel_initializer,
                             bias_initializer=self.bias_initializer,
                             name='q0_qg_eval')(H)
@@ -87,7 +87,7 @@ class PlacePolicyMSESelfAttentionAbsolutePoses(PlacePolicyMSE):
             return K.softmax(x, axis=-1)
         self.q0_qg_b4_sm = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
                            outputs=q0_qg_eval, name='q0qg_model')
-        q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
+        #q0_qg_eval = Lambda(compute_softmax, name='softmax_q0_qg')(q0_qg_eval)
         q0_qg_eval = Reshape((615, 1, 1))(q0_qg_eval)
         self.q0_qg_after_sm = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
                                  outputs=q0_qg_eval, name='q0qg_model')
