@@ -75,11 +75,12 @@ class Policy:
         probability_of_being_sampled = (np.exp(sum_rewards)/np.sum(np.exp(sum_rewards))).squeeze()
         indices_based_on_sum_rewards = np.random.choice(n_data, n_data, p=probability_of_being_sampled)
 
-        test_idxs = np.random.randint(0, n_data, size=int(0.2 * n_data))
+        test_idxs = np.random.randint(0, n_data, size=int(0.4 * n_data))
         train_idxs = list(set(range(n_data)).difference(set(test_idxs)))
 
         test_idxs = indices_based_on_sum_rewards[test_idxs]
         train_idxs = indices_based_on_sum_rewards[train_idxs]
+        test_idxs = np.array([idx for idx in test_idxs if idx not in train_idxs])
         return train_idxs, test_idxs
 
     @staticmethod
