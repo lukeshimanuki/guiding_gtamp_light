@@ -107,7 +107,7 @@ class PlacePolicyIMLE(PlacePolicy):
         ]
         return callbacks
 
-    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=100):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards,
@@ -184,14 +184,15 @@ class PlacePolicyIMLE(PlacePolicy):
             pred = self.policy_model.predict([t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls, t_probability_of_being_sampled])
             valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
             valid_errs.append(valid_err)
+            self.save_weights()
 
-            if valid_err <= np.min(valid_errs):
-                self.save_weights()
-                patience = 0
-            else:
-                patience += 1
+            #if valid_err <= np.min(valid_errs):
+            #    self.save_weights()
+            #    patience = 0
+            #else:
+            #    patience += 1
 
-            if patience > 20:
+            if patience > 10:
                 break
 
             print "Val error %.2f patience %d" % (valid_err, patience)
