@@ -6,6 +6,13 @@ from keras import initializers
 import os
 import numpy as np
 import pickle
+import socket
+
+if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
+    ROOTDIR = './'
+else:
+    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
+
 
 
 # Implements util functions and initializes dimension variables and directories.
@@ -82,6 +89,19 @@ class Policy:
         train_idxs = indices_based_on_sum_rewards[train_idxs]
         test_idxs = np.array([idx for idx in test_idxs if idx not in train_idxs])
         return train_idxs, test_idxs
+
+    def save_weights(self, additional_name=''):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + additional_name + '.h5'
+        if not os.path.isdir(fdir):
+            os.makedirs(fdir)
+        self.policy_model.save_weights(fdir + fname)
+
+    def load_weights(self):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + '.h5'
+        print "Loading weight ", fdir + fname
+        self.policy_model.load_weights(fdir + fname)
 
     @staticmethod
     def get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards, train_indices,

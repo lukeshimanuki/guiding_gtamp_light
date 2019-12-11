@@ -10,11 +10,6 @@ import socket
 from functools import partial
 
 
-if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
-
 
 def noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
@@ -68,19 +63,6 @@ class PlacePolicyIMLE(PlacePolicy):
             noise_that_generates_closest_point_to_true_action = noise_smpls_for_action[closest_point_idx]
             chosen_noise_smpls.append(noise_that_generates_closest_point_to_true_action)
         return np.array(chosen_noise_smpls)
-
-    def save_weights(self, additional_name=''):
-        fdir = ROOTDIR + '/' + self.save_folder + '/'
-        fname = self.weight_file_name + additional_name + '.h5'
-        if not os.path.isdir(fdir):
-            os.makedirs(fdir)
-        self.policy_model.save_weights(fdir + fname)
-
-    def load_weights(self):
-        fdir = ROOTDIR + '/' + self.save_folder + '/'
-        fname = self.weight_file_name + '.h5'
-        print "Loading weight ", fdir + fname
-        self.policy_model.load_weights(fdir + fname)
 
     @staticmethod
     def get_batch_based_on_rewards(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):

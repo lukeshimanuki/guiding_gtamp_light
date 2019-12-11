@@ -104,7 +104,7 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
         noise_batch = np.array(noise_batch).squeeze()
 
     dummy = np.zeros((len(collisions), 1))
-    pred_batch = policy.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_batch, dummy])
+    pred_batch = policy.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_batch])
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
     return pred_batch
