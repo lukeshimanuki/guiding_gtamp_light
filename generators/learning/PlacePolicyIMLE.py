@@ -100,6 +100,7 @@ class PlacePolicyIMLE(PlacePolicy):
     def create_callbacks_for_training(self):
         callbacks = [
             TerminateOnNaN(),
+            #EarlyStopping(monitor='val_loss',min_delta=1e-4,patience=10),
             ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
                             verbose=False,
                             save_best_only=True,
@@ -170,12 +171,13 @@ class PlacePolicyIMLE(PlacePolicy):
 
             self.policy_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls, probability_of_being_sampled],
                                   [a_batch],
-                                  epochs=400,
+                                  epochs=200,
                                   validation_data=(
                                       [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls, t_probability_of_being_sampled],
                                       [t_actions]),
                                   callbacks=callbacks,
                                   verbose=False)
+            #self.load_weights()
             after = self.policy_model.get_weights()
             gen_w_norm = np.linalg.norm(np.hstack([(a - b).flatten() for a, b in zip(before, after)]))
             print "Generator weight norm diff", gen_w_norm
@@ -186,11 +188,11 @@ class PlacePolicyIMLE(PlacePolicy):
             valid_errs.append(valid_err)
             self.save_weights()
 
-            #if valid_err <= np.min(valid_errs):
-            #    self.save_weights()
-            #    patience = 0
-            #else:
-            #    patience += 1
+            if valid_err <= np.min(valid_errs):
+                self.save_weights()
+                patience = 0
+            else:
+                patience += 1
 
             if patience > 10:
                 break
