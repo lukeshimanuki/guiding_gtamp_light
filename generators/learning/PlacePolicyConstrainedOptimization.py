@@ -51,11 +51,14 @@ class PlacePolicyConstrainedOptimization(PlacePolicy):
 
         xmin = -8.13138832; xmax = 8.62905648
         ymin = -9.10388493; ymax = 4.36857242
-
-        def out_of_region_loss(_, predicted_actions):
+        def out_of_region_loss(region_limits_relative_to_obj, predicted_actions):
             # todo: currently, actions are treated as if they are in absolute coordinate. Turn this into relative.
             action_x = predicted_actions[:, 0]
             action_y = predicted_actions[:, 1]
+            xmin = region_limits_relative_to_obj[:, 0]
+            xmax = region_limits_relative_to_obj[:, 1]
+            ymin = region_limits_relative_to_obj[:, 2]
+            ymax = region_limits_relative_to_obj[:, 3]
             smaller_than_xmin = tf.keras.backend.maximum(xmin - action_x, 0)
             bigger_than_xmax = tf.keras.backend.maximum(action_x - xmax, 0)
             smaller_than_ymin = tf.keras.backend.maximum(ymin - action_y, 0)

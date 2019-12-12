@@ -47,6 +47,7 @@ def compute_state(obj, region, problem_env):
 
 def create_environment(problem_idx):
     problem_env = Mover(problem_idx)
+    import pdb; pdb.set_trace()
     openrave_env = problem_env.env
     return problem_env, openrave_env
 
@@ -104,7 +105,7 @@ def main():
         seed=seed
     )
     sampler = create_policy(placeholder_config)
-    sampler.load_weights()
+    #sampler.load_weights()
 
     problem_seed = 1
     np.random.seed(problem_seed)

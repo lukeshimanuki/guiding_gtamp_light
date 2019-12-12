@@ -235,6 +235,19 @@ def train(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
+    # I have some objects in non-loading regions as well.
+    import pdb;pdb.set_trace()
+
+    # region limits relative to object poses
+    region_xmin = -0.7; region_xmax = 4.3
+    region_ymin = -8.55; region_ymax = -4.85
+    # ((-0.7, 4.3), (-8.55, -4.85))
+    obj_poses = poses[:, :4]
+    region_limits = np.zeros((len(actions), 4))
+    for i in range(len(actions)):
+        region_limits[i, 0] = region_xmin
+
+
     # poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
     # poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
     # poses = poses[:, :20]
