@@ -90,6 +90,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         q_0 = RepeatVector(615)(q_0)
         q_0 = Reshape((615, self.dim_poses, 1))(q_0)
         concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg, self.collision_input])
+        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg])
         n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
@@ -112,6 +113,12 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                          kernel_initializer=self.kernel_initializer,
                          bias_initializer=self.bias_initializer)(H)
         evalnet = Reshape((615,))(evalnet)
+
+        def get_second_column(x):
+            return x[:, :, 1]
+
+        col_free_flags = Lambda(get_second_column)(self.collision_input)
+        evalnet = Multiply()([evalnet, col_free_flags])
 
         def compute_softmax(x):
             return K.softmax(x*1000, axis=-1)
