@@ -16,7 +16,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
 
     def construct_policy_output(self):
         candidate_qg = self.construct_value_output()
-        evalnet_input = Reshape((615, 4, 1))(candidate_qg)
+        evalnet_input = Reshape((615, self.dim_action, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
 
