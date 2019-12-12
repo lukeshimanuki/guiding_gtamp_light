@@ -37,6 +37,7 @@ from PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionD
 from PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet import PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
+from utils import data_processing_utils
 from gtamp_utils import utils
 
 
@@ -55,6 +56,7 @@ def load_data(traj_dir):
     all_sum_rewards = []
     all_poses = []
     all_rel_konfs = []
+    all_konf_relevance = []
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
@@ -72,6 +74,7 @@ def load_data(traj_dir):
         poses = []
         actions = []
         traj_rel_konfs = []
+        konf_relevance = []
         for s, a in zip(traj.states, traj.actions):
             state_vec = s.collision_vector
             n_key_configs = state_vec.shape[1]
@@ -89,7 +92,16 @@ def load_data(traj_dir):
             poses.append(get_processed_poses_from_state(s, a))
             actions.append(get_processed_poses_from_action(s, a))
             rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
+
             traj_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
+
+            place_motion = a['place_motion']
+            binary_collision_vector = s.collision_vector.squeeze()[:, 0]
+            place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
+            konf_relevance.append(place_relevance)
+
+            pick_motion = a['pick_motion']
+            #pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
 
         states = np.array(states)
         poses = np.array(poses)
@@ -105,21 +117,22 @@ def load_data(traj_dir):
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
         all_rel_konfs.append(traj_rel_konfs)
+        all_konf_relevance.append(konf_relevance)
 
         n_data = len(np.vstack(all_rel_konfs))
         assert len(np.vstack(all_states)) == n_data
         print n_data
         if n_data > 5000:
             break
-
     all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions)
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
     all_poses = np.vstack(all_poses).squeeze()
-    pickle.dump((all_states, all_poses, all_rel_konfs, all_actions, all_sum_rewards),
+    all_konf_relevance = np.vstack(all_konf_relevance).squeeze()
+    pickle.dump((all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards),
                 open(traj_dir + cache_file_name, 'wb'))
-    return all_states, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
+    return all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
 
 
 def get_data(datatype):
@@ -134,7 +147,7 @@ def get_data(datatype):
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
 
     print "Loading data from", data_dir
-    states, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
+    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -144,9 +157,10 @@ def get_data(datatype):
     actions = actions[:5000, :]
     sum_rewards = sum_rewards[:5000]
     is_goal_flags = is_goal_flag[:5000, :]
+    konf_relelvance = konf_relelvance[:5000, :]
 
     print "Number of data", len(states)
-    return states, poses, rel_konfs, is_goal_flags, actions, sum_rewards
+    return states, konf_relelvance, poses, rel_konfs, is_goal_flags, actions, sum_rewards
 
 
 def train_mse_ff(config):
@@ -158,11 +172,11 @@ def train_mse_ff(config):
     policy = PlacePolicyMSEFeedForwardWithoutKeyConfig(dim_action=dim_action, dim_collision=dim_state,
                                                        save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    states, konf_relelvance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     poses = poses[:, :4]
     goal_flags = goal_flags[:, 0, :].squeeze()
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    policy.train_policy(states, konf_relelvance, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
 
 def train_mse_ff_keyconfigs(config):
@@ -236,17 +250,19 @@ def train(config):
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
     # I have some objects in non-loading regions as well.
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
 
     # region limits relative to object poses
-    region_xmin = -0.7; region_xmax = 4.3
-    region_ymin = -8.55; region_ymax = -4.85
+    region_xmin = -0.7;
+    region_xmax = 4.3
+    region_ymin = -8.55;
+    region_ymax = -4.85
     # ((-0.7, 4.3), (-8.55, -4.85))
     obj_poses = poses[:, :4]
     region_limits = np.zeros((len(actions), 4))
     for i in range(len(actions)):
         region_limits[i, 0] = region_xmin
-
 
     # poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
     # poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
@@ -277,8 +293,8 @@ def train(config):
     collision_diff = policy.collision_diff.predict(inp)
     losses = policy.loss_model.predict(inp)
     actions = policy.policy_model.predict(inp)
-    #evaluated_loss = policy.loss_model.evaluate(inp, [actions[0:10]])
-    #collision_loss = policy.collision_loss_model.predict(inp)
+    # evaluated_loss = policy.loss_model.evaluate(inp, [actions[0:10]])
+    # collision_loss = policy.collision_loss_model.predict(inp)
 
     policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
     evaluated_loss = policy.loss_model.evaluate(inp, [actions, actions])
@@ -286,8 +302,10 @@ def train(config):
     collision_occurred_at = states[0].squeeze()[:, 0] == 1
     collision_rel_konfs = rel_konfs[0][collision_occurred_at].squeeze()
 
-    dists_to_collision_rel_konfs = np.linalg.norm(actions[0, 0:2] - collision_rel_konfs[:, 0:2],axis=-1)
-    import pdb; pdb.set_trace()
+    dists_to_collision_rel_konfs = np.linalg.norm(actions[0, 0:2] - collision_rel_konfs[:, 0:2], axis=-1)
+    import pdb;
+    pdb.set_trace()
+
 
 def main():
     if configs.algo == 'ff':
