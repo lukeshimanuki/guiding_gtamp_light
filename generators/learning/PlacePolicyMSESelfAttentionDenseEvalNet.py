@@ -89,8 +89,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         q_0 = self.pose_input
         q_0 = RepeatVector(615)(q_0)
         q_0 = Reshape((615, self.dim_poses, 1))(q_0)
-        key_config_input = self.key_config_input
-        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg, key_config_input, self.collision_input])
+        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg, self.collision_input])
         n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
