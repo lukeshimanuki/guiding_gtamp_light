@@ -68,30 +68,30 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
             name='value_model')
         return value
 
-    def construct_eval_net(self, candidate_qg_goal_flag_input):
+    def construct_eval_net(self, candidate_qg):
         # Computes how important each candidate q_g is.
         # w_i = phi_1(x_i)
         # It currently takes in candidate q_g as an input
 
         # There currently are 615 candidate goal configurations
-        """
         concat_input = Flatten()(self.collision_input)
         dense_num = 8
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        evalnet = Dense(615, activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        """
+        collision_feature = Dense(dense_num, activation='relu',
+                                  kernel_initializer=self.kernel_initializer,
+                                  bias_initializer=self.bias_initializer)(concat_input)
+        collision_feature = Dense(dense_num, activation='relu',
+                                  kernel_initializer=self.kernel_initializer,
+                                  bias_initializer=self.bias_initializer)(collision_feature)
+        collision_feature = Dense(615, activation='relu',
+                                  kernel_initializer=self.kernel_initializer,
+                                  bias_initializer=self.bias_initializer, name='collision_feature')(collision_feature)
+        collision_feature = Reshape((615, 1, 1))(collision_feature)
+
         q_0 = self.pose_input
         q_0 = RepeatVector(615)(q_0)
         q_0 = Reshape((615, self.dim_poses, 1))(q_0)
         key_config_input = self.key_config_input
-        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg_goal_flag_input,
+        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg,
                                                                 key_config_input, self.collision_input])
         n_dim = concat_input.shape[2]._value
         n_filters = 32
@@ -109,27 +109,18 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
         evalnet = Conv2D(filters=1,
-                       kernel_size=(1, 1),
-                       strides=(1, 1),
-                       activation='relu',
-                       kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer)(H)
-        #H = MaxPooling2D(pool_size=(4, 1))(evalnet)
-        H = Flatten()(H)
-        H = Dense(8, activation='relu',
-                  kernel_initializer=self.kernel_initializer,
-                  bias_initializer=self.bias_initializer)(H)
-        H = Dense(615, activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(H)
+                         kernel_size=(1, 1),
+                         strides=(1, 1),
+                         activation='relu',
+                         kernel_initializer=self.kernel_initializer,
+                         bias_initializer=self.bias_initializer)(H)
+        evalnet = Reshape((615,))(evalnet)
 
-        #evalnet = Lambda(lambda x: K.squeeze(x, axis=2), name='evalnet')(evalnet)
-        evalnet = Reshape((615, ))(H)
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
-        evalnet = Reshape((615, ))(evalnet)
+        evalnet = Reshape((615,))(evalnet)
 
         return evalnet
 
