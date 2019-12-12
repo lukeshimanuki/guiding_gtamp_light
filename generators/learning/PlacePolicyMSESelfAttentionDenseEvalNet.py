@@ -121,7 +121,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         evalnet = Multiply()([evalnet, col_free_flags])
 
         def compute_softmax(x):
-            return K.softmax(x*1000, axis=-1)
+            return K.softmax(x*100, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((615,))(evalnet)
