@@ -235,9 +235,22 @@ def train(config):
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = actions[:, 4:]
+    # I have some objects in non-loading regions as well.
+    import pdb;pdb.set_trace()
+
+    # region limits relative to object poses
+    region_xmin = -0.7; region_xmax = 4.3
+    region_ymin = -8.55; region_ymax = -4.85
+    # ((-0.7, 4.3), (-8.55, -4.85))
+    obj_poses = poses[:, :4]
+    region_limits = np.zeros((len(actions), 4))
+    for i in range(len(actions)):
+        region_limits[i, 0] = region_xmin
+
+
     # poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
-    #poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
-    #poses = poses[:, :20]
+    # poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
+    # poses = poses[:, :20]
     poses = poses[:, 0:4]
     """
     #policy.load_weights()
@@ -253,8 +266,28 @@ def train(config):
     key_configs = key_configs.reshape((1, 615, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
     """
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
 
+    def noise(z_size):
+        return np.random.normal(size=z_size).astype('float32')
+
+    noises = noise((len(goal_flags), 4))
+    inp = [goal_flags[0:10, :], rel_konfs[0:10, :], states[0:10, :], poses[0:10, :], noises[0:10, :]]
+    scores = policy.score_function.predict(inp)
+    relval = policy.relevance_net.predict(inp)
+    collision_diff = policy.collision_diff.predict(inp)
+    losses = policy.loss_model.predict(inp)
+    actions = policy.policy_model.predict(inp)
+    #evaluated_loss = policy.loss_model.evaluate(inp, [actions[0:10]])
+    #collision_loss = policy.collision_loss_model.predict(inp)
+
+    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
+    evaluated_loss = policy.loss_model.evaluate(inp, [actions, actions])
+    actions = policy.policy_model.predict(inp)
+    collision_occurred_at = states[0].squeeze()[:, 0] == 1
+    collision_rel_konfs = rel_konfs[0][collision_occurred_at].squeeze()
+
+    dists_to_collision_rel_konfs = np.linalg.norm(actions[0, 0:2] - collision_rel_konfs[:, 0:2],axis=-1)
+    import pdb; pdb.set_trace()
 
 def main():
     if configs.algo == 'ff':

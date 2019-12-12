@@ -164,12 +164,14 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
 
             pick_base_pose = utils.clean_pose_data(pick_action_info['q_goal'])
             place_base_pose = utils.clean_pose_data(place_action_info['q_goal'])
+            place_obj_abs_pose = utils.clean_pose_data(place_action_info['object_pose'])
 
             action_info = {
                 'object_name': action.discrete_parameters['object'],
                 'region_name': action.discrete_parameters['region'],
                 'pick_base_ir_parameters': pick_parameters,
                 'place_abs_base_pose': place_base_pose,
+                'place_obj_abs_pose': place_obj_abs_pose,
                 'pick_abs_base_pose': pick_base_pose,
             }
             if action == plan[-1]:

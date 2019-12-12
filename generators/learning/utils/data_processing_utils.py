@@ -2,7 +2,7 @@ from gtamp_utils import utils
 import numpy as np
 
 state_data_mode = 'absolute'
-action_data_mode = 'pick_parameters_place_relative_to_object'
+action_data_mode = 'place_object_pose_relative_to_initial_pose'
 
 
 # action_data_mode = 'absolute'
@@ -108,6 +108,8 @@ def get_absolute_placement_from_relative_placement(rel_placement, obj_abs_pose):
     if action_data_mode == 'pick_parameters_place_relative_to_object':
         #abs_place = placement.squeeze() + obj_abs_pose.squeeze()
         abs_place = utils.get_absolute_pose_from_relative_pose(rel_placement, obj_abs_pose)
+    elif action_data_mode == 'place_object_pose_relative_to_initial_pose':
+        pass
     else:
         raise NotImplementedError
 
