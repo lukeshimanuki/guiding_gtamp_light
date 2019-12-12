@@ -45,8 +45,8 @@ class PlacePolicy(Policy):
     def create_callbacks_for_training(self):
         callbacks = [
             TerminateOnNaN(),
-            EarlyStopping(monitor='loss', min_delta=1e-4, patience=10),
-            ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
+            EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=10),
+            ModelCheckpoint(filepath=self.save_folder + self.weight_file_name+'.h5',
                             verbose=False,
                             save_best_only=True,
                             save_weights_only=True),

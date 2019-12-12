@@ -4,6 +4,7 @@ from generators.learning.PlacePolicyIMLESelfAttention import PlacePolicyIMLESelf
 from generators.learning.PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
 from generators.learning.PlacePolicyMSESelfAttentionAbsolutePoses import PlacePolicyMSESelfAttentionAbsolutePoses
 from generators.learning.PlacePolicyConstrainedOptimization import PlacePolicyConstrainedOptimization
+from generators.learning.PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionDenseEvalNet
 
 from data_processing_utils import state_data_mode, action_data_mode
 
@@ -67,6 +68,10 @@ def create_policy(config):
     elif config.algo == 'constrained':
         policy = PlacePolicyConstrainedOptimization(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
                                                     tau=config.tau, config=config)
+
+    elif config.algo == 'sa_dense_evalnet':
+        policy = PlacePolicyMSESelfAttentionDenseEvalNet(dim_action=dim_action, dim_collision=dim_state,
+                                                         save_folder=savedir, tau=config.tau, config=config)
     else:
         raise NotImplementedError
     return policy

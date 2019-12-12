@@ -97,11 +97,12 @@ def load_data(traj_dir):
 
             place_motion = a['place_motion']
             binary_collision_vector = s.collision_vector.squeeze()[:, 0]
-            place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
+            place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector,
+                                                                       place_motion)
             konf_relevance.append(place_relevance)
 
             pick_motion = a['pick_motion']
-            #pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
+            # pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
 
         states = np.array(states)
         poses = np.array(poses)
@@ -122,7 +123,7 @@ def load_data(traj_dir):
         n_data = len(np.vstack(all_rel_konfs))
         assert len(np.vstack(all_states)) == n_data
         print n_data
-        if n_data > 5000:
+        if n_data > 10:
             break
     all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
@@ -238,6 +239,7 @@ def train_mse_selfattention_dense_gennet_dense_evalnet(config):
                                                                 save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+
     actions = actions[:, 4:]
     poses = poses[:, 0:20]  # use the object pose to inform the collision net
 
@@ -248,24 +250,8 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 3:]
+    actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
     poses = poses[:, 0:4]
-    import pdb;
-    pdb.set_trace()
-    # I have some objects in non-loading regions as well.
-
-    # region limits relative to object poses
-    region_xmin = -0.7; region_xmax = 4.3
-    region_ymin = -8.55; region_ymax = -4.85
-    # ((-0.7, 4.3), (-8.55, -4.85))
-    obj_poses = poses[:, :4]
-    region_limits = np.zeros((len(actions), 4))
-    for i in range(len(actions)):
-        region_limits[i, 0] = region_xmin
-
-    # poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
-    # poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
-    # poses = poses[:, :20]
 
     """
     #policy.load_weights()
@@ -285,25 +271,34 @@ def train(config):
     def noise(z_size):
         return np.random.normal(size=z_size).astype('float32')
 
+    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+    key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
+    key_configs = key_configs.reshape((1, 615, 4, 1))
+    key_configs = key_configs.repeat(len(poses), axis=0)
+
+    """
     noises = noise((len(goal_flags), 4))
-    inp = [goal_flags[0:10, :], rel_konfs[0:10, :], states[0:10, :], poses[0:10, :], noises[0:10, :]]
+    inp = [goal_flags[0:2, :], key_configs[0:2, :], states[0:2, :], poses[0:2, :], noises[0:2, :]]
     scores = policy.score_function.predict(inp)
     relval = policy.relevance_net.predict(inp)
     collision_diff = policy.collision_diff.predict(inp)
     losses = policy.loss_model.predict(inp)
-    actions = policy.policy_model.predict(inp)
+    relevance = policy.relevance_loss_model.predict(inp).squeeze()
+    true_konf_rel = konf_relevance[0:2,:]
+
+    loss = []
+    for p, t in zip(relevance, true_konf_rel):
+        loss.append([trel * np.log(pred_rel) + (1-trel)*np.log(1-pred_rel) for trel, pred_rel in zip(p, t)])
+    import pdb;pdb.set_trace()
+    rel_loss_eval = policy.relevance_loss_model.evaluate(inp, konf_relevance[0:2, :])
+    """
+
+
+    # actions = policy.policy_model.predict(inp)
     # evaluated_loss = policy.loss_model.evaluate(inp, [actions[0:10]])
     # collision_loss = policy.collision_loss_model.predict(inp)
-
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-    evaluated_loss = policy.loss_model.evaluate(inp, [actions, actions])
-    actions = policy.policy_model.predict(inp)
-    collision_occurred_at = states[0].squeeze()[:, 0] == 1
-    collision_rel_konfs = rel_konfs[0][collision_occurred_at].squeeze()
-
-    dists_to_collision_rel_konfs = np.linalg.norm(actions[0, 0:2] - collision_rel_konfs[:, 0:2], axis=-1)
-    import pdb;
-    pdb.set_trace()
+    policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
 def main():
@@ -313,8 +308,6 @@ def main():
         train_mse_ff_keyconfigs(configs)
     elif configs.algo == 'sa_conv_evalnet':
         train_mse_selfattention_conv_evalnet(configs)
-    elif configs.algo == 'sa_dense_evalnet':
-        train_mse_selfattention_dense_evalnet(configs)
     elif configs.algo == 'sa_dense_gennet_dense_evalnet':
         train_mse_selfattention_dense_gennet_dense_evalnet(configs)
     else:
