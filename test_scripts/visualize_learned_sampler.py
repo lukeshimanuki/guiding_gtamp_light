@@ -1,6 +1,6 @@
 from generators.learned_generator import LearnedGenerator
 from generators.learning.utils.model_creation_utils import create_policy
-from generators.learning.utils.sampler_utils import generate_policy_smpl_batch
+from generators.learning.utils import sampler_utils
 from generators.learning.PlacePolicyIMLE import noise
 from generators.learning.utils import data_processing_utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
@@ -86,9 +86,11 @@ def visualize(problem_env, learned_sampler):
 
     z_smpls = noise(z_size=(20, 4))
     #z_smpls = np.zeros((20,4))
-    place_smpl = generate_policy_smpl_batch(state, learned_sampler, z_smpls)
-    obj_pose = utils.clean_pose_data(state.abs_obj_pose).squeeze()
-    place_smpl = [data_processing_utils.get_absolute_placement_from_relative_placement(p, obj_pose) for p in place_smpl]
+    place_smpl = sampler_utils.generate_policy_smpl_batch(state, learned_sampler, z_smpls)
+    #obj_pose = utils.clean_pose_data(state.abs_obj_pose).squeeze()
+    #place_smpl = [data_processing_utils.get_absolute_placement_from_relative_placement(p, obj_pose) for p in place_smpl]
+    place_smpl = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_smpl]
+    import pdb;pdb.set_trace()
     utils.visualize_path(place_smpl[0:20])
     pass
 
@@ -105,7 +107,7 @@ def main():
         seed=seed
     )
     sampler = create_policy(placeholder_config)
-    #sampler.load_weights()
+    sampler.load_weights()
 
     problem_seed = 1
     np.random.seed(problem_seed)

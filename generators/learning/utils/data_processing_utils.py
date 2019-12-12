@@ -17,6 +17,16 @@ def make_konfs_relative_to_pose(obj_pose, key_configs):
     return np.array(rel_konfs)
 
 
+def get_absolute_placement_from_relative_placement(rel_placement, obj_abs_pose):
+    rel_placement = utils.decode_pose_with_sin_and_cos_angle(rel_placement)
+    if action_data_mode == 'pick_parameters_place_relative_to_object':
+        #abs_place = placement.squeeze() + obj_abs_pose.squeeze()
+        abs_place = utils.get_absolute_pose_from_relative_pose(rel_placement, obj_abs_pose)
+    else:
+        raise NotImplementedError
+
+    return abs_place
+
 def get_processed_poses_from_state(state, action):
     if state_data_mode == 'absolute':
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
