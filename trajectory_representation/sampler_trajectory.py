@@ -123,6 +123,7 @@ class SamplerTrajectory:
                     'pick_base_ir_parameters': pick_parameters,
                     'place_abs_base_pose': place_base_pose,
                     'pick_abs_base_pose': pick_base_pose,
+
                 }
                 self.add_sar_tuples(state, action_info, reward)
 
@@ -166,6 +167,8 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             place_base_pose = utils.clean_pose_data(place_action_info['q_goal'])
             place_obj_abs_pose = utils.clean_pose_data(place_action_info['object_pose'])
 
+            pick_motion = [utils.clean_pose_data(q) for q in pick_action_info['motion']]
+            place_motion = [utils.clean_pose_data(q) for q in place_action_info['motion']]
             action_info = {
                 'object_name': action.discrete_parameters['object'],
                 'region_name': action.discrete_parameters['region'],
@@ -173,6 +176,8 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
                 'place_abs_base_pose': place_base_pose,
                 'place_obj_abs_pose': place_obj_abs_pose,
                 'pick_abs_base_pose': pick_base_pose,
+                'pick_motion': pick_motion,
+                'place_motion': place_motion
             }
             if action == plan[-1]:
                 reward = 0
