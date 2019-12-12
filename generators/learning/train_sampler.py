@@ -126,7 +126,7 @@ def load_data(traj_dir):
             break
     all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
-    all_actions = np.vstack(all_actions)
+    all_actions = np.vstack(all_actions).squeeze()
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
     all_poses = np.vstack(all_poses).squeeze()
     all_konf_relevance = np.vstack(all_konf_relevance).squeeze()
@@ -247,17 +247,16 @@ def train_mse_selfattention_dense_gennet_dense_evalnet(config):
 def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 4:]
-    # I have some objects in non-loading regions as well.
+    states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    actions = actions[:, 3:]
+    poses = poses[:, 0:4]
     import pdb;
     pdb.set_trace()
+    # I have some objects in non-loading regions as well.
 
     # region limits relative to object poses
-    region_xmin = -0.7;
-    region_xmax = 4.3
-    region_ymin = -8.55;
-    region_ymax = -4.85
+    region_xmin = -0.7; region_xmax = 4.3
+    region_ymin = -8.55; region_ymax = -4.85
     # ((-0.7, 4.3), (-8.55, -4.85))
     obj_poses = poses[:, :4]
     region_limits = np.zeros((len(actions), 4))
@@ -267,7 +266,7 @@ def train(config):
     # poses = poses[:, 0:20]  # pose: [obj_pose, goal_object_poses, robot_pose]
     # poses = np.concatenate([poses[:, 0:4], poses[:, 20:]], axis=-1)
     # poses = poses[:, :20]
-    poses = poses[:, 0:4]
+
     """
     #policy.load_weights()
     q0qg_vals_b4_sm = policy.q0_qg_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
