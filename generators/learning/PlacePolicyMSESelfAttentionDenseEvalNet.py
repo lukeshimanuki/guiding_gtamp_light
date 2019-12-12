@@ -19,7 +19,6 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         evalnet_input = Reshape((615, self.dim_action, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
-
         self.evalnet = self.construct_model(eval_net, 'evalnet')
         return output
 
@@ -91,8 +90,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         q_0 = RepeatVector(615)(q_0)
         q_0 = Reshape((615, self.dim_poses, 1))(q_0)
         key_config_input = self.key_config_input
-        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg,
-                                                                key_config_input, self.collision_input])
+        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg, key_config_input, self.collision_input])
         n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
@@ -117,7 +115,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         evalnet = Reshape((615,))(evalnet)
 
         def compute_softmax(x):
-            return K.softmax(x, axis=-1)
+            return K.softmax(x*100, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((615,))(evalnet)
