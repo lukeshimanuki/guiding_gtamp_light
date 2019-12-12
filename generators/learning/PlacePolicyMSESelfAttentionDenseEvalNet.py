@@ -108,7 +108,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         evalnet = Conv2D(filters=1,
                          kernel_size=(1, 1),
                          strides=(1, 1),
-                         activation='relu',
+                         activation='linear',
                          kernel_initializer=self.kernel_initializer,
                          bias_initializer=self.bias_initializer)(H)
         evalnet = Reshape((615,))(evalnet)
