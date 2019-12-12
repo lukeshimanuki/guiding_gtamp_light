@@ -97,11 +97,12 @@ def load_data(traj_dir):
 
             place_motion = a['place_motion']
             binary_collision_vector = s.collision_vector.squeeze()[:, 0]
-            place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
+            place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector,
+                                                                       place_motion)
             konf_relevance.append(place_relevance)
 
             pick_motion = a['pick_motion']
-            #pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
+            # pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
 
         states = np.array(states)
         poses = np.array(poses)
@@ -238,6 +239,7 @@ def train_mse_selfattention_dense_gennet_dense_evalnet(config):
                                                                 save_folder=savedir, tau=config.tau, config=config)
     policy.policy_model.summary()
     states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+
     actions = actions[:, 4:]
     poses = poses[:, 0:20]  # use the object pose to inform the collision net
 
@@ -248,7 +250,7 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 3:]
+    actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
     poses = poses[:, 0:4]
 
     """
@@ -275,21 +277,28 @@ def train(config):
     key_configs = key_configs.reshape((1, 615, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
 
+    """
     noises = noise((len(goal_flags), 4))
-    inp = [goal_flags[0:10, :], key_configs[0:10, :], states[0:10, :], poses[0:10, :], noises[0:10, :]]
+    inp = [goal_flags[0:2, :], key_configs[0:2, :], states[0:2, :], poses[0:2, :], noises[0:2, :]]
     scores = policy.score_function.predict(inp)
     relval = policy.relevance_net.predict(inp)
     collision_diff = policy.collision_diff.predict(inp)
     losses = policy.loss_model.predict(inp)
-    actions = policy.policy_model.predict(inp)
+    relevance = policy.relevance_loss_model.predict(inp).squeeze()
+    true_konf_rel = konf_relevance[0:2,:]
+
+    loss = []
+    for p, t in zip(relevance, true_konf_rel):
+        loss.append([trel * np.log(pred_rel) + (1-trel)*np.log(1-pred_rel) for trel, pred_rel in zip(p, t)])
+    import pdb;pdb.set_trace()
+    rel_loss_eval = policy.relevance_loss_model.evaluate(inp, konf_relevance[0:2, :])
+    """
+
+
+    # actions = policy.policy_model.predict(inp)
     # evaluated_loss = policy.loss_model.evaluate(inp, [actions[0:10]])
     # collision_loss = policy.collision_loss_model.predict(inp)
-
-    policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
-    actions = policy.policy_model.predict(inp)
-
-    import pdb;
-    pdb.set_trace()
+    policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
 def main():
@@ -299,8 +308,6 @@ def main():
         train_mse_ff_keyconfigs(configs)
     elif configs.algo == 'sa_conv_evalnet':
         train_mse_selfattention_conv_evalnet(configs)
-    elif configs.algo == 'sa_dense_evalnet':
-        train_mse_selfattention_dense_evalnet(configs)
     elif configs.algo == 'sa_dense_gennet_dense_evalnet':
         train_mse_selfattention_dense_gennet_dense_evalnet(configs)
     else:

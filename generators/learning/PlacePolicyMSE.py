@@ -21,17 +21,17 @@ class PlacePolicyMSE(PlacePolicy):
         raise NotImplementedError
 
     def load_weights(self):
-        print "Loading weights", self.save_folder + self.weight_file_name
-        self.policy_model.load_weights(self.save_folder + self.weight_file_name)
+        print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name +'.h5')
 
     def compute_policy_mse(self, data):
         pred = self.policy_model.predict(
             [data['goal_flags'], data['rel_konfs'], data['states'], data['poses']])
         return np.mean(np.power(pred - data['actions'], 2))
 
-    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
-        train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
+        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags,
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
         callbacks = self.create_callbacks_for_training()
@@ -41,8 +41,9 @@ class PlacePolicyMSE(PlacePolicy):
         poses = train_data['poses']
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
+        inp = [goal_flags, rel_konfs, collisions, poses]
         pre_mse = self.compute_policy_mse(test_data)
-        self.policy_model.fit([goal_flags, rel_konfs, collisions, poses], actions,
+        self.policy_model.fit(inp, actions,
                               batch_size=32,
                               epochs=epochs,
                               verbose=2,
