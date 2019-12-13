@@ -19,6 +19,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         eval_net = self.construct_eval_net(0)
         key_config_input = Reshape((615, 4))(self.key_config_input)
         best_qk = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='best_qk')([eval_net, key_config_input])
+        self.best_qk_model = self.construct_model(best_qk, 'best_qk')
         output = self.construct_value_output(best_qk)
         return output
 
@@ -127,16 +128,14 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                          bias_initializer=self.bias_initializer)(H)
         evalnet = Reshape((615,))(evalnet)
 
-        """
-        def get_second_column(x):
-            return x[:, :, 1]*100
-        col_free_flags = Lambda(get_second_column)(self.collision_input)
+        def get_first_column(x):
+            return x[:, :, 0]*100
+        col_free_flags = Lambda(get_first_column)(self.collision_input)
         col_free_flags = Reshape((615,))(col_free_flags)
         evalnet = Subtract()([evalnet, col_free_flags])
-        """
 
         def compute_softmax(x):
-            return K.softmax(x * 1000, axis=-1)
+            return K.softmax(x * 100, axis=-1)
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((615,))(evalnet)
         self.evalnet_model = Model(

@@ -109,12 +109,14 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     print poses
 
     pred_batch = policy.policy_model.predict([goal_flags, key_configs, collisions, poses])
-    value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
-    value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
+    #value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
+    best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
     key_configs = key_configs.squeeze()
     konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
     pred_batch = utils.decode_pose_with_sin_and_cos_angle(pred_batch)
+    best_qk = utils.decode_pose_with_sin_and_cos_angle(best_qk)
     import pdb;pdb.set_trace()
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
