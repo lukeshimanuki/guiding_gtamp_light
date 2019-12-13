@@ -55,7 +55,7 @@ class PlacePolicyIMLE(PlacePolicy):
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[1, 2])
+        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[1, 1])
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
@@ -161,42 +161,36 @@ class PlacePolicyIMLE(PlacePolicy):
         for epoch in range(epochs):
             print 'Epoch %d/%d' % (epoch, epochs)
             is_time_to_smpl_new_data = epoch % data_resampling_step == 0
-            batch_size = 400
+            batch_size = 80
             col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
                 self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size=batch_size)
 
-            if is_time_to_smpl_new_data:
-                stime = time.time()
-                # train data
-                world_states = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
-                noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
-                generated_actions = self.generate_k_smples_for_multiple_states(world_states, noise_smpls)
-
-                chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions,
-                                                                                  noise_smpls)
-
-                # validation data
-                t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
-                t_noise_smpls = noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
-                t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
-                t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
-                                                                                    t_noise_smpls)
-
-                print "Data generation time", time.time() - stime
+            stime = time.time()
+            # train data
+            world_states = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
+            noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
+            generated_actions = self.generate_k_smples_for_multiple_states(world_states, noise_smpls)
+            chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions,
+                                                                              noise_smpls)
+            # validation data
+            t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
+            t_noise_smpls = noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
+            t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
+            t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
+                                                                                t_noise_smpls)
+            print "Data generation time", time.time() - stime
 
             # I also need to tag on the Q-learning objective
             before = self.policy_model.get_weights()
-            probability_of_being_sampled = np.exp(sum_reward_batch) / np.sum(np.exp(sum_reward_batch))
-            t_probability_of_being_sampled = np.exp(t_sum_rewards) / np.sum(np.exp(t_sum_rewards))
-
             self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
                                 [a_batch, a_batch],
-                                epochs=200,
+                                epochs=2000,
+                                batch_size=1,
                                 validation_data=(
                                     [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
                                     [t_actions, t_actions]),
                                 callbacks=callbacks,
-                                verbose=False)
+                                verbose=True)
             # self.load_weights()
             after = self.policy_model.get_weights()
             gen_w_norm = np.linalg.norm(np.hstack([(a - b).flatten() for a, b in zip(before, after)]))
@@ -209,7 +203,6 @@ class PlacePolicyIMLE(PlacePolicy):
             self.save_weights()
 
             if valid_err <= np.min(valid_errs):
-                self.save_weights()
                 patience = 0
             else:
                 patience += 1
