@@ -6,13 +6,40 @@ from keras import backend as K
 
 import socket
 import numpy as np
+import tensorflow as tf
 
 
 class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
+        self.loss_model = self.construct_loss_model()
         self.weight_file_name = 'place_mse_selfattention_seed_%d' % config.seed
         print "Created PlacePolicyMSESelfAttentionDenseEvalNet"
+
+    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+        train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
+        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags,
+                                                             actions, sum_rewards,
+                                                             train_idxs, test_idxs)
+        callbacks = self.create_callbacks_for_training()
+
+        actions = train_data['actions']
+        goal_flags = train_data['goal_flags']
+        poses = train_data['poses']
+        rel_konfs = train_data['rel_konfs']
+        collisions = train_data['states']
+        inp = [goal_flags, rel_konfs, collisions, poses]
+        pre_mse = self.compute_policy_mse(test_data)
+        self.loss_model.fit(inp, [actions, actions],
+                              batch_size=32,
+                              epochs=epochs,
+                              verbose=2,
+                              callbacks=callbacks,
+                              validation_split=0.1, shuffle=False)
+        # load the best model
+        self.load_weights()
+        post_mse = self.compute_policy_mse(test_data)
+        print "Pre-and-post test errors", pre_mse, post_mse
 
     def construct_policy_output(self):
         #evalnet_input = Reshape((self.n_key_confs, self.dim_action, 1))(candidate_qg)
@@ -22,6 +49,33 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         self.best_qk_model = self.construct_model(best_qk, 'best_qk')
         output = self.construct_value_output(best_qk)
         return output
+
+    def construct_loss_model(self):
+        def avg_distance_to_colliding_key_configs(x):
+            policy_output = x[0]
+            key_configs = x[1]
+            diff = policy_output - key_configs
+            distances = tf.norm(diff, axis=-1) # ? by 291 by 1
+
+            collisions = x[2]
+            collisions = collisions[:, :, 0]
+            collisions = tf.squeeze(collisions, axis=-1)
+            n_cols = tf.reduce_sum(collisions, axis=1) # ? by 291 by 1
+
+            dists_to_colliding_configs = tf.multiply(distances, collisions)
+            hinge_on_given_dist_limit = tf.maximum(dists_to_colliding_configs-0.1, 0)
+            return -tf.reduce_sum(hinge_on_given_dist_limit, axis=-1) / n_cols
+
+        repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
+        konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
+        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')([repeated_poloutput, konf_input, self.collision_input])
+
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                      outputs=[diff_output, self.policy_output],
+                      name='loss_model')
+
+        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D)
+        return model
 
     def construct_model(self, output, name):
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
@@ -42,7 +96,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                                   bias_initializer=self.bias_initializer)(concat)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer)(concat)
+                      bias_initializer=self.bias_initializer, name='policy_ouput')(concat)
         """
         q_0 = self.pose_input
         q_0 = RepeatVector(self.n_key_confs)(q_0)
@@ -145,7 +199,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         return evalnet
 
     def construct_policy_model(self):
-        mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        # noise input is used to make the prediction format consistent with imle
+        mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
+                                  self.noise_input],
                           outputs=self.policy_output,
                           name='policy_output')
         mse_model.compile(loss='mse', optimizer=self.opt_D)

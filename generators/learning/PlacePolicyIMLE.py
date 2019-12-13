@@ -17,8 +17,6 @@ def noise(z_size):
 
 class PlacePolicyIMLE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        self.dim_noise = 4
-        self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
         self.weight_input = Input(shape=(1,), dtype='float32', name='weight_for_each_sample')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.loss_model = self.construct_loss_model()
@@ -48,7 +46,7 @@ class PlacePolicyIMLE(PlacePolicy):
 
             dists_to_colliding_configs = tf.multiply(distances, collisions)
             hinge_on_given_dist_limit = tf.maximum(dists_to_colliding_configs-0.1, 0)
-            return tf.reduce_sum(hinge_on_given_dist_limit, axis=-1) / n_cols
+            return -tf.reduce_sum(hinge_on_given_dist_limit, axis=-1) / n_cols
 
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)

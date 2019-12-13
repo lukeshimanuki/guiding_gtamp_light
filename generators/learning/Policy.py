@@ -18,6 +18,9 @@ else:
 # Implements util functions and initializes dimension variables and directories.
 class Policy:
     def __init__(self, dim_action, dim_state, save_folder, tau):
+        self.dim_noise = 4
+        self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
+
         if not os.path.isdir(save_folder):
             os.makedirs(save_folder)
 
