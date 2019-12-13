@@ -94,9 +94,21 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+
+    xmin = -0.7;
+    xmax = 4.3
+    ymin = -8.55;
+    ymax = -4.85
+    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
+                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
+    key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+    collisions = np.delete(collisions, indices_to_delete, axis=1)
+    goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
-    key_configs = key_configs.reshape((1, 615, 4, 1))
+    key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
+
 
     n_smpls = len(noise_batch)
     goal_flags = np.tile(goal_flags, (n_smpls, 1, 1, 1))
@@ -108,6 +120,7 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
         noise_batch = np.array(noise_batch).squeeze()
     print poses
 
+
     pred_batch = policy.policy_model.predict([goal_flags, key_configs, collisions, poses])
     #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
@@ -117,6 +130,8 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
     pred_batch = utils.decode_pose_with_sin_and_cos_angle(pred_batch)
     best_qk = utils.decode_pose_with_sin_and_cos_angle(best_qk)
+    utils.visualize_path([best_qk])
+    utils.visualize_path([pred_batch])
     import pdb;pdb.set_trace()
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
