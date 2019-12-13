@@ -41,7 +41,7 @@ class PlacePolicyIMLE(PlacePolicy):
             collisions = tf.squeeze(collisions, axis=-1)
             n_cols = tf.reduce_sum(collisions, axis=1)  # ? by 291 by 1
 
-            hinge_on_given_dist_limit = tf.maximum(1-distances, 0)
+            hinge_on_given_dist_limit = tf.maximum(5 - distances, 0)
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
             return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
 
@@ -67,14 +67,23 @@ class PlacePolicyIMLE(PlacePolicy):
         for j in range(k):
             actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
             #import pdb;pdb.set_trace()
-            #idx = 399
+            """
+            idx = 0
+            losses = self.loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])[0][idx]
             #first = actions[idx]
             #action_output = self.real_policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
-            #colliding_dists = np.linalg.norm(action_output[idx].squeeze() - rel_konfs[1].squeeze(), axis=-1) * collisions[idx][:, 0].squeeze()
+            colliding_dists = np.linalg.norm(actions[idx].squeeze() - rel_konfs[1].squeeze(), axis=-1)
+            colliding_dists = np.maximum(100-colliding_dists, 0)
+            col = collisions[idx, :, 0, 0]
+            colliding_dists = colliding_dists[col==1]
+            print colliding_dists.mean()
+            print losses
+            import pdb;pdb.set_trace()
             #colliding_dists = np.maximum(colliding_dists - 0.1, 0)
             #print np.sum(colliding_dists) / np.sum(collisions[idx][:, 0].squeeze())
             #print first
             #import pdb;pdb.set_trace()
+            """
             k_smpls.append(actions)
         new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
         return new_k_smpls

@@ -75,7 +75,7 @@ def visualize(problem_env, learned_sampler):
     utils.viewer()
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
 
-    target_obj_name = 'rectangular_packing_box3'
+    target_obj_name = 'rectangular_packing_box2'
     target_obj = problem_env.env.GetKinBody(target_obj_name)
     utils.set_color(target_obj, [1,0,0])
 
@@ -110,7 +110,7 @@ def main():
     sampler = create_policy(placeholder_config)
     sampler.load_weights()
 
-    problem_seed = 1
+    problem_seed = 3
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
