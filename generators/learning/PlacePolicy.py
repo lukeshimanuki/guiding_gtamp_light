@@ -9,6 +9,8 @@ import numpy as np
 class PlacePolicy(Policy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
+        self.n_key_confs = 291
+
 
         self.dim_poses = 4
         self.dim_collision = dim_collision
@@ -17,8 +19,8 @@ class PlacePolicy(Policy):
         self.action_input = Input(shape=(dim_action,), name='a', dtype='float32')  # action
         self.collision_input = Input(shape=dim_collision, name='s', dtype='float32')  # collision vector
         self.pose_input = Input(shape=(self.dim_poses,), name='pose', dtype='float32')  # pose
-        self.key_config_input = Input(shape=(615, 4, 1), name='konf', dtype='float32')  # relative key config
-        self.goal_flag_input = Input(shape=(615, 4, 1), name='goal_flag', dtype='float32')  # goal flag (is_goal_r, is_goal_obj)
+        self.key_config_input = Input(shape=(self.n_key_confs, 4, 1), name='konf', dtype='float32')  # relative key config
+        self.goal_flag_input = Input(shape=(self.n_key_confs, 4, 1), name='goal_flag', dtype='float32')  # goal flag (is_goal_r, is_goal_obj)
 
         # setup inputs related to detecting whether a key config is relevant
         self.cg_input = Input(shape=(dim_action,), name='cg', dtype='float32')  # action

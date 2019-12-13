@@ -15,9 +15,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         print "Created PlacePolicyMSESelfAttentionDenseEvalNet"
 
     def construct_policy_output(self):
-        #evalnet_input = Reshape((615, self.dim_action, 1))(candidate_qg)
+        #evalnet_input = Reshape((self.n_key_confs, self.dim_action, 1))(candidate_qg)
         eval_net = self.construct_eval_net(0)
-        key_config_input = Reshape((615, 4))(self.key_config_input)
+        key_config_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
         best_qk = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='best_qk')([eval_net, key_config_input])
         self.best_qk_model = self.construct_model(best_qk, 'best_qk')
         output = self.construct_value_output(best_qk)
@@ -48,8 +48,8 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                       bias_initializer=self.bias_initializer)(value)
         """
         q_0 = self.pose_input
-        q_0 = RepeatVector(615)(q_0)
-        q_0 = Reshape((615, self.dim_poses, 1))(q_0)
+        q_0 = RepeatVector(self.n_key_confs)(q_0)
+        q_0 = Reshape((self.n_key_confs, self.dim_poses, 1))(q_0)
         key_config_input = self.key_config_input
         concat_input = Concatenate(axis=2, name='q0_qk_ck')([q_0, key_config_input, self.collision_input])
         n_dim = concat_input.shape[2]._value
@@ -86,7 +86,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # w_i = phi_1(x_i)
         # It currently takes in candidate q_g as an input
 
-        # There currently are 615 candidate goal configurations
+        # There currently are self.n_key_confs candidate goal configurations
         concat_input = Flatten()(self.collision_input)
         dense_num = 8
         collision_feature = Dense(dense_num, activation='relu',
@@ -95,14 +95,14 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         collision_feature = Dense(dense_num, activation='relu',
                                   kernel_initializer=self.kernel_initializer,
                                   bias_initializer=self.bias_initializer)(collision_feature)
-        collision_feature = Dense(615, activation='relu',
+        collision_feature = Dense(self.n_key_confs, activation='relu',
                                   kernel_initializer=self.kernel_initializer,
                                   bias_initializer=self.bias_initializer, name='collision_feature')(collision_feature)
-        collision_feature = Reshape((615, 1, 1))(collision_feature)
+        collision_feature = Reshape((self.n_key_confs, 1, 1))(collision_feature)
 
         q_0 = self.pose_input
-        q_0 = RepeatVector(615)(q_0)
-        q_0 = Reshape((615, self.dim_poses, 1))(q_0)
+        q_0 = RepeatVector(self.n_key_confs)(q_0)
+        q_0 = Reshape((self.n_key_confs, self.dim_poses, 1))(q_0)
         concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, self.key_config_input, self.collision_input])
         #concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg])
         n_dim = concat_input.shape[2]._value
@@ -126,18 +126,18 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                          activation='linear',
                          kernel_initializer=self.kernel_initializer,
                          bias_initializer=self.bias_initializer)(H)
-        evalnet = Reshape((615,))(evalnet)
+        evalnet = Reshape((self.n_key_confs,))(evalnet)
 
         def get_first_column(x):
             return x[:, :, 0]*100
         col_free_flags = Lambda(get_first_column)(self.collision_input)
-        col_free_flags = Reshape((615,))(col_free_flags)
+        col_free_flags = Reshape((self.n_key_confs,))(col_free_flags)
         evalnet = Subtract()([evalnet, col_free_flags])
 
         def compute_softmax(x):
             return K.softmax(x * 100, axis=-1)
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
-        evalnet = Reshape((615,))(evalnet)
+        evalnet = Reshape((self.n_key_confs,))(evalnet)
         self.evalnet_model = Model(
             inputs=[self.pose_input, self.key_config_input, self.collision_input, self.goal_flag_input],
             outputs=evalnet,

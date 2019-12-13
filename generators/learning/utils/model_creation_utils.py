@@ -42,7 +42,7 @@ def create_imle_model(seed, use_unregularized=False):
 
 
 def create_policy(config):
-    n_key_configs = 615
+    n_key_configs = 291
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
