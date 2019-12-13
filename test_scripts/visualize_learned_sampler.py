@@ -90,7 +90,7 @@ def visualize(problem_env, learned_sampler):
     #place_smpl = [data_processing_utils.get_absolute_placement_from_relative_placement(p, obj_pose) for p in place_smpl]
     print place_smpl
     import pdb;pdb.set_trace()
-    place_smpl = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_smpl]
+
     utils.visualize_path(place_smpl[0:20])
     print place_smpl
     pass

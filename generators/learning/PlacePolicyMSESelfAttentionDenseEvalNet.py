@@ -62,7 +62,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                        bias_initializer=self.bias_initializer)(H)
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
         self.value_model = Model(
-            inputs=[self.pose_input, self.key_config_input, self.collision_input],
+            inputs=[self.pose_input, self.key_config_input, self.collision_input, self.goal_flag_input],
             outputs=value,
             name='value_model')
         return value
@@ -118,14 +118,18 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
             return x[:, :, 1]
 
         col_free_flags = Lambda(get_second_column)(self.collision_input)
-        evalnet = Multiply()([evalnet, col_free_flags])
+        col_free_flags = Reshape((615,))(col_free_flags)
+        #evalnet = Multiply()([evalnet, col_free_flags])
 
         def compute_softmax(x):
-            return K.softmax(x*100, axis=-1)
+            return K.softmax(x * 100, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((615,))(evalnet)
-
+        self.evalnet_model = Model(
+            inputs=[self.pose_input, self.key_config_input, self.collision_input, self.goal_flag_input],
+            outputs=evalnet,
+            name='value_model')
         return evalnet
 
     def construct_policy_model(self):

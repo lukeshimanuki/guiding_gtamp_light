@@ -100,7 +100,7 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
 
     n_smpls = len(noise_batch)
     goal_flags = np.tile(goal_flags, (n_smpls, 1, 1, 1))
-    rel_konfs = np.tile(key_configs, (n_smpls, 1, 1, 1))
+    key_configs = np.tile(key_configs, (n_smpls, 1, 1, 1))
     collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
     poses = poses[:, :4]
     poses = np.tile(poses, (n_smpls, 1))
@@ -108,7 +108,11 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
         noise_batch = np.array(noise_batch).squeeze()
     print poses
 
-    pred_batch = policy.policy_model.predict([goal_flags, rel_konfs, collisions, poses])
+    pred_batch = policy.policy_model.predict([goal_flags, key_configs, collisions, poses])
+    value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    import pdb;pdb.set_trace()
+    place_smpl = [utils.decode_pose_with_sin_and_cos_angle(p) for p in pred_batch]
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
-    return pred_batch
+    return place_smpl
