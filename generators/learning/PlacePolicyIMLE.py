@@ -90,10 +90,10 @@ class PlacePolicyIMLE(PlacePolicy):
         ]
         return callbacks
 
-    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=100):
+    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=100):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
-        train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards,
+        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards,
                                                              train_idxs, test_idxs)
 
         t_actions = test_data['actions']
