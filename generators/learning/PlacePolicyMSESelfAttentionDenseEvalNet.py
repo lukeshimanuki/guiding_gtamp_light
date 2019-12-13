@@ -62,9 +62,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
             collisions = tf.squeeze(collisions, axis=-1)
             n_cols = tf.reduce_sum(collisions, axis=1) # ? by 291 by 1
 
-            dists_to_colliding_configs = tf.multiply(distances, collisions)
-            hinge_on_given_dist_limit = tf.maximum(dists_to_colliding_configs-0.1, 0)
-            return -tf.reduce_sum(hinge_on_given_dist_limit, axis=-1) / n_cols
+            hinge_on_given_dist_limit = tf.maximum(1 - distances, 0)
+            hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
+            return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
 
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
@@ -74,7 +74,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D)
+        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[1, 1])
         return model
 
     def construct_model(self, output, name):
@@ -208,6 +208,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         return mse_model
 
     def compute_policy_mse(self, data):
+        dummy = np.zeros((len(data['goal_flags']), 4))
         pred = self.policy_model.predict(
-            [data['goal_flags'], data['rel_konfs'], data['states'], data['poses']])
+            [data['goal_flags'], data['rel_konfs'], data['states'], data['poses'], dummy])
         return np.mean(np.power(pred - data['actions'], 2))
