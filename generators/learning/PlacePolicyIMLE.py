@@ -55,7 +55,7 @@ class PlacePolicyIMLE(PlacePolicy):
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[1, 1])
+        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[2, 1])
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):

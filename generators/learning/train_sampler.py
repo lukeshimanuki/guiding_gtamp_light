@@ -30,11 +30,8 @@ import tensorflow as tf
 
 tf.set_random_seed(configs.seed)
 
-from PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
-from PlacePolicyMSEFeedForwardWithoutKeyConfig import PlacePolicyMSEFeedForwardWithoutKeyConfig
-from PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
-from PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionDenseEvalNet
-from PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet import PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet
+
+
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 from utils import data_processing_utils
@@ -164,88 +161,6 @@ def get_data(datatype):
     return states, konf_relelvance, poses, rel_konfs, is_goal_flags, actions, sum_rewards
 
 
-def train_mse_ff(config):
-    n_key_configs = 615
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' % (
-        config.dtype, state_data_mode, action_data_mode)
-    policy = PlacePolicyMSEFeedForwardWithoutKeyConfig(dim_action=dim_action, dim_collision=dim_state,
-                                                       save_folder=savedir, tau=config.tau, config=config)
-    policy.policy_model.summary()
-    states, konf_relelvance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 4:]
-    poses = poses[:, :4]
-    goal_flags = goal_flags[:, 0, :].squeeze()
-    policy.train_policy(states, konf_relelvance, poses, rel_konfs, goal_flags, actions, sum_rewards)
-
-
-def train_mse_ff_keyconfigs(config):
-    n_key_configs = 615
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' \
-              % (config.dtype, state_data_mode, action_data_mode)
-    policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_state,
-                                       save_folder=savedir, tau=config.tau, config=config)
-    policy.policy_model.summary()
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 4:]
-    poses = poses[:, 4:8]
-    goal_flags = goal_flags[:, 0, :].squeeze()
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-
-
-def train_mse_selfattention_conv_evalnet(config):
-    n_key_configs = 615
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/rel_konf_place_mse/' \
-              % (config.dtype, state_data_mode, action_data_mode)
-    policy = PlacePolicyMSESelfAttention(dim_action=dim_action, dim_collision=dim_state,
-                                         save_folder=savedir, tau=config.tau, config=config)
-    policy.policy_model.summary()
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 4:]
-    poses = poses[:, 4:8]
-
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-
-
-def train_mse_selfattention_dense_evalnet(config):
-    n_key_configs = 615
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/' \
-              'selfattention_dense_evalnet/' \
-              % (config.dtype, state_data_mode, action_data_mode)
-    policy = PlacePolicyMSESelfAttentionDenseEvalNet(dim_action=dim_action, dim_collision=dim_state,
-                                                     save_folder=savedir, tau=config.tau, config=config)
-    policy.policy_model.summary()
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = actions[:, 4:]
-    poses = poses[:, 0:20]
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-
-
-def train_mse_selfattention_dense_gennet_dense_evalnet(config):
-    n_key_configs = 615
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/' \
-              'selfattention_dense_gennet_dense_evalnet/' \
-              % (config.dtype, state_data_mode, action_data_mode)
-    policy = PlacePolicyMSESelfAttentionDenseGenNetDenseEvalNet(dim_action=dim_action, dim_collision=dim_state,
-                                                                save_folder=savedir, tau=config.tau, config=config)
-    policy.policy_model.summary()
-    states, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-
-    actions = actions[:, 4:]
-    poses = poses[:, 0:20]  # use the object pose to inform the collision net
-
-    policy.train_policy(states, poses, rel_konfs, goal_flags, actions, sum_rewards)
-
-
 def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
@@ -312,16 +227,7 @@ def train(config):
 
 
 def main():
-    if configs.algo == 'ff':
-        train_mse_ff(configs)
-    elif configs.algo == 'ff_collision':
-        train_mse_ff_keyconfigs(configs)
-    elif configs.algo == 'sa_conv_evalnet':
-        train_mse_selfattention_conv_evalnet(configs)
-    elif configs.algo == 'sa_dense_gennet_dense_evalnet':
-        train_mse_selfattention_dense_gennet_dense_evalnet(configs)
-    else:
-        train(configs)
+    train(configs)
 
 
 if __name__ == '__main__':

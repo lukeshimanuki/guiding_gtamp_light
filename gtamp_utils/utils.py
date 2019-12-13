@@ -78,6 +78,20 @@ def set_active_config(conf, robot=None):
     robot.SetActiveDOFValues(conf.squeeze())
 
 
+def draw_obj_at_conf(conf, transparency, name, obj, env, color=None):
+    before = get_body_xytheta(obj)
+    newobj = RaveCreateKinBody(env, '')
+    newobj.Clone(obj, 0)
+    newobj.SetName(name)
+    env.Add(newobj, True)
+    set_obj_xytheta(conf, newobj)
+    newobj.Enable(False)
+    if color is not None:
+        set_color(newobj, color)
+    set_body_transparency(newobj, transparency)
+    print get_body_xytheta(newobj)
+
+
 def draw_robot_at_conf(conf, transparency, name, robot, env, color=None):
     held_obj = robot.GetGrabbed()
     before = get_body_xytheta(robot)
@@ -117,7 +131,7 @@ def draw_robot_at_conf(conf, transparency, name, robot, env, color=None):
 def visualize_pick_and_place(pick, place):
     env = openravepy.RaveGetEnvironments()[0]
     obj = pick.discrete_parameters['object']
-    if type(obj) == unicode or type(object) == str:
+    if type(obj) == unicode or type(obj) == str:
         obj = env.GetKinBody(obj)
 
     saver = CustomStateSaver(env)
@@ -125,6 +139,21 @@ def visualize_pick_and_place(pick, place):
     two_arm_pick_object(obj, pick.continuous_parameters)
     visualize_path(place.low_level_motion)
     saver.Restore()
+
+
+def visualize_placements(placements, obj):
+    assert len(openravepy.RaveGetEnvironments()) == 1
+    env = openravepy.RaveGetEnvironments()[0]
+    if type(obj) == unicode or type(obj) == str:
+        obj = env.GetKinBody(obj)
+    for idx, conf in enumerate(placements):
+        is_goal_config = idx == len(placements) - 1
+        if is_goal_config:
+            draw_obj_at_conf(conf, 0.5, 'place' + str(idx), obj, env)
+        else:
+            draw_obj_at_conf(conf, 0.9, 'place' + str(idx), obj, env)
+    raw_input("Continue?")
+    remove_drawn_configs('place', env)
 
 
 def visualize_path(path):

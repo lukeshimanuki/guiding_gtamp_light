@@ -129,8 +129,8 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     #konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
     pred_batch = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
     best_qk = utils.decode_pose_with_sin_and_cos_angle(best_qk[0])
+    utils.visualize_placements(pred_batch, obj)
     utils.visualize_path([best_qk])
-    utils.visualize_path(pred_batch)
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
     return place_smpl

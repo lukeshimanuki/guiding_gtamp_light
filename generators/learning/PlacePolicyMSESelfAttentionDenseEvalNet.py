@@ -12,7 +12,7 @@ def noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
 
 
-class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
+class PlacePolicyMSEBestqkTransformation(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.loss_model = self.construct_loss_model()

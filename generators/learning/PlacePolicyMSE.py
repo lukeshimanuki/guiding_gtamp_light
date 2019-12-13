@@ -10,8 +10,6 @@ else:
     ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
 
-
-
 class PlacePolicyMSE(PlacePolicy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
@@ -27,8 +25,9 @@ class PlacePolicyMSE(PlacePolicy):
         self.policy_model.load_weights(self.save_folder + self.weight_file_name +'.h5')
 
     def compute_policy_mse(self, data):
+        noise_smpls = np.zeros((len(data['goal_flags']), 4))
         pred = self.policy_model.predict(
-            [data['goal_flags'], data['rel_konfs'], data['states'], data['poses']])
+            [data['goal_flags'], data['rel_konfs'], data['states'], data['poses'], noise_smpls])
         return np.mean(np.power(pred - data['actions'], 2))
 
     def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
@@ -43,7 +42,7 @@ class PlacePolicyMSE(PlacePolicy):
         poses = train_data['poses']
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
-        noise_smpls = noise(z_size=(len(actions), self.dim_noise))
+        noise_smpls = np.zeros((len(collisions), 4))
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
         self.policy_model.fit(inp, actions,

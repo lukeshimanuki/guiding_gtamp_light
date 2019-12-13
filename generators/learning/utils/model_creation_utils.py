@@ -1,11 +1,11 @@
-from generators.learning.PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
-    PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
+#from generators.learning.PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
+#    PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
 from generators.learning.PlacePolicyIMLESelfAttention import PlacePolicyIMLESelfAttention
 from generators.learning.PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
 from generators.learning.PlacePolicyMSESelfAttentionAbsolutePoses import PlacePolicyMSESelfAttentionAbsolutePoses
 from generators.learning.PlacePolicyConstrainedOptimization import PlacePolicyConstrainedOptimization
-from generators.learning.PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSESelfAttentionDenseEvalNet
-
+from generators.learning.PlacePolicyMSEScoreBased import PlacePolicyMSEScoreBased
+from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
 from data_processing_utils import state_data_mode, action_data_mode
 
 
@@ -69,8 +69,11 @@ def create_policy(config):
         policy = PlacePolicyConstrainedOptimization(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
                                                     tau=config.tau, config=config)
 
-    elif config.algo == 'sa_dense_evalnet':
-        policy = PlacePolicyMSESelfAttentionDenseEvalNet(dim_action=dim_action, dim_collision=dim_state,
+    elif config.algo == 'scorebased':
+        policy = PlacePolicyMSEScoreBased(dim_action=dim_action, dim_collision=dim_state,
+                                                         save_folder=savedir, tau=config.tau, config=config)
+    elif config.algo == 'qg_combination':
+        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
                                                          save_folder=savedir, tau=config.tau, config=config)
     else:
         raise NotImplementedError
