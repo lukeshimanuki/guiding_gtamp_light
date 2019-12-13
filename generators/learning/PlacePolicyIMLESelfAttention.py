@@ -64,9 +64,12 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
     def construct_policy_output_based_on_best_qk(self, best_qk):
         concat = Concatenate(axis=-1)([self.pose_input, best_qk, self.noise_input])
+        value = Dense(32, activation='linear',
+                      kernel_initializer=self.kernel_initializer,
+                      bias_initializer=self.bias_initializer)(concat)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer, name='policy_output')(concat)
+                      bias_initializer=self.bias_initializer, name='policy_output')(value)
         return value
 
 

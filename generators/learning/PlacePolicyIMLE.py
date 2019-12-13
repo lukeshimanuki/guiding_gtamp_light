@@ -41,7 +41,7 @@ class PlacePolicyIMLE(PlacePolicy):
             collisions = tf.squeeze(collisions, axis=-1)
             n_cols = tf.reduce_sum(collisions, axis=1)  # ? by 291 by 1
 
-            hinge_on_given_dist_limit = tf.maximum(5 - distances, 0)
+            hinge_on_given_dist_limit = tf.maximum(2 - distances, 0)
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
             return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
 
@@ -119,7 +119,7 @@ class PlacePolicyIMLE(PlacePolicy):
     def create_callbacks_for_training(self):
         callbacks = [
             TerminateOnNaN(),
-            # EarlyStopping(monitor='val_loss',min_delta=1e-4,patience=10),
+            EarlyStopping(monitor='val_loss',min_delta=1e-4,patience=10),
             ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
                             verbose=False,
                             save_best_only=True,
@@ -184,7 +184,7 @@ class PlacePolicyIMLE(PlacePolicy):
             before = self.policy_model.get_weights()
             self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
                                 [a_batch, a_batch],
-                                epochs=2000,
+                                epochs=1000,
                                 batch_size=1,
                                 validation_data=(
                                     [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
