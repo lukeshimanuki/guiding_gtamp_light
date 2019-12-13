@@ -65,7 +65,7 @@ class PlacePolicyIMLE(PlacePolicy):
 
         dummy = np.zeros((len(noise_smpls), 1))
         for j in range(k):
-            actions = self.loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
+            actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
             #import pdb;pdb.set_trace()
             #idx = 399
             #first = actions[idx]
