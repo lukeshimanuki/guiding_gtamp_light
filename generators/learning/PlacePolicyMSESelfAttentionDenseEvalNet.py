@@ -31,18 +31,18 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         inp = [goal_flags, rel_konfs, collisions, poses]
         pre_mse = self.compute_policy_mse(test_data)
         self.loss_model.fit(inp, [actions, actions],
-                              batch_size=32,
-                              epochs=epochs,
-                              verbose=2,
-                              callbacks=callbacks,
-                              validation_split=0.1, shuffle=False)
+                            batch_size=32,
+                            epochs=epochs,
+                            verbose=2,
+                            callbacks=callbacks,
+                            validation_split=0.1, shuffle=False)
         # load the best model
         self.load_weights()
         post_mse = self.compute_policy_mse(test_data)
         print "Pre-and-post test errors", pre_mse, post_mse
 
     def construct_policy_output(self):
-        #evalnet_input = Reshape((self.n_key_confs, self.dim_action, 1))(candidate_qg)
+        # evalnet_input = Reshape((self.n_key_confs, self.dim_action, 1))(candidate_qg)
         eval_net = self.construct_eval_net(0)
         key_config_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
         best_qk = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='best_qk')([eval_net, key_config_input])
@@ -55,12 +55,12 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
             policy_output = x[0]
             key_configs = x[1]
             diff = policy_output - key_configs
-            distances = tf.norm(diff, axis=-1) # ? by 291 by 1
+            distances = tf.norm(diff, axis=-1)  # ? by 291 by 1
 
             collisions = x[2]
             collisions = collisions[:, :, 0]
             collisions = tf.squeeze(collisions, axis=-1)
-            n_cols = tf.reduce_sum(collisions, axis=1) # ? by 291 by 1
+            n_cols = tf.reduce_sum(collisions, axis=1)  # ? by 291 by 1
 
             hinge_on_given_dist_limit = tf.maximum(5 - distances, 0)
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
@@ -68,7 +68,8 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
 
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
-        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')([repeated_poloutput, konf_input, self.collision_input])
+        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
+            [repeated_poloutput, konf_input, self.collision_input])
 
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
                       outputs=[diff_output, self.policy_output],
@@ -92,8 +93,8 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         concat = Concatenate(axis=-1)([self.pose_input, best_qk])
         dense_num = 32
         value = Dense(dense_num, activation='relu',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer)(concat)
+                      kernel_initializer=self.kernel_initializer,
+                      bias_initializer=self.bias_initializer)(concat)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer, name='policy_ouput')(concat)
@@ -142,14 +143,14 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
 
         evalnet = Dense(64, activation='relu',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer)(concat_input)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(concat_input)
         evalnet = Dense(32, activation='relu',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer)(evalnet)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
+                        kernel_initializer=self.kernel_initializer,
+                        bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
 
         """
@@ -183,13 +184,15 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         """
 
         def get_first_column(x):
-            return x[:, :, 0]*100
+            return x[:, :, 0] * 100
+
         col_free_flags = Lambda(get_first_column)(self.collision_input)
         col_free_flags = Reshape((self.n_key_confs,))(col_free_flags)
         evalnet = Subtract()([evalnet, col_free_flags])
 
         def compute_softmax(x):
             return K.softmax(x * 100, axis=-1)
+
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
         self.evalnet_model = Model(
