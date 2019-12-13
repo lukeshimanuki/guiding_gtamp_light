@@ -115,15 +115,14 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         evalnet = Reshape((615,))(evalnet)
 
         def get_second_column(x):
-            return x[:, :, 1]
+            return x[:, :, 1]*100
 
         col_free_flags = Lambda(get_second_column)(self.collision_input)
         col_free_flags = Reshape((615,))(col_free_flags)
-        #evalnet = Multiply()([evalnet, col_free_flags])
+        evalnet = Subtract()([evalnet, col_free_flags])
 
         def compute_softmax(x):
-            return K.softmax(x * 100, axis=-1)
-
+            return K.softmax(x * 1000, axis=-1)
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((615,))(evalnet)
         self.evalnet_model = Model(
