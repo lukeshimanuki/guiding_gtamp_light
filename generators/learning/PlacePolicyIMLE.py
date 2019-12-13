@@ -5,18 +5,14 @@ from keras.callbacks import *
 
 import numpy as np
 import time
+import tensorflow as tf
 import os
 import socket
 from functools import partial
 
 
-
 def noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
-
-
-def weighted_abs_loss(y_true, y_pred, weights):
-    return K.mean(K.abs(y_true - y_pred) * weights)
 
 
 class PlacePolicyIMLE(PlacePolicy):
@@ -25,18 +21,45 @@ class PlacePolicyIMLE(PlacePolicy):
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
         self.weight_input = Input(shape=(1,), dtype='float32', name='weight_for_each_sample')
         PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
+        self.loss_model = self.construct_loss_model()
 
     def construct_policy_output(self):
         raise NotImplementedError
 
     def construct_policy_model(self):
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
-                              self.noise_input, self.weight_input],
+                              self.noise_input],
                       outputs=[self.policy_output],
                       name='policy_model')
-
-        cl4 = partial(weighted_abs_loss, weights=self.weight_input)
         model.compile(loss='mse', optimizer=self.opt_D)
+        return model
+
+    def construct_loss_model(self):
+        def avg_distance_to_colliding_key_configs(x):
+            policy_output = x[0]
+            key_configs = x[1]
+            diff = policy_output - key_configs
+            distances = tf.norm(diff, axis=-1) # ? by 291 by 1
+
+            collisions = x[2]
+            collisions = collisions[:, :, 0]
+            collisions = tf.squeeze(collisions, axis=-1)
+            n_cols = tf.reduce_sum(collisions, axis=1) # ? by 291 by 1
+
+            dists_to_colliding_configs = tf.multiply(distances, collisions)
+            hinge_on_given_dist_limit = tf.maximum(dists_to_colliding_configs-0.1, 0)
+            return tf.reduce_sum(hinge_on_given_dist_limit, axis=-1) / n_cols
+
+        repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
+        konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
+        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')([repeated_poloutput, konf_input, self.collision_input])
+
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
+                              self.noise_input],
+                      outputs=[diff_output, self.policy_output],
+                      name='loss_model')
+
+        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D)
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
@@ -44,9 +67,19 @@ class PlacePolicyIMLE(PlacePolicy):
         k_smpls = []
         k = noise_smpls.shape[1]
 
-        dummy = np.zeros((len(noise_smpls),1))
+        dummy = np.zeros((len(noise_smpls), 1))
         for j in range(k):
-            actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :], dummy])
+            actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
+            """
+            idx = 399
+            first = actions[idx]
+            action_output = self.real_policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
+            colliding_dists = np.linalg.norm(action_output[idx].squeeze() - rel_konfs[1].squeeze(), axis=-1) * collisions[idx][:, 0].squeeze()
+            colliding_dists = np.maximum(colliding_dists - 0.1, 0)
+            print np.sum(colliding_dists) / np.sum(collisions[idx][:, 0].squeeze())
+            print first
+            import pdb;pdb.set_trace()
+            """
             k_smpls.append(actions)
         new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
         return new_k_smpls
@@ -82,7 +115,7 @@ class PlacePolicyIMLE(PlacePolicy):
     def create_callbacks_for_training(self):
         callbacks = [
             TerminateOnNaN(),
-            #EarlyStopping(monitor='val_loss',min_delta=1e-4,patience=10),
+            # EarlyStopping(monitor='val_loss',min_delta=1e-4,patience=10),
             ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
                             verbose=False,
                             save_best_only=True,
@@ -93,7 +126,8 @@ class PlacePolicyIMLE(PlacePolicy):
     def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=100):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
-        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards,
+        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags,
+                                                             actions, sum_rewards,
                                                              train_idxs, test_idxs)
 
         t_actions = test_data['actions']
@@ -151,21 +185,21 @@ class PlacePolicyIMLE(PlacePolicy):
             probability_of_being_sampled = np.exp(sum_reward_batch) / np.sum(np.exp(sum_reward_batch))
             t_probability_of_being_sampled = np.exp(t_sum_rewards) / np.sum(np.exp(t_sum_rewards))
 
-            self.policy_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls, probability_of_being_sampled],
-                                  [a_batch],
+            self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
+                                  [a_batch, a_batch],
                                   epochs=200,
                                   validation_data=(
-                                      [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls, t_probability_of_being_sampled],
-                                      [t_actions]),
+                                      [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
+                                      [t_actions, t_actions]),
                                   callbacks=callbacks,
                                   verbose=False)
-            #self.load_weights()
+            # self.load_weights()
             after = self.policy_model.get_weights()
             gen_w_norm = np.linalg.norm(np.hstack([(a - b).flatten() for a, b in zip(before, after)]))
             print "Generator weight norm diff", gen_w_norm
             gen_w_norms[epoch % gen_w_norm_patience] = gen_w_norm
 
-            pred = self.policy_model.predict([t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls, t_probability_of_being_sampled])
+            pred = self.policy_model.predict([t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls])
             valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
             valid_errs.append(valid_err)
             self.save_weights()
