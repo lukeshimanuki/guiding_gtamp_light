@@ -66,15 +66,15 @@ class PlacePolicyIMLE(PlacePolicy):
         dummy = np.zeros((len(noise_smpls), 1))
         for j in range(k):
             actions = self.loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
-            import pdb;pdb.set_trace()
-            idx = 399
-            first = actions[idx]
+            #import pdb;pdb.set_trace()
+            #idx = 399
+            #first = actions[idx]
             #action_output = self.real_policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
             #colliding_dists = np.linalg.norm(action_output[idx].squeeze() - rel_konfs[1].squeeze(), axis=-1) * collisions[idx][:, 0].squeeze()
             #colliding_dists = np.maximum(colliding_dists - 0.1, 0)
             #print np.sum(colliding_dists) / np.sum(collisions[idx][:, 0].squeeze())
-            print first
-            import pdb;pdb.set_trace()
+            #print first
+            #import pdb;pdb.set_trace()
             k_smpls.append(actions)
         new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
         return new_k_smpls
