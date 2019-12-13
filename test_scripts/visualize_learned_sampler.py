@@ -110,7 +110,7 @@ def main():
     sampler = create_policy(placeholder_config)
     sampler.load_weights()
 
-    problem_seed = 0
+    problem_seed = 1
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
