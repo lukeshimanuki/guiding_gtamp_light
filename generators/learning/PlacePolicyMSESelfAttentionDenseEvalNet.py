@@ -40,12 +40,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         value = Dense(dense_num, activation='relu',
                                   kernel_initializer=self.kernel_initializer,
                                   bias_initializer=self.bias_initializer)(concat)
-        value = Dense(dense_num, activation='relu',
-                                  kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer)(value)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer)(value)
+                      bias_initializer=self.bias_initializer)(concat)
         """
         q_0 = self.pose_input
         q_0 = RepeatVector(self.n_key_confs)(q_0)
@@ -87,19 +84,21 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # It currently takes in candidate q_g as an input
 
         # There currently are self.n_key_confs candidate goal configurations
-        concat_input = Flatten()(self.collision_input)
-        dense_num = 8
-        collision_feature = Dense(dense_num, activation='relu',
+        collision_input = Flatten()(self.collision_input)
+        concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
+
+        evalnet = Dense(64, activation='relu',
                                   kernel_initializer=self.kernel_initializer,
                                   bias_initializer=self.bias_initializer)(concat_input)
-        collision_feature = Dense(dense_num, activation='relu',
+        evalnet = Dense(32, activation='relu',
                                   kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer)(collision_feature)
-        collision_feature = Dense(self.n_key_confs, activation='relu',
+                                  bias_initializer=self.bias_initializer)(evalnet)
+        evalnet = Dense(self.n_key_confs, activation='linear',
                                   kernel_initializer=self.kernel_initializer,
-                                  bias_initializer=self.bias_initializer, name='collision_feature')(collision_feature)
-        collision_feature = Reshape((self.n_key_confs, 1, 1))(collision_feature)
+                                  bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
+        evalnet = Reshape((self.n_key_confs,))(evalnet)
 
+        """
         q_0 = self.pose_input
         q_0 = RepeatVector(self.n_key_confs)(q_0)
         q_0 = Reshape((self.n_key_confs, self.dim_poses, 1))(q_0)
@@ -127,6 +126,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
                          kernel_initializer=self.kernel_initializer,
                          bias_initializer=self.bias_initializer)(H)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
+        """
 
         def get_first_column(x):
             return x[:, :, 0]*100
