@@ -10,12 +10,23 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_imle_ff_seed_%d' % config.seed
 
+    def load_weights(self):
+        print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name +'.h5')
+
     def construct_policy_output(self):
         eval_net = self.construct_eval_net(0)
         key_config_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
         best_qk = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='best_qk')([eval_net, key_config_input])
-        output = self.construct_qg_candidate_generator(best_qk)
+        self.best_qk_model = self.construct_model(best_qk, 'best_qk')
+        output = self.construct_policy_output_based_on_best_qk(best_qk)
         return output
+
+    def construct_model(self, output, name):
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                      outputs=[output],
+                      name=name)
+        return model
 
     def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
@@ -51,11 +62,11 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
         return evalnet
 
-    def construct_qg_candidate_generator(self, best_qk):
+    def construct_policy_output_based_on_best_qk(self, best_qk):
         concat = Concatenate(axis=-1)([self.pose_input, best_qk, self.noise_input])
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer)(concat)
+                      bias_initializer=self.bias_initializer, name='policy_output')(concat)
         return value
 
 
