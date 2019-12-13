@@ -33,7 +33,7 @@ class PlacePolicyIMLE(PlacePolicy):
         def avg_distance_to_colliding_key_configs(x):
             policy_output = x[0]
             key_configs = x[1]
-            diff = policy_output - key_configs
+            diff = policy_output[:, :, 0:2] - key_configs[:, :, 0:2]
             distances = tf.norm(diff, axis=-1)  # ? by 291 by 1
 
             collisions = x[2]
@@ -41,7 +41,7 @@ class PlacePolicyIMLE(PlacePolicy):
             collisions = tf.squeeze(collisions, axis=-1)
             n_cols = tf.reduce_sum(collisions, axis=1)  # ? by 291 by 1
 
-            hinge_on_given_dist_limit = tf.maximum(2 - distances, 0)
+            hinge_on_given_dist_limit = tf.maximum(1 - distances, 0)
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
             return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
 

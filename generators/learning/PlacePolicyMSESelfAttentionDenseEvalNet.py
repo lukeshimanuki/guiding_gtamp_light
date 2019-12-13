@@ -8,6 +8,9 @@ import socket
 import numpy as np
 import tensorflow as tf
 
+def noise(z_size):
+    return np.random.normal(size=z_size).astype('float32')
+
 
 class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
@@ -28,7 +31,9 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         poses = train_data['poses']
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
-        inp = [goal_flags, rel_konfs, collisions, poses]
+        noise_smpls = noise(z_size=(len(actions), self.dim_noise))
+
+        inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
         self.loss_model.fit(inp, [actions, actions],
                             batch_size=32,
@@ -54,7 +59,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         def avg_distance_to_colliding_key_configs(x):
             policy_output = x[0]
             key_configs = x[1]
-            diff = policy_output - key_configs
+            diff = policy_output[:, :, 0:2] - key_configs[:, :, 0:2]
             distances = tf.norm(diff, axis=-1)  # ? by 291 by 1
 
             collisions = x[2]
@@ -62,7 +67,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
             collisions = tf.squeeze(collisions, axis=-1)
             n_cols = tf.reduce_sum(collisions, axis=1)  # ? by 291 by 1
 
-            hinge_on_given_dist_limit = tf.maximum(5 - distances, 0)
+            hinge_on_given_dist_limit = tf.maximum(1 - distances, 0)
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
             return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
 
@@ -71,7 +76,7 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
             [repeated_poloutput, konf_input, self.collision_input])
 
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
@@ -90,14 +95,14 @@ class PlacePolicyMSESelfAttentionDenseEvalNet(PlacePolicyMSE):
         # todo: change the create_conv_layers activation to relu for generating value output.
         # value = self.create_conv_layers(concat_input, n_filters=128,
         #                                use_pooling=False, use_flatten=False)
-        concat = Concatenate(axis=-1)([self.pose_input, best_qk])
+        concat = Concatenate(axis=-1)([self.pose_input, best_qk, self.noise_input])
         dense_num = 32
         value = Dense(dense_num, activation='relu',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer)(concat)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer, name='policy_ouput')(concat)
+                      bias_initializer=self.bias_initializer, name='policy_ouput')(value)
         """
         q_0 = self.pose_input
         q_0 = RepeatVector(self.n_key_confs)(q_0)
