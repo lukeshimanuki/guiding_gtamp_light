@@ -150,7 +150,7 @@ class PlacePolicyIMLE(PlacePolicy):
         for epoch in range(epochs):
             print 'Epoch %d/%d' % (epoch, epochs)
             is_time_to_smpl_new_data = epoch % data_resampling_step == 0
-            batch_size = 80
+            batch_size = 400
             col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
                 self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size=batch_size)
 
@@ -173,7 +173,7 @@ class PlacePolicyIMLE(PlacePolicy):
             self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
                                 [a_batch, a_batch],
                                 epochs=1000,
-                                batch_size=1,
+                                batch_size=8,
                                 validation_data=(
                                     [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
                                     [t_actions, t_actions]),
