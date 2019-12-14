@@ -166,7 +166,7 @@ def train(config):
     policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
-    poses = poses[:, 0:4]
+    poses = poses[:, :-4]
 
     """
     #policy.load_weights()

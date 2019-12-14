@@ -14,6 +14,10 @@ import sys
 import collections
 
 
+def noise(z_size):
+    return np.random.normal(size=z_size, scale=1).astype('float32')
+
+
 def get_pick_base_poses(action, smples):
     pick_base_poses = []
     for smpl in smples:
