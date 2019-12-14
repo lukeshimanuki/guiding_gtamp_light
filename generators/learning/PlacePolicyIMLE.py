@@ -8,8 +8,13 @@ import time
 import tensorflow as tf
 
 
-def noise(z_size):
+def gaussian_noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
+
+
+def uniform_noise(z_size):
+    noise_dim = z_size[-1]
+    return np.random.uniform([0]* noise_dim, [1]*noise_dim, size=z_size).astype('float32')
 
 
 class PlacePolicyIMLE(PlacePolicy):
@@ -66,27 +71,8 @@ class PlacePolicyIMLE(PlacePolicy):
         k_smpls = []
         k = noise_smpls.shape[1]
 
-        dummy = np.zeros((len(noise_smpls), 1))
         for j in range(k):
             actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
-            #import pdb;pdb.set_trace()
-            """
-            idx = 0
-            losses = self.loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])[0][idx]
-            #first = actions[idx]
-            #action_output = self.real_policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
-            colliding_dists = np.linalg.norm(actions[idx].squeeze() - rel_konfs[1].squeeze(), axis=-1)
-            colliding_dists = np.maximum(100-colliding_dists, 0)
-            col = collisions[idx, :, 0, 0]
-            colliding_dists = colliding_dists[col==1]
-            print colliding_dists.mean()
-            print losses
-            import pdb;pdb.set_trace()
-            #colliding_dists = np.maximum(colliding_dists - 0.1, 0)
-            #print np.sum(colliding_dists) / np.sum(collisions[idx][:, 0].squeeze())
-            #print first
-            #import pdb;pdb.set_trace()
-            """
             k_smpls.append(actions)
         new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
         return new_k_smpls
@@ -171,7 +157,8 @@ class PlacePolicyIMLE(PlacePolicy):
             stime = time.time()
             # train data
             world_states = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
-            noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
+            #noise_smpls = noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
+            noise_smpls = uniform_noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
             generated_actions = self.generate_k_smples_for_multiple_states(world_states, noise_smpls)
             chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions,
                                                                               noise_smpls)

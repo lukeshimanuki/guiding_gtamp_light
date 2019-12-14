@@ -15,7 +15,7 @@ import collections
 
 
 def noise(z_size):
-    return np.random.normal(size=z_size, scale=1).astype('float32')
+    return np.random.normal(size=z_size, scale=0.5).astype('float32')
 
 
 def get_pick_base_poses(action, smples):
