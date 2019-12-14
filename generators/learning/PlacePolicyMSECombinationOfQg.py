@@ -55,17 +55,17 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         return model
 
     def construct_policy_output(self):
-        candidate_qg = self.construct_value_output(self.key_config_input)
+        candidate_qg = self.construct_value_output()
         evalnet_input = Reshape((self.n_key_confs, 4, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
 
-    def construct_value_output(self, concat_input):
-        # Computes the candidate goal configurations
-        # q_g = phi_2(x_i), for some x_i
-        # value = self.create_conv_layers(concat_input, n_filters=128,
-        #                                use_pooling=False, use_flatten=False)
+    def construct_value_output(self):
+        pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
+        pose_input = Reshape((self.n_key_confs, self.pose_input, 1))(pose_input)
+        concat_input = Concatenate(axis=-1)([pose_input, self.key_config_input])
+
         n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
