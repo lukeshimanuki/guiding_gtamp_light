@@ -3,6 +3,7 @@ from keras.layers import *
 from keras.models import Model
 from keras.callbacks import *
 
+
 import numpy as np
 import time
 import tensorflow as tf
