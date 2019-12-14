@@ -8,7 +8,7 @@ from PlacePolicyIMLE import PlacePolicyIMLE
 class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_imle_ff_seed_%d' % config.seed
+        self.weight_file_name = 'place_sa_imle_seed_%d' % config.seed
 
     def load_weights(self):
         print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
