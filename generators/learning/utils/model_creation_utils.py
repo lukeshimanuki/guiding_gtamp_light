@@ -6,6 +6,7 @@ from generators.learning.PlacePolicyMSESelfAttentionAbsolutePoses import PlacePo
 from generators.learning.PlacePolicyConstrainedOptimization import PlacePolicyConstrainedOptimization
 from generators.learning.PlacePolicyMSEScoreBased import PlacePolicyMSEScoreBased
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
+from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 from data_processing_utils import state_data_mode, action_data_mode
 
 
@@ -74,6 +75,9 @@ def create_policy(config):
                                                          save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'qg_combination':
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
+                                                         save_folder=savedir, tau=config.tau, config=config)
+    elif config.algo == 'imle_qg_combination':
+        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
                                                          save_folder=savedir, tau=config.tau, config=config)
     else:
         raise NotImplementedError

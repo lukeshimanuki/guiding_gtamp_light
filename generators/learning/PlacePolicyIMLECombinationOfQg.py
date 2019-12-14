@@ -5,17 +5,17 @@ from keras.models import Model
 from PlacePolicyIMLE import PlacePolicyIMLE
 
 
-class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
+class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_imle_ff_seed_%d' % config.seed
+        self.weight_file_name = 'place_imle_qg_combination_seed_%d' % config.seed
 
     def load_weights(self):
         print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
         self.policy_model.load_weights(self.save_folder + self.weight_file_name +'.h5')
 
     def construct_policy_output(self):
-        candidate_qg = self.construct_value_output(self.key_config_input)
+        candidate_qg = self.construct_value_output()
         evalnet_input = Reshape((self.n_key_confs, 4, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
@@ -61,21 +61,14 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
         return evalnet
 
-    def construct_policy_output_based_on_best_qk(self, best_qk):
-        concat = Concatenate(axis=-1)([self.pose_input, best_qk, self.noise_input])
-        value = Dense(32, activation='linear',
-                      kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer)(concat)
-        value = Dense(4, activation='linear',
-                      kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer, name='policy_output')(value)
-        return value
+    def construct_value_output(self):
+        pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
+        pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
 
-    def construct_value_output(self, concat_input):
-        # Computes the candidate goal configurations
-        # q_g = phi_2(x_i), for some x_i
-        # value = self.create_conv_layers(concat_input, n_filters=128,
-        #                                use_pooling=False, use_flatten=False)
+        noise_input = RepeatVector(self.n_key_confs)(self.noise_input)
+        noise_input = Reshape((self.n_key_confs, self.dim_noise, 1))(noise_input)
+        concat_input = Concatenate(axis=2)([pose_input, noise_input, self.key_config_input])
+
         n_dim = concat_input.shape[2]._value
         n_filters = 32
         H = Conv2D(filters=n_filters,
@@ -100,9 +93,8 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
 
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
         self.value_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.noise_input],
             outputs=value,
             name='value_model')
         return value
-
 
