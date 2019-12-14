@@ -175,9 +175,10 @@ class PlacePolicyIMLE(PlacePolicy):
             # validation data
             t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
             t_noise_smpls = np.zeros((n_test_data, num_smpl_per_state, self.dim_noise)) #noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
-            t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
-            t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
-                                                                                t_noise_smpls)
+            #t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
+            #t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
+            #                                                                    t_noise_smpls)
+            t_chosen_noise_smpls = t_noise_smpls
             print "Data generation time", time.time() - stime
 
             # I also need to tag on the Q-learning objective
