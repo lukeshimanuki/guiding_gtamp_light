@@ -31,7 +31,6 @@ import tensorflow as tf
 tf.set_random_seed(configs.seed)
 
 
-
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
 from utils import data_processing_utils

@@ -122,7 +122,7 @@ class PlacePolicyIMLE(PlacePolicy):
     def create_callbacks_for_training(self):
         callbacks = [
             TerminateOnNaN(),
-            EarlyStopping(monitor='val_loss',min_delta=1e-4,patience=10),
+            EarlyStopping(monitor='val_loss', min_delta=1e-4, patience=10),
             ModelCheckpoint(filepath=self.save_folder + self.weight_file_name,
                             verbose=False,
                             save_best_only=True,

@@ -15,11 +15,10 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         self.policy_model.load_weights(self.save_folder + self.weight_file_name +'.h5')
 
     def construct_policy_output(self):
-        eval_net = self.construct_eval_net(0)
-        key_config_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
-        best_qk = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='best_qk')([eval_net, key_config_input])
-        self.best_qk_model = self.construct_model(best_qk, 'best_qk')
-        output = self.construct_policy_output_based_on_best_qk(best_qk)
+        candidate_qg = self.construct_value_output(self.key_config_input)
+        evalnet_input = Reshape((self.n_key_confs, 4, 1))(candidate_qg)
+        eval_net = self.construct_eval_net(evalnet_input)
+        output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
 
     def construct_model(self, output, name):
@@ -72,6 +71,38 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
                       bias_initializer=self.bias_initializer, name='policy_output')(value)
         return value
 
+    def construct_value_output(self, concat_input):
+        # Computes the candidate goal configurations
+        # q_g = phi_2(x_i), for some x_i
+        # value = self.create_conv_layers(concat_input, n_filters=128,
+        #                                use_pooling=False, use_flatten=False)
+        n_dim = concat_input.shape[2]._value
+        n_filters = 32
+        H = Conv2D(filters=n_filters,
+                   kernel_size=(1, n_dim),
+                   strides=(1, 1),
+                   activation='relu',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(concat_input)
+        for _ in range(2):
+            H = Conv2D(filters=n_filters,
+                       kernel_size=(1, 1),
+                       strides=(1, 1),
+                       activation='relu',
+                       kernel_initializer=self.kernel_initializer,
+                       bias_initializer=self.bias_initializer)(H)
+        value = Conv2D(filters=4,
+                       kernel_size=(1, 1),
+                       strides=(1, 1),
+                       activation='linear',
+                       kernel_initializer=self.kernel_initializer,
+                       bias_initializer=self.bias_initializer)(H)
 
+        value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
+        self.value_model = Model(
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
+            outputs=value,
+            name='value_model')
+        return value
 
 

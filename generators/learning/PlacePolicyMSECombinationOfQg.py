@@ -64,7 +64,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
     def construct_value_output(self):
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
-        concat_input = Concatenate(axis=-1)([pose_input, self.key_config_input])
+        concat_input = Concatenate(axis=2)([pose_input, self.key_config_input])
 
         n_dim = concat_input.shape[2]._value
         n_filters = 32
