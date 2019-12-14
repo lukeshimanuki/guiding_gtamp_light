@@ -55,7 +55,10 @@ class PlacePolicyIMLE(PlacePolicy):
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[2, 1])
+        def custom_mse(y_true, y_pred):
+            return tf.reduce_mean(tf.norm(y_true - y_pred,axis=-1))
+
+        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[2, 1])
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
@@ -174,7 +177,7 @@ class PlacePolicyIMLE(PlacePolicy):
                                                                               noise_smpls)
             # validation data
             t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
-            t_noise_smpls = np.zeros((n_test_data, num_smpl_per_state, self.dim_noise)) #noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
+            t_noise_smpls = np.zeros((n_test_data, self.dim_noise)) #noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
             #t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
             #t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
             #                                                                    t_noise_smpls)
