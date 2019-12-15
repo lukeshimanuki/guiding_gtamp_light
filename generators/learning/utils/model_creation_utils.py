@@ -1,4 +1,4 @@
-#from generators.learning.PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
+# from generators.learning.PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
 #    PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
 from generators.learning.PlacePolicyIMLESelfAttention import PlacePolicyIMLESelfAttention
 from generators.learning.PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
@@ -7,8 +7,8 @@ from generators.learning.PlacePolicyConstrainedOptimization import PlacePolicyCo
 from generators.learning.PlacePolicyMSEScoreBased import PlacePolicyMSEScoreBased
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
+from generators.learning.PlacePolicyAdMonSelfAttention import PlacePolicyAdMonSelfAttention
 from data_processing_utils import state_data_mode, action_data_mode
-
 
 import collections
 
@@ -72,13 +72,16 @@ def create_policy(config):
 
     elif config.algo == 'scorebased':
         policy = PlacePolicyMSEScoreBased(dim_action=dim_action, dim_collision=dim_state,
-                                                         save_folder=savedir, tau=config.tau, config=config)
+                                          save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'qg_combination':
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                                         save_folder=savedir, tau=config.tau, config=config)
+                                               save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'imle_qg_combination':
         policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                                         save_folder=savedir, tau=config.tau, config=config)
+                                                save_folder=savedir, tau=config.tau, config=config)
+    elif config.algo == 'sa_admon':
+        policy = PlacePolicyAdMonSelfAttention(dim_action=dim_action, dim_collision=dim_state,
+                                               save_folder=savedir, tau=config.tau, config=config)
     else:
         raise NotImplementedError
     return policy

@@ -14,7 +14,6 @@ else:
     ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
 
-
 # Implements util functions and initializes dimension variables and directories.
 class Policy:
     def __init__(self, dim_action, dim_state, save_folder, tau):
@@ -35,7 +34,6 @@ class Policy:
             dim_z = dim_action
         else:
             dim_z = int(dim_action / 2)
-
 
         # setup dimensions for inputs
         self.dim_action = dim_action
@@ -82,7 +80,7 @@ class Policy:
 
     @staticmethod
     def get_train_and_test_indices_based_on_sum_rewards(n_data, sum_rewards):
-        probability_of_being_sampled = (np.exp(sum_rewards)/np.sum(np.exp(sum_rewards))).squeeze()
+        probability_of_being_sampled = (np.exp(sum_rewards) / np.sum(np.exp(sum_rewards))).squeeze()
         indices_based_on_sum_rewards = np.random.choice(n_data, n_data, p=probability_of_being_sampled)
 
         test_idxs = np.random.randint(0, n_data, size=int(0.4 * n_data))
@@ -101,10 +99,12 @@ class Policy:
         self.policy_model.save_weights(fdir + fname)
 
     def load_weights(self):
-        raise NotImplementedError
+        print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name + '.h5')
 
     @staticmethod
-    def get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, train_indices,
+    def get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards,
+                                train_indices,
                                 test_indices):
         train = {'states': states[train_indices, :],
                  'poses': poses[train_indices, :],
@@ -126,7 +126,8 @@ class Policy:
 
     @staticmethod
     def get_batch(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
-        indices = np.random.randint(0, actions.shape[0], size=batch_size)
+        n_data = len(cols)
+        indices = np.random.permutation(range(n_data))[0:batch_size]
         cols_batch = np.array(cols[indices, :])  # collision vector
         goal_flag_batch = np.array(goal_flags[indices, :])  # collision vector
         a_batch = np.array(actions[indices, :])
@@ -141,7 +142,8 @@ class Policy:
         H = Conv2D(filters=n_filters,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
-                   activation='linear', # why does this have to be linear again? For predicting a value that will be soft-maxed, the values tend to saturate.
+                   activation='linear',
+                   # why does this have to be linear again? For predicting a value that will be soft-maxed, the values tend to saturate.
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(input)
         H = LeakyReLU()(H)
@@ -158,4 +160,3 @@ class Policy:
         if use_flatten:
             H = Flatten()(H)
         return H
-

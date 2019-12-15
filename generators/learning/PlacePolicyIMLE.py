@@ -116,6 +116,10 @@ class PlacePolicyIMLE(PlacePolicy):
         ]
         return callbacks
 
+    def load_best_weights(self):
+        print "Loading weights", self.save_folder + self.weight_file_name + 'best_val_err.h5'
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name + 'best_val_err.h5')
+
     def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=1000):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
