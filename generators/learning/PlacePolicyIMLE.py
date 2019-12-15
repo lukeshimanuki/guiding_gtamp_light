@@ -14,7 +14,7 @@ def gaussian_noise(z_size):
 
 def uniform_noise(z_size):
     noise_dim = z_size[-1]
-    return np.random.uniform([0]* noise_dim, [1]*noise_dim, size=z_size).astype('float32')
+    return np.random.uniform([0] * noise_dim, [1] * noise_dim, size=z_size).astype('float32')
 
 
 class PlacePolicyIMLE(PlacePolicy):
@@ -150,9 +150,14 @@ class PlacePolicyIMLE(PlacePolicy):
         for epoch in range(epochs):
             print 'Epoch %d/%d' % (epoch, epochs)
             is_time_to_smpl_new_data = epoch % data_resampling_step == 0
-            batch_size = 400
-            col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
-                self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size=batch_size)
+            batch_size = len(actions)
+            #col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
+            #    self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size=batch_size)
+            goal_flag_batch = goal_flags
+            col_batch = collisions
+            pose_batch = poses
+            rel_konf_batch = rel_konfs
+            a_batch = actions
 
             stime = time.time()
             # train data
@@ -165,7 +170,8 @@ class PlacePolicyIMLE(PlacePolicy):
             t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
             t_noise_smpls = uniform_noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
             t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
-            t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions, t_noise_smpls)
+            t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
+                                                                                t_noise_smpls)
             print "Data generation time", time.time() - stime
 
             # I also need to tag on the Q-learning objective
@@ -173,13 +179,13 @@ class PlacePolicyIMLE(PlacePolicy):
             self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
                                 [a_batch, a_batch],
                                 epochs=1000,
-                                batch_size=8,
+                                batch_size=32,
                                 validation_data=(
                                     [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
                                     [t_actions, t_actions]),
                                 callbacks=callbacks,
                                 verbose=True)
-            # self.load_weights()
+            #self.load_weights()
             after = self.policy_model.get_weights()
             gen_w_norm = np.linalg.norm(np.hstack([(a - b).flatten() for a, b in zip(before, after)]))
             print "Generator weight norm diff", gen_w_norm

@@ -5,10 +5,12 @@ from keras.models import Model
 from keras import backend as K
 
 import socket
-
+import numpy as np
 
 def noise(z_size):
-    return np.random.normal(size=z_size).astype('float32')
+    noise_dim = z_size[-1]
+    return np.random.uniform([0] * noise_dim, [1] * noise_dim, size=z_size).astype('float32')
+    #return np.random.normal(size=z_size).astype('float32')
 
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
@@ -47,11 +49,15 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
             [repeated_poloutput, konf_input, self.collision_input])
 
+
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[1, 1])
+        def custom_mse(y_true, y_pred):
+            return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
+
+        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[1, 1])
         return model
 
     def construct_policy_output(self):
@@ -64,7 +70,9 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
     def construct_value_output(self):
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
-        concat_input = Concatenate(axis=2)([pose_input, self.key_config_input])
+        noise_input = RepeatVector(self.n_key_confs)(self.noise_input)
+        noise_input = Reshape((self.n_key_confs, self.dim_noise, 1))(noise_input)
+        concat_input = Concatenate(axis=2)([pose_input, self.key_config_input, noise_input])
 
         n_dim = concat_input.shape[2]._value
         n_filters = 32
@@ -90,7 +98,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
 
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
         self.value_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input],
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.noise_input],
             outputs=value,
             name='value_model')
         return value
@@ -135,7 +143,6 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
-
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
         self.loss_model.fit(inp, [actions, actions],
