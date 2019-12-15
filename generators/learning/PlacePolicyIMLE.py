@@ -63,7 +63,7 @@ class PlacePolicyIMLE(PlacePolicy):
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
-        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[2, 1])
+        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[0, 1])
         return model
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
