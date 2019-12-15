@@ -7,10 +7,11 @@ from keras import backend as K
 import socket
 import numpy as np
 
+
 def noise(z_size):
     noise_dim = z_size[-1]
     return np.random.uniform([0] * noise_dim, [1] * noise_dim, size=z_size).astype('float32')
-    #return np.random.normal(size=z_size).astype('float32')
+    # return np.random.normal(size=z_size).astype('float32')
 
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
@@ -49,15 +50,16 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
             [repeated_poloutput, konf_input, self.collision_input])
 
-
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
-                      outputs=[diff_output, self.policy_output],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
+                              self.noise_input],
+                      outputs=[self.policy_output],
                       name='loss_model')
 
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
-        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[1, 1])
+        # model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[0, 1])
+        model.compile(loss='mse', optimizer=self.opt_D)
         return model
 
     def construct_policy_output(self):
@@ -124,7 +126,8 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         return evalnet
 
     def construct_policy_model(self):
-        mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
+        mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
+                                  self.noise_input],
                           outputs=self.policy_output,
                           name='policy_output')
         mse_model.compile(loss='mse', optimizer=self.opt_D)
@@ -145,7 +148,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
-        self.loss_model.fit(inp, [actions, actions],
+        self.loss_model.fit(inp, actions,
                             batch_size=32,
                             epochs=epochs,
                             verbose=2,

@@ -156,7 +156,6 @@ def get_data(datatype):
     is_goal_flags = is_goal_flag[:5000, :]
     konf_relelvance = konf_relelvance[:5000, :]
 
-    print "Number of data", len(states)
     return states, konf_relelvance, poses, rel_konfs, is_goal_flags, actions, sum_rewards
 
 
@@ -190,6 +189,7 @@ def train(config):
     key_configs = key_configs[reasonable_data_idxs, :]
     actions = actions[reasonable_data_idxs, :]
     sum_rewards = sum_rewards[reasonable_data_idxs, :]
+    print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
