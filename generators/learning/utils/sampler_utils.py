@@ -109,7 +109,6 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
 
-
     n_smpls = len(noise_batch)
     goal_flags = np.tile(goal_flags, (n_smpls, 1, 1, 1))
     key_configs = np.tile(key_configs, (n_smpls, 1, 1, 1))
@@ -123,13 +122,12 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     #eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     #value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
-    best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
+    #best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
     key_configs = key_configs.squeeze()
     #konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
     pred_batch = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
-    best_qk = utils.decode_pose_with_sin_and_cos_angle(best_qk[0])
     utils.visualize_placements(pred_batch, obj)
-    utils.visualize_path([best_qk])
+    #utils.visualize_path([best_qk])
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
-    return place_smpl
+    #return place_smpl

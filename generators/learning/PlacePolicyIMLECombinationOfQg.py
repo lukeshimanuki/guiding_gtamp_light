@@ -30,11 +30,11 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
     def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
         concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
-
-        evalnet = Dense(64, activation='relu',
+        dense_num = 8
+        evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(32, activation='relu',
+        evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
@@ -42,22 +42,10 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
                         bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
 
-        def get_first_column(x):
-            return x[:, :, 0] * 100
-
-        col_free_flags = Lambda(get_first_column)(self.collision_input)
-        col_free_flags = Reshape((self.n_key_confs,))(col_free_flags)
-        evalnet = Subtract()([evalnet, col_free_flags])
-
         def compute_softmax(x):
-            return K.softmax(x * 100, axis=-1)
+            return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
-        evalnet = Reshape((self.n_key_confs,))(evalnet)
-        self.evalnet_model = Model(
-            inputs=[self.pose_input, self.key_config_input, self.collision_input, self.goal_flag_input],
-            outputs=evalnet,
-            name='value_model')
 
         return evalnet
 

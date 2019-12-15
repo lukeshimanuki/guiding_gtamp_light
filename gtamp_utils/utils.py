@@ -147,11 +147,7 @@ def visualize_placements(placements, obj):
     if type(obj) == unicode or type(obj) == str:
         obj = env.GetKinBody(obj)
     for idx, conf in enumerate(placements):
-        is_goal_config = idx == len(placements) - 1
-        if is_goal_config:
-            draw_obj_at_conf(conf, 0.5, 'place' + str(idx), obj, env)
-        else:
-            draw_obj_at_conf(conf, 0.9, 'place' + str(idx), obj, env)
+        draw_obj_at_conf(conf, 0.9, 'place' + str(idx), obj, env)
     raw_input("Continue?")
     remove_drawn_configs('place', env)
 
