@@ -36,7 +36,7 @@ class PlacePolicyAdMonSelfAttention(PlacePolicyAdMon):
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
                         kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
+                        bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
 
         def get_first_column(x):
@@ -47,15 +47,15 @@ class PlacePolicyAdMonSelfAttention(PlacePolicyAdMon):
         evalnet = Subtract()([evalnet, col_free_flags])
 
         def compute_softmax(x):
-            return K.softmax(x * 100, axis=-1)
+            return K.softmax(x, axis=-1)
 
-        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
+        evalnet = Lambda(compute_softmax)(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
         return evalnet
 
     def construct_policy_output_based_on_best_qk(self, best_qk):
         concat = Concatenate(axis=-1)([self.pose_input, best_qk, self.noise_input])
-        value = Dense(32, activation='linear',
+        value = Dense(32, activation='relu',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer)(concat)
         value = Dense(4, activation='linear',

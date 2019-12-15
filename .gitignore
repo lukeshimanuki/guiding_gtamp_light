@@ -27,3 +27,4 @@ two_arm_pick_two_arm_place.pkl
 test_results/*
 test_results
 generators/learning/learned_weights/*
+data_idxs
