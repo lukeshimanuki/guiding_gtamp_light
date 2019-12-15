@@ -197,6 +197,7 @@ class PlacePolicyIMLE(PlacePolicy):
             self.save_weights()
 
             if valid_err <= np.min(valid_errs):
+                self.save_weights(additional_name='best_val_err')
                 patience = 0
             else:
                 patience += 1
