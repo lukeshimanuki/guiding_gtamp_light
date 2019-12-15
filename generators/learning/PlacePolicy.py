@@ -1,6 +1,7 @@
 from generators.learning.Policy import Policy
 from keras.layers import *
 from keras.callbacks import *
+from keras import Model
 
 import numpy as np
 
@@ -37,6 +38,12 @@ class PlacePolicy(Policy):
     def construct_policy_model(self):
         raise NotImplementedError
 
+    def construct_model(self, output, name):
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+                      outputs=[output],
+                      name=name)
+        return model
+
     def compute_policy_mse(self, data):
         # a proxy function for planning performance
         pred = self.policy_model.predict(
@@ -54,7 +61,7 @@ class PlacePolicy(Policy):
         ]
         return callbacks
 
-    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         raise NotImplementedError
 
 

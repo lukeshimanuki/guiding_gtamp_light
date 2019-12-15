@@ -3,6 +3,7 @@ from gtamp_utils import utils
 
 import pickle
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 def prepare_input(smpler_state):
@@ -118,15 +119,22 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
         noise_batch = np.array(noise_batch).squeeze()
     print poses
 
+
     pred_batch = policy.policy_model.predict([goal_flags, key_configs, collisions, poses, noise_batch])
+
     #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
-    #eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     #value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
     #best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
     key_configs = key_configs.squeeze()
-    #konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
-    pred_batch = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
-    utils.visualize_placements(pred_batch, obj)
+    konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
+    import pdb;pdb.set_trace()
+    decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
+    utils.visualize_placements(decoded, obj)
+
+    H, xedges, yedges = np.histogram2d(pred_batch[:, 0], pred_batch[:, 1], bins=10)
+    plt.imshow(H, interpolation='nearest', origin='low', extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    import pdb;pdb.set_trace()
     #utils.visualize_path([best_qk])
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])
