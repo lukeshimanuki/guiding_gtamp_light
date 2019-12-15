@@ -8,7 +8,7 @@ from generators.learning.PlacePolicyMSEScoreBased import PlacePolicyMSEScoreBase
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 from generators.learning.PlacePolicyAdMonSelfAttention import PlacePolicyAdMonSelfAttention
-from generators.learning.PlacePolicyMSESelfAttentionDenseEvalNet import PlacePolicyMSEBestqkTransformation
+from generators.learning.PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
 from data_processing_utils import state_data_mode, action_data_mode
 
 import collections
@@ -50,17 +50,11 @@ def create_policy(config):
     savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
               (config.dtype, state_data_mode, action_data_mode, config.algo)
     if config.algo == "sa_mse":
-        policy = PlacePolicyMSEBestqkTransformation(dim_action=dim_action,
-                                                    dim_collision=dim_state,
-                                                    save_folder=savedir,
-                                                    tau=config.tau,
-                                                    config=config)
-    elif config.algo == "sa_mse_abs":
-        policy = PlacePolicyMSESelfAttentionAbsolutePoses(dim_action=dim_action,
-                                                          dim_collision=dim_state,
-                                                          save_folder=savedir,
-                                                          tau=config.tau,
-                                                          config=config)
+        policy = PlacePolicyMSESelfAttention(dim_action=dim_action,
+                                             dim_collision=dim_state,
+                                             save_folder=savedir,
+                                             tau=config.tau,
+                                             config=config)
     elif config.algo == 'sa_imle':
         policy = PlacePolicyIMLESelfAttention(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
                                               tau=config.tau, config=config)
@@ -74,7 +68,7 @@ def create_policy(config):
     elif config.algo == 'scorebased':
         policy = PlacePolicyMSEScoreBased(dim_action=dim_action, dim_collision=dim_state,
                                           save_folder=savedir, tau=config.tau, config=config)
-    elif config.algo == 'qg_combination':
+    elif config.algo == 'mse_qg_combination':
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
                                                save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'imle_qg_combination':

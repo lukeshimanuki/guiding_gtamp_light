@@ -72,9 +72,8 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
     def construct_value_output(self):
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
-        noise_input = RepeatVector(self.n_key_confs)(self.noise_input)
-        noise_input = Reshape((self.n_key_confs, self.dim_noise, 1))(noise_input)
-        concat_input = Concatenate(axis=2)([pose_input, self.key_config_input, noise_input])
+
+        concat_input = Concatenate(axis=2)([pose_input, self.key_config_input])
 
         n_dim = concat_input.shape[2]._value
         n_filters = 32
@@ -106,7 +105,8 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         return value
 
     def construct_eval_net(self, candidate_qg_goal_flag_input):
-        concat_input = Flatten()(self.collision_input)
+        collision_input = Flatten()(self.collision_input)
+        concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
         dense_num = 8
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
@@ -116,13 +116,13 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
                         kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
+                        bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
+        evalnet = Reshape((self.n_key_confs,))(evalnet)
 
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
-
         return evalnet
 
     def construct_policy_model(self):
