@@ -156,7 +156,7 @@ def visualize_path(path):
     assert len(openravepy.RaveGetEnvironments()) == 1
     env = openravepy.RaveGetEnvironments()[0]
     robot = env.GetRobot('pr2')
-
+    path = [p.squeeze() for p in path]
     dim_path = len(path[0])
     if dim_path == 3:
         robot.SetActiveDOFs([], DOFAffine.X | DOFAffine.Y | DOFAffine.RotationAxis, [0, 0, 1])

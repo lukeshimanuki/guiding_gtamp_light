@@ -6,6 +6,7 @@ import random
 import socket
 
 from generators.learning.utils.model_creation_utils import create_policy
+from test_scripts.visualize_learned_sampler import create_environment
 
 
 def parse_args():
@@ -29,7 +30,6 @@ os.environ['PYTHONHASHSEED'] = str(configs.seed)
 import tensorflow as tf
 
 tf.set_random_seed(configs.seed)
-
 
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode, action_data_mode, make_konfs_relative_to_pose
@@ -92,9 +92,21 @@ def load_data(traj_dir):
             traj_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
 
             place_motion = a['place_motion']
+
             binary_collision_vector = s.collision_vector.squeeze()[:, 0]
             place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector,
                                                                        place_motion)
+            if np.all(np.isclose(a['place_obj_abs_pose'][0, 0:2], [3.00148215, -6.19303884])):
+                import pdb;
+                pdb.set_trace()
+
+            """
+            problem_env, openrave_env = create_environment(0)
+            init = [utils.decode_pose_with_sin_and_cos_angle(poses[0][-4:])]
+            utils.set_robot_config(init)
+            utils.visualize_path(key_configs[place_relevance, :])
+            """
+
             konf_relevance.append(place_relevance)
 
             pick_motion = a['pick_motion']
@@ -168,20 +180,33 @@ def train(config):
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+    """
+    problem_env, openrave_env = create_environment(0)
+    data_idx = 1
+    init = utils.decode_pose_with_sin_and_cos_angle(poses[data_idx][-4:])
+    utils.set_robot_config(init)
+    utils.visualize_path(key_configs[konf_relevance[data_idx], :])
+    goal = utils.decode_pose_with_sin_and_cos_angle(actions[data_idx])
+    utils.set_robot_config(init)
+    import pdb;pdb.set_trace()
+    """
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
 
     # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
-    xmin = -0.7; xmax = 4.3
-    ymin = -8.55; ymax = -4.85
+    xmin = -0.7;
+    xmax = 4.3
+    ymin = -8.55;
+    ymax = -4.85
     indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
                                    np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     states = np.delete(states, indices_to_delete, axis=1)
+    konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
+
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-
     reasonable_data_idxs = (sum_rewards > -30).squeeze()
     states = states[reasonable_data_idxs, :]
     konf_relevance = konf_relevance[reasonable_data_idxs, :]

@@ -86,7 +86,7 @@ class PlacePolicyMSESelfAttention(PlacePolicyMSE):
         evalnet = Subtract()([evalnet, col_free_flags])
 
         def compute_softmax(x):
-            return K.softmax(x * 100, axis=-1)
+            return K.softmax(x*100, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)

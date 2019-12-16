@@ -39,7 +39,7 @@ class PlacePolicy(Policy):
         raise NotImplementedError
 
     def construct_model(self, output, name):
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                       outputs=[output],
                       name=name)
         return model
