@@ -74,8 +74,8 @@ class Policy:
     def get_train_and_test_indices(self, n_data):
         test_idxs = np.random.randint(0, n_data, size=int(0.2 * n_data))
         train_idxs = list(set(range(n_data)).difference(set(test_idxs)))
-        pickle.dump({'train': train_idxs, 'test': test_idxs},
-                    open('data_idxs_seed_%s' % self.seed, 'wb'))
+        #pickle.dump({'train': train_idxs, 'test': test_idxs},
+        #            open('data_idxs_seed_%s' % self.seed, 'wb'))
         return train_idxs, test_idxs
 
     @staticmethod

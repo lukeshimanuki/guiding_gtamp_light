@@ -8,6 +8,7 @@ import socket
 import numpy as np
 import tensorflow as tf
 
+
 def noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
 
@@ -35,7 +36,7 @@ class PlacePolicyMSEBestqkTransformation(PlacePolicyMSE):
 
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
-        self.loss_model.fit(inp, [actions, actions],
+        self.loss_model.fit(inp, actions,
                             batch_size=32,
                             epochs=epochs,
                             verbose=2,
@@ -76,11 +77,13 @@ class PlacePolicyMSEBestqkTransformation(PlacePolicyMSE):
         diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
             [repeated_poloutput, konf_input, self.collision_input])
 
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
-                      outputs=[diff_output, self.policy_output],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
+                              self.noise_input],
+                      outputs=[self.policy_output],
                       name='loss_model')
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[1, 1])
+        #model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[0, 1])
+        model.compile(loss='mse', optimizer=self.opt_D)
         return model
 
     def construct_model(self, output, name):
@@ -90,11 +93,6 @@ class PlacePolicyMSEBestqkTransformation(PlacePolicyMSE):
         return model
 
     def construct_value_output(self, best_qk):
-        # Computes the candidate goal configurations
-        # q_g = phi_2(x_i), for some x_i
-        # todo: change the create_conv_layers activation to relu for generating value output.
-        # value = self.create_conv_layers(concat_input, n_filters=128,
-        #                                use_pooling=False, use_flatten=False)
         concat = Concatenate(axis=-1)([self.pose_input, best_qk, self.noise_input])
         dense_num = 32
         value = Dense(dense_num, activation='relu',
@@ -103,39 +101,6 @@ class PlacePolicyMSEBestqkTransformation(PlacePolicyMSE):
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer, name='policy_ouput')(value)
-        """
-        q_0 = self.pose_input
-        q_0 = RepeatVector(self.n_key_confs)(q_0)
-        q_0 = Reshape((self.n_key_confs, self.dim_poses, 1))(q_0)
-        key_config_input = self.key_config_input
-        concat_input = Concatenate(axis=2, name='q0_qk_ck')([q_0, key_config_input, self.collision_input])
-        n_dim = concat_input.shape[2]._value
-        n_filters = 32
-        H = Conv2D(filters=n_filters,
-                   kernel_size=(1, n_dim),
-                   strides=(1, 1),
-                   activation='relu',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(concat_input)
-        for _ in range(2):
-            H = Conv2D(filters=n_filters,
-                       kernel_size=(1, 1),
-                       strides=(1, 1),
-                       activation='relu',
-                       kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer)(H)
-        value = Conv2D(filters=4,
-                       kernel_size=(1, 1),
-                       strides=(1, 1),
-                       activation='linear',
-                       kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer)(H)
-        value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
-        self.value_model = Model(
-            inputs=[self.pose_input, self.key_config_input, self.collision_input, self.goal_flag_input],
-            outputs=value,
-            name='value_model')
-        """
         return value
 
     def construct_eval_net(self, candidate_qg):
@@ -157,36 +122,6 @@ class PlacePolicyMSEBestqkTransformation(PlacePolicyMSE):
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
-
-        """
-        q_0 = self.pose_input
-        q_0 = RepeatVector(self.n_key_confs)(q_0)
-        q_0 = Reshape((self.n_key_confs, self.dim_poses, 1))(q_0)
-        concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, self.key_config_input, self.collision_input])
-        #concat_input = Concatenate(axis=2, name='q0_qg_qk_ck')([q_0, candidate_qg])
-        n_dim = concat_input.shape[2]._value
-        n_filters = 32
-        H = Conv2D(filters=n_filters,
-                   kernel_size=(1, n_dim),
-                   strides=(1, 1),
-                   activation='relu',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(concat_input)
-        for _ in range(2):
-            H = Conv2D(filters=n_filters,
-                       kernel_size=(1, 1),
-                       strides=(1, 1),
-                       activation='relu',
-                       kernel_initializer=self.kernel_initializer,
-                       bias_initializer=self.bias_initializer)(H)
-        evalnet = Conv2D(filters=1,
-                         kernel_size=(1, 1),
-                         strides=(1, 1),
-                         activation='linear',
-                         kernel_initializer=self.kernel_initializer,
-                         bias_initializer=self.bias_initializer)(H)
-        evalnet = Reshape((self.n_key_confs,))(evalnet)
-        """
 
         def get_first_column(x):
             return x[:, :, 0] * 100

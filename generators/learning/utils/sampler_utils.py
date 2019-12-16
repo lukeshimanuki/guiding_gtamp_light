@@ -123,12 +123,11 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     pred_batch = policy.policy_model.predict([goal_flags, key_configs, collisions, poses, noise_batch])
 
     #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
-    eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    #eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     #value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
     #best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
-    key_configs = key_configs.squeeze()
-    konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
-    import pdb;pdb.set_trace()
+    #key_configs = key_configs.squeeze()
+    #konfs = [utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs]
     decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
     utils.visualize_placements(decoded, obj)
 

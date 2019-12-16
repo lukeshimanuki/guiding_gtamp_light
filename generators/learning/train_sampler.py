@@ -156,7 +156,6 @@ def get_data(datatype):
     is_goal_flags = is_goal_flag[:5000, :]
     konf_relelvance = konf_relelvance[:5000, :]
 
-    print "Number of data", len(states)
     return states, konf_relelvance, poses, rel_konfs, is_goal_flags, actions, sum_rewards
 
 
@@ -166,24 +165,6 @@ def train(config):
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
     actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
     poses = poses[:, :-4]
-
-    """
-    #policy.load_weights()
-    q0qg_vals_b4_sm = policy.q0_qg_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
-    q0qg_vals_after_sm = policy.q0_qg_after_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
-    concat = policy.concat.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
-    evalnet_b4 = policy.evalnet_b4_sm.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
-    evalnet = policy.evalnet.predict([goal_flags, rel_konfs, states, poses]).squeeze()[0]
-
-    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
-    key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
-    key_configs = key_configs.reshape((1, 615, 4, 1))
-    key_configs = key_configs.repeat(len(poses), axis=0)
-    """
-
-    def noise(z_size):
-        return np.random.normal(size=z_size).astype('float32')
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
@@ -199,29 +180,16 @@ def train(config):
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
-    goal_flags=np.delete(goal_flags, indices_to_delete, axis=1)
+    goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
 
-    """
-    noises = noise((len(goal_flags), 4))
-    inp = [goal_flags[0:2, :], key_configs[0:2, :], states[0:2, :], poses[0:2, :], noises[0:2, :]]
-    scores = policy.score_function.predict(inp)
-    relval = policy.relevance_net.predict(inp)
-    collision_diff = policy.collision_diff.predict(inp)
-    losses = policy.loss_model.predict(inp)
-    relevance = policy.relevance_loss_model.predict(inp).squeeze()
-    true_konf_rel = konf_relevance[0:2,:]
-
-    loss = []
-    for p, t in zip(relevance, true_konf_rel):
-        loss.append([trel * np.log(pred_rel) + (1-trel)*np.log(1-pred_rel) for trel, pred_rel in zip(p, t)])
-    import pdb;pdb.set_trace()
-    rel_loss_eval = policy.relevance_loss_model.evaluate(inp, konf_relevance[0:2, :])
-    """
-
-
-    # actions = policy.policy_model.predict(inp)
-    # evaluated_loss = policy.loss_model.evaluate(inp, [actions[0:10]])
-    # collision_loss = policy.collision_loss_model.predict(inp)
+    reasonable_data_idxs = (sum_rewards > -30).squeeze()
+    states = states[reasonable_data_idxs, :]
+    konf_relevance = konf_relevance[reasonable_data_idxs, :]
+    poses = poses[reasonable_data_idxs, :]
+    key_configs = key_configs[reasonable_data_idxs, :]
+    actions = actions[reasonable_data_idxs, :]
+    sum_rewards = sum_rewards[reasonable_data_idxs, :]
+    print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 
 

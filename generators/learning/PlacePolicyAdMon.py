@@ -47,7 +47,7 @@ class PlacePolicyAdMon(PlacePolicy):
         disc = Model(inputs=[self.action_input, self.goal_flag_input, self.key_config_input, self.collision_input,
                              self.pose_input],
                      outputs=self.critic_output,
-                     name='disc_output')
+                     name='critic_output')
         disc.compile(loss=admon_critic_loss, optimizer=self.opt_D)
         return disc
 
@@ -58,10 +58,10 @@ class PlacePolicyAdMon(PlacePolicy):
         raise NotImplementedError
 
     def construct_policy_loss_model(self):
-        for layer in self.critic_model.layers:
+        #for layer in self.critic_model.layers:
             # for some obscure reason, disc weights still get updated when self.disc.fit is called
             # I speculate that this has to do with the status of the layers at the time it was compiled
-            layer.trainable = False
+            #layer.trainable = False
 
         DG_output = self.critic_model([self.policy_output, self.goal_flag_input, self.key_config_input,
                                        self.collision_input, self.pose_input])
@@ -136,13 +136,17 @@ class PlacePolicyAdMon(PlacePolicy):
                 batch_scores = np.vstack([fake_action_q, real_action_q])
 
                 # train the critic
-                self.critic_model.fit([batch_a,
+                #inp = [actions, goal_flags, rel_konfs, collisions, poses]
+                #self.critic_model.fit(inp, sum_rewards, epochs=1000, verbose=True)
+                import pdb;pdb.set_trace()
+
+                self.critic_model.fit([batch_a, # this results in nan because I have INFEASIBLE SCORE
                                        make_repeated_data_for_fake_and_real_samples(goal_flag_batch),
                                        make_repeated_data_for_fake_and_real_samples(rel_konf_batch),
                                        make_repeated_data_for_fake_and_real_samples(col_batch),
                                        make_repeated_data_for_fake_and_real_samples(pose_batch)],
                                       batch_scores,
-                                      epochs=1000, verbose=True)
+                                      epochs=10000, verbose=True)
                 import pdb;
                 pdb.set_trace()
 
