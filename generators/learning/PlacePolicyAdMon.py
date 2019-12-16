@@ -152,6 +152,7 @@ class PlacePolicyAdMon(PlacePolicy):
                                        make_repeated_data_for_fake_and_real_samples(col_batch),
                                        make_repeated_data_for_fake_and_real_samples(pose_batch)],
                                       batch_scores,
+                                      batch_size=64,
                                       epochs=1, verbose=False)
 
                 # train the policy
