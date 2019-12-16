@@ -7,6 +7,7 @@ from keras import backend as K
 class PlacePolicyAdMonSelfAttention(PlacePolicyAdMon):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyAdMon.__init__(self, dim_action, dim_collision, save_folder, tau, config)
+        self.weight_file_name = 'place_sa_admon_seed_%d' % config.seed
 
     def construct_critic(self):
         collision_input = Flatten()(self.collision_input)
@@ -28,10 +29,10 @@ class PlacePolicyAdMonSelfAttention(PlacePolicyAdMon):
         return output
 
     def construct_eval_net(self, concat_input):
-        evalnet = Dense(64, activation='relu',
+        evalnet = Dense(8, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(32, activation='relu',
+        evalnet = Dense(8, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',

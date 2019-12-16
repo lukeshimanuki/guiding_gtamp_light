@@ -66,30 +66,6 @@ class PlacePolicyIMLE(PlacePolicy):
         model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[0, 1])
         return model
 
-    def generate_k_smples_for_multiple_states(self, states, noise_smpls):
-        goal_flags, rel_konfs, collisions, poses = states
-        k_smpls = []
-        k = noise_smpls.shape[1]
-
-        for j in range(k):
-            actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
-            k_smpls.append(actions)
-        new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
-        return new_k_smpls
-
-    @staticmethod
-    def find_the_idx_of_closest_point_to_x1(x1, database):
-        l2_distances = np.linalg.norm(x1 - database, axis=-1)
-        return database[np.argmin(l2_distances)], np.argmin(l2_distances)
-
-    def get_closest_noise_smpls_for_each_action(self, actions, generated_actions, noise_smpls):
-        chosen_noise_smpls = []
-        for true_action, generated, noise_smpls_for_action in zip(actions, generated_actions, noise_smpls):
-            closest_point, closest_point_idx = self.find_the_idx_of_closest_point_to_x1(true_action, generated)
-            noise_that_generates_closest_point_to_true_action = noise_smpls_for_action[closest_point_idx]
-            chosen_noise_smpls.append(noise_that_generates_closest_point_to_true_action)
-        return np.array(chosen_noise_smpls)
-
     @staticmethod
     def get_batch_based_on_rewards(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
         indices = np.random.randint(0, actions.shape[0], size=batch_size)

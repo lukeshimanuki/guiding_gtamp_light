@@ -23,7 +23,7 @@ def admon_critic_loss(score_data, D_pred):
 
     # compute mse w.r.t true function values
     mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
-    return mse_on_true_data #+ K.mean(y_neg)  # try to minimize the value of y_neg
+    return mse_on_true_data + K.mean(y_neg)  # try to minimize the value of y_neg
 
 
 def uniform_noise(z_size):
@@ -58,10 +58,10 @@ class PlacePolicyAdMon(PlacePolicy):
         raise NotImplementedError
 
     def construct_policy_loss_model(self):
-        #for layer in self.critic_model.layers:
+        for layer in self.critic_model.layers:
             # for some obscure reason, disc weights still get updated when self.disc.fit is called
             # I speculate that this has to do with the status of the layers at the time it was compiled
-            #layer.trainable = False
+            layer.trainable = False
 
         DG_output = self.critic_model([self.policy_output, self.goal_flag_input, self.key_config_input,
                                        self.collision_input, self.pose_input])
@@ -91,6 +91,10 @@ class PlacePolicyAdMon(PlacePolicy):
         ]
         return callbacks
 
+    def set_learning_rates(self, d_lr, g_lr):
+        K.set_value(self.opt_G.lr, g_lr)
+        K.set_value(self.opt_D.lr, d_lr)
+
     def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
@@ -105,6 +109,8 @@ class PlacePolicyAdMon(PlacePolicy):
         t_rel_konfs = test_data['rel_konfs']
         t_collisions = test_data['states']
         t_sum_rewards = test_data['sum_rewards']
+        n_test_data = len(t_actions)
+        num_smpl_per_state = 10
 
         # training data
         actions = train_data['actions']
@@ -113,8 +119,13 @@ class PlacePolicyAdMon(PlacePolicy):
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
         sum_rewards = train_data['sum_rewards']
+        n_train = len(actions)
 
         batch_size = 32
+        dummy = np.zeros((batch_size, 1))
+
+        valid_errs = []
+        patience = 0
         print "Training..."
         for i in range(epochs):
             batch_idxs = range(0, actions.shape[0], batch_size)
@@ -123,7 +134,6 @@ class PlacePolicyAdMon(PlacePolicy):
                     self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards,
                                    batch_size=batch_size)
 
-                states_batch = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
                 noise_smpls = uniform_noise(z_size=(batch_size, self.dim_noise))
                 fake = self.policy_model.predict([goal_flag_batch, rel_konf_batch, col_batch, pose_batch,
                                                   noise_smpls])
@@ -136,20 +146,50 @@ class PlacePolicyAdMon(PlacePolicy):
                 batch_scores = np.vstack([fake_action_q, real_action_q])
 
                 # train the critic
-                #inp = [actions, goal_flags, rel_konfs, collisions, poses]
-                #self.critic_model.fit(inp, sum_rewards, epochs=1000, verbose=True)
-                import pdb;pdb.set_trace()
-
-                self.critic_model.fit([batch_a, # this results in nan because I have INFEASIBLE SCORE
+                self.critic_model.fit([batch_a,
                                        make_repeated_data_for_fake_and_real_samples(goal_flag_batch),
                                        make_repeated_data_for_fake_and_real_samples(rel_konf_batch),
                                        make_repeated_data_for_fake_and_real_samples(col_batch),
                                        make_repeated_data_for_fake_and_real_samples(pose_batch)],
                                       batch_scores,
-                                      epochs=10000, verbose=True)
-                import pdb;
-                pdb.set_trace()
+                                      epochs=1, verbose=False)
 
                 # train the policy
                 self.policy_loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, noise_smpls],
-                                           batch_scores, epochs=1, verbose=False)
+                                           dummy, epochs=1, verbose=False)
+
+            t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
+            t_noise_smpls = uniform_noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
+            t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
+            t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
+                                                                                t_noise_smpls)
+            pred = self.policy_model.predict([t_goal_flags, t_rel_konfs, t_collisions, t_poses,
+                                              t_chosen_noise_smpls])
+            valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
+            valid_errs.append(valid_err)
+
+            self.save_weights()
+
+            if valid_err <= np.min(valid_errs):
+                self.save_weights(additional_name='best_val_err')
+                patience = 0
+            else:
+                patience += 1
+
+            print "Best Val error", np.min(valid_errs)
+            print "Val error %.2f patience %d" % (valid_err, patience)
+            real_score_values = np.mean(
+                (self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
+            noise_smpls = uniform_noise(z_size=(n_train, self.dim_noise))
+            fake_score_values = np.mean(
+                (self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
+            print "Real and fake scores %.2f, %.2f" % (real_score_values, fake_score_values)
+
+            if real_score_values <= fake_score_values:
+                g_lr = 1e-4  # / (1 + 1e-1 * i)
+                d_lr = 1e-3  # / (1 + 1e-1 * i)
+            else:
+                g_lr = 1e-3  # / (1 + 1e-1 * i)
+                d_lr = 1e-4  # / (1 + 1e-1 * i)
+
+            self.set_learning_rates(d_lr, g_lr)

@@ -10,6 +10,7 @@ from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECo
 from generators.learning.PlacePolicyAdMonSelfAttention import PlacePolicyAdMonSelfAttention
 from generators.learning.PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
 from generators.learning.PlacePolicyMSETau import PlacePolicyMSETau
+from generators.learning.PlacePolicyAdMonCombinationOfQg import PlacePolicyAdMonCombinationOfQg
 
 from data_processing_utils import state_data_mode, action_data_mode
 
@@ -65,6 +66,9 @@ def create_policy(config):
     elif config.algo == 'sa_admon':
         policy = PlacePolicyAdMonSelfAttention(dim_action=dim_action, dim_collision=dim_state,
                                                save_folder=savedir, tau=config.tau, config=config)
+    elif config.algo == 'admon_qg_combination':
+        policy = PlacePolicyAdMonCombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
+                                                 save_folder=savedir, tau=config.tau, config=config)
     else:
         raise NotImplementedError
     return policy
