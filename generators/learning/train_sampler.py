@@ -53,6 +53,7 @@ def load_data(traj_dir):
     all_poses = []
     all_rel_konfs = []
     all_konf_relevance = []
+    all_paths = []
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
@@ -71,6 +72,7 @@ def load_data(traj_dir):
         actions = []
         traj_rel_konfs = []
         konf_relevance = []
+        place_paths = []
         for s, a in zip(traj.states, traj.actions):
             state_vec = s.collision_vector
             n_key_configs = state_vec.shape[1]
@@ -92,13 +94,10 @@ def load_data(traj_dir):
             traj_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
 
             place_motion = a['place_motion']
-
+            place_paths.append(place_motion)
             binary_collision_vector = s.collision_vector.squeeze()[:, 0]
             place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector,
                                                                        place_motion)
-            if np.all(np.isclose(a['place_obj_abs_pose'][0, 0:2], [3.00148215, -6.19303884])):
-                import pdb;
-                pdb.set_trace()
 
             """
             problem_env, openrave_env = create_environment(0)
@@ -128,6 +127,7 @@ def load_data(traj_dir):
         all_sum_rewards.append(sum_rewards)
         all_rel_konfs.append(traj_rel_konfs)
         all_konf_relevance.append(konf_relevance)
+        all_paths.append(place_paths)
 
         n_data = len(np.vstack(all_rel_konfs))
         assert len(np.vstack(all_states)) == n_data
@@ -139,7 +139,7 @@ def load_data(traj_dir):
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
     all_poses = np.vstack(all_poses).squeeze()
     all_konf_relevance = np.vstack(all_konf_relevance).squeeze()
-    pickle.dump((all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards),
+    pickle.dump((all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards, all_paths),
                 open(traj_dir + cache_file_name, 'wb'))
     return all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
 

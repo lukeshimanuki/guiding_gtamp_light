@@ -58,11 +58,23 @@ class PlacePolicyMSETau(PlacePolicyMSE):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
         def cross_entropy_on_tau(y_true, y_pred):
-            # cross entropy at the last axis
-            pass
+            """
+            neg_mask = tf.equal(y_true, 0)
+            y_neg = tf.boolean_mask(y_true, neg_mask)
+            y_pred_neg = tf.boolean_mask(y_pred, neg_mask)
+
+            pos_mask = tf.equal(y_true, 1)
+            y_pos = tf.boolean_mask(y_true, pos_mask)
+            y_pred_pos = tf.boolean_mask(y_pred, pos_mask)
+
+            neg_loss = -tf.log(1-y_pred_neg)
+            pos_loss = -tf.log(y_pred_pos)
+            return tf.reduce_mean((neg_loss+pos_loss))
+            """
+            return -tf.reduce_sum(y_true * tf.log(y_pred), -1)
 
         # model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[0, 1])
-        model.compile(loss=['mse', 'mse'], optimizer=self.opt_D, loss_weights=[1, 10])
+        model.compile(loss=['mse', 'categorical_crossentropy'], optimizer=self.opt_D, loss_weights=[1, 0.01])
         return model
 
     def construct_policy_output(self):
@@ -109,7 +121,7 @@ class PlacePolicyMSETau(PlacePolicyMSE):
     def construct_eval_net(self):
         collision_input = Flatten()(self.collision_input)
         concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
-        dense_num = 8
+        dense_num = 32
         evalnet = Dense(dense_num, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(concat_input)
@@ -123,8 +135,6 @@ class PlacePolicyMSETau(PlacePolicyMSE):
         self.evalnet_presum = evalnet
         self.evalnet_presum_model = self.construct_model(evalnet, 'enetmodel')
 
-        self.evalnet_presum_model.compile(loss='mse', optimizer='sgd', metrics=['accuracy'])
-
         def compute_sum(x):
             return K.sum(x, axis=-1)
 
@@ -133,6 +143,12 @@ class PlacePolicyMSETau(PlacePolicyMSE):
         summation = RepeatVector(self.n_key_confs)(summation)
         summation = Reshape((self.n_key_confs,))(summation)
         evalnet = Lambda(lambda x: x[0] / x[1])([evalnet, summation])
+
+        """
+        def compute_softmax(x):
+            return K.softmax(x*100, axis=-1)
+        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
+        """
 
         return evalnet
 
