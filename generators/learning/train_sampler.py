@@ -107,6 +107,7 @@ def load_data(traj_dir):
 
         rewards = traj.rewards
         sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
+        print sum_rewards, traj_file
         if len(states) == 0:
             continue
         all_poses.append(poses)
@@ -118,8 +119,7 @@ def load_data(traj_dir):
 
         n_data = len(np.vstack(all_rel_konfs))
         assert len(np.vstack(all_states)) == n_data
-        print n_data
-        if n_data > 10:
+        if n_data > 5000:
             break
     all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
