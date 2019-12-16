@@ -13,6 +13,7 @@ def noise(z_size):
     return np.random.uniform([0] * noise_dim, [1] * noise_dim, size=z_size).astype('float32')
     # return np.random.normal(size=z_size).astype('float32')
 
+
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
     ROOTDIR = './'
 else:
@@ -23,7 +24,7 @@ import tensorflow as tf
 class PlacePolicyMSETau(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_mse_qg_combination_seed_%d' % config.seed
+        self.weight_file_name = 'place_mse_tau_seed_%d' % config.seed
         self.loss_model = self.construct_loss_model()
 
         print "Created Self-attention Dense Gen Net Dense Eval Net"
@@ -58,19 +59,6 @@ class PlacePolicyMSETau(PlacePolicyMSE):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
         def cross_entropy_on_tau(y_true, y_pred):
-            """
-            neg_mask = tf.equal(y_true, 0)
-            y_neg = tf.boolean_mask(y_true, neg_mask)
-            y_pred_neg = tf.boolean_mask(y_pred, neg_mask)
-
-            pos_mask = tf.equal(y_true, 1)
-            y_pos = tf.boolean_mask(y_true, pos_mask)
-            y_pred_pos = tf.boolean_mask(y_pred, pos_mask)
-
-            neg_loss = -tf.log(1-y_pred_neg)
-            pos_loss = -tf.log(y_pred_pos)
-            return tf.reduce_mean((neg_loss+pos_loss))
-            """
             return -tf.reduce_sum(y_true * tf.log(y_pred), -1)
 
         # model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[0, 1])
@@ -193,3 +181,10 @@ class PlacePolicyMSETau(PlacePolicyMSE):
         self.load_weights()
         post_mse = self.compute_policy_mse(test_data)
         print "Pre-and-post test errors", pre_mse, post_mse
+        """
+        evalnet_presum = self.evalnet_presum_model.predict(inp)[0]
+        true = konf_relevance[0]
+        import pdb;
+        pdb.set_trace()
+        import pdb;pdb.set_trace()
+        """
