@@ -50,9 +50,10 @@ class PlacePolicyMSETransformer(PlacePolicyMSE):
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
         H = Flatten()(H)
-        H = Dense((self.n_key_confs*output_dim))(H)
-        H = Reshape((self.n_key_confs, output_dim, ))(H)
-        value = H
+        value = Dense(self.n_key_confs, activation='linear',
+                      kernel_initializer=self.kernel_initializer,
+                      bias_initializer=self.bias_initializer)(H)
+        value = Reshape((self.n_key_confs, output_dim, ))(value)
         return value
 
     def construct_policy_output(self):
