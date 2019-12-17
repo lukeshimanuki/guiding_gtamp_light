@@ -21,11 +21,10 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
     def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
         concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
-        dense_num = 8
-        evalnet = Dense(dense_num, activation='relu',
+        evalnet = Dense(64, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(dense_num, activation='relu',
+        evalnet = Dense(32, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
@@ -57,9 +56,6 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         value = Dense(32, activation='relu',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer)(concat)
-        value = Dense(32, activation='relu',
-                      kernel_initializer=self.kernel_initializer,
-                      bias_initializer=self.bias_initializer)(value)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer, name='policy_output')(value)
