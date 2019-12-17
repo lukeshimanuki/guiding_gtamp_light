@@ -56,6 +56,9 @@ class PlacePolicyIMLESelfAttention(PlacePolicyIMLE):
         value = Dense(32, activation='relu',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer)(concat)
+        value = Dense(32, activation='relu',
+                      kernel_initializer=self.kernel_initializer,
+                      bias_initializer=self.bias_initializer)(value)
         value = Dense(4, activation='linear',
                       kernel_initializer=self.kernel_initializer,
                       bias_initializer=self.bias_initializer, name='policy_output')(value)
