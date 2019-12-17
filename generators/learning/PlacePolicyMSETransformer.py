@@ -35,17 +35,17 @@ class PlacePolicyMSETransformer(PlacePolicyMSE):
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(input)
-        H = MaxPooling2D(pool_size=(2, 1))(H)
+        H = MaxPooling2D(pool_size=(3, 1))(H)
         H = Conv2D(filters=n_filters,
-                   kernel_size=(2, 1),
-                   strides=(2, 1),
+                   kernel_size=(3, 1),
+                   strides=(3, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
-        H = MaxPooling2D(pool_size=(2, 1))(H)
+        H = MaxPooling2D(pool_size=(3, 1))(H)
         H = Conv2D(filters=output_dim,
-                   kernel_size=(2, 1),
-                   strides=(2, 1),
+                   kernel_size=(3, 1),
+                   strides=(3, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
