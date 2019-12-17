@@ -207,6 +207,8 @@ def train(config):
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+
+    """
     reasonable_data_idxs = (sum_rewards > -30).squeeze()
     states = states[reasonable_data_idxs, :]
     konf_relevance = konf_relevance[reasonable_data_idxs, :]
@@ -214,6 +216,7 @@ def train(config):
     key_configs = key_configs[reasonable_data_idxs, :]
     actions = actions[reasonable_data_idxs, :]
     sum_rewards = sum_rewards[reasonable_data_idxs, :]
+    """
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 
