@@ -78,5 +78,7 @@ class PlacePolicyMSETransformer(PlacePolicyMSE):
             return K.softmax(x, axis=-1)
 
         weights = Lambda(compute_softmax, name='softmax')(value_weights)  # n by d, with softmax
+
+        # weights = \sum_{i} \sum_{j}q_i k_j
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='output')([weights, value_matrix])
         return output
