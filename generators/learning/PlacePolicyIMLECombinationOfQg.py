@@ -31,10 +31,10 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
         collision_input = Flatten()(self.collision_input)
         concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
 
-        evalnet = Dense(64, activation='relu',
+        evalnet = Dense(8, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(32, activation='relu',
+        evalnet = Dense(8, activation='relu',
                         kernel_initializer=self.kernel_initializer,
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
