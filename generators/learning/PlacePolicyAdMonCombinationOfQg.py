@@ -16,9 +16,13 @@ class PlacePolicyAdMonCombinationOfQg(PlacePolicyAdMon):
         print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
         self.policy_model.load_weights(self.save_folder + self.weight_file_name + '.h5')
 
+    def construct_critic(self):
+        evalnet = self.construct_eval_net()
+        candidate_qg = self.construct_critic_output()
+        output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([evalnet, candidate_qg])
+
     def construct_policy_output(self):
         candidate_qg = self.construct_value_output()
-        evalnet_input = Reshape((self.n_key_confs, 4, 1))(candidate_qg)
         eval_net = self.construct_eval_net()
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
@@ -41,7 +45,7 @@ class PlacePolicyAdMonCombinationOfQg(PlacePolicyAdMon):
                         bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Dense(self.n_key_confs, activation='linear',
                         kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
+                        bias_initializer=self.bias_initializer)(evalnet)
         evalnet = Reshape((self.n_key_confs,))(evalnet)
 
         def compute_softmax(x):
@@ -58,6 +62,41 @@ class PlacePolicyAdMonCombinationOfQg(PlacePolicyAdMon):
         noise_input = RepeatVector(self.n_key_confs)(self.noise_input)
         noise_input = Reshape((self.n_key_confs, self.dim_noise, 1))(noise_input)
         concat_input = Concatenate(axis=2)([pose_input, noise_input, self.key_config_input])
+
+        n_dim = concat_input.shape[2]._value
+        n_filters = 32
+        H = Conv2D(filters=n_filters,
+                   kernel_size=(1, n_dim),
+                   strides=(1, 1),
+                   activation='relu',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(concat_input)
+        for _ in range(2):
+            H = Conv2D(filters=n_filters,
+                       kernel_size=(1, 1),
+                       strides=(1, 1),
+                       activation='relu',
+                       kernel_initializer=self.kernel_initializer,
+                       bias_initializer=self.bias_initializer)(H)
+        value = Conv2D(filters=4,
+                       kernel_size=(1, 1),
+                       strides=(1, 1),
+                       activation='linear',
+                       kernel_initializer=self.kernel_initializer,
+                       bias_initializer=self.bias_initializer)(H)
+
+        value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
+        self.value_model = Model(
+            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.noise_input],
+            outputs=value,
+            name='value_model')
+        return value
+
+    def construct_critic_output(self):
+        pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
+        pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
+
+        concat_input = Concatenate(axis=2)([pose_input, self.action_input, self.key_config_input])
 
         n_dim = concat_input.shape[2]._value
         n_filters = 32

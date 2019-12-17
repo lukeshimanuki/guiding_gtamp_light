@@ -11,6 +11,7 @@ from generators.learning.PlacePolicyAdMonSelfAttention import PlacePolicyAdMonSe
 from generators.learning.PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
 from generators.learning.PlacePolicyMSETau import PlacePolicyMSETau
 from generators.learning.PlacePolicyAdMonCombinationOfQg import PlacePolicyAdMonCombinationOfQg
+from generators.learning.PlacePolicyMSETransformer import PlacePolicyMSETransformer
 
 from data_processing_utils import state_data_mode, action_data_mode
 
@@ -44,6 +45,12 @@ def create_policy(config):
                                    save_folder=savedir,
                                    tau=config.tau,
                                    config=config)
+    elif config.algo == 'mse_transformer':
+        policy = PlacePolicyMSETransformer(dim_action=dim_action,
+                                           dim_collision=dim_state,
+                                           save_folder=savedir,
+                                           tau=config.tau,
+                                           config=config)
     elif config.algo == 'sa_imle':
         policy = PlacePolicyIMLESelfAttention(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
                                               tau=config.tau, config=config)

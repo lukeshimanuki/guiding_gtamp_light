@@ -46,6 +46,7 @@ class PlacePolicyMSE(PlacePolicy):
         noise_smpls = np.zeros((len(collisions), 4))
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
+
         self.policy_model.fit(inp, actions,
                               batch_size=32,
                               epochs=epochs,

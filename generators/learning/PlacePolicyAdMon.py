@@ -23,7 +23,8 @@ def admon_critic_loss(score_data, D_pred):
 
     # compute mse w.r.t true function values
     mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
-    return mse_on_true_data + K.mean(y_neg)  # try to minimize the value of y_neg
+    #return mse_on_true_data + K.mean(y_neg)  # try to minimize the value of y_neg
+    return -K.mean(y_pos) + K.mean(y_neg)
 
 
 def uniform_noise(z_size):
@@ -121,12 +122,27 @@ class PlacePolicyAdMon(PlacePolicy):
         sum_rewards = train_data['sum_rewards']
         n_train = len(actions)
 
+        """
+        self.critic_model.fit([actions,
+                               goal_flags,
+                               rel_konfs,
+                               collisions,
+                               poses],
+                              sum_rewards,
+                              batch_size=32,
+                              epochs=1000, verbose=True)
+        """
+
         batch_size = 32
         dummy = np.zeros((batch_size, 1))
 
         valid_errs = []
         patience = 0
         print "Training..."
+        g_lr = 1e-1
+        d_lr = 1e-2
+        self.set_learning_rates(d_lr, g_lr)
+
         for i in range(epochs):
             batch_idxs = range(0, actions.shape[0], batch_size)
             for _ in batch_idxs:
@@ -179,18 +195,23 @@ class PlacePolicyAdMon(PlacePolicy):
 
             print "Best Val error", np.min(valid_errs)
             print "Val error %.2f patience %d" % (valid_err, patience)
-            real_score_values = np.mean(
-                (self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
+            real_score_values = np.mean((self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
             noise_smpls = uniform_noise(z_size=(n_train, self.dim_noise))
-            fake_score_values = np.mean(
-                (self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
+            inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
+            pred = self.policy_model.predict(inp)
+            #self.critic_best_qk_model.predict([actions, goal_flags, rel_konfs, collisions, poses])
+            #best_qk = self.best_qk_model.predict(inp)
+            #evalnet = self.evalnet_model.predict(inp)
+            self.critic_eval_net.predict([actions, goal_flags, rel_konfs, collisions, poses])
+            fake_score_values = np.mean((self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
             print "Real and fake scores %.2f, %.2f" % (real_score_values, fake_score_values)
+            import pdb;pdb.set_trace()
 
             if real_score_values <= fake_score_values:
-                g_lr = 1e-4  # / (1 + 1e-1 * i)
-                d_lr = 1e-3  # / (1 + 1e-1 * i)
+                g_lr = 1e-2
+                d_lr = 1e-1
             else:
-                g_lr = 1e-3  # / (1 + 1e-1 * i)
-                d_lr = 1e-4  # / (1 + 1e-1 * i)
+                g_lr = 1e-1
+                d_lr = 1e-2
 
             self.set_learning_rates(d_lr, g_lr)
