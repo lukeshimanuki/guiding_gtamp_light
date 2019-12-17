@@ -35,18 +35,22 @@ class PlacePolicyMSETransformer(PlacePolicyMSE):
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(input)
+        H = MaxPooling2D(pool_size=(2, 1))(H)
         H = Conv2D(filters=n_filters,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
+                   kernel_size=(2, 1),
+                   strides=(2, 1),
                    activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
+        H = MaxPooling2D(pool_size=(2, 1))(H)
         H = Conv2D(filters=output_dim,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   activation='linear',
+                   kernel_size=(2, 1),
+                   strides=(2, 1),
+                   activation='relu',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
+        H = Flatten()(H)
+        H = Dense((self.n_key_confs*output_dim))(H)
         H = Reshape((self.n_key_confs, output_dim, ))(H)
         value = H
         return value
@@ -56,8 +60,8 @@ class PlacePolicyMSETransformer(PlacePolicyMSE):
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
         input = Concatenate(axis=2)([pose_input, self.key_config_input, self.collision_input])
 
-        query_matrix = self.construct_transformer_block(input, output_dim=64)  # n by d
-        key_matrix = self.construct_transformer_block(input, output_dim=64)  # n by d
+        query_matrix = self.construct_transformer_block(input, output_dim=16)  # n by d
+        key_matrix = self.construct_transformer_block(input, output_dim=16)  # n by d
         value_matrix = self.construct_transformer_block(input, output_dim=4)  # n by d
         weights = Dot(axes=-1)([query_matrix, key_matrix])
         self.key_model = self.construct_model(key_matrix, 'key')
