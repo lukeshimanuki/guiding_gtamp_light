@@ -89,7 +89,6 @@ def draw_obj_at_conf(conf, transparency, name, obj, env, color=None):
     if color is not None:
         set_color(newobj, color)
     set_body_transparency(newobj, transparency)
-    print get_body_xytheta(newobj)
 
 
 def draw_robot_at_conf(conf, transparency, name, robot, env, color=None):
@@ -103,7 +102,6 @@ def draw_robot_at_conf(conf, transparency, name, robot, env, color=None):
     newrobot.Enable(False)
     if color is not None:
         set_color(newrobot, color)
-    print get_body_xytheta(robot)
 
     if len(held_obj) > 0:
         print get_body_xytheta(held_obj[0])
@@ -119,7 +117,6 @@ def draw_robot_at_conf(conf, transparency, name, robot, env, color=None):
         for link in new_obj.GetLinks():
             for geom in link.GetGeometries():
                 geom.SetTransparency(transparency)
-        print get_body_xytheta(robot)
         grab_obj(held_obj)
         set_robot_config(before)
 
