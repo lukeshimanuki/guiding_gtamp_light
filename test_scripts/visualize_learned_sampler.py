@@ -117,8 +117,8 @@ def main():
         seed=seed
     )
     sampler = create_policy(placeholder_config)
-    #sampler.load_weights()
-    sampler.load_best_weights()
+    sampler.load_weights()
+    #sampler.load_best_weights()
 
     problem_seed = 0
     np.random.seed(problem_seed)
