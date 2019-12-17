@@ -8,11 +8,11 @@ from PlacePolicyIMLE import PlacePolicyIMLE
 class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_imle_qg_combination_seed_%d' % config.seed
+        self.weight_file_name = 'place_imle_qg_combination_with_qg_evalnet_seed_%d' % config.seed
 
     def load_weights(self):
         print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
-        self.policy_model.load_weights(self.save_folder + self.weight_file_name +'.h5')
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name + '.h5')
 
     def construct_policy_output(self):
         candidate_qg = self.construct_value_output()
@@ -27,6 +27,7 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
                       name=name)
         return model
 
+    """
     def construct_eval_net(self, candidate_qg_input):
         collision_input = Flatten()(self.collision_input)
         concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
@@ -47,6 +48,43 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
+        return evalnet
+    """
+
+    def construct_eval_net(self, qg_candidates):
+        pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
+        pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
+
+        collision_inp = Flatten()(self.collision_input)
+        collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
+        collision_inp = Reshape((self.n_key_confs, self.n_key_confs * 2, 1))(collision_inp)
+        concat_input = Concatenate(axis=2)([pose_input, qg_candidates, collision_inp])
+        n_dim = concat_input.shape[2]._value
+        dense_num = 32
+        H = Conv2D(filters=dense_num,
+                   kernel_size=(1, n_dim),
+                   strides=(1, 1),
+                   activation='relu',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(concat_input)
+        H = Conv2D(filters=dense_num,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   activation='relu',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(H)
+        H = Conv2D(filters=1,
+                   kernel_size=(1, 1),
+                   strides=(1, 1),
+                   activation='linear',
+                   kernel_initializer=self.kernel_initializer,
+                   bias_initializer=self.bias_initializer)(H)
+        H = Reshape((self.n_key_confs,))(H)
+
+        def compute_softmax(x):
+            return K.softmax(x, axis=-1)
+
+        evalnet = Lambda(compute_softmax, name='softmax')(H)
         return evalnet
 
     def construct_value_output(self):
@@ -85,5 +123,3 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
             outputs=value,
             name='value_model')
         return value
-
-
