@@ -37,7 +37,7 @@ def get_solution_file_name(config):
     if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
         root_dir = './'
     else:
-        root_dir = '/data/public/rw/pass.port/guiding_gtamp/'
+        root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
 
     if config.gather_planning_exp:
         root_dir = root_dir + '/planning_experience/raw/'
