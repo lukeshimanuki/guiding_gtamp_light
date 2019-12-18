@@ -90,16 +90,16 @@ def visualize(problem_env, learned_sampler):
 
     target_obj.Enable(False)
     #[obj.Enable(False) for obj in problem_env.objects]
+    import pdb;pdb.set_trace()
+    learned_sampler.load_weights('epoch_'+str(700))
     state = compute_state(target_obj_name, 'loading_region', problem_env)
-
     z_smpls = uniform_noise(z_size=(80, 4))
-    #z_smpls = np.vstack([z_smpls, np.zeros((1, 4))])
     place_smpl = sampler_utils.generate_policy_smpl_batch(state, learned_sampler, z_smpls)
+    import pdb;pdb.set_trace()
     #obj_pose = utils.clean_pose_data(state.abs_obj_pose).squeeze()
     #place_smpl = [data_processing_utils.get_absolute_placement_from_relative_placement(p, obj_pose) for p in place_smpl]
     print place_smpl
 
-    import pdb;pdb.set_trace()
     utils.visualize_path(place_smpl[0:80])
     print place_smpl
     pass
