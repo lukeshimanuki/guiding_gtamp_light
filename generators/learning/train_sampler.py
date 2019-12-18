@@ -155,8 +155,8 @@ def get_data(datatype):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    #states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir)
-    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
+    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir)
+    #states, konf_relelvance, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 

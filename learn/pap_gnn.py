@@ -1,11 +1,8 @@
-import tensorflow as tf
-import openravepy
-from manipulation.regions import AARegion
-import pickle
-import numpy as np
-from data_traj import make_one_hot_encoded_edge, make_one_hot_encoded_node, extract_example
 from data_traj import extract_individual_example as make_predictable_form
 from gnn import GNN
+
+import tensorflow as tf
+import numpy as np
 
 
 class PaPGNN(GNN):
