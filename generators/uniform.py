@@ -14,7 +14,7 @@ import numpy as np
 import time
 
 
-class UniformGenerator:
+class UniformGenerator:  # Only used in RSC
     def __init__(self, operator_skeleton, problem_env, max_n_iter, swept_volume_constraint=None):
         self.problem_env = problem_env
         self.env = problem_env.env
@@ -32,8 +32,10 @@ class UniformGenerator:
             target_region = operator_skeleton.discrete_parameters['region']
             if type(target_region) == str:
                 target_region = self.problem_env.regions[target_region]
-        if 'two_arm_place_region' in operator_skeleton.discrete_parameters:
-            target_region = operator_skeleton.discrete_parameters['two_arm_place_region']
+
+        is_two_arm_place = 'two_arm_place' in operator_skeleton.type
+        if is_two_arm_place:
+            target_region = operator_skeleton.discrete_parameters['place_region']
             if type(target_region) == str:
                 target_region = self.problem_env.regions[target_region]
 
@@ -53,6 +55,7 @@ class UniformGenerator:
             # used by MCTS
             pick_min = get_pick_domain()[0]
             pick_max = get_pick_domain()[1]
+            import pdb;pdb.set_trace()
             place_min = get_place_domain(target_region)[0]
             place_max = get_place_domain(target_region)[1]
             mins = np.hstack([pick_min, place_min])
@@ -164,30 +167,14 @@ class PaPUniformGenerator(UniformGenerator):
             self.op_feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         status = "NoSolution"
-
-        stime = time.time()
+        utils.set_color(operator_skeleton.discrete_parameters['object'], [1, 0, 0])
         for curr_n_iter in range(10, self.max_n_iter, 10):
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
                                                                                 n_parameters_to_try_motion_planning)
 
             if status == 'HasSolution':
-                #import pdb;pdb.set_trace()
-                #utils.two_arm_pick_object(target_obj, feasible_op_parameters[0]['pick'])## CORL
-                import pdb;pdb.set_trace()
                 break
-                """
-                if dont_check_motion_existence:
-                    chosen_op_param = self.choose_one_of_params(feasible_op_parameters, status)
-                    return chosen_op_param
-                else:
-                    chosen_op_param = self.get_pap_param_with_feasible_motion_plan(operator_skeleton, feasible_op_parameters, cached_collisions, cached_holding_collisions)
-                    if chosen_op_param['is_feasible']:
-                        return chosen_op_param
-                """
-
-        print "Time taken", time.time() - stime, status
-
         if status == "NoSolution":
             return {'is_feasible': False}
 

@@ -1,6 +1,3 @@
-from mover_library.utils import set_robot_config, \
-    two_arm_pick_object, two_arm_place_object
-from mover_library.operator_utils.grasp_utils import solveTwoArmIKs, compute_two_arm_grasp
 from generators.feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
 from generators.feasibility_checkers.two_arm_place_feasibility_checker import TwoArmPlaceFeasibilityChecker
 from trajectory_representation.operator import Operator
@@ -22,6 +19,7 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
         original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
         pick_op.execute()
         place_op = Operator('two_arm_place', operator_skeleton.discrete_parameters)
+
         place_cont_params, place_status = TwoArmPlaceFeasibilityChecker.check_feasibility(self,
                                                                                           place_op,
                                                                                           place_parameters,

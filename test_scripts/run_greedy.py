@@ -16,8 +16,6 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
 
-from generators.learning.utils.model_creation_utils import create_imle_model
-
 
 def get_problem_env(config):
     n_objs_pack = config.n_objs_pack
@@ -48,81 +46,34 @@ def get_solution_file_name(config):
     else:
         solution_file_dir = root_dir + '/test_results/sahs_results/using_weights_for_submission/domain_%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
-
-    if config.dont_use_gnn:
-        solution_file_dir += '/no_gnn/'
-    elif config.dont_use_h:
-        solution_file_dir += '/gnn_no_h/loss_' + str(config.loss) + '/num_train_' + str(config.num_train) + '/'
-    elif config.hcount:
-        solution_file_dir += '/hcount/'
-    elif config.hcount_number_in_goal:
-        solution_file_dir += '/hcount_number_in_goal/'
-    elif config.state_hcount:
-        solution_file_dir += '/state_hcount/'
-    elif config.integrated:
-        # What about the tamp-q? Take as its input
-        solution_file_dir += '/integrated/shortest_irsc/'
+    is_use_gnn = 'qlearned' in config.h_option
+    solution_file_dir += '/' + config.h_option + '/'
+    if is_use_gnn:
         q_config = '/q_config_num_train_' + str(config.num_train) + \
                    '_mse_weight_' + str(config.mse_weight) + \
                    '_use_region_agnostic_' + str(config.use_region_agnostic) + \
                    '_mix_rate_' + str(config.mixrate) + '/'
+        solution_file_dir += q_config
+
+    if config.integrated:
+        solution_file_dir += '/integrated/shortest_irsc/'
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir = solution_file_dir + q_config + sampler_config
+        solution_file_dir += solution_file_dir + sampler_config
     elif config.integrated_unregularized_sampler:
         solution_file_dir += '/integrated/shortest_irsc/'
-        q_config = '/q_config_num_train_' + str(config.num_train) + \
-                   '_mse_weight_' + str(config.mse_weight) + \
-                   '_use_region_agnostic_' + str(config.use_region_agnostic) + \
-                   '_mix_rate_' + str(config.mixrate) + '/'
         sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir = solution_file_dir + q_config + sampler_config
-    elif config.qlearned_hcount:
-        solution_file_dir += '/qlearned_hcount_obj_already_in_goal/shortest_irsc' \
-                             '/loss_' + str(config.loss) + \
-                             '/num_train_' + str(config.num_train) + \
-                             '/mse_weight_' + str(config.mse_weight) + \
-                             '/use_region_agnostic_' + str(config.use_region_agnostic) + \
-                             '/mix_rate_' + str(config.mixrate) + '/'
-    elif config.qlearned_hcount_new_number_in_goal:
-        solution_file_dir += '/qlearned_hcount_obj_already_in_goal_new_number_in_goal/shortest_irsc/loss_' + str(
-            config.loss) + '/num_train_' + str(config.num_train) \
-                             + '/mse_weight_' + str(config.mse_weight) + '/use_region_agnostic_' + str(
-            config.use_region_agnostic) \
-                             + '/mix_rate_' + str(config.mixrate) + '/'
-    elif config.qlearned_hcount_old_number_in_goal:
-        solution_file_dir += '/qlearned_hcount_obj_already_in_goal_old_number_in_goal/shortest_irsc/' \
-                             'loss_' + str(config.loss) + \
-                             '/num_train_' + str(config.num_train) + \
-                             '/mse_weight_' + str(config.mse_weight) + \
-                             '/use_region_agnostic_' + str(config.use_region_agnostic) + \
-                             '/mix_rate_' + str(config.mixrate) + '/'
-    elif config.qlearned_old_number_in_goal:
-        solution_file_dir += '/qlearned_old_number_in_goal//shortest_irsc/loss_' + str(config.loss) \
-                             + '/num_train_' + str(config.num_train) \
-                             + '/mse_weight_' + str(config.mse_weight) + '/use_region_agnostic_' \
-                             + str(config.use_region_agnostic) + '/'
-    elif config.qlearned_new_number_in_goal:
-        solution_file_dir += '/qlearned_new_number_in_goal//shortest_irsc/loss_' + str(config.loss) \
-                             + '/num_train_' + str(config.num_train) \
-                             + '/mse_weight_' + str(config.mse_weight) + '/use_region_agnostic_' \
-                             + str(config.use_region_agnostic) + '/'
-    elif config.pure_learned_q:
-        solution_file_dir += '/gnn/shortest_irsc/loss_' + str(config.loss) + '/num_train_' + str(config.num_train) \
-                             + '/mse_weight_' + str(config.mse_weight) + '/use_region_agnostic_' \
-                             + str(config.use_region_agnostic) + '/'
-    else:
-        raise NotImplementedError
+        solution_file_dir = solution_file_dir + sampler_config
 
     if config.integrated or config.integrated_unregularized_sampler:
         solution_file_name = 'pidx_' + str(config.pidx) + \
                              '_planner_seed_' + str(config.planner_seed) + \
-                             '_train_seed_' + str(config.train_seed) + \
+                             '_train_seed_' + str(config.absq_seed) + \
                              '_smpler_seed_' + str(config.sampler_seed) + \
                              '_domain_' + str(config.domain) + '.pkl'
     else:
         solution_file_name = 'pidx_' + str(config.pidx) + \
                              '_planner_seed_' + str(config.planner_seed) + \
-                             '_train_seed_' + str(config.train_seed) + \
+                             '_train_seed_' + str(config.absq_seed) + \
                              '_domain_' + str(config.domain) + '.pkl'
 
     if not os.path.isdir(solution_file_dir):
@@ -134,39 +85,54 @@ def get_solution_file_name(config):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
+
+    parser.add_argument('-v', action='store_true', default=False)
+    parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])  # used for threaded runs
+
+    # problem definition
     parser.add_argument('-pidx', type=int, default=0)
-    parser.add_argument('-train_seed', type=int, default=0)
     parser.add_argument('-planner_seed', type=int, default=0)
     parser.add_argument('-n_objs_pack', type=int, default=1)
+    parser.add_argument('-domain', type=str, default='two_arm_mover')
+    parser.add_argument('-f', action='store_true', default=False)
+    parser.add_argument('-problem_type', type=str, default='normal')  # was used for non-monotonic planning case
+    parser.add_argument('-gather_planning_exp', action='store_true', default=False) # sets the allowed time to infinite
+
+    # planning budget setup
     parser.add_argument('-num_node_limit', type=int, default=3000)
     parser.add_argument('-num_train', type=int, default=5000)
-    parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-timelimit', type=float, default=300)
-    parser.add_argument('-mixrate', type=float, default=1.0)
     parser.add_argument('-mse_weight', type=float, default=1.0)
-    parser.add_argument('-visualize_plan', action='store_true', default=False)
-    parser.add_argument('-visualize_sim', action='store_true', default=False)
+
+    # abstract Q setup
     parser.add_argument('-dontsimulate', action='store_true', default=False)
-    parser.add_argument('-f', action='store_true', default=False)
+    parser.add_argument('-loss', type=str, default='largemargin')
+    parser.add_argument('-absq_seed', type=int, default=0)
+    parser.add_argument('-mixrate', type=float, default=1.0)
+    parser.add_argument('-use_region_agnostic', action='store_true', default=False)
+
+    # abstract heuristic function setup
+    parser.add_argument('-h_option', type=str, default='qlearned_hcount_old_number_in_goal')
+    """
     parser.add_argument('-dont_use_gnn', action='store_true', default=False)
     parser.add_argument('-dont_use_h', action='store_true', default=False)
-    parser.add_argument('-loss', type=str, default='largemargin')
-    parser.add_argument('-domain', type=str, default='two_arm_mover')
-    parser.add_argument('-problem_type', type=str, default='normal')  # supports normal, nonmonotonic
     parser.add_argument('-hcount', action='store_true', default=False)
     parser.add_argument('-hcount_number_in_goal', action='store_true', default=False)
     parser.add_argument('-qlearned_hcount', action='store_true', default=False)
-    parser.add_argument('-qlearned_hcount_new_number_in_goal', action='store_true', default=False)
     parser.add_argument('-qlearned_hcount_old_number_in_goal', action='store_true', default=False)
-    parser.add_argument('-qlearned_old_number_in_goal', action='store_true', default=False)
+    parser.add_argument('-qlearned_old_number_in_goal', action='store_true', default=True)  # This is the default option
     parser.add_argument('-qlearned_new_number_in_goal', action='store_true', default=False)
-    parser.add_argument('-integrated', action='store_true', default=False)
-    parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
     parser.add_argument('-pure_learned_q', action='store_true', default=False)
     parser.add_argument('-state_hcount', action='store_true', default=False)
-    parser.add_argument('-use_region_agnostic', action='store_true', default=False)
-    parser.add_argument('-gather_planning_exp', action='store_true', default=False)
-    parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])  # used for threaded runs
+    """
+
+    # Sampler setup
+    parser.add_argument('-sampler_seed', type=int, default=0)
+    parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
+
+    # whether to use the sampler
+    parser.add_argument('-integrated', action='store_true', default=False)
+
     config = parser.parse_args()
     return config
 
@@ -180,7 +146,8 @@ def set_problem_env_config(problem_env, config):
 
 
 def get_pap_gnn_model(mover, config):
-    if not config.hcount:
+    is_use_gnn = 'qlearned' in config.h_option
+    if is_use_gnn:
         mconfig_type = collections.namedtuple('mconfig_type',
                                               'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes top_k optimizer lr use_mse batch_size seed num_train val_portion mse_weight diff_weight_msg_passing same_vertex_model weight_initializer loss use_region_agnostic')
 
@@ -198,7 +165,7 @@ def get_pap_gnn_model(mover, config):
             use_mse=True,
 
             batch_size='32',
-            seed=config.train_seed,
+            seed=config.absq_seed,
             num_train=config.num_train,
             val_portion=.1,
             mse_weight=config.mse_weight,
@@ -257,7 +224,8 @@ def main():
     problem_env = get_problem_env(config)
     set_problem_env_config(problem_env, config)
 
-    if not config.hcount:
+    is_use_gnn = 'qlearned' in config.h_option
+    if is_use_gnn:
         pap_model = get_pap_gnn_model(problem_env, config)
     else:
         pap_model = None
@@ -269,7 +237,6 @@ def main():
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
     plan_length = 0
-    num_nodes = 0
     if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:

@@ -296,13 +296,12 @@ class PaPMoverEnv(Mover):
                     continue
 
                 action = Operator('two_arm_pick_two_arm_place',
-                                  {'two_arm_place_object': o, 'two_arm_place_region': r})
+                                  {'object': o, 'place_region': r})
                 # following two lines are for legacy reasons, will fix later
-                action.discrete_parameters['object'] = action.discrete_parameters['two_arm_place_object']
-                action.discrete_parameters['region'] = action.discrete_parameters['two_arm_place_region']
+                #action.discrete_parameters['object'] = action.discrete_parameters['two_arm_place_object']
+                #action.discrete_parameters['region'] = action.discrete_parameters['two_arm_place_region']
 
                 actions.append(action)
-
         return actions
 
     def set_goal(self, goal):

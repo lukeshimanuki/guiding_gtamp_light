@@ -15,7 +15,7 @@ class TwoArmPlaceFeasibilityChecker:
         # Note:
         #    this function checks if the target region contains the robot when we place object at place_parameters
         #    and whether the robot will be in collision
-        obj_region = operator_skeleton.discrete_parameters['region']
+        obj_region = operator_skeleton.discrete_parameters['place_region']  # I see. This is the problem.
         if parameter_mode == 'obj_pose':
             return self.check_place_at_obj_pose_feasible(obj_region, place_parameters, swept_volume_to_avoid)
         elif parameter_mode == 'robot_base_pose':
@@ -25,12 +25,13 @@ class TwoArmPlaceFeasibilityChecker:
 
     def is_collision_and_region_constraints_satisfied(self, target_robot_region1, target_robot_region2,
                                                       target_obj_region):
+
         target_region_contains = target_robot_region1.contains(self.robot.ComputeAABB()) or \
                                  target_robot_region2.contains(self.robot.ComputeAABB())
+        obj = self.robot.GetGrabbed()[0]
         if not target_region_contains:
             return False
 
-        obj = self.robot.GetGrabbed()[0]
         if not target_obj_region.contains(obj.ComputeAABB()):
             return False
 
@@ -107,7 +108,7 @@ class TwoArmPlaceFeasibilityChecker:
             return action, 'NoSolution'
         else:
             release_obj()
-            if swept_volume_to_avoid is not None:
+            if swept_volume_to_avoid is not None:  # used by RSC
                 # release the object
                 if not swept_volume_to_avoid.is_swept_volume_cleared(obj):
                     self.robot.SetTransform(original_trans)

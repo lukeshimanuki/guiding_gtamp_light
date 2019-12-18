@@ -85,8 +85,11 @@ def get_actions(op_skeleton, entity_names):
         region_idx = 0 if region_name == 'home_region' else 1
         action = np.array([region_idx])
     elif op_skeleton.type == 'two_arm_pick_two_arm_place':
-        object_idx = name_to_idx[op_skeleton.discrete_parameters['two_arm_place_object']]
-        region_name = op_skeleton.discrete_parameters['two_arm_place_region']
+        # todo if you are processing data, then use the commented lines.
+        #object_idx = name_to_idx[op_skeleton.discrete_parameters['two_arm_place_object']]
+        #region_name = op_skeleton.discrete_parameters['two_arm_place_region']
+        object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
+        region_name = op_skeleton.discrete_parameters['place_region']
         if region_name == 'home_region':
             region_idx = 0
         elif region_name == 'loading_region':

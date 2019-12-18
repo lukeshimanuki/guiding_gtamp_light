@@ -10,9 +10,8 @@ from generators.uniform import PaPUniformGenerator
 from generators.learned_generator import LearnedGenerator
 
 from trajectory_representation.operator import Operator
-from trajectory_representation.concrete_node_state import ConcreteNodeState
 
-from helper import get_actions, compute_heuristic, get_state_class
+from helper import get_actions, compute_heuristic, get_state_class, update_search_queue
 
 prm_vertices, prm_edges = pickle.load(open('prm.pkl', 'rb'))
 prm_vertices = list(prm_vertices)  # TODO: needs to be a list rather than ndarray
@@ -71,8 +70,6 @@ def search(mover, config, pap_model, learned_smpler=None):
     mover.reset_to_init_state_stripstream()
     depth_limit = 60
 
-    state = statecls(mover, goal)
-
     # utils.viewer()
     """
     actions = get_actions(mover, goal, config)
@@ -94,16 +91,13 @@ def search(mover, config, pap_model, learned_smpler=None):
     """
 
     # lowest valued items are retrieved first in PriorityQueue
-    action_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
+    search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
+    state = statecls(mover, goal)
     initnode = Node(None, None, state)
-    initial_state = state
     actions = get_actions(mover, goal, config)
+
     nodes = [initnode]
-    for a in actions:
-        hval = compute_heuristic(state, a, pap_model, mover, config)
-        discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['region'])
-        initnode.set_heuristic(discrete_params, hval)
-        action_queue.put((hval, float('nan'), a, initnode))  # initial q
+    update_search_queue(state, actions, initnode, search_queue, pap_model, mover, config)
 
     iter = 0
     # beginning of the planner
@@ -115,14 +109,15 @@ def search(mover, config, pap_model, learned_smpler=None):
         if curr_time > config.timelimit or iter > config.num_node_limit:
             return None, iter, nodes
 
-        if action_queue.empty():
+        # persistency
+        if search_queue.empty():
             actions = get_actions(mover, goal, config)
             for a in actions:
                 discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['region'])
                 hval = initnode.heuristic_vals[discrete_params]
-                action_queue.put((hval, float('nan'), a, initnode))  # initial q
+                search_queue.put((hval, float('nan'), a, initnode))  # initial q
 
-        curr_hval, _, action, node = action_queue.get()
+        curr_hval, _, action, node = search_queue.get()
         state = node.state
         print "Curr hval", curr_hval
 
@@ -143,7 +138,6 @@ def search(mover, config, pap_model, learned_smpler=None):
                 print 'smpling time', time.time() - stime
             else:
                 smpler = LearnedGenerator(action, mover, learned_smpler, state, max_n_iter=200)
-                # How can I change the state.collides to the one_hot? How long would it take?
                 stime = time.time()
                 smpled_param = smpler.sample_next_point(action, n_parameters_to_try_motion_planning=3,
                                                         cached_collisions=state.collides,
@@ -171,9 +165,7 @@ def search(mover, config, pap_model, learned_smpler=None):
                 print "New state computed"
                 newnode = Node(node, action, newstate)
                 newactions = get_actions(mover, goal, config)
-                for newaction in newactions:
-                    hval = compute_heuristic(newstate, newaction, pap_model, mover, config) - 1. * newnode.depth
-                    action_queue.put((hval, float('nan'), newaction, newnode))
+                update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
                 nodes.append(newnode)
 
         elif action.type == 'one_arm_pick_one_arm_place':
@@ -227,13 +219,10 @@ def search(mover, config, pap_model, learned_smpler=None):
                     return plan, iter, nodes
                 else:
                     newstate = statecls(mover, goal, node.state, action)
-                    print "New state computed"
                     newnode = Node(node, action, newstate)
                     newactions = get_actions(mover, goal, config)
-                    print "Old h value", curr_hval
-                    for newaction in newactions:
-                        hval = compute_heuristic(newstate, newaction, pap_model, mover, config) - 1. * newnode.depth
-                        action_queue.put((hval, float('nan'), newaction, newnode))
+                    update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
+
             if not success:
                 print('failed to execute action')
             else:

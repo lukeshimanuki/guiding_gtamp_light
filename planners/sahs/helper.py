@@ -56,10 +56,10 @@ def get_state_class(domain):
 
 
 def compute_heuristic(state, action, pap_model, problem_env, config):
-    is_two_arm_domain = 'two_arm_place_object' in action.discrete_parameters
+    is_two_arm_domain = 'two_arm_' in action.type
     if is_two_arm_domain:
-        target_o = action.discrete_parameters['two_arm_place_object']
-        target_r = action.discrete_parameters['two_arm_place_region']
+        target_o = action.discrete_parameters['object']
+        target_r = action.discrete_parameters['place_region']
     else:
         target_o = action.discrete_parameters['object'].GetName()
         target_r = action.discrete_parameters['region'].name
@@ -76,130 +76,85 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
         goal_objs = [tmp_o for tmp_o in state.goal_entities if 'region' not in tmp_o]
         goal_region = 'rectangular_packing_box1_region'
 
-    """
-    number_in_goal = 0
-    for obj_name in goal_objs:
-        is_obj_in_goal_region = state.binary_edges[(obj_name, goal_region)][0]
-        if is_obj_in_goal_region:
-            number_in_goal += 1
-    """
+    h_option = config.h_option
 
-    if config.hcount:
-        o_reachable = state.is_entity_reachable(target_o)
-        o_r_manip_free = state.binary_edges[(target_o, target_r)][-1]
+    if h_option == 'hcount':
+        hval = compute_hcount_with_action(state, action, problem_env)
+    elif h_option == 'hcount_old_number_in_goal':
+        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
         hcount = compute_hcount_with_action(state, action, problem_env)
-        return hcount
-    elif config.hcount_number_in_goal:
-        o_reachable = state.is_entity_reachable(target_o)
-        o_r_manip_free = state.binary_edges[(target_o, target_r)][-1]
-        number_in_goal = 0
-        for i in state.nodes:
-            if i == target_o:
-                continue
-            for tmpr in problem_env.regions:
-                if tmpr in state.nodes:
-                    is_r_goal_region = state.nodes[tmpr][8]
-                    if is_r_goal_region:
-                        is_i_in_r = state.binary_edges[(i, tmpr)][0]
-                        if is_r_goal_region:
-                            number_in_goal += is_i_in_r
-        number_in_goal += int(region_is_goal)  # encourage moving goal obj to goal region
-
-        hcount = compute_hcount_with_action(state, action, problem_env)
-        return hcount - number_in_goal
-    elif config.state_hcount:
-        hcount = compute_hcount(state, problem_env)
-        print "state_hcount %s %s %.4f" % (target_o, target_r, hcount)
-        return hcount
-    elif config.qlearned_hcount_new_number_in_goal:
-        number_in_goal = 0
-        for obj_name in goal_objs:
-            is_obj_in_goal_region = state.binary_edges[(obj_name, goal_region)][0]
-            if is_obj_in_goal_region:
-                number_in_goal += 1
-
+        hval = hcount - number_in_goal
+    elif h_option == 'state_hcount':
+        hval = compute_hcount(state, problem_env)
+    elif h_option == 'qlearned_hcount_new_number_in_goal':
+        number_in_goal = compute_new_number_in_goal(state, goal_objs, goal_region)
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         hcount = compute_hcount(state, problem_env)
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal + obj_already_in_goal + hcount - config.mixrate * q_bonus
+    elif h_option == 'qlearned_hcount_old_number_in_goal':
+        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
 
-        o_reachable = state.is_entity_reachable(target_o)
-        o_r_manip_free = state.binary_edges[(target_o, target_r)][-1]
-
-        print 'n_in_goal %d %s %s prefree %d manipfree %d hcount %d qbonus %.4f hval %.4f' % (
-            number_in_goal, target_o, target_r, o_reachable, o_r_manip_free, hcount, -q_bonus, hval)
-        return hval
-    elif config.qlearned_hcount_old_number_in_goal or config.integrated or  config.integrated_unregularized_sampler:
-        number_in_goal = 0
-        for i in state.nodes:
-            if i == target_o:
-                continue
-            for tmpr in problem_env.regions:
-                if tmpr in state.nodes:
-                    is_r_goal_region = state.nodes[tmpr][8]
-                    if is_r_goal_region:
-                        is_i_in_r = state.binary_edges[(i, tmpr)][0]
-                        if is_r_goal_region:
-                            number_in_goal += is_i_in_r
-        number_in_goal += int(region_is_goal)  # encourage moving goal obj to goal region
-
-        nodes, edges, actions, _ = extract_individual_example(state, action)
+        nodes, edges, actions, _ = extract_individual_example(state, action) # why do I call this again?
         nodes = nodes[..., 6:]
 
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         hcount = compute_hcount(state, problem_env)
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal + obj_already_in_goal + hcount - config.mixrate * q_bonus
-
-        o_reachable = state.is_entity_reachable(target_o)
-        o_r_manip_free = state.binary_edges[(target_o, target_r)][-1]
-
-        print 'n_in_goal %d %s %s prefree %d manipfree %d hcount %d qbonus %.4f hval %.4f' % (
-            number_in_goal, target_o, target_r, o_reachable, o_r_manip_free, hcount, -q_bonus, hval)
-        return hval
-
-    elif config.qlearned_old_number_in_goal:
-        number_in_goal = 0
-        for i in state.nodes:
-            if i == target_o:
-                continue
-            for tmpr in problem_env.regions:
-                if tmpr in state.nodes:
-                    is_r_goal_region = state.nodes[tmpr][8]
-                    if is_r_goal_region:
-                        is_i_in_r = state.binary_edges[(i, tmpr)][0]
-                        if is_r_goal_region:
-                            number_in_goal += is_i_in_r
-        number_in_goal += int(region_is_goal)  # encourage moving goal obj to goal region
+    elif h_option == 'qlearned_old_number_in_goal':
+        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
                                                                   actions[None, ...])
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal - q_val_on_curr_a + obj_already_in_goal
-        return hval
-    elif config.qlearned_new_number_in_goal:
-        number_in_goal = 0
-        for obj_name in goal_objs:
-            is_obj_in_goal_region = state.binary_edges[(obj_name, goal_region)][0]
-            if is_obj_in_goal_region:
-                number_in_goal += 1
+    elif h_option == 'config.qlearned_new_number_in_goal':
+        number_in_goal = compute_new_number_in_goal(state, goal_objs, goal_region)
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
                                                                   actions[None, ...])
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal - q_val_on_curr_a + obj_already_in_goal
-        return hval
-    elif config.pure_learned_q:
-
+    elif h_option == 'config.pure_learned_q':
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
                                                                   actions[None, ...])
-        obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
-        hval = -number_in_goal + obj_already_in_goal - q_val_on_curr_a
-        # hval = -number_in_goal - q_val_on_curr_a
-
-        o_reachable = state.is_entity_reachable(target_o)
-        o_r_manip_free = state.binary_edges[(target_o, target_r)][-1]
-
-        print '%s %s prefree %d manipfree %d numb_in_goal %d qval %.4f hval %.4f' % (
-            target_o, target_r, o_reachable, o_r_manip_free, number_in_goal, q_val_on_curr_a, hval)
-        return hval
+        hval = -q_val_on_curr_a
     else:
         raise NotImplementedError
+
+    return hval
+
+
+def compute_number_in_goal(state, target_o, problem_env, region_is_goal):
+    number_in_goal = 0
+    for i in state.nodes:
+        if i == target_o:
+            continue
+        for tmpr in problem_env.regions:
+            if tmpr in state.nodes:
+                is_r_goal_region = state.nodes[tmpr][8]
+                if is_r_goal_region:
+                    is_i_in_r = state.binary_edges[(i, tmpr)][0]
+                    if is_r_goal_region:
+                        number_in_goal += is_i_in_r
+    number_in_goal += int(region_is_goal)  # encourage moving goal obj to goal region
+    return number_in_goal
+
+
+def compute_new_number_in_goal(state, goal_objs, goal_region):
+    number_in_goal = 0
+    for obj_name in goal_objs:
+        is_obj_in_goal_region = state.binary_edges[(obj_name, goal_region)][0]
+        if is_obj_in_goal_region:
+            number_in_goal += 1
+    return number_in_goal
+
+
+def update_search_queue(state, actions, node, action_queue, pap_model, mover, config):
+    print "Enqueuing..."
+    for a in actions:
+        hval = compute_heuristic(state, a, pap_model, mover, config)
+        discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
+        node.set_heuristic(discrete_params, hval)
+        action_queue.put((hval, float('nan'), a, node))  # initial q
+        print "%35s %35s  hval %.4f" % (a.discrete_parameters['object'], a.discrete_parameters['place_region'], hval)
+

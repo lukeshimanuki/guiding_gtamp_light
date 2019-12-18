@@ -24,11 +24,11 @@ class ShortestPathPaPState(PaPState):
         self.parent_binary_predicates = {}
         self.goal_entities = goal_entities
         if parent_state is not None:
-            moved_obj_type = type(parent_action.discrete_parameters['two_arm_place_object'])
+            moved_obj_type = type(parent_action.discrete_parameters['object'])
             if moved_obj_type == str or moved_obj_type == unicode:
-                moved_obj = parent_action.discrete_parameters['two_arm_place_object']
+                moved_obj = parent_action.discrete_parameters['object']
             else:
-                moved_obj = parent_action.discrete_parameters['two_arm_place_object'].GetName()
+                moved_obj = parent_action.discrete_parameters['object'].GetName()
             self.initialize_parent_predicates(moved_obj, parent_state, parent_action)
         else:
             moved_obj = None
