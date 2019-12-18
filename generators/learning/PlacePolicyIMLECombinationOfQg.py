@@ -10,10 +10,6 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_imle_qg_combination_with_qg_evalnet_seed_%d' % config.seed
 
-    def load_weights(self):
-        print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
-        self.policy_model.load_weights(self.save_folder + self.weight_file_name + '.h5')
-
     def construct_policy_output(self):
         candidate_qg = self.construct_value_output()
         evalnet_input = Reshape((self.n_key_confs, 4, 1))(candidate_qg)

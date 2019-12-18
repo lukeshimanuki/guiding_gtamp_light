@@ -84,7 +84,7 @@ def visualize(problem_env, learned_sampler):
     utils.viewer()
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
 
-    target_obj_name = 'rectangular_packing_box2'
+    target_obj_name = 'square_packing_box4'
     target_obj = problem_env.env.GetKinBody(target_obj_name)
     utils.set_color(target_obj, [1, 0, 0])
 
@@ -107,7 +107,8 @@ def visualize(problem_env, learned_sampler):
 
 def main():
     seed = int(sys.argv[1])
-    algo = str(sys.argv[2])
+    epoch = sys.argv[2]
+    algo = str(sys.argv[3])
     plan = None
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
     placeholder_config = placeholder_config_definition(
@@ -117,13 +118,15 @@ def main():
         seed=seed
     )
 
-    problem_seed = 6
+    problem_seed = 0
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
     sampler = create_policy(placeholder_config)
-    #sampler.load_weights()
-    sampler.load_best_weights()
+    if epoch == 'best':
+        sampler.load_best_weights()
+    else:
+        sampler.load_weights('epoch_'+str(epoch))
     visualize(problem_env, sampler)
 
 

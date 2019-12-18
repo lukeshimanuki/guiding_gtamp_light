@@ -98,9 +98,11 @@ class Policy:
             os.makedirs(fdir)
         self.policy_model.save_weights(fdir + fname)
 
-    def load_weights(self):
-        print "Loading weights", self.save_folder + self.weight_file_name + '.h5'
-        self.policy_model.load_weights(self.save_folder + self.weight_file_name + '.h5')
+    def load_weights(self, additional_name=''):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + additional_name + '.h5'
+        print "Loading weights", fname
+        self.policy_model.load_weights(fdir+fname)
 
     @staticmethod
     def get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards,
