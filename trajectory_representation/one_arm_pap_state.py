@@ -303,7 +303,7 @@ class OneArmPaPState(PaPState):
 
                 op_skel = Operator(operator_type='one_arm_pick_one_arm_place',
                                    discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
-                                                        'region': self.problem_env.regions[r]})
+                                                        'place_region': self.problem_env.regions[r]})
 
                 # It easily samples without cached iks?
                 papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,

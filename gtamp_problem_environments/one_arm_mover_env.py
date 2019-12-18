@@ -77,14 +77,14 @@ class OneArmMover(Mover):
                             assert parent_op is not None
 
                             op = Operator(operator_type=op_name,
-                                          discrete_parameters={'region': region,
+                                          discrete_parameters={'place_region': region,
                                                                'object': object_held},
                                           continuous_parameters={
                                               'grasp_params': grasp_params})
                             applicable_ops.append(op)
                     else:
                         op = Operator(operator_type=op_name,
-                                      discrete_parameters={'region': self.applicable_op_constraint['region'],
+                                      discrete_parameters={'place_region': self.applicable_op_constraint['region'],
                                                            'object': object_held},
                                       continuous_parameters={
                                           'grasp_params': grasp_params})
@@ -128,26 +128,7 @@ class PaPOneArmMoverEnv(OneArmMover):
                     continue
 
                 action = Operator('one_arm_pick_one_arm_place',
-                                  {'object': self.env.GetKinBody(o), 'region': self.regions[r]})
+                                  {'object': self.env.GetKinBody(o), 'place_region': self.regions[r]})
 
                 actions.append(action)
         return actions
-    """
-    def get_applicable_ops(self, parent_op=None):
-        # used by MCTS
-        applicable_ops = []
-        op_name = 'two_arm_pick_two_arm_place'
-
-        for region_name in self.region_names:
-            if region_name == 'entire_region':
-                continue
-            for obj_name in self.object_names:
-                op = Operator(operator_type=op_name,
-                              discrete_parameters={'object': obj_name,
-                                                   'region': region_name,
-                                                   'one_arm_place_object': obj_name,
-                                                   'one_arm_place_region': region_name})
-                applicable_ops.append(op)
-
-        return applicable_ops
-    """

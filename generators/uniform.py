@@ -28,14 +28,17 @@ class UniformGenerator:  # Only used in RSC
         operator_type = operator_skeleton.type
 
         target_region = None
+        """
         if 'region' in operator_skeleton.discrete_parameters:
-            target_region = operator_skeleton.discrete_parameters['region']
+            target_region = operator_skeleton.discrete_parameters['place_region']
             if type(target_region) == str:
                 target_region = self.problem_env.regions[target_region]
+        """
 
-        is_two_arm_place = 'two_arm_place' in operator_skeleton.type
-        if is_two_arm_place:
+        is_place_in_operator = 'place' in operator_skeleton.type
+        if is_place_in_operator:
             target_region = operator_skeleton.discrete_parameters['place_region']
+            assert target_region is not None
             if type(target_region) == str:
                 target_region = self.problem_env.regions[target_region]
 
@@ -49,13 +52,14 @@ class UniformGenerator:  # Only used in RSC
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env)
         elif operator_type == 'one_arm_place':
+            if target_region is None:
+                import pdb;pdb.set_trace()
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
         elif operator_type == 'two_arm_pick_two_arm_place':
             # used by MCTS
             pick_min = get_pick_domain()[0]
             pick_max = get_pick_domain()[1]
-            import pdb;pdb.set_trace()
             place_min = get_place_domain(target_region)[0]
             place_max = get_place_domain(target_region)[1]
             mins = np.hstack([pick_min, place_min])

@@ -62,7 +62,7 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
         target_r = action.discrete_parameters['place_region']
     else:
         target_o = action.discrete_parameters['object'].GetName()
-        target_r = action.discrete_parameters['region'].name
+        target_r = action.discrete_parameters['place_region'].name
 
     nodes, edges, actions, _ = extract_individual_example(state, action)
     nodes = nodes[..., 6:]

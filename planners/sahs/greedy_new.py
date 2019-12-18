@@ -24,7 +24,7 @@ MAX_DISTANCE = 1.0
 
 def create_state_vec(key_config_obstacles, action, goal_entities):
     obj = action.discrete_parameters['object']
-    region = action.discrete_parameters['region']
+    region = action.discrete_parameters['place_region']
     one_hot = utils.convert_binary_vec_to_one_hot(key_config_obstacles)
     is_goal_obj = utils.convert_binary_vec_to_one_hot(np.array([obj in goal_entities]))
     is_goal_region = utils.convert_binary_vec_to_one_hot(np.array([region in goal_entities]))
@@ -56,7 +56,7 @@ def get_place_base_poses(action, smples, mover):
         bsmpl = np.hstack([bsmpl[0:2], decoded_angle])
         to_return.append(bsmpl)
     to_return = np.array(to_return)
-    to_return[:, 0:2] += mover.regions[action.discrete_parameters['region']].box[0]
+    to_return[:, 0:2] += mover.regions[action.discrete_parameters['place_region']].box[0]
     return to_return
 
 
@@ -113,7 +113,7 @@ def search(mover, config, pap_model, learned_smpler=None):
         if search_queue.empty():
             actions = get_actions(mover, goal, config)
             for a in actions:
-                discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['region'])
+                discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
                 hval = initnode.heuristic_vals[discrete_params]
                 search_queue.put((hval, float('nan'), a, initnode))  # initial q
 
@@ -173,7 +173,7 @@ def search(mover, config, pap_model, learned_smpler=None):
             success = False
 
             obj = action.discrete_parameters['object']
-            region = action.discrete_parameters['region']
+            region = action.discrete_parameters['place_region']
             o = obj.GetName()
             r = region.name
 
@@ -197,7 +197,7 @@ def search(mover, config, pap_model, learned_smpler=None):
                     operator_type='one_arm_pick_one_arm_place',
                     discrete_parameters={
                         'object': obj,
-                        'region': mover.regions[r],
+                        'place_region': mover.regions[r],
                     },
                     continuous_parameters={
                         'pick': pick_params,

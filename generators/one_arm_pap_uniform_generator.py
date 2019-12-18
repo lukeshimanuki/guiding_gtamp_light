@@ -18,10 +18,14 @@ class OneArmPaPUniformGenerator:
         self.problem_env = problem_env
         self.cached_picks = cached_picks
         target_region = None
-        if 'region' in operator_skeleton.discrete_parameters:
-            target_region = operator_skeleton.discrete_parameters['region']
+
+        is_place_in_operator = 'place' in operator_skeleton.type
+        if is_place_in_operator:
+            target_region = operator_skeleton.discrete_parameters['place_region']
+            assert target_region is not None
             if type(target_region) == str:
                 target_region = self.problem_env.regions[target_region]
+
         target_obj = operator_skeleton.discrete_parameters['object']
         self.robot = problem_env.robot
         self.target_region = target_region
@@ -30,12 +34,14 @@ class OneArmPaPUniformGenerator:
 
         self.pick_op = Operator(operator_type='one_arm_pick',
                                 discrete_parameters={'object': target_obj})
-        self.pick_generator = UniformGenerator(self.pick_op, problem_env) # just use generator, I think
+
+        # I actually don't use the full feature of the generator, which allows you to do feasibilicy checks
+        self.pick_generator = UniformGenerator(self.pick_op, problem_env, max_n_iter=None)
 
         self.place_op = Operator(operator_type='one_arm_place',
-                                 discrete_parameters={'object': target_obj, 'region': target_region},
+                                 discrete_parameters={'object': target_obj, 'place_region': target_region},
                                  continuous_parameters={})
-        self.place_generator = UniformGenerator(self.place_op, problem_env)
+        self.place_generator = UniformGenerator(self.place_op, problem_env, max_n_iter=None)
 
         self.pick_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
         self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
@@ -110,7 +116,7 @@ class OneArmPaPUniformGenerator:
             (pick_tf, pick_params), (place_tf, place_params) = random.choice(zip(*self.cached_picks))
 
             pick_region = self.problem_env.get_region_containing(self.target_obj)
-            place_region = self.place_op.discrete_parameters['region']
+            place_region = self.place_op.discrete_parameters['place_region']
 
             pick_params = copy.deepcopy(pick_params)
             place_params = copy.deepcopy(place_params)
@@ -194,7 +200,7 @@ class OneArmPaPUniformGenerator:
                 self.target_obj.SetTransform(old_tf)
                 return None, None, 'InfeasibleIK'
 
-            if not self.place_op.discrete_parameters['region'].contains(self.target_obj.ComputeAABB()):
+            if not self.place_op.discrete_parameters['place_region'].contains(self.target_obj.ComputeAABB()):
                 self.target_obj.SetTransform(old_tf)
                 return None, None, 'InfeasibleIK'
 
