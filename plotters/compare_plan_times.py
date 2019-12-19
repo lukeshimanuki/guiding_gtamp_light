@@ -62,7 +62,8 @@ def get_num_nodes(test_dir, test_files):
     all_num_nodes = []
     print "Getting test stats from %d files in %s" % (len(test_files), test_dir)
     for filename in test_files:
-        pidx = get_pidx(test_dir, filename)
+        if '.pkl' not in filename:
+            continue
 
         stat = pickle.load(open(test_dir + filename, 'r'))
 
@@ -78,6 +79,9 @@ def get_plan_times(test_dir, test_files, t_limit):
     time_taken = []
     print "Getting test stats from %d files in %s" % (len(test_files), test_dir)
     for filename in test_files:
+        if '.pkl' not in filename:
+            continue
+
         pidx = get_pidx(test_dir, filename)
         if pidx < 20000 or pidx > 20100:
             continue

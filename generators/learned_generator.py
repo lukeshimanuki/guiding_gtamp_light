@@ -4,8 +4,8 @@ from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils import data_processing_utils
 
 from gtamp_utils import utils
-from generators.learning.utils.sampler_utils import generate_policy_smpl_batch
-from generators.learning.PlacePolicyIMLE import noise
+from generators.learning.utils.sampler_utils import generate_smpl_batch
+from generators.learning.PlacePolicyIMLE import uniform_noise
 import time
 import numpy as np
 
@@ -18,61 +18,41 @@ class LearnedGenerator(PaPUniformGenerator):
         self.sampler = sampler
         self.abstract_state = abstract_state
         self.obj = operator_skeleton.discrete_parameters['object']
-        self.region = operator_skeleton.discrete_parameters['region']
+        self.region = operator_skeleton.discrete_parameters['place_region']
 
         goal_entities = self.abstract_state.goal_entities
         self.smpler_state = ConcreteNodeState(self.problem_env, self.obj, self.region,
                                               goal_entities,
-                                              collision_vector=abstract_state.key_config_obstacles)
+                                              collision_vector=None)
+                                              #collision_vector=abstract_state.key_config_obstacles) # eventually use this
         self.noises_used = []
         self.tried_smpls = []
 
         # to do generate 1000 smpls here
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
-        # generate n_total_iters number of samples -  can I be systematic about this, instead of random smpling?
-        # I guess they will have to live in the same space; but I need to increase the variance
+        z_smpls = uniform_noise(z_size=(1900, 4))
+        self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls)
 
-        """
-        z_smpl_fname = 'z_smpls.pkl'
-        if os.path.isfile(z_smpl_fname):
-            z_smpls = pickle.load(open(z_smpl_fname, 'r'))
-        else:
-            z_smpls = []
-            i = 0
-            for _ in range(n_total_iters):  # even pre-store these
-                if 0 < len(z_smpls) < 50:
-                    min_dist = np.min(np.linalg.norm(new_z - np.array(z_smpls), axis=-1))
-                    while min_dist < 1:
-                        new_z = i * np.random.normal(size=(1, 4)).astype('float32')
-                        min_dist = np.min(np.linalg.norm(new_z - np.array(z_smpls), axis=-1))
-                        i += 1
-                else:
-                    new_z = np.random.normal(size=(1, 4)).astype('float32')
-                z_smpls.append(new_z)
-            pickle.dump(z_smpls, open(z_smpl_fname, 'wb'))
-        """
-        z_smpls = noise(z_size=(1900, 4))
-        z_smpls = np.vstack([np.array([0, 0, 0, 0]), z_smpls])
-        self.policy_smpl_batch = generate_policy_smpl_batch(self.smpler_state, self.sampler, z_smpls)
+        orig_color = utils.get_color_of(self.obj)
+        #utils.set_color(self.obj, [1, 0, 0])
+        #utils.visualize_placements(self.policy_smpl_batch[0:200], self.obj)
+        #import pdb;pdb.set_trace()
+        #utils.set_color(self.obj, orig_color)
         self.policy_smpl_idx = 0
 
     def generate(self):
         if action_data_mode == 'pick_parameters_place_relative_to_object':
-            # place_smpls, noises_used = generate_smpls(self.smpler_state, self.sampler, 1, self.noises_used)
-            # place_smpls = place_smpls[0].squeeze()
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             place_smpl = data_processing_utils.get_absolute_placement_from_relative_placement(place_smpl,
                                                                                               self.smpler_state.abs_obj_pose)
-            #place_smpls = [data_processing_utils.get_unprocessed_placement(s, self.smpler_state.abs_obj_pose) for s in self.policy_smpl_batch]
+            self.policy_smpl_idx += 1
+        elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
+            place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             self.policy_smpl_idx += 1
         else:
             raise NotImplementedError
         self.tried_smpls.append(place_smpl)
-        # self.noises_used = noises_used
-        # if self.smpler_state.obj == 'square_packing_box2':
-        #    import pdb;
-        #    pdb.set_trace()
         parameters = self.sample_from_uniform()
         parameters[6:] = place_smpl
         return parameters
@@ -92,7 +72,7 @@ class LearnedGenerator(PaPUniformGenerator):
             op_parameters = self.generate()
             op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton, op_parameters,
                                                                                   self.swept_volume_constraint,
-                                                                                  parameter_mode='robot_base_pose')
+                                                                                  parameter_mode='obj_pose')
             # if we have sampled the feasible place, then can we keep that?
             # if we have infeasible pick, then we cannot determine that.
             smpling_time = time.time() - stime
@@ -101,12 +81,14 @@ class LearnedGenerator(PaPUniformGenerator):
                 feasible_op_parameters.append(op_parameters)
                 if len(feasible_op_parameters) >= n_parameters_to_try_motion_planning:
                     break
+
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
             status = "NoSolution"
         else:
-            # import pdb;pdb.set_trace()
+            # import pdb; pdb.set_trace()
             status = "HasSolution"
+
         utils.set_color(obj, orig_color)
         return feasible_op_parameters, status
 

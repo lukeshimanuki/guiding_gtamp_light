@@ -12,6 +12,7 @@ from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
+from generators.learning.utils.model_creation_utils import create_policy
 
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
@@ -22,6 +23,8 @@ def get_problem_env(config):
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
         goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
+        #goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
+        #                 'rectangular_packing_box4']
         problem_env.set_goal(goal)
     elif config.domain == 'one_arm_mover':
         problem_env = PaPOneArmMoverEnv(config.pidx)
@@ -113,22 +116,11 @@ def parse_arguments():
 
     # abstract heuristic function setup
     parser.add_argument('-h_option', type=str, default='qlearned_hcount_old_number_in_goal')
-    """
-    parser.add_argument('-dont_use_gnn', action='store_true', default=False)
-    parser.add_argument('-dont_use_h', action='store_true', default=False)
-    parser.add_argument('-hcount', action='store_true', default=False)
-    parser.add_argument('-hcount_number_in_goal', action='store_true', default=False)
-    parser.add_argument('-qlearned_hcount', action='store_true', default=False)
-    parser.add_argument('-qlearned_hcount_old_number_in_goal', action='store_true', default=False)
-    parser.add_argument('-qlearned_old_number_in_goal', action='store_true', default=True)  # This is the default option
-    parser.add_argument('-qlearned_new_number_in_goal', action='store_true', default=False)
-    parser.add_argument('-pure_learned_q', action='store_true', default=False)
-    parser.add_argument('-state_hcount', action='store_true', default=False)
-    """
 
     # Sampler setup
     parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
+    parser.add_argument('-sampler_algo', type=str, default='imle_qg_combination')
 
     # whether to use the sampler
     parser.add_argument('-integrated', action='store_true', default=False)
@@ -196,11 +188,20 @@ def get_pap_gnn_model(mover, config):
     return pap_model
 
 
-def get_learned_smpler(sampler_seed, use_unregularized):
+def get_learned_smpler(sampler_seed, algo):
     print "Creating the learned sampler.."
-    admon = create_imle_model(sampler_seed, use_unregularized)
-    print "Created IMLE model with weight name", admon.weight_file_name
-    return admon
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
+    placeholder_config = placeholder_config_definition(
+        algo=algo,
+        tau=1.0,
+        dtype='n_objs_pack_4',
+        seed=sampler_seed
+    )
+    epoch = 700
+    sampler = create_policy(placeholder_config)
+    #sampler.load_weights('epoch_' + str(epoch))
+    sampler.load_best_weights()
+    return sampler
 
 
 def make_pklable(plan):
@@ -230,7 +231,7 @@ def main():
     else:
         pap_model = None
     if config.integrated or config.integrated_unregularized_sampler:
-        smpler = get_learned_smpler(config.sampler_seed, config.integrated_unregularized_sampler)
+        smpler = get_learned_smpler(config.sampler_seed, config.sampler_algo)
     else:
         smpler = None
 
