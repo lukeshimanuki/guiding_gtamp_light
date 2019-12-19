@@ -8,7 +8,7 @@ from PlacePolicyIMLE import PlacePolicyIMLE
 class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         PlacePolicyIMLE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_imle_qg_combination_with_qg_evalnet_seed_%d' % config.seed
+        self.weight_file_name = 'place_imle_qg_combination_seed_%d' % config.seed
 
     def construct_policy_output(self):
         candidate_qg = self.construct_value_output()
