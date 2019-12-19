@@ -23,13 +23,18 @@ def admon_critic_loss(score_data, D_pred):
 
     # compute mse w.r.t true function values
     mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
-    #return mse_on_true_data + K.mean(y_neg)  # try to minimize the value of y_neg
-    return -K.mean(y_pos) + K.mean(y_neg)
+    return mse_on_true_data + K.mean(y_neg)  # I can fit the function without doing dmg to other networks
+    #return -K.mean(y_pos)# + K.mean(y_neg)
 
 
 def uniform_noise(z_size):
     noise_dim = z_size[-1]
     return np.random.uniform([0] * noise_dim, [1] * noise_dim, size=z_size).astype('float32')
+
+
+def gaussian_noise(z_size):
+    return np.random.normal(size=z_size).astype('float32')
+
 
 
 def make_repeated_data_for_fake_and_real_samples(data):
@@ -122,25 +127,14 @@ class PlacePolicyAdMon(PlacePolicy):
         sum_rewards = train_data['sum_rewards']
         n_train = len(actions)
 
-        """
-        self.critic_model.fit([actions,
-                               goal_flags,
-                               rel_konfs,
-                               collisions,
-                               poses],
-                              sum_rewards,
-                              batch_size=32,
-                              epochs=1000, verbose=True)
-        """
-
         batch_size = 32
         dummy = np.zeros((batch_size, 1))
 
         valid_errs = []
         patience = 0
         print "Training..."
-        g_lr = 1e-1
-        d_lr = 1e-2
+        g_lr = 1e-3
+        d_lr = 1e-4
         self.set_learning_rates(d_lr, g_lr)
 
         for i in range(epochs):
@@ -150,7 +144,7 @@ class PlacePolicyAdMon(PlacePolicy):
                     self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards,
                                    batch_size=batch_size)
 
-                noise_smpls = uniform_noise(z_size=(batch_size, self.dim_noise))
+                noise_smpls = gaussian_noise(z_size=(batch_size, self.dim_noise))
                 fake = self.policy_model.predict([goal_flag_batch, rel_konf_batch, col_batch, pose_batch,
                                                   noise_smpls])
                 real = a_batch
@@ -176,7 +170,7 @@ class PlacePolicyAdMon(PlacePolicy):
                                            dummy, epochs=1, verbose=False)
 
             t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
-            t_noise_smpls = uniform_noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
+            t_noise_smpls = gaussian_noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
             t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
             t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
                                                                                 t_noise_smpls)
@@ -196,22 +190,16 @@ class PlacePolicyAdMon(PlacePolicy):
             print "Best Val error", np.min(valid_errs)
             print "Val error %.2f patience %d" % (valid_err, patience)
             real_score_values = np.mean((self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
-            noise_smpls = uniform_noise(z_size=(n_train, self.dim_noise))
-            inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
-            pred = self.policy_model.predict(inp)
-            #self.critic_best_qk_model.predict([actions, goal_flags, rel_konfs, collisions, poses])
-            #best_qk = self.best_qk_model.predict(inp)
-            #evalnet = self.evalnet_model.predict(inp)
-            self.critic_eval_net.predict([actions, goal_flags, rel_konfs, collisions, poses])
+            noise_smpls = gaussian_noise(z_size=(n_train, self.dim_noise))
             fake_score_values = np.mean((self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
-            print "Real and fake scores %.2f, %.2f" % (real_score_values, fake_score_values)
-            import pdb;pdb.set_trace()
+            print "Real and fake scores %.5f, %.5f" % (real_score_values, fake_score_values)
 
+            # todo gradually reduce the learning rates based on the validation errs
             if real_score_values <= fake_score_values:
-                g_lr = 1e-2
-                d_lr = 1e-1
+                g_lr = 1e-4
+                d_lr = 1e-3
             else:
-                g_lr = 1e-1
-                d_lr = 1e-2
+                g_lr = 1e-3
+                d_lr = 1e-4
 
             self.set_learning_rates(d_lr, g_lr)
