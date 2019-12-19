@@ -118,7 +118,16 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     if len(noise_batch) > 1:
         noise_batch = np.array(noise_batch).squeeze()
 
-    pred_batch = policy.policy_model.predict([goal_flags, key_configs, collisions, poses, noise_batch])
+    inp = [goal_flags, key_configs, collisions, poses, noise_batch]
+    pred_batch = policy.policy_model.predict(inp)
+    eval_net = policy.evalnet_model.predict(inp).squeeze()
+    value_net = policy.value_model.predict(inp).squeeze()
+    import pdb;pdb.set_trace()
+    decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in value_net[0]]
+    eval_value = eval_net[0]
+    import pdb;pdb.set_trace()
+    utils.visualize_placements(decoded, obj)
+    import pdb;pdb.set_trace()
 
     #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     #eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
@@ -131,13 +140,12 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     konfs = np.array([utils.decode_pose_with_sin_and_cos_angle(k) for k in key_configs])
     import pdb;pdb.set_trace()
     """
-    decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
-    utils.visualize_placements(decoded, obj)
+
 
     import pdb;pdb.set_trace()
 
-    H, xedges, yedges = np.histogram2d(pred_batch[:, 0], pred_batch[:, 1], bins=10)
-    plt.imshow(H, interpolation='nearest', origin='low', extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    #H, xedges, yedges = np.histogram2d(pred_batch[:, 0], pred_batch[:, 1], bins=10)
+    #plt.imshow(H, interpolation='nearest', origin='low', extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]])
     #utils.visualize_path([best_qk])
     #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
     #return np.vstack([pred_batch,x])

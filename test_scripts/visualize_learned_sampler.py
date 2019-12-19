@@ -90,8 +90,7 @@ def visualize(problem_env, learned_sampler):
 
     target_obj.Enable(False)
     #[obj.Enable(False) for obj in problem_env.objects]
-    import pdb;pdb.set_trace()
-    learned_sampler.load_weights('epoch_'+str(700))
+    #learned_sampler.load_weights('epoch_'+str(700))
     state = compute_state(target_obj_name, 'loading_region', problem_env)
     z_smpls = uniform_noise(z_size=(80, 4))
     place_smpl = sampler_utils.generate_policy_smpl_batch(state, learned_sampler, z_smpls)

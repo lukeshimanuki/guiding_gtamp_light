@@ -18,34 +18,10 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
         return output
 
     def construct_model(self, output, name):
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                       outputs=[output],
                       name=name)
         return model
-
-    """
-    def construct_eval_net(self, candidate_qg_input):
-        collision_input = Flatten()(self.collision_input)
-        concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
-
-        dense_num = 8
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        evalnet = Dense(self.n_key_confs, activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
-        evalnet = Reshape((self.n_key_confs,))(evalnet)
-
-        def compute_softmax(x):
-            return K.softmax(x, axis=-1)
-
-        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
-        return evalnet
-    """
 
     def construct_eval_net(self, qg_candidates):
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
@@ -81,6 +57,8 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(H)
+        self.evalnet_model = self.construct_model(evalnet, 'evalnet_model')
+
         return evalnet
 
     def construct_value_output(self):
@@ -114,8 +92,5 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
                        bias_initializer=self.bias_initializer)(H)
 
         value = Lambda(lambda x: K.squeeze(x, axis=2), name='candidate_qg')(value)
-        self.value_model = Model(
-            inputs=[self.goal_flag_input, self.key_config_input, self.pose_input, self.noise_input],
-            outputs=value,
-            name='value_model')
+        self.value_model = self.construct_model(value, 'valuemodel')
         return value
