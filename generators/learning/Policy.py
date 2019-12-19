@@ -104,6 +104,10 @@ class Policy:
         print "Loading weights", fname
         self.policy_model.load_weights(fdir+fname)
 
+    def load_best_weights(self):
+        print "Loading weights", self.save_folder + self.weight_file_name + 'best_val_err.h5'
+        self.policy_model.load_weights(self.save_folder + self.weight_file_name + 'best_val_err.h5')
+
     @staticmethod
     def get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards,
                                 train_indices,

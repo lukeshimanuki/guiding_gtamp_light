@@ -120,11 +120,13 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
 
     inp = [goal_flags, key_configs, collisions, poses, noise_batch]
     pred_batch = policy.policy_model.predict(inp)
-    eval_net = policy.evalnet_model.predict(inp).squeeze()
-    value_net = policy.value_model.predict(inp).squeeze()
-    import pdb;pdb.set_trace()
-    decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in value_net[0]]
-    eval_value = eval_net[0]
+    decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
+    """
+    #eval_net = policy.evalnet_model.predict(inp).squeeze()
+    #value_net = policy.value_model.predict(inp).squeeze()
+    #decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in value_net[0]]
+    #eval_value = eval_net[0]
+    """
     import pdb;pdb.set_trace()
     utils.visualize_placements(decoded, obj)
     import pdb;pdb.set_trace()
