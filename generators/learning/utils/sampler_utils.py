@@ -34,14 +34,14 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     collisions = np.delete(collisions, indices_to_delete, axis=1)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-    print "delete time:", time.time() - stime
+    #print "delete time:", time.time() - stime
 
     # todo these following three lines can be removed
     stime = time.time()
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
-    print "key config processing time:", time.time() - stime
+    #print "key config processing time:", time.time() - stime
 
     # make repeated inputs other than noise, because we are making multiple predictions
     # todo save the following to the concrete state
@@ -53,15 +53,15 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     poses = np.tile(poses, (n_smpls, 1))
     if len(noise_batch) > 1:
         noise_batch = np.array(noise_batch).squeeze()
-    print "tiling time:", time.time() - stime
+    #print "tiling time:", time.time() - stime
 
     inp = [goal_flags, key_configs, collisions, poses, noise_batch]
     stime = time.time()
     pred_batch = sampler.policy_model.predict(inp)
-    print "prediction time:", time.time() - stime
+    #print "prediction time:", time.time() - stime
     stime = time.time()
     samples_in_se2 = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
-    print "Decoding time: ", time.time() - stime
+    #print "Decoding time: ", time.time() - stime
     return samples_in_se2
 
 
