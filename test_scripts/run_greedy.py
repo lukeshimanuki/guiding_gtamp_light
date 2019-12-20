@@ -59,13 +59,13 @@ def get_solution_file_name(config):
         solution_file_dir += q_config
 
     if config.integrated:
-        solution_file_dir += '/integrated/shortest_irsc/'
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += solution_file_dir + sampler_config
+        solution_file_dir += '/integrated_200_smpls_per_batch/shortest_irsc/'
+        solution_file_dir += sampler_config
     elif config.integrated_unregularized_sampler:
-        solution_file_dir += '/integrated/shortest_irsc/'
         sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir = solution_file_dir + sampler_config
+        solution_file_dir += '/integrated/shortest_irsc/'
+        solution_file_dir += sampler_config
 
     if config.integrated or config.integrated_unregularized_sampler:
         solution_file_name = 'pidx_' + str(config.pidx) + \
@@ -78,7 +78,6 @@ def get_solution_file_name(config):
                              '_planner_seed_' + str(config.planner_seed) + \
                              '_train_seed_' + str(config.absq_seed) + \
                              '_domain_' + str(config.domain) + '.pkl'
-
     if not os.path.isdir(solution_file_dir):
         os.makedirs(solution_file_dir)
     solution_file_name = solution_file_dir + solution_file_name
