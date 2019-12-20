@@ -116,7 +116,9 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     stime = time.time()
     pred_batch = sampler.policy_model.predict(inp)
     print "prediction time:", time.time() - stime
+    stime = time.time()
     samples_in_se2 = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
+    print "Decoding time: ", time.time()-stime
     return samples_in_se2
 
 
