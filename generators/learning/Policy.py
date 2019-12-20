@@ -20,7 +20,8 @@ class Policy:
         self.dim_noise = 4
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
 
-        if not os.path.isdir(save_folder):
+
+        if save_folder !='' and not os.path.isdir(save_folder):
             os.makedirs(save_folder)
 
         self.opt_G = Adam(lr=1e-4, beta_1=0.5)
