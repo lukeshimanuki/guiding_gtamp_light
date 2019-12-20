@@ -91,7 +91,7 @@ class LearnedGenerator(PaPUniformGenerator):
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             self.policy_smpl_idx += 1
             if self.policy_smpl_idx >= len(self.policy_smpl_batch):
-                z_smpls = uniform_noise(z_size=(200, 4))
+                z_smpls = uniform_noise(z_size=(500, 4))
                 stime = time.time()
                 self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, self.key_configs)
                 print "Prediction time for further sampling", time.time() - stime
