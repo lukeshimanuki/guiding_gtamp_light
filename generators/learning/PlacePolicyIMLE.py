@@ -92,10 +92,6 @@ class PlacePolicyIMLE(PlacePolicy):
         ]
         return callbacks
 
-    def load_best_weights(self):
-        print "Loading weights", self.save_folder + self.weight_file_name + 'best_val_err.h5'
-        self.policy_model.load_weights(self.save_folder + self.weight_file_name + 'best_val_err.h5')
-
     def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=1000):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
@@ -131,7 +127,7 @@ class PlacePolicyIMLE(PlacePolicy):
             print 'Epoch %d/%d' % (epoch, epochs)
             is_time_to_smpl_new_data = epoch % data_resampling_step == 0
             batch_size = len(actions)
-            #col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
+            # col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
             #    self.get_batch(collisions, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size=batch_size)
             goal_flag_batch = goal_flags
             col_batch = collisions
@@ -165,7 +161,7 @@ class PlacePolicyIMLE(PlacePolicy):
                                     [t_actions, t_actions]),
                                 callbacks=callbacks,
                                 verbose=True)
-            #self.load_weights()
+            # self.load_weights()
             after = self.policy_model.get_weights()
             gen_w_norm = np.linalg.norm(np.hstack([(a - b).flatten() for a, b in zip(before, after)]))
             print "Generator weight norm diff", gen_w_norm
@@ -175,7 +171,7 @@ class PlacePolicyIMLE(PlacePolicy):
             valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
             valid_errs.append(valid_err)
             if epoch % 100 == 0:
-                self.save_weights('epoch_'+str(epoch))
+                self.save_weights('epoch_' + str(epoch))
 
             if valid_err <= np.min(valid_errs):
                 self.save_weights(additional_name='best_val_err')

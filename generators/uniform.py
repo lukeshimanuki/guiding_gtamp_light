@@ -165,13 +165,10 @@ class PaPUniformGenerator(UniformGenerator):
                           cached_collisions=None, cached_holding_collisions=None, dont_check_motion_existence=False):
         # Not yet motion-planning-feasible
         target_obj = operator_skeleton.discrete_parameters['object']
-        operator_skeleton.discrete_parameters['object'] = target_obj
-        operator_skeleton.discrete_parameters['region'] = 'home_region'
         if target_obj in self.feasible_pick_params:
             self.op_feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         status = "NoSolution"
-        utils.set_color(operator_skeleton.discrete_parameters['object'], [1, 0, 0])
         for curr_n_iter in range(10, self.max_n_iter, 10):
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
@@ -196,8 +193,10 @@ class PaPUniformGenerator(UniformGenerator):
                                                 cached_collisions, cached_holding_collisions):
         # getting pick motion - I can still use the cached collisions from state computation
         pick_op_params = [op['pick'] for op in feasible_op_parameters]
+
         chosen_pick_param = self.get_op_param_with_feasible_motion_plan(pick_op_params, cached_collisions)
         if not chosen_pick_param['is_feasible']:
+            #print "Motion planning to pick failed"
             return {'is_feasible': False}
 
         target_obj = operator_skeleton.discrete_parameters['object']

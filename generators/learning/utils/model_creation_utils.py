@@ -15,7 +15,12 @@ from generators.learning.PlacePolicyMSETransformer import PlacePolicyMSETransfor
 
 from data_processing_utils import state_data_mode, action_data_mode
 
-import collections
+import socket
+
+if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
+    ROOTDIR = './'
+else:
+    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp_light/learned_weights/'
 
 
 def load_weights(policy, seed, use_unregularized):
@@ -31,8 +36,12 @@ def create_policy(config):
     n_key_configs = 291
     dim_state = (n_key_configs, 2, 1)
     dim_action = 4
-    savedir = 'generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
-              (config.dtype, state_data_mode, action_data_mode, config.algo)
+
+    if ROOTDIR == './':
+        savedir = '/generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                  (config.dtype, state_data_mode, action_data_mode, config.algo)
+    else:
+        savedir = ''
     if config.algo == "sa_mse":
         policy = PlacePolicyMSESelfAttention(dim_action=dim_action,
                                              dim_collision=dim_state,

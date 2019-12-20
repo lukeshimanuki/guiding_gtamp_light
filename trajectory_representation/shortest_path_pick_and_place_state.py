@@ -18,7 +18,6 @@ class ShortestPathPaPState(PaPState):
     def __init__(self, problem_env, goal_entities, parent_state=None, parent_action=None, planner='greedy'):
         PaPState.__init__(self, problem_env, goal_entities, parent_state=None, parent_action=None,
                           paps_used_in_data=None)
-
         self.parent_state = parent_state
         self.parent_ternary_predicates = {}
         self.parent_binary_predicates = {}
@@ -64,7 +63,6 @@ class ShortestPathPaPState(PaPState):
         else:
             self.holding_collides = None
             self.holding_current_collides = None
-        self.key_config_obstacles = self.make_key_config_obstacles_from_prm_collisions()
         self.place_used = {}
         self.cached_pick_paths = {}
         self.cached_place_paths = {}
@@ -82,16 +80,6 @@ class ShortestPathPaPState(PaPState):
         self.nodes = self.get_nodes()
         self.binary_edges = self.get_binary_edges()
         self.ternary_edges = self.get_ternary_edges()
-
-    def make_key_config_obstacles_from_prm_collisions(self):
-        # make key configs
-        n_vtxs = len(self.prm_vertices)
-        collision_vector = np.zeros((n_vtxs))
-        colliding_vtx_idxs = [v for v in self.collides.values()]
-        colliding_vtx_idxs = list(set().union(*colliding_vtx_idxs))
-        collision_vector[colliding_vtx_idxs] = 1
-        collision_vector = np.delete(collision_vector, [415, 586, 615, 618, 619], axis=0)
-        return collision_vector
 
     def initialize_parent_predicates(self, moved_obj, parent_state, parent_action):
         assert parent_action is not None

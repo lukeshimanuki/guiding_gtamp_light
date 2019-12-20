@@ -6,6 +6,7 @@ from keras.callbacks import *
 import numpy as np
 import sys
 import tensorflow as tf
+import socket
 
 INFEASIBLE_SCORE = -sys.float_info.max
 
@@ -24,7 +25,7 @@ def admon_critic_loss(score_data, D_pred):
     # compute mse w.r.t true function values
     mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
     return mse_on_true_data + K.mean(y_neg)  # I can fit the function without doing dmg to other networks
-    #return -K.mean(y_pos)# + K.mean(y_neg)
+    # return -K.mean(y_pos)# + K.mean(y_neg)
 
 
 def uniform_noise(z_size):
@@ -36,9 +37,14 @@ def gaussian_noise(z_size):
     return np.random.normal(size=z_size).astype('float32')
 
 
-
 def make_repeated_data_for_fake_and_real_samples(data):
     return np.repeat(data, 2, axis=0)
+
+
+if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
+    ROOTDIR = './'
+else:
+    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
 
 class PlacePolicyAdMon(PlacePolicy):
@@ -48,6 +54,12 @@ class PlacePolicyAdMon(PlacePolicy):
         self.critic_output = self.construct_critic()
         self.critic_model = self.construct_critic_model()
         self.policy_loss_model = self.construct_policy_loss_model()
+
+    def load_weights(self, additional_name=''):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + '.h5'
+        print "Loading weights", fname
+        self.policy_model.load_weights(fdir + fname)
 
     def construct_critic_model(self):
         disc = Model(inputs=[self.action_input, self.goal_flag_input, self.key_config_input, self.collision_input,
@@ -133,11 +145,11 @@ class PlacePolicyAdMon(PlacePolicy):
         valid_errs = []
         patience = 0
         print "Training..."
-        g_lr = 1e-3
-        d_lr = 1e-4
+        g_lr = 1e-4
+        d_lr = 1e-3
         self.set_learning_rates(d_lr, g_lr)
 
-        for i in range(epochs):
+        for epoch in range(epochs):
             batch_idxs = range(0, actions.shape[0], batch_size)
             for _ in batch_idxs:
                 col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, sum_reward_batch = \
@@ -179,7 +191,7 @@ class PlacePolicyAdMon(PlacePolicy):
             valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
             valid_errs.append(valid_err)
 
-            self.save_weights()
+            self.save_weights('epoch_'+str(epoch))
 
             if valid_err <= np.min(valid_errs):
                 self.save_weights(additional_name='best_val_err')
@@ -189,9 +201,11 @@ class PlacePolicyAdMon(PlacePolicy):
 
             print "Best Val error", np.min(valid_errs)
             print "Val error %.2f patience %d" % (valid_err, patience)
-            real_score_values = np.mean((self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
+            real_score_values = np.mean(
+                (self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
             noise_smpls = gaussian_noise(z_size=(n_train, self.dim_noise))
-            fake_score_values = np.mean((self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
+            fake_score_values = np.mean(
+                (self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
             print "Real and fake scores %.5f, %.5f" % (real_score_values, fake_score_values)
 
             # todo gradually reduce the learning rates based on the validation errs

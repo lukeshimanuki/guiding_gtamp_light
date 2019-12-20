@@ -5,22 +5,22 @@ import pickle
 
 class ConcreteNodeState:
     def __init__(self, problem_env, obj, region, goal_entities, key_configs=None, collision_vector=None):
-        self.obj = obj
         self.region = region
         self.goal_entities = goal_entities
 
-        self.key_configs = self.get_key_configs(key_configs)
-        self.collision_vector = self.get_collison_vector(collision_vector)
-
         if type(obj) == str or type(obj) == unicode:
             obj = problem_env.env.GetKinBody(obj)
+        self.obj = obj
 
+        self.key_configs = self.get_key_configs(key_configs)
+        self.collision_vector = self.get_collison_vector(collision_vector)
         self.abs_robot_pose = utils.clean_pose_data(utils.get_body_xytheta(problem_env.robot))
         self.abs_obj_pose = utils.clean_pose_data(utils.get_body_xytheta(obj))
         self.goal_flags = self.get_goal_flags()
         self.rel_konfs = None
 
-        self.abs_goal_obj_poses = [utils.clean_pose_data(utils.get_body_xytheta(o)) for o in goal_entities if 'region' not in o]
+        self.abs_goal_obj_poses = [utils.clean_pose_data(utils.get_body_xytheta(o)) for o in goal_entities if
+                                   'region' not in o]
 
     def get_goal_flags(self):
         n_key_configs = self.collision_vector.shape[1]
@@ -40,10 +40,12 @@ class ConcreteNodeState:
         return key_configs
 
     def get_collison_vector(self, given_collision_vector):
+        self.obj.Enable(False)
         if given_collision_vector is None:
             collision_vector = utils.compute_occ_vec(self.key_configs)
         else:
             collision_vector = given_collision_vector
         collision_vector = utils.convert_binary_vec_to_one_hot(collision_vector)
         collision_vector = collision_vector.reshape((1, len(collision_vector), 2, 1))
+        self.obj.Enable(True)
         return collision_vector

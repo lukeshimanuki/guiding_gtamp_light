@@ -22,42 +22,25 @@ DISABLE_COLLISIONS = False
 MAX_DISTANCE = 1.0
 
 
-def create_state_vec(key_config_obstacles, action, goal_entities):
-    obj = action.discrete_parameters['object']
-    region = action.discrete_parameters['place_region']
-    one_hot = utils.convert_binary_vec_to_one_hot(key_config_obstacles)
-    is_goal_obj = utils.convert_binary_vec_to_one_hot(np.array([obj in goal_entities]))
-    is_goal_region = utils.convert_binary_vec_to_one_hot(np.array([region in goal_entities]))
+def sample_continuous_parameters(abstract_action, abstract_state, mover, learned_sampler):
+    place_region = abstract_action.discrete_parameters['place_region']
+    if learned_sampler is None or 'loading' not in place_region:
+        smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
+        stime = time.time()
+        smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
+                                                cached_collisions=abstract_state.collides,
+                                                cached_holding_collisions=None)
+        print 'smpling time', time.time() - stime
+    else:
+        # is it necessary to make the generator again?
+        smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
+        stime = time.time()
+        smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
+                                                cached_collisions=abstract_state.collides,
+                                                cached_holding_collisions=None)
+        print 'smpling time', time.time() - stime
 
-    state_vec = np.vstack([one_hot, is_goal_obj, is_goal_region])
-    state_vec = state_vec.reshape((1, len(state_vec), 2, 1))
-
-    return state_vec
-
-
-def get_pick_base_poses(action, smples):
-    pick_base_poses = []
-    for smpl in smples:
-        smpl = smpl[0:4]
-        sin_cos_encoding = smpl[-2:]
-        decoded_angle = utils.decode_sin_and_cos_to_angle(sin_cos_encoding)
-        smpl = np.hstack([smpl[0:2], decoded_angle])
-        abs_base_pose = utils.get_absolute_pick_base_pose_from_ir_parameters(smpl, action.discrete_parameters['object'])
-        pick_base_poses.append(abs_base_pose)
-    return pick_base_poses
-
-
-def get_place_base_poses(action, smples, mover):
-    place_base_poses = smples[:, 4:]
-    to_return = []
-    for bsmpl in place_base_poses:
-        sin_cos_encoding = bsmpl[-2:]
-        decoded_angle = utils.decode_sin_and_cos_to_angle(sin_cos_encoding)
-        bsmpl = np.hstack([bsmpl[0:2], decoded_angle])
-        to_return.append(bsmpl)
-    to_return = np.array(to_return)
-    to_return[:, 0:2] += mover.regions[action.discrete_parameters['place_region']].box[0]
-    return to_return
+    return smpled_param
 
 
 def search(mover, config, pap_model, learned_smpler=None):
@@ -69,26 +52,6 @@ def search(mover, config, pap_model, learned_smpler=None):
     goal = mover.goal
     mover.reset_to_init_state_stripstream()
     depth_limit = 60
-
-    # utils.viewer()
-    """
-    actions = get_actions(mover, goal, config)
-    action = actions[0]
-    utils.set_color(action.discrete_parameters['object'], [1, 0, 0])
-    state_vec = create_state_vec(state.key_config_obstacles, action, goal)
-    smpler = LearnedGenerator(action, mover, learned_smpler, state_vec)
-    smples = np.vstack([smpler.sampler.generate(state_vec) for _ in range(10)])
-    pick_base_poses = get_pick_base_poses(action, smples)
-    place_base_poses = get_place_base_poses(action, smples, mover)
-    utils.visualize_path(place_base_poses)
-    #utils.visualize_path(pick_base_poses)
-    import pdb;
-    pdb.set_trace()
-
-    smpled_param = smpler.sample_next_point(action, n_iter=200, n_parameters_to_try_motion_planning=3,
-                                            cached_collisions=state.collides,
-                                            cached_holding_collisions=None)
-    """
 
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
@@ -129,20 +92,7 @@ def search(mover, config, pap_model, learned_smpler=None):
 
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
-            if learned_smpler is None:
-                smpler = PaPUniformGenerator(action, mover, max_n_iter=200)
-                stime = time.time()
-                smpled_param = smpler.sample_next_point(action, n_parameters_to_try_motion_planning=3,
-                                                        cached_collisions=state.collides,
-                                                        cached_holding_collisions=None)
-                print 'smpling time', time.time() - stime
-            else:
-                smpler = LearnedGenerator(action, mover, learned_smpler, state, max_n_iter=200)
-                stime = time.time()
-                smpled_param = smpler.sample_next_point(action, n_parameters_to_try_motion_planning=3,
-                                                        cached_collisions=state.collides,
-                                                        cached_holding_collisions=None)
-                print 'smpling time', time.time() - stime
+            smpled_param = sample_continuous_parameters(action, state, mover, learned_smpler)
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
