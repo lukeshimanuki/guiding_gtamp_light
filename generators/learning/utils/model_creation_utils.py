@@ -15,7 +15,6 @@ from generators.learning.PlacePolicyMSETransformer import PlacePolicyMSETransfor
 
 from generators.learning.PolicyIMLECombinationOfQg import PolicyIMLECombinationOfQg
 
-
 from data_processing_utils import state_data_mode, action_data_mode
 
 import socket
@@ -38,7 +37,7 @@ def load_weights(policy, seed, use_unregularized):
 def create_policy(config):
     n_key_configs = 291
     dim_state = (n_key_configs, 2, 1)
-    dim_action = 8
+    dim_action = 4
 
     if ROOTDIR == './':
         savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
@@ -72,7 +71,6 @@ def create_policy(config):
     elif config.algo == 'constrained':
         policy = PlacePolicyConstrainedOptimization(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
                                                     tau=config.tau, config=config)
-
     elif config.algo == 'scorebased':
         policy = PlacePolicyMSEScoreBased(dim_action=dim_action, dim_collision=dim_state,
                                           save_folder=savedir, tau=config.tau, config=config)
@@ -80,6 +78,10 @@ def create_policy(config):
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
                                                save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'imle_qg_combination':
+        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
+                                                save_folder=savedir, tau=config.tau, config=config)
+    elif config.algo == 'full_imle_qg_combination':
+        dim_action = 8
         policy = PolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
                                            save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'sa_admon':

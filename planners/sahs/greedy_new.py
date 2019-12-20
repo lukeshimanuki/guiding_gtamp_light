@@ -20,9 +20,10 @@ connected = np.array([len(s) >= 2 for s in prm_edges])
 prm_indices = {tuple(v): i for i, v in enumerate(prm_vertices)}
 DISABLE_COLLISIONS = False
 MAX_DISTANCE = 1.0
-
+counter = 0
 
 def sample_continuous_parameters(abstract_action, abstract_state, abstract_node, mover, learned_sampler):
+    global counter
     place_region = abstract_action.discrete_parameters['place_region']
     if learned_sampler is None or 'loading' not in place_region:
         smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
@@ -36,6 +37,8 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
         if abstract_node.smpler is None:
             smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
             abstract_node.smpler = smpler
+            print counter
+            counter +=1
         else:
             smpler = abstract_node.smpler
 

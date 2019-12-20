@@ -24,10 +24,10 @@ class LearnedGenerator(PaPUniformGenerator):
 
         goal_entities = self.abstract_state.goal_entities
         key_config_obstacles = self.process_abstract_state_collisions_into_key_config_obstacles(abstract_state)
-        key_configs = np.delete(abstract_state.prm_vertices, [415, 586, 615, 618, 619], axis=0)
+        self.key_configs = np.delete(abstract_state.prm_vertices, [415, 586, 615, 618, 619], axis=0)
         self.smpler_state = ConcreteNodeState(self.problem_env, self.obj, self.region,
                                               goal_entities,
-                                              key_configs=key_configs,
+                                              key_configs=self.key_configs,
                                               collision_vector=key_config_obstacles)
         self.noises_used = []
         self.tried_smpls = []
@@ -35,9 +35,9 @@ class LearnedGenerator(PaPUniformGenerator):
         # to do generate 1000 smpls here
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
-        z_smpls = uniform_noise(z_size=(1900, 4))
+        z_smpls = uniform_noise(z_size=(200, 4))
         stime=time.time()
-        self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, key_configs)
+        self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, self.key_configs)
         print "Prediction time", time.time() - stime
 
         orig_color = utils.get_color_of(self.obj)
@@ -91,9 +91,9 @@ class LearnedGenerator(PaPUniformGenerator):
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             self.policy_smpl_idx += 1
             if self.policy_smpl_idx >= len(self.policy_smpl_batch):
-                z_smpls = uniform_noise(z_size=(100, 4))
+                z_smpls = uniform_noise(z_size=(200, 4))
                 stime = time.time()
-                self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls)
+                self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, self.key_configs)
                 print "Prediction time for further sampling", time.time() - stime
                 self.policy_smpl_idx = 0
         else:

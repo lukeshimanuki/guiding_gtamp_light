@@ -81,7 +81,6 @@ def get_solution_file_name(config):
 
     if not os.path.isdir(solution_file_dir):
         os.makedirs(solution_file_dir)
-
     solution_file_name = solution_file_dir + solution_file_name
     return solution_file_name
 

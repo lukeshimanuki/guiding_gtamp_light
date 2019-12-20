@@ -23,6 +23,7 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     goal_flags, collisions, poses = prepare_input(concrete_state)
 
     # processing key configs
+    # todo below can be saved for this state as well
     stime = time.time()
     xmin = -0.7
     xmax = 4.3
@@ -43,6 +44,7 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     print "key config processing time:", time.time() - stime
 
     # make repeated inputs other than noise, because we are making multiple predictions
+    # todo save the following to the concrete state
     stime = time.time()
     n_smpls = len(noise_batch)
     goal_flags = np.tile(goal_flags, (n_smpls, 1, 1, 1))
