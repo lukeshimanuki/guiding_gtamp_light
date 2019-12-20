@@ -12,7 +12,7 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
 
     def construct_policy_output(self):
         candidate_qg = self.construct_value_output()
-        evalnet_input = Reshape((self.n_key_confs, 4, 1))(candidate_qg)
+        evalnet_input = Reshape((self.n_key_confs, self.dim_action, 1))(candidate_qg)
         eval_net = self.construct_eval_net(evalnet_input)
         output = Lambda(lambda x: K.batch_dot(x[0], x[1]), name='policy_output')([eval_net, candidate_qg])
         return output
@@ -84,7 +84,7 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        value = Conv2D(filters=4,
+        value = Conv2D(filters=self.dim_action,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',

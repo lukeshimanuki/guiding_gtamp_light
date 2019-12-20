@@ -6,7 +6,7 @@ class Node(object):
         self.state = state  # resulting state
         self.reward = reward  # resulting reward
         self.heuristic_vals = {}
-        self.smpler  = None
+        self.smpler = None
         #for a in self.action:
         #    self.heuristic_vals[a] = None # used only for the root node
 

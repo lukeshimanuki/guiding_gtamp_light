@@ -175,21 +175,14 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
-    actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
+
+    actions = np.array([np.hstack([utils.encode_pose_with_sin_and_cos_angle(a[0:3]),
+                                   utils.encode_pose_with_sin_and_cos_angle(a[3:])]) for a in actions])
+
     poses = poses[:, :-4]
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
-    """
-    problem_env, openrave_env = create_environment(0)
-    data_idx = 1
-    init = utils.decode_pose_with_sin_and_cos_angle(poses[data_idx][-4:])
-    utils.set_robot_config(init)
-    utils.visualize_path(key_configs[konf_relevance[data_idx], :])
-    goal = utils.decode_pose_with_sin_and_cos_angle(actions[data_idx])
-    utils.set_robot_config(init)
-    import pdb;pdb.set_trace()
-    """
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
 
     # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
@@ -208,15 +201,6 @@ def train(config):
     key_configs = key_configs.repeat(len(poses), axis=0)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
 
-    """
-    reasonable_data_idxs = (sum_rewards > -30).squeeze()
-    states = states[reasonable_data_idxs, :]
-    konf_relevance = konf_relevance[reasonable_data_idxs, :]
-    poses = poses[reasonable_data_idxs, :]
-    key_configs = key_configs[reasonable_data_idxs, :]
-    actions = actions[reasonable_data_idxs, :]
-    sum_rewards = sum_rewards[reasonable_data_idxs, :]
-    """
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 

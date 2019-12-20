@@ -35,7 +35,7 @@ def load_weights(policy, seed, use_unregularized):
 def create_policy(config):
     n_key_configs = 291
     dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
+    dim_action = 8
 
     if ROOTDIR == './':
         savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
