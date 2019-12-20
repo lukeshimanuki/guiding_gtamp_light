@@ -20,7 +20,6 @@ class Policy:
         self.dim_noise = 4
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
 
-
         if save_folder !='' and not os.path.isdir(save_folder):
             os.makedirs(save_folder)
 
@@ -102,7 +101,7 @@ class Policy:
     def load_weights(self, additional_name=''):
         fdir = ROOTDIR + '/' + self.save_folder + '/'
         fname = self.weight_file_name + additional_name + '.h5'
-        print "Loading weights", fname
+        print "Loading weights", fdir+fname
         self.policy_model.load_weights(fdir+fname)
 
     def load_best_weights(self):
