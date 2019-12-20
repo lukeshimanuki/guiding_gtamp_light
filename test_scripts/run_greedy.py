@@ -13,6 +13,7 @@ from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.utils.model_creation_utils import create_policy
+from gtamp_utils import utils
 
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
@@ -23,6 +24,8 @@ def get_problem_env(config):
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
         goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
+        for obj in problem_env.objects[:n_objs_pack]:
+            utils.set_color(obj, [0,1,0])
         #goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
         #                 'rectangular_packing_box4']
         problem_env.set_goal(goal)
@@ -60,7 +63,7 @@ def get_solution_file_name(config):
 
     if config.integrated:
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated_1900_smpls_per_batch/shortest_irsc/'
+        solution_file_dir += '/integrated_1900_new_generator_every_time_smpls_per_batch/shortest_irsc/'
         solution_file_dir += sampler_config
     elif config.integrated_unregularized_sampler:
         sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'

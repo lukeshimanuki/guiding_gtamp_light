@@ -45,11 +45,14 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
         """
 
         stime = time.time()
+        """
         if (target_obj, place_region) in abstract_node.smplers_for_each_action:
             smpler = abstract_node.smplers_for_each_action[(target_obj, place_region)]
         else:
             smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
             abstract_node.smplers_for_each_action[(target_obj, place_region)] = smpler
+        """
+        smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
                                                 cached_collisions=abstract_state.collides,

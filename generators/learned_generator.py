@@ -40,11 +40,13 @@ class LearnedGenerator(PaPUniformGenerator):
         self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, self.key_configs)
         #print "Prediction time", time.time() - stime
 
+        """
         orig_color = utils.get_color_of(self.obj)
-        # utils.set_color(self.obj, [1, 0, 0])
-        # utils.visualize_placements(self.policy_smpl_batch[0:200], self.obj)
-        # import pdb;pdb.set_trace()
-        # utils.set_color(self.obj, orig_color)
+        utils.set_color(self.obj, [1, 0, 0])
+        import pdb;pdb.set_trace()
+        utils.visualize_placements(self.policy_smpl_batch[0:200], self.obj)
+        utils.set_color(self.obj, orig_color)
+        """
         self.policy_smpl_idx = 0
 
     def process_abstract_state_collisions_into_key_config_obstacles(self, abstract_state):
