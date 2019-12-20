@@ -11,7 +11,7 @@ import socket
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
     ROOTDIR = './'
 else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
+    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp_light/learned_weights/'
 
 
 # Implements util functions and initializes dimension variables and directories.
