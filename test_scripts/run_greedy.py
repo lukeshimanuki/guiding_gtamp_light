@@ -63,7 +63,7 @@ def get_solution_file_name(config):
 
     if config.integrated:
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated_1900_new_generator_every_time_smpls_per_batch/shortest_irsc/'
+        solution_file_dir += '/integrated_500_smpls_per_batch/shortest_irsc/'
         solution_file_dir += sampler_config
     elif config.integrated_unregularized_sampler:
         sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'

@@ -35,7 +35,7 @@ class LearnedGenerator(PaPUniformGenerator):
         # to do generate 1000 smpls here
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
-        z_smpls = uniform_noise(z_size=(1900, 4))
+        z_smpls = uniform_noise(z_size=(500, 4))
         #stime=time.time()
         self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, self.key_configs)
         #print "Prediction time", time.time() - stime
