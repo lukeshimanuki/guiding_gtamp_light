@@ -39,7 +39,6 @@ class LearnedGenerator(PaPUniformGenerator):
         stime=time.time()
         self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, key_configs)
         print "Prediction time", time.time() - stime
-        import pdb;pdb.set_trace()
 
         orig_color = utils.get_color_of(self.obj)
         # utils.set_color(self.obj, [1, 0, 0])

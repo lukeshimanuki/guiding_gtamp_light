@@ -8,11 +8,8 @@ from matplotlib import pyplot as plt
 
 
 def prepare_input(smpler_state):
-    # poses = np.hstack(
-    #    [utils.encode_pose_with_sin_and_cos_angle(utils.get_body_xytheta(obj).squeeze()), 0, 0, 0, 0]).reshape((1, 8))
-    action = {'pick_abs_base_pose': np.array([0,0,0])}
+    action = {'pick_abs_base_pose': np.array([0, 0, 0])}
     poses = data_processing_utils.get_processed_poses_from_state(smpler_state, action)[None, :]
-    obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
     goal_flags = smpler_state.goal_flags
     collisions = smpler_state.collision_vector
@@ -22,59 +19,11 @@ def prepare_input(smpler_state):
     return goal_flags, collisions, poses
 
 
-def generate_smpls(smpler_state, policy, n_data, noise_smpls_tried=None):
-    goal_flags, rel_konfs, collisions, poses = prepare_input(smpler_state)
-    obj = smpler_state.obj
-    utils.set_color(obj, [1, 0, 0])
-    obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
-
-    places = []
-    noises_used = []
-    for _ in range(n_data):
-        smpls, noises_used = policy.generate(goal_flags, rel_konfs, collisions, poses, noises_used)
-        placement = data_processing_utils.get_unprocessed_placement(smpls.squeeze(), obj_pose)
-        places.append(placement)
-    if noise_smpls_tried is not None:
-        return places, noises_used
-    else:
-        return places
-
-
-def generate_smpls_using_noise(smpler_state, policy, noises):
-    goal_flags, rel_konfs, collisions, poses = prepare_input(smpler_state)
-    obj = smpler_state.obj
-    utils.set_color(obj, [1, 0, 0])
-    obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
-
-    places = []
-    smpls = policy.generate_given_noise(goal_flags, rel_konfs, collisions, poses, noises)
-    placement = data_processing_utils.get_unprocessed_placement(smpls.squeeze(), obj_pose)
-    places.append(placement)
-    return places
-
-
-def generate_w_values(smpler_state, policy):
-    goal_flags, rel_konfs, collisions, poses = prepare_input(smpler_state)
-    w_vals = policy.w_model.predict([goal_flags, rel_konfs, collisions, poses])
-    return w_vals
-
-
-def generate_transformed_key_configs(smpler_state, policy):
-    obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
-    goal_flags, rel_konfs, collisions, poses = prepare_input(smpler_state)
-    n_data = len(goal_flags)
-    a_dim = 4
-    noise_smpls = np.random.normal(size=(n_data, a_dim)).astype('float32')
-    smpls = policy.value_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()
-    transformed = [data_processing_utils.get_unprocessed_placement(s, obj_pose) for s in smpls]
-    return np.array(transformed)
-
-
 def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     goal_flags, collisions, poses = prepare_input(concrete_state)
 
     # processing key configs
-    stime=time.time()
+    stime = time.time()
     xmin = -0.7
     xmax = 4.3
     ymin = -8.55
@@ -87,7 +36,7 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     print "delete time:", time.time() - stime
 
     # todo these following three lines can be removed
-    stime=time.time()
+    stime = time.time()
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
@@ -110,7 +59,7 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
     print "prediction time:", time.time() - stime
     stime = time.time()
     samples_in_se2 = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
-    print "Decoding time: ", time.time()-stime
+    print "Decoding time: ", time.time() - stime
     return samples_in_se2
 
 
@@ -157,14 +106,16 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     #decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in value_net[0]]
     #eval_value = eval_net[0]
     """
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
     utils.visualize_placements(decoded, obj)
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
 
-    #value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
-    #eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
-    #value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
-    #best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
+    # value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    # eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
+    # value_net = [utils.decode_pose_with_sin_and_cos_angle(p) for p in value_net]
+    # best_qk = policy.best_qk_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
     """
     eval_net = policy.evalnet_model.predict([goal_flags, key_configs, collisions, poses]).squeeze()
     idxs = eval_net[0] > 1e-5
@@ -173,12 +124,12 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     import pdb;pdb.set_trace()
     """
 
+    import pdb;
+    pdb.set_trace()
 
-    import pdb;pdb.set_trace()
-
-    #H, xedges, yedges = np.histogram2d(pred_batch[:, 0], pred_batch[:, 1], bins=10)
-    #plt.imshow(H, interpolation='nearest', origin='low', extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]])
-    #utils.visualize_path([best_qk])
-    #x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
-    #return np.vstack([pred_batch,x])
-    #return place_smpl
+    # H, xedges, yedges = np.histogram2d(pred_batch[:, 0], pred_batch[:, 1], bins=10)
+    # plt.imshow(H, interpolation='nearest', origin='low', extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    # utils.visualize_path([best_qk])
+    # x = np.array([pred_batch[0,0],pred_batch[0,1], pred_batch[0,2], pred_batch[0,3]]) + 0.5
+    # return np.vstack([pred_batch,x])
+    # return place_smpl

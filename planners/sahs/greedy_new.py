@@ -22,18 +22,23 @@ DISABLE_COLLISIONS = False
 MAX_DISTANCE = 1.0
 
 
-def sample_continuous_parameters(abstract_action, abstract_state, mover, learned_sampler):
+def sample_continuous_parameters(abstract_action, abstract_state, abstract_node, mover, learned_sampler):
     place_region = abstract_action.discrete_parameters['place_region']
     if learned_sampler is None or 'loading' not in place_region:
         smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
+
         stime = time.time()
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
                                                 cached_collisions=abstract_state.collides,
                                                 cached_holding_collisions=None)
         print 'smpling time', time.time() - stime
     else:
-        # is it necessary to make the generator again?
-        smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
+        if abstract_node.smpler is None:
+            smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
+            abstract_node.smpler = smpler
+        else:
+            smpler = abstract_node.smpler
+
         stime = time.time()
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
                                                 cached_collisions=abstract_state.collides,
@@ -92,7 +97,8 @@ def search(mover, config, pap_model, learned_smpler=None):
 
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
-            smpled_param = sample_continuous_parameters(action, state, mover, learned_smpler)
+            # todo save the smpler with the abstract node
+            smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler)
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
