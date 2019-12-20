@@ -6,8 +6,10 @@ from generators.learning.utils import data_processing_utils
 from gtamp_utils import utils
 from generators.learning.utils.sampler_utils import generate_smpl_batch
 from generators.learning.PlacePolicyIMLE import uniform_noise
+
 import time
 import numpy as np
+import pickle
 
 
 class LearnedGenerator(PaPUniformGenerator):
@@ -21,10 +23,12 @@ class LearnedGenerator(PaPUniformGenerator):
         self.region = operator_skeleton.discrete_parameters['place_region']
 
         goal_entities = self.abstract_state.goal_entities
+        key_config_obstacles = self.process_abstract_state_collisions_into_key_config_obstacles(abstract_state)
+        key_configs = np.delete(abstract_state.prm_vertices, [415, 586, 615, 618, 619], axis=0)
         self.smpler_state = ConcreteNodeState(self.problem_env, self.obj, self.region,
                                               goal_entities,
-                                              collision_vector=None)
-                                              #collision_vector=abstract_state.key_config_obstacles) # eventually use this
+                                              key_configs=key_configs,
+                                              collision_vector=key_config_obstacles)
         self.noises_used = []
         self.tried_smpls = []
 
@@ -32,14 +36,51 @@ class LearnedGenerator(PaPUniformGenerator):
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
         z_smpls = uniform_noise(z_size=(1900, 4))
-        self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls)
+        stime=time.time()
+        self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, key_configs)
+        print "Prediction time", time.time() - stime
+        import pdb;pdb.set_trace()
 
         orig_color = utils.get_color_of(self.obj)
-        #utils.set_color(self.obj, [1, 0, 0])
-        #utils.visualize_placements(self.policy_smpl_batch[0:200], self.obj)
-        #import pdb;pdb.set_trace()
-        #utils.set_color(self.obj, orig_color)
+        # utils.set_color(self.obj, [1, 0, 0])
+        # utils.visualize_placements(self.policy_smpl_batch[0:200], self.obj)
+        # import pdb;pdb.set_trace()
+        # utils.set_color(self.obj, orig_color)
         self.policy_smpl_idx = 0
+
+    def process_abstract_state_collisions_into_key_config_obstacles(self, abstract_state):
+        # todo prevent collision with the target object
+        n_vtxs = len(abstract_state.prm_vertices)
+        collision_vector = np.zeros((n_vtxs))
+        colliding_vtx_idxs = self.get_colliding_prm_idxs(abstract_state)
+        collision_vector[colliding_vtx_idxs] = 1
+        collision_vector = np.delete(collision_vector, [415, 586, 615, 618, 619], axis=0)
+
+        """
+        key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+        key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+        self.problem_env.env.GetKinBody(self.obj).Enable(False)
+        collision_vector2 = utils.compute_occ_vec(key_configs)
+        self.problem_env.env.GetKinBody(self.obj).Enable(True)
+
+        assert np.all(collision_vector == collision_vector2)
+        """
+
+        return collision_vector
+
+    def get_colliding_prm_idxs(self, abstract_state):
+        colliding_vtx_idxs = []
+        target_obj_name = self.problem_env.env.GetKinBody(self.obj).GetName()
+        for obj_name_pose_pair in abstract_state.collides.keys():
+            obj_name = obj_name_pose_pair[0]
+            assert type(obj_name) == str or type(obj_name) == unicode
+            print obj_name, target_obj_name
+            if obj_name == target_obj_name:
+                continue
+            colliding_vtx_idxs.append(abstract_state.collides[obj_name_pose_pair])
+        colliding_vtx_idxs = list(set().union(*colliding_vtx_idxs))
+
+        return colliding_vtx_idxs
 
     def generate(self):
         if action_data_mode == 'pick_parameters_place_relative_to_object':
@@ -50,6 +91,12 @@ class LearnedGenerator(PaPUniformGenerator):
         elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             self.policy_smpl_idx += 1
+            if self.policy_smpl_idx >= len(self.policy_smpl_batch):
+                z_smpls = uniform_noise(z_size=(100, 4))
+                stime = time.time()
+                self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls)
+                print "Prediction time for further sampling", time.time() - stime
+                self.policy_smpl_idx = 0
         else:
             raise NotImplementedError
         self.tried_smpls.append(place_smpl)
@@ -63,8 +110,8 @@ class LearnedGenerator(PaPUniformGenerator):
         obj = operator_skeleton.discrete_parameters['object']
 
         orig_color = utils.get_color_of(obj)
-        #utils.set_color(obj, [1, 0, 0])
-        #utils.viewer()
+        # utils.set_color(obj, [1, 0, 0])
+        # utils.viewer()
         for i in range(n_iter):
             # print 'Sampling attempts %d/%d' %(i,n_iter)
             # fix it to take in the pose
@@ -91,4 +138,3 @@ class LearnedGenerator(PaPUniformGenerator):
 
         utils.set_color(obj, orig_color)
         return feasible_op_parameters, status
-

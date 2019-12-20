@@ -32,6 +32,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, mover, learned
                                                 cached_holding_collisions=None)
         print 'smpling time', time.time() - stime
     else:
+        # is it necessary to make the generator again?
         smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
         stime = time.time()
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
