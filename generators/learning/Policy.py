@@ -108,7 +108,6 @@ class Policy:
         fdir = ROOTDIR + '/' + self.save_folder + '/'
         fname = self.weight_file_name + 'best_val_err.h5'
         print "Loading weights", fdir + fname
-        print "Loading weights", fdir + fname
         self.policy_model.load_weights(fdir+fname)
 
     @staticmethod

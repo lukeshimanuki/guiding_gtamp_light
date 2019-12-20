@@ -173,13 +173,14 @@ def main():
                'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                % (domain, n_objs)
 
-    test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
-               'n_objs_pack_%d/qlearned_hcount_old_number_in_goal/integrated_200_smpls_per_batch/shortest_irsc/' \
-               'smpler_num_train_5000/' \
-               % (domain, n_objs)
+
 
     test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
                'n_objs_pack_%d/qlearned_hcount_old_number_in_goal/' \
+               'smpler_num_train_5000/' \
+               % (domain, n_objs)
+    test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
+               'n_objs_pack_%d/qlearned_hcount_old_number_in_goal/integrated_500_smpls_per_batch/shortest_irsc/' \
                'smpler_num_train_5000/' \
                % (domain, n_objs)
 

@@ -18,7 +18,6 @@ class ConcreteNodeState:
         self.abs_obj_pose = utils.clean_pose_data(utils.get_body_xytheta(obj))
         self.goal_flags = self.get_goal_flags()
         self.rel_konfs = None
-
         self.abs_goal_obj_poses = [utils.clean_pose_data(utils.get_body_xytheta(o)) for o in goal_entities if
                                    'region' not in o]
 
