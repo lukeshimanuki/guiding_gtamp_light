@@ -13,6 +13,9 @@ from generators.learning.PlacePolicyMSETau import PlacePolicyMSETau
 from generators.learning.PlacePolicyAdMonCombinationOfQg import PlacePolicyAdMonCombinationOfQg
 from generators.learning.PlacePolicyMSETransformer import PlacePolicyMSETransformer
 
+from generators.learning.PolicyIMLECombinationOfQg import PolicyIMLECombinationOfQg
+
+
 from data_processing_utils import state_data_mode, action_data_mode
 
 import socket
@@ -77,8 +80,8 @@ def create_policy(config):
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
                                                save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'imle_qg_combination':
-        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                                save_folder=savedir, tau=config.tau, config=config)
+        policy = PolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
+                                           save_folder=savedir, tau=config.tau, config=config)
     elif config.algo == 'sa_admon':
         policy = PlacePolicyAdMonSelfAttention(dim_action=dim_action, dim_collision=dim_state,
                                                save_folder=savedir, tau=config.tau, config=config)
