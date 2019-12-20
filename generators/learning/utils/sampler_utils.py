@@ -14,20 +14,12 @@ def prepare_input(smpler_state):
     poses = data_processing_utils.get_processed_poses_from_state(smpler_state, action)[None, :]
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
-    if smpler_state.rel_konfs is None:
-        key_configs = smpler_state.key_configs
-        rel_konfs = data_processing_utils.make_konfs_relative_to_pose(obj_pose, key_configs)
-        rel_konfs = np.array(rel_konfs).reshape((1, 615, 4, 1))
-        smpler_state.rel_konfs = rel_konfs
-    else:
-        rel_konfs = smpler_state.rel_konfs
-
     goal_flags = smpler_state.goal_flags
     collisions = smpler_state.collision_vector
 
     poses = poses[:, :20]
 
-    return goal_flags, rel_konfs, collisions, poses
+    return goal_flags, collisions, poses
 
 
 def generate_smpls(smpler_state, policy, n_data, noise_smpls_tried=None):
@@ -79,7 +71,7 @@ def generate_transformed_key_configs(smpler_state, policy):
 
 
 def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
-    goal_flags, rel_konfs, collisions, poses = prepare_input(concrete_state)
+    goal_flags, collisions, poses = prepare_input(concrete_state)
 
     # processing key configs
     stime=time.time()
@@ -128,13 +120,6 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
     smpler_state.abs_obj_pose = obj_pose
-    if smpler_state.rel_konfs is None:
-        key_configs = smpler_state.key_configs
-        rel_konfs = data_processing_utils.make_konfs_relative_to_pose(obj_pose, key_configs)
-        rel_konfs = np.array(rel_konfs).reshape((1, 615, 4, 1))
-        smpler_state.rel_konfs = rel_konfs
-    else:
-        rel_konfs = smpler_state.rel_konfs
     goal_flags = smpler_state.goal_flags
     collisions = smpler_state.collision_vector
 
