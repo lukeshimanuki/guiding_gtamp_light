@@ -62,8 +62,7 @@ def parse_parameters():
 
 
 def get_processed_fname(raw_fname):
-    traj_fname = 'no_collision_at_target_obj_pap_traj_' + raw_fname
-
+    traj_fname = 'pap_traj_' + raw_fname
     return traj_fname
 
 
@@ -92,7 +91,6 @@ def main():
 
     # Every second element in the prm - it does not have to be, because state computation checks the collisions
     # at all configs anyways. todo: reprocess the data using the full prm
-    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     # key_configs = np.delete(key_configs, 293, axis=0)
     traj = process_plan_file(raw_dir + raw_fname, parameters.pidx)
     save_traj(traj, save_dir + processed_fname)
