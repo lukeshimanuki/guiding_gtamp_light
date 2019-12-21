@@ -40,7 +40,7 @@ from gtamp_utils import utils
 
 def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
-    cache_file_name = 'state_mode_%s_action_mode_%s_loading_region_only.pkl' % (
+    cache_file_name = 'no_collision_at_target_obj_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
         state_data_mode, action_data_mode)
     # cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
     if os.path.isfile(traj_dir + cache_file_name):
@@ -62,7 +62,7 @@ def load_data(traj_dir):
     for traj_file in traj_files:
         if 'pidx' not in traj_file:
             continue
-        if 'no_collision_at' in traj_file:
+        if 'no_collision_at' not in traj_file:
             continue
         traj = pickle.load(open(traj_dir + traj_file, 'r'))
         if len(traj.states) == 0:
@@ -180,13 +180,12 @@ def train(config):
     elif config.atype == 'place':
         actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
     else:
-        actions = np.array([np.hstack([utils.encode_pose_with_sin_and_cos_angle(a[0:3]),
-                                       utils.encode_pose_with_sin_and_cos_angle(a[3:])]) for a in actions])
+        raise NotImplementedError
     if config.atype == 'pick':
         poses = poses[:, :-4]  # It is currently: [obj_pose, goal_obj_poses, robot_pick_pose].
     elif config.atype == 'place':
         # todo use obj_pose, goal_obj_poses, q_pick
-        raise NotImplementedError
+        poses = poses[:, :-4]  # It is currently: [obj_pose, goal_obj_poses, robot_pick_pose].
     else:
         raise NotImplementedError
 

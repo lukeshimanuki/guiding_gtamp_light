@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 def prepare_input(smpler_state):
-    action = {'pick_abs_base_pose': np.array([0, 0, 0])}
+    action = {'pick_abs_base_pose': np.array([0, 0, 0])} # isn't poses supposed to be where robot is now?
     poses = data_processing_utils.get_processed_poses_from_state(smpler_state, action)[None, :]
 
     goal_flags = smpler_state.goal_flags
@@ -66,6 +66,7 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
 
 
 def make_predictions(smpler_state, smpler, noise_batch):
+    # There must be a bug here
     goal_flags, collisions, poses = prepare_input(smpler_state)
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
@@ -100,6 +101,7 @@ def make_predictions(smpler_state, smpler, noise_batch):
 
     inp = [goal_flags, key_configs, collisions, poses, noise_batch]
     pred_batch = smpler.policy_model.predict(inp)
+    import pdb;pdb.set_trace()
 
     return pred_batch
 

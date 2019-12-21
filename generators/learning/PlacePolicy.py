@@ -12,7 +12,6 @@ class PlacePolicy(Policy):
         Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
         self.n_key_confs = 291
 
-        self.dim_poses = 24
         self.dim_collision = dim_collision
 
         # setup inputs

@@ -102,6 +102,7 @@ def visualize(problem_env, learned_sampler, target_obj_name, policy_mode):
         utils.visualize_path(picks[60:80, :])
     elif policy_mode == 'pick':
         picks = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
+        import pdb;pdb.set_trace()
         utils.visualize_path(picks[0:20, :])
         #utils.visualize_path(picks[20:40, :])
         #utils.visualize_path(picks[40:60, :])
@@ -116,13 +117,13 @@ def main():
     seed = int(sys.argv[1])
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
-    plan = None
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
         dtype='n_objs_pack_4',
-        seed=seed
+        seed=seed,
+        atype='pick'
     )
 
     problem_seed = 0
@@ -138,8 +139,7 @@ def main():
         else:
             sampler.load_weights('epoch_' + str(epoch))
     target_obj_name = 'rectangular_packing_box2'
-    policy_mode = 'pick'
-    visualize(problem_env, sampler, target_obj_name, policy_mode)
+    visualize(problem_env, sampler, target_obj_name, placeholder_config.atype)
     import pdb;
     pdb.set_trace()
 

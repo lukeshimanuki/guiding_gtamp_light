@@ -28,8 +28,7 @@ class PlacePolicyMSE(PlacePolicy):
         noise_smpls = np.zeros((len(data['goal_flags']), 4))
         pred = self.policy_model.predict(
             [data['goal_flags'], data['rel_konfs'], data['states'], data['poses'], noise_smpls])
-        #return np.mean(np.linalg.norm(pred - data['actions'], axis=-1))
-        return np.mean(np.square(pred - data['actions']))
+        return np.mean(np.linalg.norm(pred - data['actions'], axis=-1))
 
     def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))

@@ -44,7 +44,7 @@ def create_policy(config):
         dim_action = 8
 
     if config.atype == 'pick':
-        dim_pose = 24
+        dim_pose = 20
     else:
         dim_pose = 20
 

@@ -19,7 +19,7 @@ class Policy:
     def __init__(self, dim_action, dim_collision, dim_pose, save_folder):
         # setup dimensions for inputs
         self.dim_noise = dim_action
-        self.dim_pose = dim_pose
+        self.dim_poses = dim_pose
         self.dim_action = dim_action
         self.dim_collision = dim_collision
         self.n_key_confs = dim_collision[0]
@@ -86,6 +86,7 @@ class Policy:
         fname = self.weight_file_name + additional_name + '.h5'
         if not os.path.isdir(fdir):
             os.makedirs(fdir)
+        print "Saving weights", fdir + fname
         self.policy_model.save_weights(fdir + fname)
 
     def load_weights(self, additional_name=''):

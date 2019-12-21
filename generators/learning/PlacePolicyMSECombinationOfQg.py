@@ -141,29 +141,6 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         evalnet = Lambda(compute_softmax, name='softmax')(H)
         return evalnet
 
-    """
-    def construct_eval_net(self, candidate_qg_goal_flag_input):
-        collision_input = Flatten()(self.collision_input)
-        concat_input = Concatenate(axis=1, name='q0_ck')([self.pose_input, collision_input])
-        dense_num = 8
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(concat_input)
-        evalnet = Dense(dense_num, activation='relu',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer)(evalnet)
-        evalnet = Dense(self.n_key_confs, activation='linear',
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer, name='collision_feature')(evalnet)
-        evalnet = Reshape((self.n_key_confs,))(evalnet)
-
-        def compute_softmax(x):
-            return K.softmax(x, axis=-1)
-
-        evalnet = Lambda(compute_softmax, name='softmax')(evalnet)
-        return evalnet
-    """
-
     def construct_policy_model(self):
         mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
                                   self.noise_input],
@@ -187,7 +164,6 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
-        import pdb;pdb.set_trace()
         self.loss_model.fit(inp, actions,
                             batch_size=32,
                             epochs=epochs,
