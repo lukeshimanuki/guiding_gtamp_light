@@ -106,7 +106,6 @@ def get_plan_times(test_dir, test_files, t_limit):
             time_taken.append(t_limit)
             successes.append(False)
             # print 'Failed',filename
-    import pdb;pdb.set_trace()
     CI95 = 1.96 * np.std(time_taken) / np.sqrt(len(time_taken))
     print "Number of data", len(time_taken)
     print "Time taken %.3f +- %.3f" % (np.mean(time_taken), CI95)

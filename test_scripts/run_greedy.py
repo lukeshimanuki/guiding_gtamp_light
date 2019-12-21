@@ -198,10 +198,10 @@ def get_learned_smpler(sampler_seed, algo):
         dtype='n_objs_pack_4',
         seed=sampler_seed
     )
-    epoch = 700
+    epoch = 200
     sampler = create_policy(placeholder_config)
-    #sampler.load_weights('epoch_' + str(epoch))
-    sampler.load_best_weights()
+    sampler.load_weights('epoch_' + str(epoch))
+    #sampler.load_best_weights()
     return sampler
 
 
@@ -224,6 +224,8 @@ def main():
 
     problem_env = get_problem_env(config)
     set_problem_env_config(problem_env, config)
+    if config.v:
+        utils.viewer()
 
     is_use_gnn = 'qlearned' in config.h_option
     if is_use_gnn:

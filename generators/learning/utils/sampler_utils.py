@@ -66,7 +66,7 @@ def generate_smpl_batch(concrete_state, sampler, noise_batch, key_configs):
 
 
 def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
-    goal_flags, rel_konfs, collisions, poses = prepare_input(smpler_state)
+    goal_flags, collisions, poses = prepare_input(smpler_state)
     obj = smpler_state.obj
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
@@ -101,18 +101,21 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
 
     inp = [goal_flags, key_configs, collisions, poses, noise_batch]
     pred_batch = policy.policy_model.predict(inp)
-    decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
-    """
-    #eval_net = policy.evalnet_model.predict(inp).squeeze()
-    #value_net = policy.value_model.predict(inp).squeeze()
-    #decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in value_net[0]]
-    #eval_value = eval_net[0]
-    """
-    import pdb;
-    pdb.set_trace()
-    utils.visualize_placements(decoded, obj)
-    import pdb;
-    pdb.set_trace()
+    if pred_batch.shape[-1] == 8:
+        picks = []
+        places = []
+        for q in pred_batch:
+            pick = utils.decode_pose_with_sin_and_cos_angle(q[0:4])
+            place = utils.decode_pose_with_sin_and_cos_angle(q[4:])
+            picks.append(pick)
+            places.append(place)
+        import pdb;
+        pdb.set_trace()
+        utils.visualize_placements(places, obj)
+        utils.visualize_path(picks[0:50])
+    else:
+        decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
+        utils.visualize_placements(decoded, obj)
 
     # value_net = policy.value_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
     # eval_net = policy.evalnet_model.predict([poses, key_configs, collisions, goal_flags]).squeeze()
