@@ -11,8 +11,8 @@ else:
 
 
 class PlacePolicyMSE(PlacePolicy):
-    def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        PlacePolicy.__init__(self, dim_action, dim_collision, save_folder, tau, config)
+    def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
+        PlacePolicy.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
 
     def construct_policy_output(self):
         raise NotImplementedError

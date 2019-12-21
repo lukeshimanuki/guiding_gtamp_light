@@ -23,9 +23,9 @@ import tensorflow as tf
 
 
 class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
-    def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
-        self.weight_file_name = 'place_mse_qg_combination_seed_%d' % config.seed
+    def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
+        PlacePolicyMSE.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
+        self.weight_file_name = '%s_mse_qg_combination_seed_%d' % (config.atype, config.seed)
         self.loss_model = self.construct_loss_model()
         print "Created Self-attention Dense Gen Net Dense Eval Net"
 

@@ -36,60 +36,30 @@ def load_weights(policy, seed, use_unregularized):
 
 def create_policy(config):
     n_key_configs = 291
-    dim_state = (n_key_configs, 2, 1)
-    dim_action = 4
+    dim_collision = (n_key_configs, 2, 1)
+
+    if config.atype == 'pick' or config.atype == 'place':
+        dim_action = 4
+    else:
+        dim_action = 8
+
+    if config.atype == 'pick':
+        dim_pose = 24
+    else:
+        dim_pose = 20
 
     if ROOTDIR == './':
         savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
                   (config.dtype, state_data_mode, action_data_mode, config.algo)
     else:
         savedir = ''
-    if config.algo == "sa_mse":
-        policy = PlacePolicyMSESelfAttention(dim_action=dim_action,
-                                             dim_collision=dim_state,
-                                             save_folder=savedir,
-                                             tau=config.tau,
-                                             config=config)
-    elif config.algo == 'mse_tau':
-        policy = PlacePolicyMSETau(dim_action=dim_action,
-                                   dim_collision=dim_state,
-                                   save_folder=savedir,
-                                   tau=config.tau,
-                                   config=config)
-    elif config.algo == 'mse_transformer':
-        policy = PlacePolicyMSETransformer(dim_action=dim_action,
-                                           dim_collision=dim_state,
-                                           save_folder=savedir,
-                                           tau=config.tau,
-                                           config=config)
-    elif config.algo == 'sa_imle':
-        policy = PlacePolicyIMLESelfAttention(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
-                                              tau=config.tau, config=config)
-    elif config.algo == 'ff_imle':
-        policy = PlacePolicyIMLEFeedForward(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
-                                            tau=config.tau, config=config)
-    elif config.algo == 'constrained':
-        policy = PlacePolicyConstrainedOptimization(dim_action=dim_action, dim_collision=dim_state, save_folder=savedir,
-                                                    tau=config.tau, config=config)
-    elif config.algo == 'scorebased':
-        policy = PlacePolicyMSEScoreBased(dim_action=dim_action, dim_collision=dim_state,
-                                          save_folder=savedir, tau=config.tau, config=config)
-    elif config.algo == 'mse_qg_combination':
-        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                               save_folder=savedir, tau=config.tau, config=config)
+
+    if config.algo == 'mse_qg_combination':
+        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
+                                               save_folder=savedir, config=config)
     elif config.algo == 'imle_qg_combination':
-        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                                save_folder=savedir, tau=config.tau, config=config)
-    elif config.algo == 'full_imle_qg_combination':
-        dim_action = 8
-        policy = PolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                           save_folder=savedir, tau=config.tau, config=config)
-    elif config.algo == 'sa_admon':
-        policy = PlacePolicyAdMonSelfAttention(dim_action=dim_action, dim_collision=dim_state,
-                                               save_folder=savedir, tau=config.tau, config=config)
-    elif config.algo == 'admon_qg_combination':
-        policy = PlacePolicyAdMonCombinationOfQg(dim_action=dim_action, dim_collision=dim_state,
-                                                 save_folder=savedir, tau=config.tau, config=config)
+        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
+                                                save_folder=savedir, config=config)
     else:
         raise NotImplementedError
     return policy

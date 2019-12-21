@@ -16,30 +16,21 @@ else:
 
 # Implements util functions and initializes dimension variables and directories.
 class Policy:
-    def __init__(self, dim_action, dim_state, save_folder, tau):
+    def __init__(self, dim_action, dim_collision, dim_pose, save_folder):
+        # setup dimensions for inputs
         self.dim_noise = dim_action
+        self.dim_pose = dim_pose
+        self.dim_action = dim_action
+        self.dim_collision = dim_collision
+        self.n_key_confs = dim_collision[0]
+
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
-
-        if save_folder != '' and not os.path.isdir(save_folder):
-            os.makedirs(save_folder)
-
-        self.opt_G = Adam(lr=1e-4, beta_1=0.5)
-        self.opt_D = Adam(lr=1e-3, beta_1=0.5)
 
         # initialize
         self.kernel_initializer = initializers.glorot_uniform()
         self.bias_initializer = initializers.glorot_uniform()
 
-        # setup dimensions for inputs
-        self.dim_action = dim_action
-        self.dim_state = dim_state
-        self.n_key_confs = dim_state[0]
-
         # setup inputs
-        """
-        self.tau = tau
-        self.tau_input = Input(shape=(1,), name='tau', dtype='float32')  # collision vector
-        """
         self.save_folder = save_folder
 
         self.test_data = None
@@ -48,6 +39,10 @@ class Policy:
         self.disc_mse_model = None
         self.weight_file_name = None
         self.seed = None
+        self.opt_G = Adam(lr=1e-4, beta_1=0.5)
+        self.opt_D = Adam(lr=1e-3, beta_1=0.5)
+        if save_folder != '' and not os.path.isdir(save_folder):
+            os.makedirs(save_folder)
 
     @staticmethod
     def get_batch_size(n_data):
