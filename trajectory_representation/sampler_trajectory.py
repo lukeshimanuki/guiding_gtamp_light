@@ -85,7 +85,6 @@ class SamplerTrajectory:
                 state = self.compute_state(action.discrete_parameters['object'],
                                            associated_place.discrete_parameters['region'],
                                            goal_entities)
-
                 ## Visualization purpose
                 """
                 obj = action.discrete_parameters['object']
@@ -151,12 +150,9 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         # utils.viewer()
         for action_idx, action in enumerate(plan):
             assert action.type == 'two_arm_pick_two_arm_place'
-            target_obj = problem_env.env.GetKinBody(action.discrete_parameters['object'])
-            target_obj.Enable(False)
             state = self.compute_state(action.discrete_parameters['object'],
                                        action.discrete_parameters['region'],
                                        goal_entities)
-            target_obj.Enable(True)
 
             pick_action_info = action.continuous_parameters['pick']
             place_action_info = action.continuous_parameters['place']
