@@ -97,7 +97,6 @@ def get_plan_times(test_dir, test_files, t_limit):
         stat = pickle.load(open(test_dir + filename, 'r'))
         ftime_taken = get_time_taken(test_dir, stat)
         fsuccess = get_success(test_dir, stat)
-
         if ftime_taken < t_limit:
             time_taken.append(ftime_taken)
             successes.append(fsuccess)
@@ -107,6 +106,7 @@ def get_plan_times(test_dir, test_files, t_limit):
             time_taken.append(t_limit)
             successes.append(False)
             # print 'Failed',filename
+    import pdb;pdb.set_trace()
     CI95 = 1.96 * np.std(time_taken) / np.sqrt(len(time_taken))
     print "Number of data", len(time_taken)
     print "Time taken %.3f +- %.3f" % (np.mean(time_taken), CI95)
@@ -179,15 +179,14 @@ def main():
                'n_objs_pack_%d/qlearned_hcount_old_number_in_goal/' \
                'smpler_num_train_5000/' \
                % (domain, n_objs)
-    test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
-               'n_objs_pack_%d/qlearned_hcount_old_number_in_goal/integrated_1900_smpls_per_batch/shortest_irsc/' \
-               'smpler_num_train_5000/' \
-               % (domain, n_objs)
+
 
     test_dir = './test_results/sahs_results/using_weights_for_submission/domain_%s/' \
                'n_objs_pack_%d/qlearned_hcount_old_number_in_goal/integrated_1900_new_generator_every_time_smpls_per_batch/shortest_irsc/' \
                'smpler_num_train_5000/' \
                % (domain, n_objs)
+
+    test_dir = './test_results/sahs_results/integrated_500_smpls_per_batch/shortest_irsc/smpler_num_train_5000/'
 
     test_files = os.listdir(test_dir)
     get_plan_times(test_dir, test_files, t_limit)
