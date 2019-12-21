@@ -17,7 +17,7 @@ else:
 # Implements util functions and initializes dimension variables and directories.
 class Policy:
     def __init__(self, dim_action, dim_state, save_folder, tau):
-        self.dim_noise = 4
+        self.dim_noise = dim_action
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
 
         if save_folder != '' and not os.path.isdir(save_folder):
@@ -29,11 +29,6 @@ class Policy:
         # initialize
         self.kernel_initializer = initializers.glorot_uniform()
         self.bias_initializer = initializers.glorot_uniform()
-
-        if dim_action < 10:
-            dim_z = dim_action
-        else:
-            dim_z = int(dim_action / 2)
 
         # setup dimensions for inputs
         self.dim_action = dim_action

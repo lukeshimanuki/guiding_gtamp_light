@@ -82,29 +82,34 @@ def visualize_in_training_env(problem_env, learned_sampler, plan):
         action.execute()
 
 
-def visualize(problem_env, learned_sampler):
+def visualize(problem_env, learned_sampler, target_obj_name, policy_mode):
     utils.viewer()
-    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-
-    target_obj_name = 'rectangular_packing_box1'
     target_obj = problem_env.env.GetKinBody(target_obj_name)
+
+    orig_color = utils.get_color_of(target_obj)
     utils.set_color(target_obj, [1, 0, 0])
 
     target_obj.Enable(False)
-    # [obj.Enable(False) for obj in problem_env.objects]
-    # learned_sampler.load_weights('epoch_'+str(700))
     state = compute_state(target_obj_name, 'loading_region', problem_env)
-    z_smpls = gaussian_noise(z_size=(80, 4))
-    place_smpl = sampler_utils.generate_policy_smpl_batch(state, learned_sampler, z_smpls)
-    import pdb;
-    pdb.set_trace()
-    # obj_pose = utils.clean_pose_data(state.abs_obj_pose).squeeze()
-    # place_smpl = [data_processing_utils.get_absolute_placement_from_relative_placement(p, obj_pose) for p in place_smpl]
-    print place_smpl
+    z_smpls = uniform_noise(z_size=(80, 4))
 
-    utils.visualize_path(place_smpl[0:80])
-    print place_smpl
-    pass
+    # todo it would be informative to see how many of the samples are feasible
+    if policy_mode == 'full':
+        picks, places = sampler_utils.generate_pick_and_place_batch(state, learned_sampler, z_smpls)
+        utils.visualize_path(picks[0:20, :])
+        utils.visualize_path(picks[20:40, :])
+        utils.visualize_path(picks[40:60, :])
+        utils.visualize_path(picks[60:80, :])
+    elif policy_mode == 'pick':
+        picks = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
+        utils.visualize_path(picks[0:20, :])
+        #utils.visualize_path(picks[20:40, :])
+        #utils.visualize_path(picks[40:60, :])
+        #utils.visualize_path(picks[60:80, :])
+    else:
+        smpls = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
+        utils.visualize_placements(smpls, target_obj_name)
+    utils.set_color(target_obj, orig_color)
 
 
 def main():
@@ -125,11 +130,18 @@ def main():
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
     sampler = create_policy(placeholder_config)
-    if epoch == 'best':
-        sampler.load_best_weights()
+    if 'mse' in algo:
+        sampler.load_weights()
     else:
-        sampler.load_weights('epoch_' + str(epoch))
-    visualize(problem_env, sampler)
+        if epoch == 'best':
+            sampler.load_best_weights()
+        else:
+            sampler.load_weights('epoch_' + str(epoch))
+    target_obj_name = 'rectangular_packing_box2'
+    policy_mode = 'pick'
+    visualize(problem_env, sampler, target_obj_name, policy_mode)
+    import pdb;
+    pdb.set_trace()
 
 
 if __name__ == '__main__':

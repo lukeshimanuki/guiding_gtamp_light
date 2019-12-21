@@ -82,6 +82,11 @@ class LearnedGenerator(PaPUniformGenerator):
         return colliding_vtx_idxs
 
     def generate(self):
+        # Wait..
+        # Sample pick first, and only if that is feasible, use place
+        # Right now, I am discarding the entire sample
+        # But really, I should learn to predict both the pick and place,
+        # so that if the place paired with the pick is infeasible, then I can discard both samples
         if action_data_mode == 'pick_parameters_place_relative_to_object':
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             place_smpl = data_processing_utils.get_absolute_placement_from_relative_placement(place_smpl,
@@ -112,15 +117,11 @@ class LearnedGenerator(PaPUniformGenerator):
         # utils.set_color(obj, [1, 0, 0])
         # utils.viewer()
         for i in range(n_iter):
-            # print 'Sampling attempts %d/%d' %(i,n_iter)
-            # fix it to take in the pose
             stime = time.time()
             op_parameters = self.generate()
             op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton, op_parameters,
                                                                                   self.swept_volume_constraint,
                                                                                   parameter_mode='obj_pose')
-            # if we have sampled the feasible place, then can we keep that?
-            # if we have infeasible pick, then we cannot determine that.
             smpling_time = time.time() - stime
             self.smpling_time.append(smpling_time)
             if status == 'HasSolution':

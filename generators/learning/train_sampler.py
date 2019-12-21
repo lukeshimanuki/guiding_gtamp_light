@@ -18,6 +18,7 @@ def parse_args():
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-tau', type=float, default=0.0)
     parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
+    parser.add_argument('-atype', type=str, default='pick')
     args = parser.parse_args()
     return args
 
@@ -156,7 +157,6 @@ def get_data(datatype):
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
     states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir)
-    #states, konf_relelvance, poses, rel_konfs, actions, sum_rewards = load_data(root_dir + data_dir)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -175,20 +175,30 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    if config.atype == 'pick':
+        actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[0:3]) for a in actions])
+    elif config.atype == 'place':
+        actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
+    else:
+        actions = np.array([np.hstack([utils.encode_pose_with_sin_and_cos_angle(a[0:3]),
+                                       utils.encode_pose_with_sin_and_cos_angle(a[3:])]) for a in actions])
+    if config.atype == 'pick':
+        poses = poses[:, :]  # [obj_pose, goal_obj_poses, robot_pose]
+    elif config.atype == 'place':
+        # todo use obj_pose, goal_obj_poses, q_pick
+        raise NotImplementedError
+    else:
+        raise NotImplementedError
 
-    actions = np.array([np.hstack([utils.encode_pose_with_sin_and_cos_angle(a[0:3]),
-                                   utils.encode_pose_with_sin_and_cos_angle(a[3:])]) for a in actions])
-
-    poses = poses[:, :-4]
-
+    ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
 
     # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
-    xmin = -0.7;
+    xmin = -0.7
     xmax = 4.3
-    ymin = -8.55;
+    ymin = -8.55
     ymax = -4.85
     indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
                                    np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
@@ -200,6 +210,7 @@ def train(config):
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+    ###
 
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)

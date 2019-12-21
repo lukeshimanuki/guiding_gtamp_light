@@ -22,6 +22,8 @@ def get_color_of(body):
     env = openravepy.RaveGetEnvironments()[0]
     if type(body) == unicode or type(body) == str:
         obj = env.GetKinBody(body)
+    else:
+        obj = body
 
     return get_color(obj)
 

@@ -63,7 +63,7 @@ def get_solution_file_name(config):
 
     if config.integrated:
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated_500_smpls_per_batch_timelimit_1200/shortest_irsc/'
+        solution_file_dir += '/integrated_sampler_epoch_%d/shortest_irsc/' % config.sampler_epoch
         solution_file_dir += sampler_config
     elif config.integrated_unregularized_sampler:
         sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'
@@ -100,7 +100,7 @@ def parse_arguments():
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-problem_type', type=str, default='normal')  # was used for non-monotonic planning case
-    parser.add_argument('-gather_planning_exp', action='store_true', default=False) # sets the allowed time to infinite
+    parser.add_argument('-gather_planning_exp', action='store_true', default=False)  # sets the allowed time to infinite
 
     # planning budget setup
     parser.add_argument('-num_node_limit', type=int, default=3000)
@@ -122,6 +122,7 @@ def parse_arguments():
     parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
     parser.add_argument('-sampler_algo', type=str, default='imle_qg_combination')
+    parser.add_argument('-sampler_epoch', type=int, default=500)
 
     # whether to use the sampler
     parser.add_argument('-integrated', action='store_true', default=False)
@@ -142,7 +143,10 @@ def get_pap_gnn_model(mover, config):
     is_use_gnn = 'qlearned' in config.h_option
     if is_use_gnn:
         mconfig_type = collections.namedtuple('mconfig_type',
-                                              'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes top_k optimizer lr use_mse batch_size seed num_train val_portion mse_weight diff_weight_msg_passing same_vertex_model weight_initializer loss use_region_agnostic')
+                                              'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes '
+                                              'top_k optimizer lr use_mse batch_size seed num_train val_portion '
+                                              'mse_weight diff_weight_msg_passing same_vertex_model '
+                                              'weight_initializer loss use_region_agnostic')
 
         pap_mconfig = mconfig_type(
             operator='two_arm_pick_two_arm_place',
@@ -189,7 +193,7 @@ def get_pap_gnn_model(mover, config):
     return pap_model
 
 
-def get_learned_smpler(sampler_seed, algo):
+def get_learned_smpler(sampler_seed, epoch, algo):
     print "Creating the learned sampler.."
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
     placeholder_config = placeholder_config_definition(
@@ -198,10 +202,11 @@ def get_learned_smpler(sampler_seed, algo):
         dtype='n_objs_pack_4',
         seed=sampler_seed
     )
-    epoch = 200
     sampler = create_policy(placeholder_config)
-    sampler.load_weights('epoch_' + str(epoch))
-    #sampler.load_best_weights()
+    if epoch == -1:
+        sampler.load_best_weights()
+    else:
+        sampler.load_weights('epoch_' + str(epoch))
     return sampler
 
 
@@ -233,7 +238,7 @@ def main():
     else:
         pap_model = None
     if config.integrated or config.integrated_unregularized_sampler:
-        smpler = get_learned_smpler(config.sampler_seed, config.sampler_algo)
+        smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
     else:
         smpler = None
 

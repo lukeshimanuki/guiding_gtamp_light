@@ -236,6 +236,8 @@ class UniformPaPGenerator(PaPGenerator):
         assert iter_limit > 0
         feasible_op_parameters = []
         for i in range(iter_limit):
+            # Do I re-use the feasible pick parameters? It does not seem like it. I think the rationale was that
+            # you don't know if it is pick that is causing the infeasibility.
             op_parameters = self.sample_from_uniform()
             op_parameters, status = self.op_feasibility_checker.check_feasibility(self.operator_skeleton,
                                                                                   op_parameters,

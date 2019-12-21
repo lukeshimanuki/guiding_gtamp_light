@@ -18,6 +18,7 @@ if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra':
     ROOTDIR = './'
 else:
     ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
+
 import tensorflow as tf
 
 
@@ -26,7 +27,6 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
         self.weight_file_name = 'place_mse_qg_combination_seed_%d' % config.seed
         self.loss_model = self.construct_loss_model()
-
         print "Created Self-attention Dense Gen Net Dense Eval Net"
 
     def construct_loss_model(self):
@@ -91,7 +91,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
                        activation='relu',
                        kernel_initializer=self.kernel_initializer,
                        bias_initializer=self.bias_initializer)(H)
-        value = Conv2D(filters=4,
+        value = Conv2D(filters=self.dim_action,
                        kernel_size=(1, 1),
                        strides=(1, 1),
                        activation='linear',
@@ -111,7 +111,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
 
         collision_inp = Flatten()(self.collision_input)
         collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
-        collision_inp = Reshape((self.n_key_confs, self.n_key_confs*2, 1))(collision_inp)
+        collision_inp = Reshape((self.n_key_confs, self.n_key_confs * 2, 1))(collision_inp)
         concat_input = Concatenate(axis=2)([pose_input, qg_candidates, collision_inp])
         n_dim = concat_input.shape[2]._value
         dense_num = 32
@@ -133,7 +133,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
                    activation='linear',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
-        H = Reshape((self.n_key_confs, ))(H)
+        H = Reshape((self.n_key_confs,))(H)
 
         def compute_softmax(x):
             return K.softmax(x, axis=-1)
@@ -187,6 +187,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
+        import pdb;pdb.set_trace()
         self.loss_model.fit(inp, actions,
                             batch_size=32,
                             epochs=epochs,
