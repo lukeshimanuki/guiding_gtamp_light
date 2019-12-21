@@ -8,9 +8,9 @@ class ConcreteNodeState:
         self.region = region
         self.goal_entities = goal_entities
 
+        self.obj = obj
         if type(obj) == str or type(obj) == unicode:
             obj = problem_env.env.GetKinBody(obj)
-        self.obj = obj
 
         self.key_configs = self.get_key_configs(key_configs)
         self.collision_vector = self.get_collison_vector(collision_vector)
@@ -39,12 +39,12 @@ class ConcreteNodeState:
         return key_configs
 
     def get_collison_vector(self, given_collision_vector):
-        self.obj.Enable(False)
+        #self.obj.Enable(False)
         if given_collision_vector is None:
             collision_vector = utils.compute_occ_vec(self.key_configs)
         else:
             collision_vector = given_collision_vector
         collision_vector = utils.convert_binary_vec_to_one_hot(collision_vector)
         collision_vector = collision_vector.reshape((1, len(collision_vector), 2, 1))
-        self.obj.Enable(True)
+        #self.obj.Enable(True)
         return collision_vector
