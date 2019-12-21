@@ -14,7 +14,7 @@ import sys
 import collections
 
 
-def noise(z_size):
+def gaussian_noise(z_size):
     return np.random.normal(size=z_size, scale=0.5).astype('float32')
 
 
@@ -86,7 +86,7 @@ def visualize(problem_env, learned_sampler):
     utils.viewer()
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
 
-    target_obj_name = 'square_packing_box4'
+    target_obj_name = 'rectangular_packing_box1'
     target_obj = problem_env.env.GetKinBody(target_obj_name)
     utils.set_color(target_obj, [1, 0, 0])
 
@@ -94,7 +94,7 @@ def visualize(problem_env, learned_sampler):
     # [obj.Enable(False) for obj in problem_env.objects]
     # learned_sampler.load_weights('epoch_'+str(700))
     state = compute_state(target_obj_name, 'loading_region', problem_env)
-    z_smpls = uniform_noise(z_size=(80, 4))
+    z_smpls = gaussian_noise(z_size=(80, 4))
     place_smpl = sampler_utils.generate_policy_smpl_batch(state, learned_sampler, z_smpls)
     import pdb;
     pdb.set_trace()

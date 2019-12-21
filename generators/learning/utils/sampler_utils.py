@@ -111,8 +111,10 @@ def generate_policy_smpl_batch(smpler_state, policy, noise_batch):
             places.append(place)
         import pdb;
         pdb.set_trace()
+        utils.visualize_path(picks[0:20])
+        utils.visualize_path(picks[20:40])
+        utils.visualize_path(picks[40:60])
         utils.visualize_placements(places, obj)
-        utils.visualize_path(picks[0:50])
     else:
         decoded = [utils.decode_pose_with_sin_and_cos_angle(q) for q in pred_batch]
         utils.visualize_placements(decoded, obj)
