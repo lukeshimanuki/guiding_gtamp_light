@@ -1,5 +1,6 @@
 from gtamp_utils import utils
 import numpy as np
+state_data_mode = 'absolute'
 
 action_data_mode = 'full_pick_params_place_abs_obj_pose'
 action_data_mode = 'grasp_params_pick_abs_base_pose_place_abs_obj_pose'
