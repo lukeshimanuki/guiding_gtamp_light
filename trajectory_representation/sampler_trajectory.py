@@ -168,7 +168,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             action_info = {
                 'object_name': action.discrete_parameters['object'],
                 'region_name': action.discrete_parameters['region'],
-                'pick_base_ir_parameters': pick_parameters, # todo this is a bad name. It should be called action_parameters
+                'pick_base_ir_parameters': pick_parameters,  # todo this is a bad name. It should be called action_parameters
                 'place_abs_base_pose': place_base_pose,
                 'place_obj_abs_pose': place_obj_abs_pose,
                 'pick_abs_base_pose': pick_base_pose,
@@ -187,4 +187,3 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         self.add_state_prime()
         print "Done!"
         openrave_env.Destroy()
-

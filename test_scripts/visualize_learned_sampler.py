@@ -1,9 +1,10 @@
 from generators.learned_generator import LearnedGenerator
 from generators.learning.utils.model_creation_utils import create_policy
 from generators.learning.utils import sampler_utils
-from generators.learning.PlacePolicyIMLE import noise
-from generators.learning.utils import data_processing_utils
+from generators.feasibility_checkers import two_arm_pick_feasibility_checker
+from trajectory_representation.operator import Operator
 from trajectory_representation.concrete_node_state import ConcreteNodeState
+
 from gtamp_problem_environments.mover_env import Mover
 
 from gtamp_utils import utils
@@ -83,7 +84,6 @@ def visualize_in_training_env(problem_env, learned_sampler, plan):
 
 
 def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
-    utils.viewer()
     target_obj = problem_env.env.GetKinBody(target_obj_name)
 
     orig_color = utils.get_color_of(target_obj)
@@ -108,7 +108,7 @@ def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
 
 def generate_smpls(problem_env, sampler, target_obj_name, policy_mode):
     state = compute_state(target_obj_name, 'loading_region', problem_env)
-    z_smpls = gaussian_noise(z_size=(80, 4))
+    z_smpls = gaussian_noise(z_size=(200, 4))
 
     if policy_mode == 'full':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
@@ -119,12 +119,37 @@ def generate_smpls(problem_env, sampler, target_obj_name, policy_mode):
     return samples
 
 
-def get_feasibility_rate(smplsm, action_type):
+def get_feasibility_rate(smpls, action_type, target_obj, problem_env):
     if action_type == 'pick':
-        # Do I predict the grasp parameters as well?
-        pass
+        # Sample grasp parameters
+        # Create feasibility checker
+        # this assumes action_data_mode is pick_abs_base_pose_place_abs_obj_pose
+        feasibility_checker = two_arm_pick_feasibility_checker.TwoArmPickFeasibilityChecker(problem_env)
+        op = Operator('two_arm_pick', {"object": target_obj})
+        pick_domain = utils.get_pick_domain()
+        dim_parameters = pick_domain.shape[-1]
+        domain_min = pick_domain[0]
+        domain_max = pick_domain[1]
+        if smpls is None:
+            pick_params = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
+            parameter_mode = 'ir_params'
+        else:
+            grasp_params = np.random.uniform(domain_min, domain_max, (len(smpls), dim_parameters)).squeeze()[:, 0:3]
+            pick_params = np.hstack([grasp_params, smpls])
+            parameter_mode = 'absolute_pose'
+
+        n_success = 0
+        for param in pick_params:
+            _, status = feasibility_checker.check_feasibility(op, param, parameter_mode=parameter_mode)
+            n_success += status == 'HasSolution'
+
+    elif action_type == 'full_pick':
+        raise NotImplementedError
     else:
         raise NotImplementedError
+
+    total_samples = len(pick_params)
+    return n_success / float(total_samples)*100
 
 
 def main():
@@ -152,10 +177,13 @@ def main():
             sampler.load_best_weights()
         else:
             sampler.load_weights('epoch_' + str(epoch))
-    target_obj_name = 'rectangular_packing_box3'
+    utils.viewer()
+    target_obj_name = 'square_packing_box1'
     smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
-    feasibility_rate = get_feasibility_rate(smpls, placeholder_config.atype)
+    #smpls = None
+    feasibility_rate = get_feasibility_rate(smpls, placeholder_config.atype, target_obj_name, problem_env)
     print 'Feasibility rate %.5f' % feasibility_rate
+    import pdb;pdb.set_trace()
     visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
 
 
