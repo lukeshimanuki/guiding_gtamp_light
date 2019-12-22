@@ -42,7 +42,7 @@ def load_data(traj_dir):
     traj_files = os.listdir(traj_dir)
     #cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
-    cache_file_name = 'cache_state_data_mode_%s_action_data_mode_%s.pkl' % (state_data_mode, action_data_mode)
+    cache_file_name = 'cache_smode_%s_amode_%s.pkl' % (state_data_mode, action_data_mode)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
