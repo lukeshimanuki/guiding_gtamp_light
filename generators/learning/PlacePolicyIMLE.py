@@ -3,6 +3,7 @@ from keras.layers import *
 from keras.models import Model
 from keras.callbacks import *
 
+from utils.data_processing_utils import action_data_mode
 import numpy as np
 import time
 import tensorflow as tf
@@ -78,8 +79,14 @@ class PlacePolicyIMLE(PlacePolicy):
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
+        if action_data_mode == 'pick_ir_parameters_place_abs_obj_pose':
+            loss_weight = [0, 0, 1]
+        elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
+            loss_weight = [10, 10, 1]
+        else:
+            raise NotImplementedError
         model.compile(loss=[lambda _, pred: pred, lambda _, pred: pred, custom_mse], optimizer=self.opt_D,
-                      loss_weights=[10, 10, 1])
+                      loss_weights=loss_weight) # todo condition the loss weight based on the data type
         return model
 
     @staticmethod
