@@ -119,4 +119,4 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         place = utils.decode_pose_with_sin_and_cos_angle(q[4:])
         picks.append(pick)
         places.append(place)
-    return picks, places
+    return (picks, places)

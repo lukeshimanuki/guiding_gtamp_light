@@ -82,37 +82,49 @@ def visualize_in_training_env(problem_env, learned_sampler, plan):
         action.execute()
 
 
-def visualize(problem_env, learned_sampler, target_obj_name, policy_mode):
+def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
     utils.viewer()
     target_obj = problem_env.env.GetKinBody(target_obj_name)
 
     orig_color = utils.get_color_of(target_obj)
     utils.set_color(target_obj, [1, 0, 0])
 
-    target_obj.Enable(False)
-    state = compute_state(target_obj_name, 'loading_region', problem_env)
-    z_smpls = uniform_noise(z_size=(80, 4))
-
-    # todo it would be informative to see how many of the samples are feasible
     if policy_mode == 'full':
-        picks, places = sampler_utils.generate_pick_and_place_batch(state, learned_sampler, z_smpls)
+        picks, places = samples[0], samples[1]
         utils.visualize_path(picks[0:20, :])
         utils.visualize_path(picks[20:40, :])
         utils.visualize_path(picks[40:60, :])
         utils.visualize_path(picks[60:80, :])
     elif policy_mode == 'pick':
-        picks = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
-        if 'mse' in learned_sampler.weight_file_name:
-            utils.visualize_path(picks[0:1, :])
-        else:
-            utils.visualize_path(picks[0:10, :])
-            utils.visualize_path(picks[20:40, :])
-            utils.visualize_path(picks[40:60, :])
-            utils.visualize_path(picks[60:80, :])
+        picks = samples
+        utils.visualize_path(picks[0:10, :])
+        utils.visualize_path(picks[20:40, :])
+        utils.visualize_path(picks[40:60, :])
+        utils.visualize_path(picks[60:80, :])
     else:
-        smpls = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
-        utils.visualize_placements(smpls, target_obj_name)
+        utils.visualize_placements(samples, target_obj_name)
     utils.set_color(target_obj, orig_color)
+
+
+def generate_smpls(problem_env, sampler, target_obj_name, policy_mode):
+    state = compute_state(target_obj_name, 'loading_region', problem_env)
+    z_smpls = gaussian_noise(z_size=(80, 4))
+
+    if policy_mode == 'full':
+        samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
+    elif policy_mode == 'pick' or policy_mode == 'place':
+        samples = sampler_utils.generate_pick_or_place_batch(state, sampler, z_smpls)
+    else:
+        raise NotImplementedError
+    return samples
+
+
+def get_feasibility_rate(smplsm, action_type):
+    if action_type == 'pick':
+        # Do I predict the grasp parameters as well?
+        pass
+    else:
+        raise NotImplementedError
 
 
 def main():
@@ -136,15 +148,15 @@ def main():
     if 'mse' in algo:
         sampler.load_weights()
     else:
-        import pdb;pdb.set_trace()
         if epoch == 'best':
             sampler.load_best_weights()
         else:
             sampler.load_weights('epoch_' + str(epoch))
     target_obj_name = 'rectangular_packing_box3'
-    visualize(problem_env, sampler, target_obj_name, placeholder_config.atype)
-    import pdb;
-    pdb.set_trace()
+    smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
+    feasibility_rate = get_feasibility_rate(smpls, placeholder_config.atype)
+    print 'Feasibility rate %.5f' % feasibility_rate
+    visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
 
 
 if __name__ == '__main__':

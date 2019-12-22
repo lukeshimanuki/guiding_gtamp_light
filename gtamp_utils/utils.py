@@ -823,6 +823,7 @@ def get_pick_domain():
     facing_angle_domain = [[-30 * np.pi / 180.0], [30 * np.pi / 180]]
     base_pose_domain = np.hstack([portion_domain, base_angle_domain, facing_angle_domain])
 
+    # grasp params: 45-180, 0.5-1, 0.1-0.9
     grasp_param_domain = np.array([[45 * np.pi / 180, 0.5, 0.1], [np.pi, 1, 0.9]])
     domain = np.hstack([grasp_param_domain, base_pose_domain])
     return domain
