@@ -182,10 +182,10 @@ def train(config):
     else:
         raise NotImplementedError
     if config.atype == 'pick':
-        poses = poses[:, :]  # It is currently: [obj_pose, goal_obj_poses, robot_pick_pose].
+        poses = poses[:, :]  # It is currently: [target_obj_pose, goal_obj_poses, robot_pick_pose].
     elif config.atype == 'place':
         # todo use obj_pose, goal_obj_poses, q_pick
-        poses = poses[:, :-4]  # It is currently: [obj_pose, goal_obj_poses, robot_pick_pose].
+        poses = poses[:, :-4]  # It is currently: [target_obj_pose, goal_obj_poses, robot_pick_pose].
     else:
         raise NotImplementedError
 

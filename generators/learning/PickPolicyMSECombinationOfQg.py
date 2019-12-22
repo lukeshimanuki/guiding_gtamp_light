@@ -48,26 +48,28 @@ class PickPolicyMSECombinationOfQg(PlacePolicyMSE):
         def distance_to_target_obj(x):
             target_obj_pose = x[0][:, 0:4]
             policy_output = x[1]
-            diff = policy_output[:, :, 0:2] - target_obj_pose[:, :, 0:2]
+            diff = policy_output[:, 0:2] - target_obj_pose[:, 0:2]
             distances = tf.norm(diff, axis=-1)
-            hinge_on_given_dist_limit = tf.maximum(distances-0.9, 0)
-        import pdb;pdb.set_trace()
+            hinge_on_given_dist_limit = tf.maximum(distances-0.9844, 0) # but getting too close is not good either
+            return tf.reduce_mean(hinge_on_given_dist_limit)
 
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
-        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
-            [repeated_poloutput, konf_input, self.collision_input])
+        distance_to_colliding_konfs_output = Lambda(avg_distance_to_colliding_key_configs,
+                                                    name='collision_distance_output')(
+                                                    [repeated_poloutput, konf_input, self.collision_input])
+
+        distance_to_target_obj_output = Lambda(distance_to_target_obj, name='dist_to_target_output')(
+            [self.policy_output, self.pose_input])
 
         # this would only work if the state contains collision with the target object
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
                               self.noise_input],
-                      outputs=[diff_output, self.policy_output],
+                      outputs=[distance_to_colliding_konfs_output, distance_to_target_obj_output, self.policy_output],
                       name='loss_model')
 
-        def custom_mse(y_true, y_pred):
-            return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
-
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[10, 1])
+        model.compile(loss=[lambda _, pred: pred, lambda _, pred: pred, 'mse'],
+                      optimizer=self.opt_D, loss_weights=[10, 1, 0])
         #model.compile(loss='mse', optimizer=self.opt_D)
         return model
 
@@ -173,7 +175,7 @@ class PickPolicyMSECombinationOfQg(PlacePolicyMSE):
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
         inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
-        self.loss_model.fit(inp, [actions, actions],
+        self.loss_model.fit(inp, [actions, actions, actions],
                             batch_size=32,
                             epochs=epochs,
                             verbose=2,
