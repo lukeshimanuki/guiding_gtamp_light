@@ -153,7 +153,7 @@ def get_processed_poses_from_action(state, action):
         portion, base_angle, facing_angle_offset \
             = utils.get_ir_parameters_from_robot_obj_poses(pick_pose, state.abs_obj_pose)
         base_angle = utils.encode_angle_in_sin_and_cos(base_angle)
-        pick_pose = np.hstack([portion, base_angle, facing_angle_offset])
+        pick_pose = np.hstack([portion, base_angle, facing_angle_offset])[None, :]
         place_pose = action['place_obj_abs_pose']
     elif action_data_mode == 'pick_parameters_place_normalized_relative_to_region':
         pick_pose = action['pick_abs_base_pose']
