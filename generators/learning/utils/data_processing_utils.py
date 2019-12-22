@@ -2,14 +2,11 @@ from gtamp_utils import utils
 import numpy as np
 
 state_data_mode = 'absolute'
-action_data_mode = 'pick_parameters_place_abs_obj_pose'
-action_data_mode = 'pick_abs_base_pose_place_abs_obj_pose'
+action_data_mode = 'pick_ir_parameters_place_abs_obj_pose'
 action_data_mode = 'grasp_params_pick_abs_base_pose_place_abs_obj_pose'
-#action_data_mode = 'full_pick_params_place_abs_obj_pose'
+action_data_mode = 'pick_abs_base_pose_place_abs_obj_pose'
 
 
-
-# action_data_mode = 'absolute'
 def make_konfs_relative_to_pose(obj_pose, key_configs):
     rel_konfs = []
     utils.clean_pose_data(obj_pose)
@@ -139,7 +136,7 @@ def get_relevance_info(konf, collisions, motion):
 
 
 def get_processed_poses_from_action(state, action):
-    if action_data_mode == 'pick_parameters_place_abs_obj_pose':
+    if action_data_mode == 'pick_ir_parameters_place_abs_obj_pose':
         pick_pose = action['pick_abs_base_pose']
         portion, base_angle, facing_angle_offset \
             = utils.get_ir_parameters_from_robot_obj_poses(pick_pose, state.abs_obj_pose)

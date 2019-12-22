@@ -9,12 +9,18 @@ class PickFeasibilityChecker(object):
         self.robot = self.env.GetRobots()[0]
         self.objects_to_check_collision = []
 
-    def check_feasibility(self, operator_skeleton, pick_parameters, swept_volume_to_avoid=None):
+    def check_feasibility(self, operator_skeleton, pick_parameters, swept_volume_to_avoid=None, parameter_mode='ir_params'):
         # This function checks if the base pose is not in collision and if there is a feasible pick
         obj = operator_skeleton.discrete_parameters['object']
         if type(obj) == str or type(obj) == unicode:
             obj = self.problem_env.env.GetKinBody(obj)
-        grasp_params, pick_base_pose = get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters)
+        if parameter_mode == 'ir_params':
+            grasp_params, pick_base_pose = get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters)
+        elif parameter_mode == 'absolute_pose':
+            grasp_params = pick_parameters[0:3]
+            pick_base_pose = pick_parameters[3:]
+        else:
+            raise NotImplementedError
         g_config = self.compute_feasible_grasp_config(obj, pick_base_pose, grasp_params)
 
         if g_config is not None:
@@ -27,16 +33,14 @@ class PickFeasibilityChecker(object):
             return pick_action, "NoSolution"
 
     def compute_feasible_grasp_config(self, obj, pick_base_pose, grasp_params):
-        with self.robot:
-            grasp_config = self.compute_grasp_config(obj, pick_base_pose, grasp_params)
-            if grasp_config is not None:
-                #stime = time.time()
-                grasp_is_feasible = self.is_grasp_config_feasible(obj, pick_base_pose, grasp_params, grasp_config)
-                #print "is_grasp_config_feasible", time.time() - stime
-                if grasp_is_feasible:
-                    return grasp_config
-            else:
-                return None
+        #with self.robot:
+        grasp_config = self.compute_grasp_config(obj, pick_base_pose, grasp_params)
+        if grasp_config is not None:
+            grasp_is_feasible = self.is_grasp_config_feasible(obj, pick_base_pose, grasp_params, grasp_config)
+            if grasp_is_feasible:
+                return grasp_config
+        else:
+            return None
 
     def is_grasp_config_feasible(self, obj, pick_base_pose, grasp_params, grasp_config):
         raise NotImplementedError
