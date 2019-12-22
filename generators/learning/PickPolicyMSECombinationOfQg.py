@@ -22,7 +22,7 @@ else:
 import tensorflow as tf
 
 
-class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
+class PickPolicyMSECombinationOfQg(PlacePolicyMSE):
     def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
         PlacePolicyMSE.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
         self.weight_file_name = '%s_mse_qg_combination_seed_%d' % (config.atype, config.seed)
@@ -44,6 +44,14 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
             hinge_on_given_dist_limit = tf.maximum(1 - distances, 0)
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
             return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
+
+        def distance_to_target_obj(x):
+            target_obj_pose = x[0][:, 0:4]
+            policy_output = x[1]
+            diff = policy_output[:, :, 0:2] - target_obj_pose[:, :, 0:2]
+            distances = tf.norm(diff, axis=-1)
+            hinge_on_given_dist_limit = tf.maximum(distances-0.9, 0)
+        import pdb;pdb.set_trace()
 
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)

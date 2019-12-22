@@ -103,10 +103,10 @@ def visualize(problem_env, learned_sampler, target_obj_name, policy_mode):
     elif policy_mode == 'pick':
         picks = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
         import pdb;pdb.set_trace()
-        utils.visualize_path(picks[0:20, :])
-        #utils.visualize_path(picks[20:40, :])
-        #utils.visualize_path(picks[40:60, :])
-        #utils.visualize_path(picks[60:80, :])
+        utils.visualize_path(picks[0:10, :])
+        utils.visualize_path(picks[20:40, :])
+        utils.visualize_path(picks[40:60, :])
+        utils.visualize_path(picks[60:80, :])
     else:
         smpls = sampler_utils.generate_pick_or_place_batch(state, learned_sampler, z_smpls)
         utils.visualize_placements(smpls, target_obj_name)
@@ -138,7 +138,7 @@ def main():
             sampler.load_best_weights()
         else:
             sampler.load_weights('epoch_' + str(epoch))
-    target_obj_name = 'rectangular_packing_box2'
+    target_obj_name = 'rectangular_packing_box4'
     visualize(problem_env, sampler, target_obj_name, placeholder_config.atype)
     import pdb;
     pdb.set_trace()

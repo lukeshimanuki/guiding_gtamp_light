@@ -14,7 +14,7 @@ def prepare_input(smpler_state):
     goal_flags = smpler_state.goal_flags
     collisions = smpler_state.collision_vector
 
-    poses = poses[:, :]
+    poses = poses[:, :-4]
 
     return goal_flags, collisions, poses
 
@@ -101,8 +101,6 @@ def make_predictions(smpler_state, smpler, noise_batch):
 
     inp = [goal_flags, key_configs, collisions, poses, noise_batch]
     pred_batch = smpler.policy_model.predict(inp)
-    import pdb;pdb.set_trace()
-
     return pred_batch
 
 

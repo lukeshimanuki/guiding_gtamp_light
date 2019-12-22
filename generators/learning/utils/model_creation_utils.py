@@ -6,6 +6,7 @@ from generators.learning.PlacePolicyMSESelfAttentionAbsolutePoses import PlacePo
 from generators.learning.PlacePolicyConstrainedOptimization import PlacePolicyConstrainedOptimization
 from generators.learning.PlacePolicyMSEScoreBased import PlacePolicyMSEScoreBased
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
+from generators.learning.PickPolicyMSECombinationOfQg import PickPolicyMSECombinationOfQg
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 from generators.learning.PlacePolicyAdMonSelfAttention import PlacePolicyAdMonSelfAttention
 from generators.learning.PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
@@ -54,9 +55,12 @@ def create_policy(config):
     else:
         savedir = ''
 
-    if config.algo == 'mse_qg_combination':
+    if config.algo == 'place_mse_qg_combination':
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                                save_folder=savedir, config=config)
+    elif config.algo == 'pick_mse_qg_combination':
+        policy = PickPolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
+                                              save_folder=savedir, config=config)
     elif config.algo == 'imle_qg_combination':
         policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                                 save_folder=savedir, config=config)
