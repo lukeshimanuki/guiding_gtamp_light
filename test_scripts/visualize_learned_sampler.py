@@ -140,7 +140,7 @@ def main():
             sampler.load_best_weights()
         else:
             sampler.load_weights('epoch_' + str(epoch))
-    target_obj_name = 'rectangular_packing_box1'
+    target_obj_name = 'rectangular_packing_box3'
     visualize(problem_env, sampler, target_obj_name, placeholder_config.atype)
     import pdb;
     pdb.set_trace()

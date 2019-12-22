@@ -50,20 +50,36 @@ class PlacePolicyIMLE(PlacePolicy):
             hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
             return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
 
+        def distance_to_target_obj(x):
+            target_obj_pose = x[0][:, 0:4]
+            policy_output = x[1]
+            diff = policy_output[:, 0:2] - target_obj_pose[:, 0:2]
+            distances = tf.norm(diff, axis=-1)
+            # Limits computed using pick domain and the robot arm length
+            hinge_on_given_dist_limit = tf.maximum(distances-0.88596, 0) # must be within 0.9844 from the object.
+            hinge_on_given_dist_limit2 = tf.maximum(0.4-distances, 0)  # must be 0.4 away from the object
+
+            return tf.reduce_mean(hinge_on_given_dist_limit+hinge_on_given_dist_limit2)
+
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
-        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
+        distance_to_colliding_konfs_output = Lambda(avg_distance_to_colliding_key_configs,
+                                                    name='collision_distance_output')(
             [repeated_poloutput, konf_input, self.collision_input])
+
+        distance_to_target_obj_output = Lambda(distance_to_target_obj, name='dist_to_target_output')(
+            [self.policy_output, self.pose_input])
 
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
                               self.noise_input],
-                      outputs=[diff_output, self.policy_output],
+                      outputs=[distance_to_colliding_konfs_output, distance_to_target_obj_output, self.policy_output],
                       name='loss_model')
 
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
-        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[0, 1])
+        model.compile(loss=[lambda _, pred: pred, lambda _, pred: pred, custom_mse], optimizer=self.opt_D,
+                      loss_weights=[10, 10, 1])
         return model
 
     @staticmethod
@@ -153,12 +169,12 @@ class PlacePolicyIMLE(PlacePolicy):
             # I also need to tag on the Q-learning objective
             before = self.policy_model.get_weights()
             self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
-                                [a_batch, a_batch],
+                                [a_batch, a_batch, a_batch],
                                 epochs=1000,
                                 batch_size=32,
                                 validation_data=(
                                     [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
-                                    [t_actions, t_actions]),
+                                    [t_actions, t_actions, t_actions]),
                                 callbacks=callbacks,
                                 verbose=True)
             # self.load_weights()
