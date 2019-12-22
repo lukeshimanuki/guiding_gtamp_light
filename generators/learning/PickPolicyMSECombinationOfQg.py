@@ -50,8 +50,14 @@ class PickPolicyMSECombinationOfQg(PlacePolicyMSE):
             policy_output = x[1]
             diff = policy_output[:, 0:2] - target_obj_pose[:, 0:2]
             distances = tf.norm(diff, axis=-1)
-            hinge_on_given_dist_limit = tf.maximum(distances-0.9844, 0) # but getting too close is not good either
-            return tf.reduce_mean(hinge_on_given_dist_limit)
+            # Limits computed using pick domain and the robot arm length
+            hinge_on_given_dist_limit = tf.maximum(distances-0.88596, 0) # must be within 0.9844 from the object.
+            hinge_on_given_dist_limit2 = tf.maximum(0.4-distances, 0)  # must be 0.4 away from the object
+            # I would like to enforce the constraint that the robot faces the object.
+            # diff gives me the direction; but I need the arccos
+            # Each pose has sin(theta), cos(theta)
+            # My desired is cos(theta) = np.dot(diff / norm(diff), [1,0,0]); but the sign gets inthe way
+            return tf.reduce_mean(hinge_on_given_dist_limit+hinge_on_given_dist_limit2)
 
         repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
         konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)

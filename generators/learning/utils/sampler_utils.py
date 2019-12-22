@@ -8,13 +8,13 @@ from matplotlib import pyplot as plt
 
 
 def prepare_input(smpler_state):
-    action = {'pick_abs_base_pose': np.array([0, 0, 0])} # isn't poses supposed to be where robot is now?
-    poses = data_processing_utils.get_processed_poses_from_state(smpler_state, action)[None, :]
+    #action = {'pick_abs_base_pose': np.array([0, 0, 0])} # isn't poses supposed to be where robot is now?
+    poses = data_processing_utils.get_processed_poses_from_state(smpler_state, None)[None, :]
 
     goal_flags = smpler_state.goal_flags
     collisions = smpler_state.collision_vector
 
-    poses = poses[:, :-4]
+    #poses = poses[:, ]
 
     return goal_flags, collisions, poses
 
