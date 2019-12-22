@@ -4,7 +4,8 @@ import numpy as np
 state_data_mode = 'absolute'
 action_data_mode = 'pick_parameters_place_abs_obj_pose'
 action_data_mode = 'pick_abs_base_pose_place_abs_obj_pose'
-action_data_mode = 'full_pick_params_place_abs_obj_pose'
+action_data_mode = 'grasp_params_pick_abs_base_pose_place_abs_obj_pose'
+#action_data_mode = 'full_pick_params_place_abs_obj_pose'
 
 
 
@@ -138,20 +139,7 @@ def get_relevance_info(konf, collisions, motion):
 
 
 def get_processed_poses_from_action(state, action):
-    if action_data_mode == 'absolute':
-        pick_pose = utils.encode_pose_with_sin_and_cos_angle(action['pick_abs_base_pose'])
-        place_pose = utils.encode_pose_with_sin_and_cos_angle(action['place_abs_base_pose'])
-    elif action_data_mode == 'pick_relative':
-        pick_pose = action['pick_abs_base_pose']
-        pick_pose = utils.get_relative_robot_pose_wrt_body_pose(pick_pose, state.abs_obj_pose)
-        pick_pose = utils.encode_pose_with_sin_and_cos_angle(pick_pose)
-        place_pose = utils.encode_pose_with_sin_and_cos_angle(action['place_abs_base_pose'])
-    elif action_data_mode == 'pick_relative_place_relative_to_region':
-        pick_pose = action['pick_abs_base_pose']
-        pick_pose = utils.get_relative_robot_pose_wrt_body_pose(pick_pose, state.abs_obj_pose)
-        pick_pose = utils.encode_pose_with_sin_and_cos_angle(pick_pose)
-        place_pose = get_place_pose_wrt_region(action['place_abs_base_pose'], action['region_name'])
-    elif action_data_mode == 'pick_parameters_place_abs_obj_pose':
+    if action_data_mode == 'pick_parameters_place_abs_obj_pose':
         pick_pose = action['pick_abs_base_pose']
         portion, base_angle, facing_angle_offset \
             = utils.get_ir_parameters_from_robot_obj_poses(pick_pose, state.abs_obj_pose)
@@ -201,6 +189,11 @@ def get_processed_poses_from_action(state, action):
         obj_pose = state.abs_obj_pose
         rel_place_pose = utils.get_relative_robot_pose_wrt_body_pose(place_pose, obj_pose)
         place_pose = utils.encode_pose_with_sin_and_cos_angle(rel_place_pose)[None, :]
+    elif action_data_mode == 'grasp_params_pick_abs_base_pose_place_abs_obj_pose':
+        grasp_params = action['pick_base_ir_parameters'][0:3][None, :]
+        pick_pose = utils.encode_pose_with_sin_and_cos_angle(action['pick_abs_base_pose'])[None, :]
+        pick_pose = np.hstack([grasp_params, pick_pose])
+        place_pose = utils.encode_pose_with_sin_and_cos_angle(action['place_obj_abs_pose'])[None, :]
     elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
         pick_pose = action['pick_abs_base_pose']
         place_pose = action['place_obj_abs_pose']
