@@ -180,9 +180,14 @@ def train(config):
     if config.atype == 'pick':
         actions = actions[:, :-4]
     elif config.atype == 'place':
+        must_get_q0_from_pick_abs_pose = action_data_mode == 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
+        assert must_get_q0_from_pick_abs_pose
+        pick_abs_poses = actions[:, 3:7]  # must swap out the q0 with the pick base pose
+        poses[:, -4:] = pick_abs_poses
         actions = actions[:, -4:]
     else:
         raise NotImplementedError
+
     ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
@@ -203,7 +208,7 @@ def train(config):
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-    ###
+    ####
 
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)

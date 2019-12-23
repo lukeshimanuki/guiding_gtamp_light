@@ -1,20 +1,7 @@
-# from generators.learning.PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput import \
-#    PlacePolicyMSESelfAttentionEvalNetWithCandidateGoalAndCollisionInput
-from generators.learning.PlacePolicyIMLESelfAttention import PlacePolicyIMLESelfAttention
-from generators.learning.PlacePolicyIMLEFeedForward import PlacePolicyIMLEFeedForward
-from generators.learning.PlacePolicyMSESelfAttentionAbsolutePoses import PlacePolicyMSESelfAttentionAbsolutePoses
-from generators.learning.PlacePolicyConstrainedOptimization import PlacePolicyConstrainedOptimization
-from generators.learning.PlacePolicyMSEScoreBased import PlacePolicyMSEScoreBased
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
 from generators.learning.PickPolicyMSECombinationOfQg import PickPolicyMSECombinationOfQg
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
-from generators.learning.PlacePolicyAdMonSelfAttention import PlacePolicyAdMonSelfAttention
-from generators.learning.PlacePolicyMSESelfAttention import PlacePolicyMSESelfAttention
-from generators.learning.PlacePolicyMSETau import PlacePolicyMSETau
-from generators.learning.PlacePolicyAdMonCombinationOfQg import PlacePolicyAdMonCombinationOfQg
-from generators.learning.PlacePolicyMSETransformer import PlacePolicyMSETransformer
 
-from generators.learning.PolicyIMLECombinationOfQg import PolicyIMLECombinationOfQg
 
 from data_processing_utils import state_data_mode, action_data_mode
 
@@ -42,12 +29,8 @@ def create_policy(config):
     if config.atype == 'pick':
         dim_action = 7
     else:
-        raise NotImplementedError
-
-    if config.atype == 'pick':
-        dim_pose = 24
-    else:
-        dim_pose = 20
+        dim_action = 4
+    dim_pose = 24
 
     if ROOTDIR == './':
         savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
