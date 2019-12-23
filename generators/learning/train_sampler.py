@@ -184,7 +184,6 @@ def train(config):
         assert must_get_q0_from_pick_abs_pose
         pick_abs_poses = actions[:, 3:7]  # must swap out the q0 with the pick base pose
         poses[:, -4:] = pick_abs_poses
-        poses = poses[:, 4:] # get rid of the object
         actions = actions[:, -4:]
     else:
         raise NotImplementedError

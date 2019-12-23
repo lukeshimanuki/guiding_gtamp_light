@@ -28,10 +28,9 @@ def create_policy(config):
 
     if config.atype == 'pick':
         dim_action = 7
-        dim_pose = 24
     else:
         dim_action = 4
-        dim_pose = 20
+    dim_pose = 24
 
     if ROOTDIR == './':
         savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
