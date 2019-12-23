@@ -39,10 +39,10 @@ def create_policy(config):
     n_key_configs = 291
     dim_collision = (n_key_configs, 2, 1)
 
-    if config.atype == 'pick' or config.atype == 'place':
+    if config.atype == 'pick':
         dim_action = 7
     else:
-        dim_action = 8
+        raise NotImplementedError
 
     if config.atype == 'pick':
         dim_pose = 24

@@ -6,8 +6,10 @@ from trajectory_representation.operator import Operator
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils.data_processing_utils import action_data_mode
 from gtamp_problem_environments.mover_env import Mover
-
+from generators.learning.utils import sampler_utils
 from gtamp_utils import utils
+from gtamp_utils.utils import get_pick_base_pose_and_grasp_from_pick_parameters
+
 import numpy as np
 import random
 import pickle
@@ -96,24 +98,45 @@ def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
         utils.visualize_path(picks[40:60, :])
         utils.visualize_path(picks[60:80, :])
     elif policy_mode == 'pick':
-        picks = samples
-        utils.visualize_path(picks[0:10, :])
-        utils.visualize_path(picks[20:40, :])
-        utils.visualize_path(picks[40:60, :])
-        utils.visualize_path(picks[60:80, :])
+        pick_base_poses = []
+        for p in samples:
+            _, pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(target_obj, p)
+            pick_base_poses.append(pose)
+        pick_base_poses = np.array(pick_base_poses)
+        utils.visualize_path(pick_base_poses[0:10, :])
+        """
+        utils.visualize_path(pick_base_poses[20:40, :])
+        utils.visualize_path(pick_base_poses[40:60, :])
+        utils.visualize_path(pick_base_poses[60:80, :])
+        """
     else:
         utils.visualize_placements(samples, target_obj_name)
     utils.set_color(target_obj, orig_color)
 
 
+def unprocess_pick_smpls(smpls):
+    if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
+        unprocessed = []
+        for smpl in smpls:
+            grasp_params = smpl[0:3]
+            ir_parameters = smpl[3:]
+            portion = ir_parameters[0]
+            base_angle = utils.decode_sin_and_cos_to_angle(ir_parameters[1:3])
+            facing_angle_offset = ir_parameters[3]
+            unprocessed.append(np.hstack([grasp_params, portion, base_angle, facing_angle_offset]))
+        return np.array(unprocessed)
+    else:
+        return np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in smpls])
+
+
 def generate_smpls(problem_env, sampler, target_obj_name, action_type):
     state = compute_state(target_obj_name, 'loading_region', problem_env)
-    z_smpls = gaussian_noise(z_size=(200, 4))
+    z_smpls = gaussian_noise(z_size=(200, 7))
 
     if action_type == 'pick_and_place':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
     elif action_type == 'pick' or action_type == 'place':
-        samples = sampler_utils.generate_pick_or_place_batch(state, sampler, z_smpls)
+        samples = sampler_utils.make_predictions(state, sampler, z_smpls)
     else:
         raise NotImplementedError
     return samples
@@ -122,27 +145,20 @@ def generate_smpls(problem_env, sampler, target_obj_name, action_type):
 def get_pick_feasibility_rate(smpls, target_obj, problem_env):
     feasibility_checker = two_arm_pick_feasibility_checker.TwoArmPickFeasibilityChecker(problem_env)
     op = Operator('two_arm_pick', {"object": target_obj})
-    pick_domain = utils.get_pick_domain()
-    dim_parameters = pick_domain.shape[-1]
-    domain_min = pick_domain[0]
-    domain_max = pick_domain[1]
-    if smpls is None:
-        pick_params = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
+
+    if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
         parameter_mode = 'ir_params'
     else:
-        if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
-            pick_params = smpls
-            parameter_mode = 'ir_params'
-        else:
-            raise NotImplementedError
+        parameter_mode = 'absolute_pose'
 
     n_success = 0
-    for param in pick_params:
+    for param in smpls:
         _, status = feasibility_checker.check_feasibility(op, param, parameter_mode=parameter_mode)
         n_success += status == 'HasSolution'
+        print status
 
-    total_samples = len(pick_params)
-    return n_success / float(total_samples)*100
+    total_samples = len(smpls)
+    return n_success / float(total_samples) * 100
 
 
 def main():
@@ -174,12 +190,22 @@ def main():
             sampler.load_weights('epoch_' + str(epoch))
     utils.viewer()
 
-    target_obj_name = 'square_packing_box1'
-    smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
+    target_obj_name = 'rectangular_packing_box1'
+    use_uniform = False
+    if use_uniform:
+        pick_domain = utils.get_pick_domain()
+        dim_parameters = pick_domain.shape[-1]
+        domain_min = pick_domain[0]
+        domain_max = pick_domain[1]
+        smpls = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
+    else:
+        smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
+        smpls = unprocess_pick_smpls(smpls)
 
     if atype == 'pick':
         feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
         print 'Feasibility rate %.5f' % feasibility_rate
+        import pdb;pdb.set_trace()
         raw_input("Press a button to visualize smpls")
     visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
 

@@ -657,6 +657,10 @@ def compute_ir_parameters_given_robot_xy(robot_xytheta, obj_xytheta, radius=PR2_
 
 
 def get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters):
+    if not isinstance(obj, openravepy.KinBody):
+        env = openravepy.RaveGetEnvironments()[0]
+        obj = env.GetKinBody(obj)
+    assert len(pick_parameters) == 6
     grasp_params = pick_parameters[0:3]
     ir_params = pick_parameters[3:]
     obj_xyth = get_body_xytheta(obj)
