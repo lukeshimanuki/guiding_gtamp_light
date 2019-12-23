@@ -84,7 +84,7 @@ class PlacePolicyIMLE(PlacePolicy):
         elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
             loss_weight = [10, 10, 1]
         else:
-            raise NotImplementedError
+            loss_weight = [0, 0, 1]
         model.compile(loss=[lambda _, pred: pred, lambda _, pred: pred, custom_mse], optimizer=self.opt_D,
                       loss_weights=loss_weight) # todo condition the loss weight based on the data type
         return model

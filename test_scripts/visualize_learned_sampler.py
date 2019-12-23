@@ -4,7 +4,7 @@ from generators.learning.utils import sampler_utils
 from generators.feasibility_checkers import two_arm_pick_feasibility_checker
 from trajectory_representation.operator import Operator
 from trajectory_representation.concrete_node_state import ConcreteNodeState
-
+from generators.learning.utils.data_processing_utils import action_data_mode
 from gtamp_problem_environments.mover_env import Mover
 
 from gtamp_utils import utils
@@ -119,34 +119,35 @@ def generate_smpls(problem_env, sampler, target_obj_name, policy_mode):
     return samples
 
 
-def get_feasibility_rate(smpls, action_type, target_obj, problem_env):
-    if action_type == 'pick':
-        # Sample grasp parameters
-        # Create feasibility checker
-        # this assumes action_data_mode is pick_abs_base_pose_place_abs_obj_pose
-        feasibility_checker = two_arm_pick_feasibility_checker.TwoArmPickFeasibilityChecker(problem_env)
-        op = Operator('two_arm_pick', {"object": target_obj})
-        pick_domain = utils.get_pick_domain()
-        dim_parameters = pick_domain.shape[-1]
-        domain_min = pick_domain[0]
-        domain_max = pick_domain[1]
-        if smpls is None:
-            pick_params = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
-            parameter_mode = 'ir_params'
+def get_pick_feasibility_rate(smpls, target_obj, problem_env):
+    feasibility_checker = two_arm_pick_feasibility_checker.TwoArmPickFeasibilityChecker(problem_env)
+    op = Operator('two_arm_pick', {"object": target_obj})
+    pick_domain = utils.get_pick_domain()
+    dim_parameters = pick_domain.shape[-1]
+    domain_min = pick_domain[0]
+    domain_max = pick_domain[1]
+    if smpls is None:
+        pick_params = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
+    else:
+        if 'full_pick_params' in action_data_mode:
+            pick_params = smpls[:, 0:6]
         else:
-            grasp_params = np.random.uniform(domain_min, domain_max, (len(smpls), dim_parameters)).squeeze()[:, 0:3]
+            grasp_params = np.random.uniform(domain_min, domain_max,
+                                             (len(smpls), dim_parameters)).squeeze()[:, 0:3]
             pick_params = np.hstack([grasp_params, smpls])
-            parameter_mode = 'absolute_pose'
 
-        n_success = 0
-        for param in pick_params:
-            _, status = feasibility_checker.check_feasibility(op, param, parameter_mode=parameter_mode)
-            n_success += status == 'HasSolution'
-
-    elif action_type == 'full_pick':
-        raise NotImplementedError
+    if 'pick_ir_parameters' in action_data_mode:
+        parameter_mode = 'ir_params'
+    elif 'pick_abs_base_pose' in action_data_mode:
+        parameter_mode = 'absolute_pose'
     else:
         raise NotImplementedError
+
+    import pdb;pdb.set_trace()
+    n_success = 0
+    for param in pick_params:
+        _, status = feasibility_checker.check_feasibility(op, param, parameter_mode=parameter_mode)
+        n_success += status == 'HasSolution'
 
     total_samples = len(pick_params)
     return n_success / float(total_samples)*100
@@ -181,7 +182,7 @@ def main():
     target_obj_name = 'square_packing_box1'
     smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
     #smpls = None
-    feasibility_rate = get_feasibility_rate(smpls, placeholder_config.atype, target_obj_name, problem_env)
+    feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
     print 'Feasibility rate %.5f' % feasibility_rate
     import pdb;pdb.set_trace()
     visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
