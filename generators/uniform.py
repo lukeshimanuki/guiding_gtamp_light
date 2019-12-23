@@ -1,8 +1,6 @@
-from generator import PaPGenerator, Generator
 from gtamp_utils import utils
 from gtamp_utils.utils import get_pick_domain, get_place_domain
-# from mover_library import utils
-# from mover_library.utils import get_pick_domain, get_place_domain
+from mover_library.utils import get_pick_base_pose_and_grasp_from_pick_parameters
 
 from feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
 from feasibility_checkers.two_arm_place_feasibility_checker import TwoArmPlaceFeasibilityChecker
@@ -85,9 +83,8 @@ class UniformGenerator:  # Only used in RSC
             # print 'Sampling attempts %d/%d' % (i, n_iter)
             stime = time.time()
             op_parameters = self.sample_from_uniform()
+
             self.tried_smpls.append(op_parameters)
-            # is this sampling the absolute or relative pick base config?
-            # It is sampling the relative config, but q_goal is the absolute.
             op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton,
                                                                                   op_parameters,
                                                                                   self.swept_volume_constraint)
@@ -225,13 +222,13 @@ class PaPUniformGenerator(UniformGenerator):
 # It is a mess at the moment: I am using the below for computing the state, but above for sampling in SAHS,
 # to be consistent with the old performance. Will fix later.
 
+"""
 class UniformPaPGenerator(PaPGenerator):
     def __init__(self, node, operator_skeleton, problem_env, swept_volume_constraint,
                  total_number_of_feasibility_checks, n_candidate_params_to_smpl, dont_check_motion_existence):
         PaPGenerator.__init__(self, node, operator_skeleton, problem_env, swept_volume_constraint,
                               total_number_of_feasibility_checks, n_candidate_params_to_smpl,
                               dont_check_motion_existence)
-
     def sample_candidate_pap_parameters(self, iter_limit):
         assert iter_limit > 0
         feasible_op_parameters = []
@@ -255,3 +252,4 @@ class UniformPaPGenerator(PaPGenerator):
             status = "HasSolution"
 
         return feasible_op_parameters, status
+"""

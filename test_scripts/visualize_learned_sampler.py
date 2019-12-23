@@ -106,13 +106,13 @@ def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
     utils.set_color(target_obj, orig_color)
 
 
-def generate_smpls(problem_env, sampler, target_obj_name, policy_mode):
+def generate_smpls(problem_env, sampler, target_obj_name, action_type):
     state = compute_state(target_obj_name, 'loading_region', problem_env)
     z_smpls = gaussian_noise(z_size=(200, 4))
 
-    if policy_mode == 'full':
+    if action_type == 'pick_and_place':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
-    elif policy_mode == 'pick' or policy_mode == 'place':
+    elif action_type == 'pick' or action_type == 'place':
         samples = sampler_utils.generate_pick_or_place_batch(state, sampler, z_smpls)
     else:
         raise NotImplementedError
@@ -128,22 +128,14 @@ def get_pick_feasibility_rate(smpls, target_obj, problem_env):
     domain_max = pick_domain[1]
     if smpls is None:
         pick_params = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
-    else:
-        if 'full_pick_params' in action_data_mode:
-            pick_params = smpls[:, 0:6]
-        else:
-            grasp_params = np.random.uniform(domain_min, domain_max,
-                                             (len(smpls), dim_parameters)).squeeze()[:, 0:3]
-            pick_params = np.hstack([grasp_params, smpls])
-
-    if 'pick_ir_parameters' in action_data_mode:
         parameter_mode = 'ir_params'
-    elif 'pick_abs_base_pose' in action_data_mode:
-        parameter_mode = 'absolute_pose'
     else:
-        raise NotImplementedError
+        if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
+            pick_params = smpls
+            parameter_mode = 'ir_params'
+        else:
+            raise NotImplementedError
 
-    import pdb;pdb.set_trace()
     n_success = 0
     for param in pick_params:
         _, status = feasibility_checker.check_feasibility(op, param, parameter_mode=parameter_mode)
@@ -157,13 +149,15 @@ def main():
     seed = int(sys.argv[1])
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
+
+    atype = 'pick'
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
         dtype='n_objs_pack_4',
         seed=seed,
-        atype='pick'
+        atype=atype
     )
 
     problem_seed = 0
@@ -179,12 +173,14 @@ def main():
         else:
             sampler.load_weights('epoch_' + str(epoch))
     utils.viewer()
+
     target_obj_name = 'square_packing_box1'
     smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
-    #smpls = None
-    feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
-    print 'Feasibility rate %.5f' % feasibility_rate
-    import pdb;pdb.set_trace()
+
+    if atype == 'pick':
+        feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
+        print 'Feasibility rate %.5f' % feasibility_rate
+        raw_input("Press a button to visualize smpls")
     visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
 
 
