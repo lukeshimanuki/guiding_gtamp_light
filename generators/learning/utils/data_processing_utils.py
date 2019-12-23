@@ -20,7 +20,6 @@ def make_konfs_relative_to_pose(obj_pose, key_configs):
 def get_absolute_placement_from_relative_placement(rel_placement, obj_abs_pose):
     rel_placement = utils.decode_pose_with_sin_and_cos_angle(rel_placement)
     if action_data_mode == 'pick_parameters_place_relative_to_object':
-        # abs_place = placement.squeeze() + obj_abs_pose.squeeze()
         abs_place = utils.get_absolute_pose_from_relative_pose(rel_placement, obj_abs_pose)
     else:
         raise NotImplementedError
@@ -35,10 +34,8 @@ def get_processed_poses_from_state(state, action):
         goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
     elif state_data_mode == 'robot_rel_to_obj':
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
-        # this is the initial robot pose, before picking an object. Is the collision information while holding the obj?
         robot_pose = utils.get_relative_robot_pose_wrt_body_pose(state.abs_robot_pose, state.abs_obj_pose)
         curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(robot_pose)
-        # I must preserve the locations different objects
         goal_obj_poses = [utils.get_relative_robot_pose_wrt_body_pose(o, state.abs_obj_pose) for o in
                           state.abs_goal_obj_poses]
         goal_obj_poses = [utils.encode_pose_with_sin_and_cos_angle(o) for o in goal_obj_poses]
