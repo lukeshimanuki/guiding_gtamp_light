@@ -67,7 +67,6 @@ def create_environment(problem_idx):
 
 def visualize_in_training_env(problem_env, learned_sampler, plan):
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-
     state = None
     utils.viewer()
     for action_idx, action in enumerate(plan):
@@ -98,25 +97,25 @@ def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
         utils.visualize_path(picks[40:60, :])
         utils.visualize_path(picks[60:80, :])
     elif policy_mode == 'pick':
-        pick_base_poses = []
-        for p in samples:
-            _, pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(target_obj, p)
-            pick_base_poses.append(pose)
-        pick_base_poses = np.array(pick_base_poses)
+        if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
+            pick_base_poses = []
+            for p in samples:
+                _, pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(target_obj, p)
+                pick_base_poses.append(pose)
+            pick_base_poses = np.array(pick_base_poses)
+        elif 'PICK_grasp_params_and_abs_base' in action_data_mode:
+            pick_base_poses = samples[:, 3:]
+        else:
+            raise NotImplementedError
         utils.visualize_path(pick_base_poses[0:10, :])
-        """
-        utils.visualize_path(pick_base_poses[20:40, :])
-        utils.visualize_path(pick_base_poses[40:60, :])
-        utils.visualize_path(pick_base_poses[60:80, :])
-        """
     else:
         utils.visualize_placements(samples, target_obj_name)
     utils.set_color(target_obj, orig_color)
 
 
 def unprocess_pick_smpls(smpls):
+    unprocessed = []
     if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
-        unprocessed = []
         for smpl in smpls:
             grasp_params = smpl[0:3]
             ir_parameters = smpl[3:]
@@ -124,9 +123,14 @@ def unprocess_pick_smpls(smpls):
             base_angle = utils.decode_sin_and_cos_to_angle(ir_parameters[1:3])
             facing_angle_offset = ir_parameters[3]
             unprocessed.append(np.hstack([grasp_params, portion, base_angle, facing_angle_offset]))
-        return np.array(unprocessed)
+    elif 'PICK_grasp_params_and_abs_base' in action_data_mode:
+        for smpl in smpls:
+            grasp_params = smpl[0:3]
+            abs_base_pose = utils.decode_pose_with_sin_and_cos_angle(smpl[3:])
+            unprocessed.append(np.hstack([grasp_params, abs_base_pose]))
     else:
-        return np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in smpls])
+        raise NotImplementedError
+    return np.array(unprocessed)
 
 
 def generate_smpls(problem_env, sampler, target_obj_name, action_type):
@@ -190,7 +194,7 @@ def main():
             sampler.load_weights('epoch_' + str(epoch))
     utils.viewer()
 
-    target_obj_name = 'rectangular_packing_box1'
+    target_obj_name = 'square_packing_box4'
     use_uniform = False
     if use_uniform:
         pick_domain = utils.get_pick_domain()
@@ -205,7 +209,6 @@ def main():
     if atype == 'pick':
         feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
         print 'Feasibility rate %.5f' % feasibility_rate
-        import pdb;pdb.set_trace()
         raw_input("Press a button to visualize smpls")
     visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
 
