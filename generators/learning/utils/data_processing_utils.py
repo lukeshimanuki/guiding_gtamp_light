@@ -150,14 +150,13 @@ def get_processed_poses_from_action(state, action):
         base_angle = utils.encode_angle_in_sin_and_cos(base_angle)
         grasp_params = action['pick_base_ir_parameters'][0:3]
         pick_params = np.hstack([grasp_params, portion, base_angle, facing_angle_offset])[None, :]
+    else:
+        raise NotImplementedError
+
     if 'PLACE_abs_base' in action_data_mode:
         place_params = utils.encode_pose_with_sin_and_cos_angle(action['place_obj_abs_pose'])[None, :]
     else:
         raise NotImplementedError
 
-    import pdb;
-    pdb.set_trace()
-
     action = np.hstack([pick_params, place_params])
-
     return action
