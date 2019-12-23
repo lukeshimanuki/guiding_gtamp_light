@@ -176,12 +176,26 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    """
     if config.atype == 'pick':
-        actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[0:3]) for a in actions])
+        if action_data_mode == 'grasp_params_pick_abs_base_pose_place_abs_obj_pose':
+            import pdb;pdb.set_trace()
+            assert len(actions[0] == 6)
+            actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:6]) for a in actions])
+        elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
+            assert len(actions[0] == 3)
+            actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[0:3]) for a in actions])
+        elif action_data_mode == 'full_pick_params_place_abs_obj_pose':
+            assert len(actions[0] == 10)
+        elif action_data_mode == 'pick_ir_parameters_place_abs_obj_pose':
+            assert len(actions[0] == 4)
     elif config.atype == 'place':
         actions = np.array([utils.encode_pose_with_sin_and_cos_angle(a[3:]) for a in actions])
     else:
         raise NotImplementedError
+    """
+
+
     if config.atype == 'pick':
         poses = poses[:, :]  # It is currently: [target_obj_pose, goal_obj_poses, robot_pick_pose].
     elif config.atype == 'place':
@@ -189,7 +203,6 @@ def train(config):
         poses = poses[:, :-4]  # It is currently: [target_obj_pose, goal_obj_poses, robot_pick_pose].
     else:
         raise NotImplementedError
-
     ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
