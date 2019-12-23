@@ -2,8 +2,8 @@ from gtamp_utils import utils
 import numpy as np
 
 state_data_mode = 'absolute'
-action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
+action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
 
 def make_konfs_relative_to_pose(obj_pose, key_configs):
@@ -142,7 +142,7 @@ def get_processed_poses_from_action(state, action):
     if 'PICK_grasp_params_and_abs_base' in action_data_mode:
         grasp_params = action['pick_base_ir_parameters'][0:3][None, :]
         abs_pick_pose = utils.encode_pose_with_sin_and_cos_angle(action['pick_abs_base_pose'])[None, :]
-        pick_params = np.hstack([grasp_params, abs_pick_pose])[None, :]
+        pick_params = np.hstack([grasp_params, abs_pick_pose])
     elif 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
         abs_pick_pose = action['pick_abs_base_pose']
         portion, base_angle, facing_angle_offset \

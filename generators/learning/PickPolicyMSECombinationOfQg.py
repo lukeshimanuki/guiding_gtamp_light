@@ -75,7 +75,7 @@ class PickPolicyMSECombinationOfQg(PlacePolicyMSE):
                       name='loss_model')
 
         model.compile(loss=[lambda _, pred: pred, lambda _, pred: pred, 'mse'],
-                      optimizer=self.opt_D, loss_weights=[10, 1, 1])
+                      optimizer=self.opt_D, loss_weights=[10, 10, 1])
         #model.compile(loss='mse', optimizer=self.opt_D)
         return model
 
