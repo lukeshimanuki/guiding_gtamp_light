@@ -40,7 +40,7 @@ def create_policy(config):
     dim_collision = (n_key_configs, 2, 1)
 
     if config.atype == 'pick' or config.atype == 'place':
-        dim_action = 4
+        dim_action = 7
     else:
         dim_action = 8
 
