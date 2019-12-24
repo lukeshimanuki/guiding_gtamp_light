@@ -1,6 +1,5 @@
 from generators.learned_generator import LearnedGenerator
-from generators.learning.utils.model_creation_utils import create_policy
-from generators.learning.utils import sampler_utils
+from generators.learning.utils import model_creation_utils
 from generators.feasibility_checkers import two_arm_pick_feasibility_checker
 from trajectory_representation.operator import Operator
 from trajectory_representation.concrete_node_state import ConcreteNodeState
@@ -8,7 +7,7 @@ from generators.learning.utils.data_processing_utils import action_data_mode
 from gtamp_problem_environments.mover_env import Mover
 from generators.learning.utils import sampler_utils
 from gtamp_utils import utils
-from gtamp_utils.utils import get_pick_base_pose_and_grasp_from_pick_parameters
+from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 
 import numpy as np
 import random
@@ -133,13 +132,13 @@ def unprocess_pick_smpls(smpls):
     return np.array(unprocessed)
 
 
-def generate_smpls(problem_env, sampler, target_obj_name, action_type):
+def generate_smpls(problem_env, sampler, target_obj_name, config):
     state = compute_state(target_obj_name, 'loading_region', problem_env)
     z_smpls = gaussian_noise(z_size=(200, 7))
 
-    if action_type == 'pick_and_place':
+    if config.atype == 'place':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
-    elif action_type == 'pick' or action_type == 'place':
+    elif config.atype == 'pick':
         samples = sampler_utils.make_predictions(state, sampler, z_smpls)
     else:
         raise NotImplementedError
@@ -165,19 +164,78 @@ def get_pick_feasibility_rate(smpls, target_obj, problem_env):
     return n_success / float(total_samples) * 100
 
 
+def get_place_feasibility_rate(pick_smpls, place_smpls, target_obj, problem_env):
+    total_samples = len(pick_smpls)
+    raise NotImplementedError
+
+
+def create_policy(place_holder_config):
+    if place_holder_config.atype == 'pick':
+        policy = model_creation_utils.create_policy(place_holder_config)
+    elif place_holder_config.atype == 'place':
+        pick_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                       ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base',
+                        place_holder_config.algo)
+        dim_action = 7
+        n_key_configs = 291
+        dim_collision = (n_key_configs, 2, 1)
+        dim_pose = 24
+        pick_place_holder_config = place_holder_config._replace(atype='pick')
+        pick_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                     dim_pose=dim_pose,
+                                                     save_folder=pick_savedir, config=pick_place_holder_config)
+        dim_action = 4
+        place_place_holder_config = place_holder_config._replace(atype='place')
+        place_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                        ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_abs_base_PLACE_abs_base',
+                         place_holder_config.algo)
+        place_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                      dim_pose=dim_pose,
+                                                      save_folder=place_savedir, config=place_place_holder_config)
+        policy = {'pick': pick_policy, 'place': place_policy}
+    else:
+        raise NotImplementedError
+    return policy
+
+
+def load_sampler_weights(sampler, config):
+    if config.atype == 'pick':
+        if 'mse' in config.algo:
+            sampler.load_weights()
+        else:
+            if config.epoch == 'best':
+                sampler.load_best_weights()
+            else:
+                sampler.load_weights('epoch_' + str(config.epoch))
+    elif config.atype == 'place':
+        if 'mse' in config.algo:
+            sampler['pick'].load_weights()
+            sampler['place'].load_weights()
+        else:
+            if config.epoch == 'best':
+                sampler['pick'].load_best_weights()
+                sampler['place'].load_best_weights()
+            else:
+                sampler['pick'].load_weights('epoch_' + str(config.epoch))
+                sampler['place'].load_weights('epoch_' + str(config.epoch))
+    else:
+        raise NotImplementedError
+
+
 def main():
     seed = int(sys.argv[1])
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
 
-    atype = 'pick'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype')
+    atype = 'place'
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
         dtype='n_objs_pack_4',
         seed=seed,
-        atype=atype
+        atype=atype,
+        epoch=epoch
     )
 
     problem_seed = 0
@@ -185,13 +243,7 @@ def main():
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
     sampler = create_policy(placeholder_config)
-    if 'mse' in algo:
-        sampler.load_weights()
-    else:
-        if epoch == 'best':
-            sampler.load_best_weights()
-        else:
-            sampler.load_weights('epoch_' + str(epoch))
+    load_sampler_weights(sampler, placeholder_config)
     utils.viewer()
 
     target_obj_name = 'square_packing_box4'
@@ -203,13 +255,17 @@ def main():
         domain_max = pick_domain[1]
         smpls = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
     else:
-        smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config.atype)
+        smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config)
         smpls = unprocess_pick_smpls(smpls)
 
     if atype == 'pick':
         feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
         print 'Feasibility rate %.5f' % feasibility_rate
         raw_input("Press a button to visualize smpls")
+    elif atype == 'place':
+        # I need to generate the pick samples first
+        feasibility_rate = get_place_feasibility_rate(smpls, target_obj_name, problem_env)
+
     visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
 
 

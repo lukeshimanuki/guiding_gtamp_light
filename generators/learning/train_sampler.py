@@ -175,6 +175,7 @@ def get_data(datatype):
 def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
+    # todo should I be updating the collision info once I pick an object?
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
 
     if config.atype == 'pick':

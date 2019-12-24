@@ -111,6 +111,8 @@ def generate_pick_or_place_batch(smpler_state, policy, noise_batch):
 
 
 def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
+
+    """
     picks = []
     places = []
     pred_batch = make_predictions(smpler_state, policy, noise_batch)
@@ -120,3 +122,4 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         picks.append(pick)
         places.append(place)
     return (picks, places)
+    """
