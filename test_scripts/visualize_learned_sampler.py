@@ -114,7 +114,15 @@ def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
 
 def unprocess_pick_smpls(smpls):
     unprocessed = []
-    if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
+    for smpl in smpls:
+        grasp_params = smpl[0:3]
+        ir_parameters = smpl[3:]
+        portion = ir_parameters[0]
+        base_angle = utils.decode_sin_and_cos_to_angle(ir_parameters[1:3])
+        facing_angle_offset = ir_parameters[3]
+        unprocessed.append(np.hstack([grasp_params, portion, base_angle, facing_angle_offset]))
+    """
+    if 'PICK_grasp_params_and_ir_parameters' in atype:
         for smpl in smpls:
             grasp_params = smpl[0:3]
             ir_parameters = smpl[3:]
@@ -122,13 +130,22 @@ def unprocess_pick_smpls(smpls):
             base_angle = utils.decode_sin_and_cos_to_angle(ir_parameters[1:3])
             facing_angle_offset = ir_parameters[3]
             unprocessed.append(np.hstack([grasp_params, portion, base_angle, facing_angle_offset]))
-    elif 'PICK_grasp_params_and_abs_base' in action_data_mode:
+    elif 'PICK_grasp_params_and_abs_base' in atype:  # this is not used
         for smpl in smpls:
             grasp_params = smpl[0:3]
             abs_base_pose = utils.decode_pose_with_sin_and_cos_angle(smpl[3:])
             unprocessed.append(np.hstack([grasp_params, abs_base_pose]))
     else:
         raise NotImplementedError
+    """
+    return np.array(unprocessed)
+
+
+def unprocess_place_smpls(smpls):
+    unprocessed = []
+    for smpl in smpls:
+        abs_base_pose = utils.decode_pose_with_sin_and_cos_angle(smpl)
+        unprocessed.append(abs_base_pose)
     return np.array(unprocessed)
 
 
@@ -149,14 +166,16 @@ def get_pick_feasibility_rate(smpls, target_obj, problem_env):
     feasibility_checker = two_arm_pick_feasibility_checker.TwoArmPickFeasibilityChecker(problem_env)
     op = Operator('two_arm_pick', {"object": target_obj})
 
+    """
     if 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
         parameter_mode = 'ir_params'
     else:
         parameter_mode = 'absolute_pose'
+    """
 
     n_success = 0
     for param in smpls:
-        _, status = feasibility_checker.check_feasibility(op, param, parameter_mode=parameter_mode)
+        _, status = feasibility_checker.check_feasibility(op, param, parameter_mode='ir_params')
         n_success += status == 'HasSolution'
         print status
 
@@ -165,13 +184,33 @@ def get_pick_feasibility_rate(smpls, target_obj, problem_env):
 
 
 def get_place_feasibility_rate(pick_smpls, place_smpls, target_obj, problem_env):
-    total_samples = len(pick_smpls)
+    # todo start from here
+    pick_feasibility_checker = two_arm_pick_feasibility_checker.TwoArmPickFeasibilityChecker(problem_env)
+    parameter_mode = 'ir_params'
+
+    for pick_smpl, place_smpl in zip(pick_smpls, place_smpls):
+        op = Operator('two_arm_pick', {"object": target_obj}, continuous_parameters=pick_smpl)
+        pick_smpl, status = pick_feasibility_checker.check_feasibility(op, pick_smpl, parameter_mode=parameter_mode)
+        if status == 'HasSolution':
+            import pdb;
+            pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
     raise NotImplementedError
 
 
 def create_policy(place_holder_config):
     if place_holder_config.atype == 'pick':
-        policy = model_creation_utils.create_policy(place_holder_config)
+        pick_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                       ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base',
+                        place_holder_config.algo)
+        dim_action = 7
+        n_key_configs = 291
+        dim_collision = (n_key_configs, 2, 1)
+        dim_pose = 24
+        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                dim_pose=dim_pose,
+                                                save_folder=pick_savedir, config=place_holder_config)
     elif place_holder_config.atype == 'place':
         pick_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
                        ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base',
@@ -213,6 +252,8 @@ def load_sampler_weights(sampler, config):
             sampler['place'].load_weights()
         else:
             if config.epoch == 'best':
+                import pdb;
+                pdb.set_trace()
                 sampler['pick'].load_best_weights()
                 sampler['place'].load_best_weights()
             else:
@@ -227,7 +268,7 @@ def main():
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
 
-    atype = 'place'
+    atype = 'pick'
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch')
     placeholder_config = placeholder_config_definition(
         algo=algo,
@@ -244,9 +285,8 @@ def main():
     problem_env, openrave_env = create_environment(problem_seed)
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
-    utils.viewer()
 
-    target_obj_name = 'square_packing_box4'
+    target_obj_name = 'square_packing_box3'
     use_uniform = False
     if use_uniform:
         pick_domain = utils.get_pick_domain()
@@ -256,7 +296,12 @@ def main():
         smpls = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
     else:
         smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config)
-        smpls = unprocess_pick_smpls(smpls)
+        if atype == 'pick':
+            smpls = unprocess_pick_smpls(smpls)
+            import pdb;pdb.set_trace()
+        else:
+            pick_smpls = unprocess_pick_smpls(smpls[0])
+            place_smpls = unprocess_place_smpls(smpls[1])
 
     if atype == 'pick':
         feasibility_rate = get_pick_feasibility_rate(smpls, target_obj_name, problem_env)
@@ -264,9 +309,12 @@ def main():
         raw_input("Press a button to visualize smpls")
     elif atype == 'place':
         # I need to generate the pick samples first
-        feasibility_rate = get_place_feasibility_rate(smpls, target_obj_name, problem_env)
+        feasibility_rate = get_place_feasibility_rate(pick_smpls, place_smpls, target_obj_name, problem_env)
 
-    visualize_samples(smpls, problem_env, target_obj_name, placeholder_config.atype)
+    utils.viewer()
+    visualize_samples(smpls, problem_env, target_obj_name, atype)
+    import pdb;
+    pdb.set_trace()
 
 
 if __name__ == '__main__':

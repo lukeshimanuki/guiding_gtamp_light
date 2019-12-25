@@ -2,6 +2,7 @@ from mover_library.samplers import *
 from mover_library.utils import set_robot_config, grab_obj, release_obj, get_body_xytheta
 from gtamp_utils import utils
 
+
 class TwoArmPlaceFeasibilityChecker:
     def __init__(self, problem_env):
         self.problem_env = problem_env
@@ -87,7 +88,6 @@ class TwoArmPlaceFeasibilityChecker:
         if type(obj_region) == str:
             obj_region = self.problem_env.regions[obj_region]
 
-
         T_r_wrt_o = np.dot(np.linalg.inv(obj.GetTransform()), self.robot.GetTransform())
         original_trans = self.robot.GetTransform()
         original_obj_trans = obj.GetTransform()
@@ -98,7 +98,6 @@ class TwoArmPlaceFeasibilityChecker:
 
         robot_xytheta = self.compute_robot_base_pose_given_object_pose(obj, self.robot, obj_pose, T_r_wrt_o)
         set_robot_config(robot_xytheta, self.robot)
-
 
         is_feasible = self.is_collision_and_region_constraints_satisfied(target_robot_region1, target_robot_region2,
                                                                          target_obj_region)
