@@ -59,7 +59,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
-        model.compile(loss=[lambda _, pred: pred, 'mse'], optimizer=self.opt_D, loss_weights=[0, 1])
+        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[0, 1])
         #model.compile(loss='mse', optimizer=self.opt_D)
         return model
 
