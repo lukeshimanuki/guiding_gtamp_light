@@ -145,8 +145,8 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch, problem_env
     pick_base_poses = np.array(pick_base_poses)
 
     # todo I need to make a separate key config obstacles for place sampler
-    place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
-    inp[2] = place_konf_obstacles
+    #place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
+    #inp[2] = place_konf_obstacles
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
     inp[-2] = poses

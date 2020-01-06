@@ -281,7 +281,7 @@ def main():
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
 
-    atype = 'pick'
+    atype = 'place'
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch')
     placeholder_config = placeholder_config_definition(
         algo=algo,
@@ -299,8 +299,8 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    target_obj_name = 'rectangular_packing_box2'
-    use_uniform = True
+    target_obj_name = 'square_packing_box4'
+    use_uniform = False
     if use_uniform:
         pick_domain = utils.get_pick_domain()
         dim_parameters = pick_domain.shape[-1]
@@ -331,7 +331,7 @@ def main():
             feasibility_rate = get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_obj_name,
                                                                           problem_env)
         else:
-            feasibility_rate = get_place_feasibility_rate(pick_smpls, place_smpls, target_obj_name, problem_env)
+            feasibility_rate = get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_obj_name, problem_env)
         smpls = place_smpls
     else:
         raise NotImplementedError

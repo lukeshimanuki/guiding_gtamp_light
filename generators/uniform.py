@@ -8,6 +8,8 @@ from feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeas
 from feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFeasibilityChecker
 from feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityChecker
 
+from generators.generator import PaPGenerator
+
 import numpy as np
 import time
 
@@ -222,7 +224,6 @@ class PaPUniformGenerator(UniformGenerator):
 # It is a mess at the moment: I am using the below for computing the state, but above for sampling in SAHS,
 # to be consistent with the old performance. Will fix later.
 
-"""
 class UniformPaPGenerator(PaPGenerator):
     def __init__(self, node, operator_skeleton, problem_env, swept_volume_constraint,
                  total_number_of_feasibility_checks, n_candidate_params_to_smpl, dont_check_motion_existence):
@@ -252,4 +253,3 @@ class UniformPaPGenerator(PaPGenerator):
             status = "HasSolution"
 
         return feasible_op_parameters, status
-"""

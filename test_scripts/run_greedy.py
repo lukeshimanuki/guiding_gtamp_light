@@ -15,6 +15,8 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.utils.model_creation_utils import create_policy
 from gtamp_utils import utils
 
+from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
+
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
 
@@ -25,8 +27,8 @@ def get_problem_env(config):
         problem_env = PaPMoverEnv(config.pidx)
         goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
         for obj in problem_env.objects[:n_objs_pack]:
-            utils.set_color(obj, [0,1,0])
-        #goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
+            utils.set_color(obj, [0, 1, 0])
+        # goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
         #                 'rectangular_packing_box4']
         problem_env.set_goal(goal)
     elif config.domain == 'one_arm_mover':
@@ -195,6 +197,7 @@ def get_pap_gnn_model(mover, config):
 
 def get_learned_smpler(sampler_seed, epoch, algo):
     print "Creating the learned sampler.."
+    """
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
@@ -208,7 +211,37 @@ def get_learned_smpler(sampler_seed, epoch, algo):
     else:
         sampler.load_weights('epoch_' + str(epoch))
     return sampler
-
+    """
+    atype = 'place'
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch')
+    place_holder_config = placeholder_config_definition(
+        algo=algo,
+        tau=1.0,
+        dtype='n_objs_pack_4',
+        seed=sampler_seed,
+        atype=atype,
+        epoch=epoch)
+    pick_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                   ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base',
+                    place_holder_config.algo)
+    dim_action = 7
+    n_key_configs = 291
+    dim_collision = (n_key_configs, 2, 1)
+    dim_pose = 24
+    pick_place_holder_config = place_holder_config._replace(atype='pick')
+    pick_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                 dim_pose=dim_pose,
+                                                 save_folder=pick_savedir, config=pick_place_holder_config)
+    dim_action = 4
+    place_place_holder_config = place_holder_config._replace(atype='place')
+    place_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                    ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_abs_base_PLACE_abs_base',
+                     place_holder_config.algo)
+    place_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                  dim_pose=dim_pose,
+                                                  save_folder=place_savedir, config=place_place_holder_config)
+    policy = {'pick': pick_policy, 'place': place_policy}
+    return policy
 
 def make_pklable(plan):
     for p in plan:
