@@ -13,16 +13,17 @@ class ConcreteNodeState:
             obj = problem_env.env.GetKinBody(obj)
 
         self.key_configs = self.get_key_configs(key_configs)
-        self.collision_vector = self.get_collison_vector(collision_vector)
+        self.pick_collision_vector = self.get_collison_vector(collision_vector)
         self.abs_robot_pose = utils.clean_pose_data(utils.get_body_xytheta(problem_env.robot))
         self.abs_obj_pose = utils.clean_pose_data(utils.get_body_xytheta(obj))
         self.goal_flags = self.get_goal_flags()
         self.rel_konfs = None
         self.abs_goal_obj_poses = [utils.clean_pose_data(utils.get_body_xytheta(o)) for o in goal_entities if
                                    'region' not in o]
+        self.place_collision_vector = None
 
     def get_goal_flags(self):
-        n_key_configs = self.collision_vector.shape[1]
+        n_key_configs = self.pick_collision_vector.shape[1]
         is_goal_obj = utils.convert_binary_vec_to_one_hot(np.array([self.obj in self.goal_entities]))
         is_goal_obj = np.tile(is_goal_obj, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
         is_goal_region = utils.convert_binary_vec_to_one_hot(

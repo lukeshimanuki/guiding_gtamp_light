@@ -38,7 +38,7 @@ from utils import data_processing_utils
 from gtamp_utils import utils
 
 
-def load_data(traj_dir):
+def load_data(traj_dir, action_type):
     traj_files = os.listdir(traj_dir)
     #cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
@@ -76,7 +76,14 @@ def load_data(traj_dir):
         konf_relevance = []
         place_paths = []
         for s, a in zip(traj.states, traj.actions):
-            state_vec = s.collision_vector
+            # todo this should depend on whether I am training a pick sampler or a place sampler
+            if action_type == 'pick':
+                state_vec = s.pick_collision_vector
+            elif action_type == 'place':
+                state_vec = s.place_collision_vector
+            else:
+                raise NotImplementedError
+
             n_key_configs = state_vec.shape[1]
 
             is_goal_obj = utils.convert_binary_vec_to_one_hot(np.array([s.obj in s.goal_entities]))
@@ -146,7 +153,7 @@ def load_data(traj_dir):
     return all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
 
 
-def get_data(datatype):
+def get_data(datatype, action_type):
     if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
         root_dir = './'
     else:
@@ -157,7 +164,7 @@ def get_data(datatype):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir)
+    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir, action_type)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -176,7 +183,7 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     # todo should I be updating the collision info once I pick an object?
-    states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype)
+    states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype)
 
     if config.atype == 'pick':
         actions = actions[:, :-4]

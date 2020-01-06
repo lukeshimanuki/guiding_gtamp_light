@@ -181,6 +181,8 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
                 reward = -1
 
             print action.discrete_parameters['object'], action.discrete_parameters['region']
+            action.execute_pick()
+            state.place_collision_vector = state.get_collison_vector(None)
             action.execute()
             self.add_sar_tuples(state, action_info, reward)
 
