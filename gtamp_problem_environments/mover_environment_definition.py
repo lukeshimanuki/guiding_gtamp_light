@@ -515,7 +515,6 @@ class MoverEnvironmentDefinition:
 
         big_objects_to_pack = [body for body in env.GetBodies()
                                if body.GetName().find('chair') != -1 or body.GetName().find('shelf') != -1]
-
         objects_to_pack = [obj for obj in temp_objects_to_pack if obj not in big_objects_to_pack]
         objects = objects_to_pack + big_objects_to_pack
         self.problem_config = {'shelf_objects': shelf_objects,

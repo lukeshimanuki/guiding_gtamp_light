@@ -27,7 +27,8 @@ class Mover(ProblemEnvironment):
         self.initial_robot_base_pose = get_body_xytheta(self.robot)
         self.regions = {'entire_region': self.problem_config['entire_region'],
                         'home_region': self.problem_config['home_region'],
-                        'loading_region': self.problem_config['loading_region']}
+                        'loading_region': self.problem_config['loading_region'],
+                        'bridge_region': self.problem_config['bridge_region']}
         self.region_names = ['entire_region', 'home_region', 'loading_region']
         self.object_names = [obj.GetName() for obj in self.objects]
         self.placement_regions = {'home_region': self.problem_config['home_region'],

@@ -44,7 +44,16 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
         orig_config = get_robot_xytheta(self.robot)
         two_arm_pick_object(obj, pick_action)
         no_collision = not self.env.CheckCollision(self.robot)
+        # Changing this to loading, home, and bridge regions will hurt the performance for uniform sampler,
+        # and I will have to re-run experiments. Our planning experience might involve base poses outside of
+        # the loading or kitchen regions too. I will leave it as is for now.
         inside_region = self.problem_env.regions['entire_region'].contains(self.robot.ComputeAABB())
+        """
+        inside_region = \
+            self.problem_env.regions['loading_region'].contains(self.robot.ComputeAABB()) or \
+            self.problem_env.regions['home_region'].contains(self.robot.ComputeAABB()) or \
+            self.problem_env.regions['bridge_region'].contains(self.robot.ComputeAABB())
+        """
         two_arm_place_object(pick_action)
         set_robot_config(orig_config, self.robot)
         return no_collision and inside_region

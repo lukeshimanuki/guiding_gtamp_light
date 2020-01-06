@@ -16,7 +16,7 @@ def prepare_input(smpler_state, noise_batch):
 
     smpler_state.abs_obj_pose = obj_pose
     goal_flags = smpler_state.goal_flags
-    collisions = smpler_state.collision_vector
+    collisions = smpler_state.pick_collision_vector
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
@@ -104,13 +104,34 @@ def generate_pick_or_place_batch(smpler_state, policy, noise_batch):
     return samples_in_se2
 
 
-def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
+def get_konf_obstacles_while_holding(pick_samples, sampler_state, problem_env):
+    konf_obstacles_while_holding = []
+    xmin = -0.7
+    xmax = 4.3
+    ymin = -8.55
+    ymax = -4.85
+    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
+                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
+    sampler_state.key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+    for pick_smpl in pick_samples:
+        utils.two_arm_pick_object(sampler_state.obj, pick_smpl)
+        sampler_state.place_collision_vector = sampler_state.get_collison_vector(None)
+        konf_obstacles_while_holding.append(sampler_state.place_collision_vector)
+        utils.two_arm_place_object(pick_smpl)
+    return np.array(konf_obstacles_while_holding).reshape((len(pick_samples), 291, 2, 1))
+
+
+
+def generate_pick_and_place_batch(smpler_state, policy, noise_batch, problem_env):
     pick_smpler = policy['pick']
     inp = prepare_input(smpler_state, noise_batch)
     pick_samples = pick_smpler.policy_model.predict(inp)
 
     # preparation for place sampler
     pick_base_poses = []
+    pick_params = []
     for p in pick_samples:
         ir_parameters = p[3:]
         portion = ir_parameters[0]
@@ -118,15 +139,19 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         facing_angle_offset = ir_parameters[3]
         pick_param = np.hstack([p[:3], portion, base_angle, facing_angle_offset])
         _, pick_base_pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(smpler_state.obj, pick_param)
+        pick_params.append({'q_goal': pick_base_pose})
         pick_base_pose = utils.encode_pose_with_sin_and_cos_angle(pick_base_pose)
         pick_base_poses.append(pick_base_pose)
     pick_base_poses = np.array(pick_base_poses)
+
+    # todo I need to make a separate key config obstacles for place sampler
+    place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
+    inp[2] = place_konf_obstacles
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
     inp[-2] = poses
     z_smpls = gaussian_noise(z_size=(200, 4))
     inp[-1] = z_smpls
-
     place_smpler = policy['place']
     place_samples = place_smpler.policy_model.predict(inp)
     """
