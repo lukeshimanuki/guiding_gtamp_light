@@ -212,11 +212,12 @@ def train(config):
         states = np.delete(states, indices_to_delete, axis=1)
         konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
 
-        n_key_configs = len(key_configs)
-        key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
-        key_configs = key_configs.repeat(len(poses), axis=0)
         goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
         ####
+
+    n_key_configs = len(key_configs)
+    key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
+    key_configs = key_configs.repeat(len(poses), axis=0)
 
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)

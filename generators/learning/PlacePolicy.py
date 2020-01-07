@@ -10,7 +10,7 @@ import numpy as np
 class PlacePolicy(Policy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
-        self.n_key_confs = 291
+        self.n_key_confs = dim_collision[0]
 
         self.dim_collision = dim_collision
 
