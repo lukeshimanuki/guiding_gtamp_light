@@ -241,7 +241,10 @@ def get_learned_smpler(sampler_seed, epoch, algo):
                                                   dim_pose=dim_pose,
                                                   save_folder=place_savedir, config=place_place_holder_config)
     policy = {'pick': pick_policy, 'place': place_policy}
+    policy['pick'].load_best_weights()
+    policy['place'].load_best_weights()
     return policy
+
 
 def make_pklable(plan):
     for p in plan:
