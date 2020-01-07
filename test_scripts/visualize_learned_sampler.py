@@ -133,7 +133,7 @@ def unprocess_place_smpls(smpls):
 
 
 def generate_smpls(problem_env, sampler, target_obj_name, config):
-    state = compute_state(target_obj_name, 'loading_region', problem_env)
+    state = compute_state(target_obj_name, 'home_region', problem_env)
     z_smpls = gaussian_noise(z_size=(500, 7))
 
     if config.atype == 'place':
@@ -319,6 +319,7 @@ def main():
         seed=seed,
         atype=atype,
         epoch=epoch
+
     )
 
     problem_seed = 0
@@ -355,7 +356,7 @@ def main():
 
     utils.viewer()
     raw_input("Press a button to visualize smpls")
-    obj_to_visualize = 'square_packing_box4'
+    obj_to_visualize = 'rectangular_packing_box4'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
     import pdb;

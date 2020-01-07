@@ -28,6 +28,7 @@ class ConcreteNodeState:
         is_goal_obj = np.tile(is_goal_obj, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
         is_goal_region = utils.convert_binary_vec_to_one_hot(
             np.array([self.region in self.goal_entities]))
+        import pdb;pdb.set_trace()
         is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
         return np.concatenate([is_goal_obj, is_goal_region], axis=2)
 
