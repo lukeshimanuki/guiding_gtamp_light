@@ -34,8 +34,8 @@ def create_policy(config):
     dim_pose = 24
 
     if ROOTDIR == './':
-        savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
-                  (config.dtype, state_data_mode, action_data_mode, config.algo)
+        savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/%s' % \
+                  (config.dtype, state_data_mode, action_data_mode, config.algo, config.region)
     else:
         savedir = ''
 

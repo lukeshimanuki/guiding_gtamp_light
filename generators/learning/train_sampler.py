@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument('-tau', type=float, default=0.0)
     parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
     parser.add_argument('-atype', type=str, default='pick')
+    parser.add_argument('-region', type=str, default='loading_region')
     args = parser.parse_args()
     return args
 
@@ -38,12 +39,13 @@ from utils import data_processing_utils
 from gtamp_utils import utils
 
 
-def load_data(traj_dir, action_type):
+def load_data(traj_dir, action_type, region):
     traj_files = os.listdir(traj_dir)
-    #cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
+    # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
-    cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
-    #cache_file_name = 'cache_smode_%s_amode_%s.pkl' % (state_data_mode, action_data_mode)
+    cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (
+        state_data_mode, action_data_mode, action_type, region)
+    # cache_file_name = 'cache_smode_%s_amode_%s.pkl' % (state_data_mode, action_data_mode)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -91,9 +93,12 @@ def load_data(traj_dir, action_type):
             is_goal_region = utils.convert_binary_vec_to_one_hot(np.array([s.region in s.goal_entities]))
             is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
 
-            filter_movements_to_goal_region = s.region in s.goal_entities
-            if filter_movements_to_goal_region:
+            is_move_to_goal_region = s.region in s.goal_entities
+            if region == 'home_region' and not is_move_to_goal_region:
                 continue
+            if region == 'loading_region' and is_move_to_goal_region:
+                continue
+
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
             poses.append(get_processed_poses_from_state(s, a))
@@ -107,13 +112,6 @@ def load_data(traj_dir, action_type):
             binary_collision_vector = state_vec.squeeze()[:, 0]
             place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector,
                                                                        place_motion)
-
-            """
-            problem_env, openrave_env = create_environment(0)
-            init = [utils.decode_pose_with_sin_and_cos_angle(poses[0][-4:])]
-            utils.set_robot_config(init)
-            utils.visualize_path(key_configs[place_relevance, :])
-            """
 
             konf_relevance.append(place_relevance)
 
@@ -153,7 +151,7 @@ def load_data(traj_dir, action_type):
     return all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
 
 
-def get_data(datatype, action_type):
+def get_data(datatype, action_type, region):
     if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
         root_dir = './'
     else:
@@ -164,7 +162,7 @@ def get_data(datatype, action_type):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir, action_type)
+    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir, action_type, region)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -183,7 +181,8 @@ def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
     # todo should I be updating the collision info once I pick an object?
-    states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype)
+    states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
+                                                                                          config.region)
 
     if config.atype == 'pick':
         actions = actions[:, :-4]

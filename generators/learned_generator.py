@@ -113,7 +113,7 @@ class LearnedGenerator(PaPUniformGenerator):
         smpl = self.policy_smpl_batch[self.policy_smpl_idx]
         self.policy_smpl_idx += 1
         if self.policy_smpl_idx >= len(self.policy_smpl_batch):
-            z_smpls = uniform_noise(z_size=(500, 4))
+            z_smpls = uniform_noise(z_size=(500, 7))
             stime = time.time()
             smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
             self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
