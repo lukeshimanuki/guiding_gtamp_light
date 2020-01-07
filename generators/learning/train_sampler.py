@@ -201,21 +201,22 @@ def train(config):
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
 
     # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
-    xmin = -0.7
-    xmax = 4.3
-    ymin = -8.55
-    ymax = -4.85
-    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
-                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
-    key_configs = np.delete(key_configs, indices_to_delete, axis=0)
-    states = np.delete(states, indices_to_delete, axis=1)
-    konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
+    if config.region == 'loading_region':
+        xmin = -0.7
+        xmax = 4.3
+        ymin = -8.55
+        ymax = -4.85
+        indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
+                                       np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
+        key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+        states = np.delete(states, indices_to_delete, axis=1)
+        konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
 
-    n_key_configs = len(key_configs)
-    key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
-    key_configs = key_configs.repeat(len(poses), axis=0)
-    goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-    ####
+        n_key_configs = len(key_configs)
+        key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
+        key_configs = key_configs.repeat(len(poses), axis=0)
+        goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+        ####
 
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
