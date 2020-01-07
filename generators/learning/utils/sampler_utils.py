@@ -10,6 +10,26 @@ def gaussian_noise(z_size):
     return np.random.normal(size=z_size, scale=0.5).astype('float32')
 
 
+def unprocess_pick_and_place_smpls(smpls):
+    pick_smpls = smpls[0]
+    place_smpls = smpls[1]
+
+    pick_unprocessed = []
+    place_unprocessed = []
+    for pick_smpl, place_smpl in zip(pick_smpls, place_smpls):
+        grasp_params = pick_smpl[0:3]
+        ir_parameters = pick_smpl[3:]
+        portion = ir_parameters[0]
+        base_angle = utils.decode_sin_and_cos_to_angle(ir_parameters[1:3])
+        facing_angle_offset = ir_parameters[3]
+        pick_unprocessed.append(np.hstack([grasp_params, portion, base_angle, facing_angle_offset]))
+
+        abs_base_pose = utils.decode_pose_with_sin_and_cos_angle(place_smpl)
+        place_unprocessed.append(abs_base_pose)
+    smpls = np.hstack([pick_unprocessed, place_unprocessed])
+    return smpls
+
+
 def prepare_input(smpler_state, noise_batch):
     poses = data_processing_utils.get_processed_poses_from_state(smpler_state, None)[None, :]
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
@@ -123,8 +143,7 @@ def get_konf_obstacles_while_holding(pick_samples, sampler_state, problem_env):
     return np.array(konf_obstacles_while_holding).reshape((len(pick_samples), 291, 2, 1))
 
 
-
-def generate_pick_and_place_batch(smpler_state, policy, noise_batch, problem_env):
+def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     pick_smpler = policy['pick']
     inp = prepare_input(smpler_state, noise_batch)
     pick_samples = pick_smpler.policy_model.predict(inp)
@@ -145,8 +164,8 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch, problem_env
     pick_base_poses = np.array(pick_base_poses)
 
     # todo I need to make a separate key config obstacles for place sampler
-    #place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
-    #inp[2] = place_konf_obstacles
+    # place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
+    # inp[2] = place_konf_obstacles
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
     inp[-2] = poses

@@ -25,7 +25,9 @@ def get_problem_env(config):
     n_objs_pack = config.n_objs_pack
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
-        goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
+        #goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
+        goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
+                     'rectangular_packing_box4']
         for obj in problem_env.objects[:n_objs_pack]:
             utils.set_color(obj, [0, 1, 0])
         # goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',

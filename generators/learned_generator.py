@@ -4,7 +4,8 @@ from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils import data_processing_utils
 
 from gtamp_utils import utils
-from generators.learning.utils.sampler_utils import generate_smpl_batch
+from generators.learning.utils.sampler_utils import generate_pick_and_place_batch
+from generators.learning.utils.sampler_utils import unprocess_pick_and_place_smpls
 from generators.learning.PlacePolicyIMLE import uniform_noise
 
 import time
@@ -35,16 +36,20 @@ class LearnedGenerator(PaPUniformGenerator):
         # to do generate 1000 smpls here
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
-        z_smpls = uniform_noise(z_size=(500, 4))
+        z_smpls = uniform_noise(z_size=(500, 7))
         stime=time.time()
-        self.policy_smpl_batch = generate_smpl_batch(self.smpler_state, self.sampler, z_smpls, self.key_configs)
+        smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
+        self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
         print "Prediction time", time.time() - stime
 
+        """
+        utils.viewer()
         orig_color = utils.get_color_of(self.obj)
         utils.set_color(self.obj, [1, 0, 0])
-        import pdb;pdb.set_trace()
-        utils.visualize_placements(self.policy_smpl_batch[0:200], self.obj)
+        utils.visualize_placements(self.policy_smpl_batch[:, -3:], self.obj)
         utils.set_color(self.obj, orig_color)
+        import pdb;pdb.set_trace()
+        """
         self.policy_smpl_idx = 0
 
     def process_abstract_state_collisions_into_key_config_obstacles(self, abstract_state):
@@ -81,12 +86,13 @@ class LearnedGenerator(PaPUniformGenerator):
 
         return colliding_vtx_idxs
 
-    def generate(self):
+    def sample_from_learned_samplers(self):
         # Wait..
         # Sample pick first, and only if that is feasible, use place
         # Right now, I am discarding the entire sample
         # But really, I should learn to predict both the pick and place,
         # so that if the place paired with the pick is infeasible, then I can discard both samples
+        """
         if action_data_mode == 'pick_parameters_place_relative_to_object':
             place_smpl = self.policy_smpl_batch[self.policy_smpl_idx]
             place_smpl = data_processing_utils.get_absolute_placement_from_relative_placement(place_smpl,
@@ -103,10 +109,20 @@ class LearnedGenerator(PaPUniformGenerator):
                 self.policy_smpl_idx = 0
         else:
             raise NotImplementedError
-        self.tried_smpls.append(place_smpl)
-        parameters = self.sample_from_uniform()
-        parameters[6:] = place_smpl
-        return parameters
+        """
+        smpl = self.policy_smpl_batch[self.policy_smpl_idx]
+        self.policy_smpl_idx += 1
+        if self.policy_smpl_idx >= len(self.policy_smpl_batch):
+            z_smpls = uniform_noise(z_size=(500, 4))
+            stime = time.time()
+            smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
+            self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
+            print "Prediction time for further sampling", time.time() - stime
+            self.policy_smpl_idx = 0
+        self.tried_smpls.append(smpl)
+        #parameters = self.sample_from_uniform()
+        #parameters[6:] = place_smpl
+        return smpl
 
     def sample_feasible_op_parameters(self, operator_skeleton, n_iter, n_parameters_to_try_motion_planning):
         assert n_iter > 0
@@ -118,7 +134,7 @@ class LearnedGenerator(PaPUniformGenerator):
         # utils.viewer()
         for i in range(n_iter):
             stime = time.time()
-            op_parameters = self.generate()
+            op_parameters = self.sample_from_learned_samplers()
             op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton, op_parameters,
                                                                                   self.swept_volume_constraint,
                                                                                   parameter_mode='obj_pose')

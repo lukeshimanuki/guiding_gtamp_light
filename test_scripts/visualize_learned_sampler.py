@@ -132,12 +132,14 @@ def unprocess_place_smpls(smpls):
     return np.array(unprocessed)
 
 
+
+
 def generate_smpls(problem_env, sampler, target_obj_name, config):
     state = compute_state(target_obj_name, 'loading_region', problem_env)
     z_smpls = gaussian_noise(z_size=(500, 7))
 
     if config.atype == 'place':
-        samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls, problem_env)
+        samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
     elif config.atype == 'pick':
         samples = sampler_utils.make_predictions(state, sampler, z_smpls)
     else:
@@ -328,8 +330,8 @@ def main():
     load_sampler_weights(sampler, placeholder_config)
     obj_names = ['square_packing_box1', 'square_packing_box2', 'square_packing_box3', 'square_packing_box4',
                  'rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
-    import pdb;pdb.set_trace()
-    use_uniform = True
+    use_uniform = False
+    """
     for target_obj_name in obj_names:
         smpls = get_smpls(problem_env, atype, sampler, target_obj_name, placeholder_config, use_uniform)
 
@@ -350,8 +352,9 @@ def main():
 
         #print '%s Feasibility rate %.5f' % (target_obj_name, feasibility_rate)
         print feasibility_rate
+    """
 
-    obj_to_visualize = 'rectangular_packing_box2'
+    obj_to_visualize = 'square_packing_box4'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     raw_input("Press a button to visualize smpls")
     utils.viewer()
