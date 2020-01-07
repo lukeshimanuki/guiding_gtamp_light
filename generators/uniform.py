@@ -53,7 +53,8 @@ class UniformGenerator:  # Only used in RSC
             self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env)
         elif operator_type == 'one_arm_place':
             if target_region is None:
-                import pdb;pdb.set_trace()
+                import pdb;
+                pdb.set_trace()
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
         elif operator_type == 'two_arm_pick_two_arm_place':
@@ -169,6 +170,7 @@ class PaPUniformGenerator(UniformGenerator):
 
         status = "NoSolution"
         for curr_n_iter in range(10, self.max_n_iter, 10):
+            print curr_n_iter
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
                                                                                 n_parameters_to_try_motion_planning)
@@ -195,7 +197,7 @@ class PaPUniformGenerator(UniformGenerator):
 
         chosen_pick_param = self.get_op_param_with_feasible_motion_plan(pick_op_params, cached_collisions)
         if not chosen_pick_param['is_feasible']:
-            #print "Motion planning to pick failed"
+            # print "Motion planning to pick failed"
             return {'is_feasible': False}
 
         target_obj = operator_skeleton.discrete_parameters['object']
@@ -230,6 +232,7 @@ class UniformPaPGenerator(PaPGenerator):
         PaPGenerator.__init__(self, node, operator_skeleton, problem_env, swept_volume_constraint,
                               total_number_of_feasibility_checks, n_candidate_params_to_smpl,
                               dont_check_motion_existence)
+
     def sample_candidate_pap_parameters(self, iter_limit):
         assert iter_limit > 0
         feasible_op_parameters = []

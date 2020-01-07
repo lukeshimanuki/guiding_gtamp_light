@@ -63,9 +63,9 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     return smpled_param
 
 
-def search(mover, config, pap_model, learned_smpler=None):
+def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler=None):
     tt = time.time()
-
+    goal_region = mover.placement_regions[goal_region_name]
     obj_names = [obj.GetName() for obj in mover.objects]
     n_objs_pack = config.n_objs_pack
     statecls = get_state_class(config.domain)
@@ -119,15 +119,14 @@ def search(mover, config, pap_model, learned_smpler=None):
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
+                import pdb;pdb.set_trace()
                 action.execute()
+                import pdb;pdb.set_trace()
                 print "Action executed"
             else:
                 print "Failed to sample an action"
                 continue
-
-            is_goal_achieved = \
-                np.all([mover.regions['home_region'].contains(mover.env.GetKinBody(o).ComputeAABB()) for o in
-                        obj_names[:n_objs_pack]])
+            is_goal_achieved = np.all([goal_region.contains(mover.env.GetKinBody(o).ComputeAABB()) for o in goal_objs])
             if is_goal_achieved:
                 print("found successful plan: {}".format(n_objs_pack))
                 plan = list(node.backtrack())[::-1]  # plan of length 0 is possible I think

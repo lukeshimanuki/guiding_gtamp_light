@@ -36,7 +36,7 @@ class LearnedGenerator(PaPUniformGenerator):
         # to do generate 1000 smpls here
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
-        z_smpls = uniform_noise(z_size=(500, 7))
+        z_smpls = uniform_noise(z_size=(1900, 7))
         stime=time.time()
         smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)

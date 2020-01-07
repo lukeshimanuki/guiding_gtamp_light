@@ -21,13 +21,12 @@ from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
 
 
-def get_problem_env(config):
+def get_problem_env(config, goal_region, goal_objs):
     n_objs_pack = config.n_objs_pack
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
         #goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
-        goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
-                     'rectangular_packing_box4']
+        goal = [goal_region] + goal_objs
         for obj in problem_env.objects[:n_objs_pack]:
             utils.set_color(obj, [0, 1, 0])
         # goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
@@ -265,7 +264,10 @@ def main():
     np.random.seed(config.pidx)
     random.seed(config.pidx)
 
-    problem_env = get_problem_env(config)
+    goal_objs = ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+    goal_region = 'home_region'
+
+    problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:
         utils.viewer()
@@ -292,7 +294,7 @@ def main():
             num_nodes = trajectory['num_nodes']
     else:
         t = time.time()
-        plan, num_nodes, nodes = search(problem_env, config, pap_model, smpler)
+        plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler)
         tottime = time.time() - t
         success = plan is not None
         plan_length = len(plan) if success else 0
