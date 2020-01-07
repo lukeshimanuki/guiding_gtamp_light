@@ -206,14 +206,18 @@ def train(config):
         xmax = 4.3
         ymin = -8.55
         ymax = -4.85
-        indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
-                                       np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
-        key_configs = np.delete(key_configs, indices_to_delete, axis=0)
-        states = np.delete(states, indices_to_delete, axis=1)
-        konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
+    elif config.region == 'home_region':
+        xmin = -1.11322709
+        xmax = 4.99456405
+        ymin = -2.9463328
+        ymax = 2.54926346
 
-        goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-        ####
+    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
+                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
+    key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+    states = np.delete(states, indices_to_delete, axis=1)
+    konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
+    goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
 
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))

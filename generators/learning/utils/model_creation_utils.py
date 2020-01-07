@@ -27,7 +27,9 @@ def create_policy(config):
     if config.region == 'loading_region':
         n_key_configs = 291
     elif config.region == 'home_region':
-        n_key_configs = 615
+        n_key_configs = 284
+    else:
+        raise NotImplementedError
 
     dim_collision = (n_key_configs, 2, 1)
 
