@@ -24,7 +24,11 @@ def load_weights(policy, seed, use_unregularized):
 
 
 def create_policy(config):
-    n_key_configs = 291
+    if config.region == 'loading_region':
+        n_key_configs = 291
+    elif config.region == 'home_region':
+        n_key_configs = 615
+
     dim_collision = (n_key_configs, 2, 1)
 
     if config.atype == 'pick':

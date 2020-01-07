@@ -132,8 +132,6 @@ def unprocess_place_smpls(smpls):
     return np.array(unprocessed)
 
 
-
-
 def generate_smpls(problem_env, sampler, target_obj_name, config):
     state = compute_state(target_obj_name, 'loading_region', problem_env)
     z_smpls = gaussian_noise(z_size=(500, 7))
@@ -157,7 +155,7 @@ def get_pick_feasibility_rate(smpls, target_obj, problem_env):
         if status == 'HasSolution':
             motion, status = problem_env.motion_planner.get_motion_plan([pick_param['q_goal']], cached_collisions=None)
         n_success += status == 'HasSolution'
-        #print status
+        # print status
 
     total_samples = len(smpls)
     return n_success / float(total_samples) * 100
@@ -194,9 +192,10 @@ def get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_o
     for pick_smpl, place_smpl in zip(pick_smpls, place_smpls):
         parameters = np.hstack([pick_smpl, place_smpl])
         param, status = feasibility_checker.check_feasibility(op, parameters, swept_volume_to_avoid=None,
-                                                          parameter_mode='obj_pose')
+                                                              parameter_mode='obj_pose')
         if status == 'HasSolution':
-            motion, status = problem_env.motion_planner.get_motion_plan([param['pick']['q_goal']], cached_collisions=None)
+            motion, status = problem_env.motion_planner.get_motion_plan([param['pick']['q_goal']],
+                                                                        cached_collisions=None)
             if status == 'HasSolution':
                 utils.two_arm_pick_object(target_obj, param['pick'])
                 motion, status = problem_env.motion_planner.get_motion_plan([param['place']['q_goal']],
@@ -235,9 +234,9 @@ def create_policy(place_holder_config):
                                                      save_folder=pick_savedir, config=pick_place_holder_config)
         dim_action = 4
         place_place_holder_config = place_holder_config._replace(atype='place')
-        place_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+        place_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/%s' % \
                         ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_abs_base_PLACE_abs_base',
-                         place_holder_config.algo)
+                         place_holder_config.algo, 'home_region')
         place_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
                                                       dim_pose=dim_pose,
                                                       save_folder=place_savedir, config=place_place_holder_config)
@@ -329,7 +328,8 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
     obj_names = ['square_packing_box1', 'square_packing_box2', 'square_packing_box3', 'square_packing_box4',
-                 'rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+                 'rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
+                 'rectangular_packing_box4']
     use_uniform = False
     """
     for target_obj_name in obj_names:
@@ -350,15 +350,16 @@ def main():
         else:
             raise NotImplementedError
 
-        #print '%s Feasibility rate %.5f' % (target_obj_name, feasibility_rate)
         print feasibility_rate
     """
 
+    utils.viewer()
+    raw_input("Press a button to visualize smpls")
     obj_to_visualize = 'square_packing_box4'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
-    raw_input("Press a button to visualize smpls")
-    utils.viewer()
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
+    import pdb;
+    pdb.set_trace()
 
 
 if __name__ == '__main__':
