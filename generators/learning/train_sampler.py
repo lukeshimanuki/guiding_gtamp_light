@@ -223,7 +223,7 @@ def train(config):
     else:
         raise NotImplementedError
 
-    #### This perhaps needs to be refactored
+    #### This perhaps needs to be refactored ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
 
@@ -232,8 +232,9 @@ def train(config):
     states = np.delete(states, indices_to_delete, axis=1)
     konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-    ####
+    ############
 
+    key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
     key_configs = filter_configs_that_are_too_close(key_configs)
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     n_key_configs = len(key_configs)

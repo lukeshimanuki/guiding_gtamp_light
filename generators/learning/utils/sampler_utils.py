@@ -135,8 +135,7 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     inp[-1] = z_smpls
     place_smpler = policy['place']
     place_samples = place_smpler.policy_model.predict(inp)
-    #place_sample_values = place_smpler.value_model.predict(inp)
-
-    #place_sample_values = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_sample_values[0]]
+    # place_sample_values = place_smpler.value_model.predict(inp)
+    # place_sample_values = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_sample_values[0]]
 
     return pick_samples, place_samples
