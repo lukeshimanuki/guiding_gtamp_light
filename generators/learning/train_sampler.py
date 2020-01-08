@@ -44,7 +44,7 @@ def load_data(traj_dir, action_type, region):
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
     if action_type == 'pick':
-        cache_file_name = 'cache_smode_%s_amode_%s.pkl' % (state_data_mode, action_data_mode)
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (state_data_mode,
                                                                               action_data_mode, action_type, region)
