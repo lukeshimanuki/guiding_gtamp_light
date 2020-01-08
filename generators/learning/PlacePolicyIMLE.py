@@ -186,7 +186,7 @@ class PlacePolicyIMLE(PlacePolicy):
             else:
                 patience += 1
 
-            if patience > 20:
+            if patience > 30:
                 self.save_weights('epoch_' + str(epoch))
                 break
 
