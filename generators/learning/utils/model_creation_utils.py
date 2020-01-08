@@ -50,8 +50,8 @@ def create_policy(config, n_key_configs, given_action_data_mode=None):
     if config.algo == 'place_mse_qg_combination':
         policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                            save_folder=savedir, config=config)
-        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
-                                               save_folder=savedir, config=config)
+        #policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
+        #                                       save_folder=savedir, config=config)
     elif config.algo == 'pick_mse_qg_combination':
         policy = PickPolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                               save_folder=savedir, config=config)

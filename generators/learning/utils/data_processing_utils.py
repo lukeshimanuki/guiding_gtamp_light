@@ -2,8 +2,8 @@ from gtamp_utils import utils
 import numpy as np
 
 state_data_mode = 'absolute'
-action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
 action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
+action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
 
 
 def make_konfs_relative_to_pose(obj_pose, key_configs):
