@@ -61,7 +61,6 @@ def prepare_input(smpler_state, noise_batch, delete=False, region=None):
         key_configs = np.delete(key_configs, indices_to_delete, axis=0)
         collisions = np.delete(collisions, indices_to_delete, axis=1)
         goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
@@ -123,9 +122,7 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         pick_base_poses.append(pick_base_pose)
     pick_base_poses = np.array(pick_base_poses)
 
-    # todo I need to make a separate key config obstacles for place sampler
-    # place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
-    # inp[2] = place_konf_obstacles
+    # making place samples based on pick base poses
     inp = prepare_input(smpler_state, noise_batch, delete=True, region=smpler_state.region)
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
@@ -134,15 +131,7 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     inp[-1] = z_smpls
     place_smpler = policy['place']
     place_samples = place_smpler.policy_model.predict(inp)
-    """
-    picks = []
-    places = []
-    pred_batch = make_predictions(smpler_state, policy, noise_batch)
-    for q in pred_batch:
-        pick = utils.decode_pose_with_sin_and_cos_angle(q[0:4])
-        place = utils.decode_pose_with_sin_and_cos_angle(q[4:])
-        picks.append(pick)
-        places.append(place)
-    return (picks, places)
-    """
+    place_sample_values = place_smpler.value_model.predict(inp)
+    import pdb;pdb.set_trace()
+
     return pick_samples, place_samples

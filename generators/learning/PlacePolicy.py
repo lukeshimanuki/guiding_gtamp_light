@@ -10,7 +10,8 @@ import numpy as np
 class PlacePolicy(Policy):
     def __init__(self, dim_action, dim_collision, save_folder, tau, config):
         Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
-        self.n_key_confs = dim_collision[0]
+        self.n_collisions = dim_collision[0]
+        self.n_key_confs = 155 #dim_collision[0]
 
         self.dim_collision = dim_collision
 
@@ -19,7 +20,7 @@ class PlacePolicy(Policy):
         self.collision_input = Input(shape=dim_collision, name='s', dtype='float32')  # collision vector
         self.pose_input = Input(shape=(self.dim_poses,), name='pose', dtype='float32')  # pose
         self.key_config_input = Input(shape=(self.n_key_confs, 4, 1), name='konf', dtype='float32')  # relative key config
-        self.goal_flag_input = Input(shape=(self.n_key_confs, 4, 1), name='goal_flag', dtype='float32')  # goal flag (is_goal_r, is_goal_obj)
+        self.goal_flag_input = Input(shape=(self.n_collisions, 4, 1), name='goal_flag', dtype='float32')  # goal flag (is_goal_r, is_goal_obj)
 
         # setup inputs related to detecting whether a key config is relevant
         self.cg_input = Input(shape=(dim_action,), name='cg', dtype='float32')  # action
@@ -67,7 +68,6 @@ class PlacePolicy(Policy):
         goal_flags, rel_konfs, collisions, poses = states
         k_smpls = []
         k = noise_smpls.shape[1]
-
         for j in range(k):
             actions = self.policy_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls[:, j, :]])
             k_smpls.append(actions)

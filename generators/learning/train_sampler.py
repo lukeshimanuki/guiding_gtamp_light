@@ -1,14 +1,41 @@
-import argparse
 import os
 import pickle
 import numpy as np
 import random
 import socket
+import argparse
 
 from generators.learning.utils.model_creation_utils import create_policy
 from generators.learning.utils import sampler_utils
 from test_scripts.visualize_learned_sampler import create_environment
 
+
+def c_outside_threshold(c, configs, xy_threshold, th_threshold):
+    min_dist = np.inf
+    c = np.array(c)
+    for cprime in configs:
+        cprime = np.array(cprime)
+        xy_dist = np.linalg.norm(c[0:2] - cprime[0:2])
+        # th_dist = abs(c[2]-cprime[2])
+        th_dist = abs(c[2] - cprime[2]) if abs(c[2] - cprime[2]) < np.pi else 2 * np.pi - abs(c[2] - cprime[2])
+        assert (th_dist < np.pi)
+
+        if xy_dist < xy_threshold and th_dist < th_threshold:
+            return False
+    return True
+
+
+def filter_configs_that_are_too_close(path, xy_threshold=0.4, th_threshold=45*np.pi/180):
+    configs = []
+    for c in path:
+        if c[-1] < 0:
+            c[-1] += 2 * np.pi
+        if c[-1] > 2 * np.pi:
+            c[-1] -= 2 * np.pi
+        if c_outside_threshold(c, configs, xy_threshold, th_threshold):
+            configs.append(c)
+
+    return configs
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Process configurations')
@@ -195,25 +222,26 @@ def train(config):
     else:
         raise NotImplementedError
 
-    ####
+    #### This perhaps needs to be refactored
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
-    key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
-
-    # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
 
     indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     states = np.delete(states, indices_to_delete, axis=1)
     konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+    ####
 
+    key_configs = filter_configs_that_are_too_close(key_configs)
+    key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
 
     print "Number of data", len(states)
-    policy = create_policy(config, n_key_configs)
+    n_collisions = states.shape[1]
+    policy = create_policy(config, n_collisions)
     policy.policy_model.summary()
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 

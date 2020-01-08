@@ -134,8 +134,8 @@ def unprocess_place_smpls(smpls):
 
 
 def generate_smpls(problem_env, sampler, target_obj_name, config):
-    state = compute_state(target_obj_name, 'home_region', problem_env)
-    z_smpls = gaussian_noise(z_size=(500, 7))
+    state = compute_state(target_obj_name, config.region, problem_env)
+    z_smpls = gaussian_noise(z_size=(100, 7))
 
     if config.atype == 'place':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
@@ -217,11 +217,16 @@ def create_policy(place_holder_config):
     elif place_holder_config.atype == 'place':
         pick_place_holder_config = place_holder_config._replace(atype='pick')
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
-        pick_policy = model_creation_utils.create_policy(pick_place_holder_config,
+        pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         place_place_holder_config = place_holder_config._replace(atype='place')
-        place_place_holder_config = place_place_holder_config._replace(region='home_region')
-        place_policy = model_creation_utils.create_policy(place_place_holder_config,
+        place_place_holder_config = place_place_holder_config._replace(region=place_holder_config.region)
+
+        if place_holder_config.region == 'loading_region':
+            n_key_configs = 291
+        else:
+            n_key_configs = 284
+        place_policy = model_creation_utils.create_policy(place_place_holder_config, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}
     else:
@@ -288,34 +293,11 @@ def get_smpls(problem_env, atype, sampler, target_obj_name, placeholder_config, 
     return smpls
 
 
-def main():
-    seed = int(sys.argv[1])
-    epoch = sys.argv[2]
-    algo = str(sys.argv[3])
-
-    atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region')
-    placeholder_config = placeholder_config_definition(
-        algo=algo,
-        tau=1.0,
-        dtype='n_objs_pack_4',
-        seed=seed,
-        atype=atype,
-        epoch=epoch,
-        region='home_region'
-    )
-
-    problem_seed = 1
-    np.random.seed(problem_seed)
-    random.seed(problem_seed)
-    problem_env, openrave_env = create_environment(problem_seed)
-    sampler = create_policy(placeholder_config)
-    load_sampler_weights(sampler, placeholder_config)
+def check_feasibility_rate(problem_env, atype, sampler, placeholder_config):
     obj_names = ['square_packing_box1', 'square_packing_box2', 'square_packing_box3', 'square_packing_box4',
                  'rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
                  'rectangular_packing_box4']
     use_uniform = False
-    """
     for target_obj_name in obj_names:
         smpls = get_smpls(problem_env, atype, sampler, target_obj_name, placeholder_config, use_uniform)
 
@@ -335,11 +317,38 @@ def main():
             raise NotImplementedError
 
         print feasibility_rate
-    """
 
-    utils.viewer()
+
+def main():
+    seed = int(sys.argv[1])
+    epoch = sys.argv[2]
+    algo = str(sys.argv[3])
+
+    atype = 'place'
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region')
+    placeholder_config = placeholder_config_definition(
+        algo=algo,
+        tau=1.0,
+        dtype='n_objs_pack_4',
+        seed=seed,
+        atype=atype,
+        epoch=epoch,
+        region='home_region'
+    )
+
+    problem_seed = 0
+    np.random.seed(problem_seed)
+    random.seed(problem_seed)
+    problem_env, openrave_env = create_environment(problem_seed)
+    sampler = create_policy(placeholder_config)
+    load_sampler_weights(sampler, placeholder_config)
+
+    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+
     import pdb;pdb.set_trace()
-    obj_to_visualize = 'rectangular_packing_box4'
+    use_uniform = False
+    utils.viewer()
+    obj_to_visualize = 'rectangular_packing_box2'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
     import pdb;

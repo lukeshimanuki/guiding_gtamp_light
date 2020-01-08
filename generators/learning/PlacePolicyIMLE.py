@@ -62,31 +62,15 @@ class PlacePolicyIMLE(PlacePolicy):
 
             return tf.reduce_mean(hinge_on_given_dist_limit+hinge_on_given_dist_limit2)
 
-        repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
-        konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
-        distance_to_colliding_konfs_output = Lambda(avg_distance_to_colliding_key_configs,
-                                                    name='collision_distance_output')(
-            [repeated_poloutput, konf_input, self.collision_input])
-
-        distance_to_target_obj_output = Lambda(distance_to_target_obj, name='dist_to_target_output')(
-            [self.policy_output, self.pose_input])
-
         model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
                               self.noise_input],
-                      outputs=[distance_to_colliding_konfs_output, distance_to_target_obj_output, self.policy_output],
+                      outputs=[self.policy_output],
                       name='loss_model')
 
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
-        if action_data_mode == 'pick_ir_parameters_place_abs_obj_pose':
-            loss_weight = [0, 0, 1]
-        elif action_data_mode == 'pick_abs_base_pose_place_abs_obj_pose':
-            loss_weight = [10, 10, 1]
-        else:
-            loss_weight = [0, 0, 1]
-        model.compile(loss=[lambda _, pred: pred, lambda _, pred: pred, custom_mse], optimizer=self.opt_D,
-                      loss_weights=loss_weight) # todo condition the loss weight based on the data type
+        model.compile(loss=[custom_mse], optimizer=self.opt_D)
         return model
 
     @staticmethod
@@ -176,12 +160,12 @@ class PlacePolicyIMLE(PlacePolicy):
             # I also need to tag on the Q-learning objective
             before = self.policy_model.get_weights()
             self.loss_model.fit([goal_flag_batch, rel_konf_batch, col_batch, pose_batch, chosen_noise_smpls],
-                                [a_batch, a_batch, a_batch],
+                                [a_batch],
                                 epochs=1000,
                                 batch_size=32,
                                 validation_data=(
                                     [t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls],
-                                    [t_actions, t_actions, t_actions]),
+                                    [t_actions]),
                                 callbacks=callbacks,
                                 verbose=True)
             # self.load_weights()
@@ -205,7 +189,6 @@ class PlacePolicyIMLE(PlacePolicy):
             if patience > 20:
                 self.save_weights('epoch_' + str(epoch))
                 break
-              
 
             print "Val error %.2f patience %d" % (valid_err, patience)
             print np.min(valid_errs)

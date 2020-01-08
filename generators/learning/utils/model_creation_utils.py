@@ -23,13 +23,13 @@ def load_weights(policy, seed, use_unregularized):
     policy.policy_model.load_weights(policy.save_folder + weight_fname)
 
 
-def create_policy(config, n_key_configs, given_action_data_mode=None):
+def create_policy(config, n_collisions, given_action_data_mode=None):
     if given_action_data_mode is None:
         action_data_mode = default_action_data_mode
     else:
         action_data_mode = given_action_data_mode
 
-    dim_collision = (n_key_configs, 2, 1)
+    dim_collision = (n_collisions, 2, 1)
 
     if config.atype == 'pick':
         dim_action = 7
