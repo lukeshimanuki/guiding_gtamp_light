@@ -203,12 +203,10 @@ def train(config):
     # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
 
     indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
-    """
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     states = np.delete(states, indices_to_delete, axis=1)
     konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-    """
 
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
