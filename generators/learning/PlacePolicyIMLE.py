@@ -193,7 +193,7 @@ class PlacePolicyIMLE(PlacePolicy):
             pred = self.policy_model.predict([t_goal_flags, t_rel_konfs, t_collisions, t_poses, t_chosen_noise_smpls])
             valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
             valid_errs.append(valid_err)
-            if epoch % 100 == 0:
+            if epoch % 20 == 0:
                 self.save_weights('epoch_' + str(epoch))
 
             if valid_err <= np.min(valid_errs):
@@ -202,8 +202,10 @@ class PlacePolicyIMLE(PlacePolicy):
             else:
                 patience += 1
 
-            if patience > 10:
-                pass
+            if patience > 20:
+                self.save_weights('epoch_' + str(epoch))
+                break
+              
 
             print "Val error %.2f patience %d" % (valid_err, patience)
             print np.min(valid_errs)
