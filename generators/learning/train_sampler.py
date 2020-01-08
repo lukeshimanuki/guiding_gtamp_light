@@ -37,6 +37,7 @@ def filter_configs_that_are_too_close(path, xy_threshold=0.4, th_threshold=45*np
 
     return configs
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Process configurations')
     parser.add_argument('-n_data', type=int, default=100)
@@ -241,7 +242,7 @@ def train(config):
 
     print "Number of data", len(states)
     n_collisions = states.shape[1]
-    policy = create_policy(config, n_collisions)
+    policy = create_policy(config, n_collisions, n_key_configs)
     policy.policy_model.summary()
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 

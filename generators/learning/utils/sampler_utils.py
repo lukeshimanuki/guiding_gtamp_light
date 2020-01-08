@@ -46,7 +46,7 @@ def get_indices_to_delete(region, key_configs):
     return indices_to_delete
 
 
-def prepare_input(smpler_state, noise_batch, delete=False, region=None):
+def prepare_input(smpler_state, noise_batch, delete=False, region=None, filter_konfs=False):
     poses = data_processing_utils.get_processed_poses_from_state(smpler_state, None)[None, :]
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
@@ -61,6 +61,9 @@ def prepare_input(smpler_state, noise_batch, delete=False, region=None):
         key_configs = np.delete(key_configs, indices_to_delete, axis=0)
         collisions = np.delete(collisions, indices_to_delete, axis=1)
         goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+
+    if filter_konfs:
+        key_configs = data_processing_utils.filter_configs_that_are_too_close(key_configs)
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
@@ -123,7 +126,7 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     pick_base_poses = np.array(pick_base_poses)
 
     # making place samples based on pick base poses
-    inp = prepare_input(smpler_state, noise_batch, delete=True, region=smpler_state.region)
+    inp = prepare_input(smpler_state, noise_batch, delete=True, region=smpler_state.region, filter_konfs=True)
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
     inp[-2] = poses
@@ -132,6 +135,8 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     place_smpler = policy['place']
     place_samples = place_smpler.policy_model.predict(inp)
     place_sample_values = place_smpler.value_model.predict(inp)
+
+    place_sample_values = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_sample_values[0]]
     import pdb;pdb.set_trace()
 
     return pick_samples, place_samples

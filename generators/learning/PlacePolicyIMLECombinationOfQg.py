@@ -6,8 +6,8 @@ from PlacePolicyIMLE import PlacePolicyIMLE
 
 
 class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
-    def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
-        PlacePolicyIMLE.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
+    def __init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config):
+        PlacePolicyIMLE.__init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config)
         self.weight_file_name = '%s_imle_qg_combination_%d' % (config.atype, config.seed)
 
     def construct_policy_output(self):

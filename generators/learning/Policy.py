@@ -16,13 +16,14 @@ else:
 
 # Implements util functions and initializes dimension variables and directories.
 class Policy:
-    def __init__(self, dim_action, dim_collision, dim_pose, save_folder):
+    def __init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder):
         # setup dimensions for inputs
         self.dim_noise = dim_action
-        self.dim_poses = dim_pose
         self.dim_action = dim_action
         self.dim_collision = dim_collision
-        self.n_key_confs = dim_collision[0]
+        self.dim_poses = dim_poses
+        self.n_key_confs = n_key_configs
+        self.n_collisions = dim_collision[0]
 
         self.noise_input = Input(shape=(self.dim_noise,), name='noise_input', dtype='float32')
 

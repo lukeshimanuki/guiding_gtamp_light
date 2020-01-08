@@ -19,9 +19,9 @@ def uniform_noise(z_size):
 
 
 class PlacePolicyIMLE(PlacePolicy):
-    def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
+    def __init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config):
         self.weight_input = Input(shape=(1,), dtype='float32', name='weight_for_each_sample')
-        PlacePolicy.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
+        PlacePolicy.__init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config)
         self.loss_model = self.construct_loss_model()
 
     def construct_policy_output(self):

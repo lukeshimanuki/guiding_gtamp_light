@@ -30,36 +30,14 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         print "Created Self-attention Dense Gen Net Dense Eval Net"
 
     def construct_loss_model(self):
-        def avg_distance_to_colliding_key_configs(x):
-            policy_output = x[0]
-            key_configs = x[1]
-            diff = policy_output[:, :, 0:2] - key_configs[:, :, 0:2]
-            distances = tf.norm(diff, axis=-1)  # ? by 291 by 1
-
-            collisions = x[2]
-            collisions = collisions[:, :, 0]
-            collisions = tf.squeeze(collisions, axis=-1)
-            n_cols = tf.reduce_sum(collisions, axis=1)  # ? by 291 by 1
-
-            hinge_on_given_dist_limit = tf.maximum(1 - distances, 0)
-            hinged_dists_to_colliding_configs = tf.multiply(hinge_on_given_dist_limit, collisions)
-            return tf.reduce_sum(hinged_dists_to_colliding_configs, axis=-1) / n_cols
-
-        repeated_poloutput = RepeatVector(self.n_key_confs)(self.policy_output)
-        konf_input = Reshape((self.n_key_confs, 4))(self.key_config_input)
-        diff_output = Lambda(avg_distance_to_colliding_key_configs, name='collision_distance_output')(
-            [repeated_poloutput, konf_input, self.collision_input])
-
-        # this would only work if the state contains collision with the target object
         model = Model(inputs=[self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
-                      outputs=[diff_output, self.policy_output],
+                      outputs=[self.policy_output],
                       name='loss_model')
 
         def custom_mse(y_true, y_pred):
             return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
 
-        model.compile(loss=[lambda _, pred: pred, custom_mse], optimizer=self.opt_D, loss_weights=[0, 1])
-        #model.compile(loss='mse', optimizer=self.opt_D)
+        model.compile(loss=custom_mse, optimizer=self.opt_D)
         return model
 
     def construct_policy_output(self):
@@ -111,9 +89,9 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
 
         collision_inp = Flatten()(self.collision_input)
         collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
-        collision_inp = Reshape((self.n_key_confs, self.n_key_confs * 2, 1))(collision_inp)
+        collision_inp = Reshape((self.n_key_confs, self.n_collisions * 2, 1))(collision_inp)
         concat_input = Concatenate(axis=2)([pose_input, qg_candidates, collision_inp])
-        #concat_input = Concatenate(axis=2)([pose_input, qg_candidates])
+        # concat_input = Concatenate(axis=2)([pose_input, qg_candidates])
         n_dim = concat_input.shape[2]._value
         dense_num = 32
         H = Conv2D(filters=dense_num,
@@ -140,6 +118,8 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
             return K.softmax(x, axis=-1)
 
         evalnet = Lambda(compute_softmax, name='softmax')(H)
+        self.evalnet_model = self.construct_model(evalnet, 'evalnet_model')
+
         return evalnet
 
     def construct_policy_model(self):
@@ -164,7 +144,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
         inp = [rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
-        self.loss_model.fit(inp, [actions, actions],
+        self.loss_model.fit(inp, actions,
                             batch_size=32,
                             epochs=epochs,
                             verbose=2,

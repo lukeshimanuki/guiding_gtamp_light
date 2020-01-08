@@ -8,12 +8,8 @@ import numpy as np
 
 # This class setups up input variables and defines the abstract functions that need to be implemented
 class PlacePolicy(Policy):
-    def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        Policy.__init__(self, dim_action, dim_collision, save_folder, tau)
-        self.n_collisions = dim_collision[0]
-        self.n_key_confs = 155 #dim_collision[0]
-
-        self.dim_collision = dim_collision
+    def __init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config):
+        Policy.__init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder)
 
         # setup inputs
         self.action_input = Input(shape=(dim_action,), name='a', dtype='float32')  # action
