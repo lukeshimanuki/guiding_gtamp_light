@@ -23,14 +23,7 @@ def load_weights(policy, seed, use_unregularized):
     policy.policy_model.load_weights(policy.save_folder + weight_fname)
 
 
-def create_policy(config, given_action_data_mode=None):
-    if config.region == 'loading_region':
-        n_key_configs = 291
-    elif config.region == 'home_region':
-        n_key_configs = 284
-    else:
-        raise NotImplementedError
-
+def create_policy(config, n_key_configs, given_action_data_mode=None):
     if given_action_data_mode is None:
         action_data_mode = default_action_data_mode
     else:

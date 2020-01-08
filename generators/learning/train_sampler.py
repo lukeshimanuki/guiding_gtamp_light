@@ -178,8 +178,6 @@ def get_data(datatype, action_type, region):
 
 
 def train(config):
-    policy = create_policy(config)
-    policy.policy_model.summary()
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
                                                                                           config.region)
 
@@ -224,8 +222,9 @@ def train(config):
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
 
-    import pdb;pdb.set_trace()
     print "Number of data", len(states)
+    policy = create_policy(config, n_key_configs)
+    policy.policy_model.summary()
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
