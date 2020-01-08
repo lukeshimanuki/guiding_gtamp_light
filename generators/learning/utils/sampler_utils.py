@@ -30,7 +30,23 @@ def unprocess_pick_and_place_smpls(smpls):
     return smpls
 
 
-def prepare_input(smpler_state, noise_batch, region=None):
+def get_indices_to_delete(region, key_configs):
+    if region == 'loading_region':
+        xmin = -0.7
+        xmax = 4.3
+        ymin = -8.55
+        ymax = -4.85
+    elif region == 'home_region':
+        xmin = -1.11322709
+        xmax = 4.99456405
+        ymin = -2.9463328
+        ymax = 2.54926346
+    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
+                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
+    return indices_to_delete
+
+
+def prepare_input(smpler_state, noise_batch, delete=False, region=None):
     poses = data_processing_utils.get_processed_poses_from_state(smpler_state, None)[None, :]
     obj_pose = utils.clean_pose_data(smpler_state.abs_obj_pose)
 
@@ -40,22 +56,11 @@ def prepare_input(smpler_state, noise_batch, region=None):
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
-    if region is None:
-        xmin = -0.7
-        xmax = 4.3
-        ymin = -8.55
-        ymax = -4.85
-    else:
-        xmin = -1.11322709
-        xmax = 4.99456405
-        ymin = -2.9463328
-        ymax = 2.54926346
-
-    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
-                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
-    key_configs = np.delete(key_configs, indices_to_delete, axis=0)
-    collisions = np.delete(collisions, indices_to_delete, axis=1)
-    goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+    if delete:
+        indices_to_delete = get_indices_to_delete(region, key_configs)
+        key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+        collisions = np.delete(collisions, indices_to_delete, axis=1)
+        goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
 
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
@@ -100,7 +105,7 @@ def get_konf_obstacles_while_holding(pick_samples, sampler_state, problem_env):
 
 def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     pick_smpler = policy['pick']
-    inp = prepare_input(smpler_state, noise_batch)
+    inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region')
     pick_samples = pick_smpler.policy_model.predict(inp)
 
     # preparation for place sampler
@@ -121,7 +126,7 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     # todo I need to make a separate key config obstacles for place sampler
     # place_konf_obstacles = get_konf_obstacles_while_holding(pick_params, smpler_state, problem_env)
     # inp[2] = place_konf_obstacles
-    inp = prepare_input(smpler_state, noise_batch, region='home_region')
+    inp = prepare_input(smpler_state, noise_batch, delete=True, region=smpler_state.region)
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
     inp[-2] = poses
