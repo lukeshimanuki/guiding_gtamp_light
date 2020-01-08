@@ -1,10 +1,10 @@
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
-
+from generators.learning.PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
 from generators.learning.PickPolicyMSECombinationOfQg import PickPolicyMSECombinationOfQg
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 
-
-from data_processing_utils import state_data_mode, action_data_mode
+from data_processing_utils import state_data_mode
+from data_processing_utils import action_data_mode as default_action_data_mode
 
 import socket
 
@@ -23,13 +23,18 @@ def load_weights(policy, seed, use_unregularized):
     policy.policy_model.load_weights(policy.save_folder + weight_fname)
 
 
-def create_policy(config):
+def create_policy(config, given_action_data_mode=None):
     if config.region == 'loading_region':
         n_key_configs = 291
     elif config.region == 'home_region':
         n_key_configs = 284
     else:
         raise NotImplementedError
+
+    if given_action_data_mode is None:
+        action_data_mode = default_action_data_mode
+    else:
+        action_data_mode = given_action_data_mode
 
     dim_collision = (n_key_configs, 2, 1)
 
@@ -40,12 +45,18 @@ def create_policy(config):
     dim_pose = 24
 
     if ROOTDIR == './':
-        savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/%s/' % \
-                  (config.dtype, state_data_mode, action_data_mode, config.algo, config.region)
+        if config.atype == 'place':
+            savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/%s/' % \
+                      (config.dtype, state_data_mode, action_data_mode, config.algo, config.region)
+        else:
+            savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
+                      (config.dtype, state_data_mode, action_data_mode, config.algo)
     else:
         savedir = ''
 
     if config.algo == 'place_mse_qg_combination':
+        policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
+                                           save_folder=savedir, config=config)
         policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                                save_folder=savedir, config=config)
     elif config.algo == 'pick_mse_qg_combination':

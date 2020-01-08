@@ -51,8 +51,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
             [repeated_poloutput, konf_input, self.collision_input])
 
         # this would only work if the state contains collision with the target object
-        model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
-                              self.noise_input],
+        model = Model(inputs=[self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                       outputs=[diff_output, self.policy_output],
                       name='loss_model')
 
@@ -114,6 +113,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
         collision_inp = Reshape((self.n_key_confs, self.n_key_confs * 2, 1))(collision_inp)
         concat_input = Concatenate(axis=2)([pose_input, qg_candidates, collision_inp])
+        #concat_input = Concatenate(axis=2)([pose_input, qg_candidates])
         n_dim = concat_input.shape[2]._value
         dense_num = 32
         H = Conv2D(filters=dense_num,
@@ -143,8 +143,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         return evalnet
 
     def construct_policy_model(self):
-        mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input,
-                                  self.noise_input],
+        mse_model = Model(inputs=[self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                           outputs=self.policy_output,
                           name='policy_output')
         mse_model.compile(loss='mse', optimizer=self.opt_D)
@@ -163,7 +162,7 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
         noise_smpls = noise(z_size=(len(actions), self.dim_noise))
-        inp = [goal_flags, rel_konfs, collisions, poses, noise_smpls]
+        inp = [rel_konfs, collisions, poses, noise_smpls]
         pre_mse = self.compute_policy_mse(test_data)
         self.loss_model.fit(inp, [actions, actions],
                             batch_size=32,

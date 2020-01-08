@@ -31,6 +31,7 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
         collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
         collision_inp = Reshape((self.n_key_confs, self.n_key_confs * 2, 1))(collision_inp)
         concat_input = Concatenate(axis=2)([pose_input, qg_candidates, collision_inp])
+        #concat_input = Concatenate(axis=2)([pose_input, qg_candidates])
         n_dim = concat_input.shape[2]._value
         dense_num = 32
         H = Conv2D(filters=dense_num,

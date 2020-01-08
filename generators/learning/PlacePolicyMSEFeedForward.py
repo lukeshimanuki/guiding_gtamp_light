@@ -4,10 +4,12 @@ from keras.models import Model
 
 from PlacePolicyMSE import PlacePolicyMSE
 
+import tensorflow as tf
+
 
 class PlacePolicyMSEFeedForward(PlacePolicyMSE):
-    def __init__(self, dim_action, dim_collision, save_folder, tau, config):
-        PlacePolicyMSE.__init__(self, dim_action, dim_collision, save_folder, tau, config)
+    def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
+        PlacePolicyMSE.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
         self.weight_file_name = 'place_mse_ff_seed_%d' % config.seed
 
     def construct_policy_output(self):
@@ -15,7 +17,7 @@ class PlacePolicyMSEFeedForward(PlacePolicyMSE):
                                      dtype='float32')
         key_config_input = Flatten()(self.key_config_input)
         collision_input = Flatten()(self.collision_input)
-        concat_input = Concatenate(axis=1)([self.goal_flag_input, collision_input, key_config_input])
+        concat_input = Concatenate(axis=1)([collision_input, key_config_input])
 
         dense_num = 64
         hidden_action = Dense(dense_num, activation='relu',
@@ -32,10 +34,13 @@ class PlacePolicyMSEFeedForward(PlacePolicyMSE):
         return action_output
 
     def construct_policy_model(self):
-        mse_model = Model(inputs=[self.goal_flag_input, self.key_config_input, self.collision_input, self.pose_input],
+        mse_model = Model(inputs=[self.key_config_input, self.collision_input, self.pose_input, self.noise_input],
                           outputs=self.policy_output,
                           name='policy_output')
-        mse_model.compile(loss='mse', optimizer=self.opt_D)
+
+        def custom_mse(y_true, y_pred):
+            return tf.reduce_mean(tf.norm(y_true - y_pred, axis=-1))
+        mse_model.compile(loss=custom_mse, optimizer=self.opt_D)
         return mse_model
 
 

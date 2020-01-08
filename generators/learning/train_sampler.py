@@ -180,7 +180,6 @@ def get_data(datatype, action_type, region):
 def train(config):
     policy = create_policy(config)
     policy.policy_model.summary()
-    # todo should I be updating the collision info once I pick an object?
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
                                                                                           config.region)
 
@@ -212,17 +211,20 @@ def train(config):
         ymin = -2.9463328
         ymax = 2.54926346
 
+    """
     indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
                                    np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     states = np.delete(states, indices_to_delete, axis=1)
     konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+    """
 
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
 
+    import pdb;pdb.set_trace()
     print "Number of data", len(states)
     policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
 

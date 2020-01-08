@@ -11,6 +11,7 @@ from generators.learning.utils import sampler_utils
 from gtamp_utils import utils
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 from planners.subplanners.motion_planner import BaseMotionPlanner
+from generators.learning.utils import model_creation_utils
 
 import numpy as np
 import random
@@ -210,36 +211,18 @@ def get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_o
 
 def create_policy(place_holder_config):
     if place_holder_config.atype == 'pick':
-        pick_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
-                       ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base',
-                        place_holder_config.algo)
-        dim_action = 7
-        n_key_configs = 291
-        dim_collision = (n_key_configs, 2, 1)
-        dim_pose = 24
-        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
-                                                dim_pose=dim_pose,
-                                                save_folder=pick_savedir, config=place_holder_config)
-    elif place_holder_config.atype == 'place':
-        pick_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/' % \
-                       ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base',
-                        place_holder_config.algo)
-        dim_action = 7
-        n_key_configs = 291
-        dim_collision = (n_key_configs, 2, 1)
-        dim_pose = 24
         pick_place_holder_config = place_holder_config._replace(atype='pick')
-        pick_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
-                                                     dim_pose=dim_pose,
-                                                     save_folder=pick_savedir, config=pick_place_holder_config)
-        dim_action = 4
+        policy = model_creation_utils.create_policy(pick_place_holder_config,
+                                                    given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
+    elif place_holder_config.atype == 'place':
+        pick_place_holder_config = place_holder_config._replace(atype='pick')
+        pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
+        pick_policy = model_creation_utils.create_policy(pick_place_holder_config,
+                                                         given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         place_place_holder_config = place_holder_config._replace(atype='place')
-        place_savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_%s/%s/%s' % \
-                        ('n_objs_pack_4', 'absolute', 'PICK_grasp_params_and_abs_base_PLACE_abs_base',
-                         place_holder_config.algo, 'home_region')
-        place_policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
-                                                      dim_pose=dim_pose,
-                                                      save_folder=place_savedir, config=place_place_holder_config)
+        place_place_holder_config = place_place_holder_config._replace(region='home_region')
+        place_policy = model_creation_utils.create_policy(place_place_holder_config,
+                                                          given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}
     else:
         raise NotImplementedError
@@ -311,18 +294,18 @@ def main():
     algo = str(sys.argv[3])
 
     atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch')
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
         dtype='n_objs_pack_4',
         seed=seed,
         atype=atype,
-        epoch=epoch
-
+        epoch=epoch,
+        region='home_region'
     )
 
-    problem_seed = 0
+    problem_seed = 1
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
@@ -355,7 +338,7 @@ def main():
     """
 
     utils.viewer()
-    raw_input("Press a button to visualize smpls")
+    import pdb;pdb.set_trace()
     obj_to_visualize = 'rectangular_packing_box4'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
