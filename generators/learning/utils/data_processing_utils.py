@@ -6,6 +6,33 @@ action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
 action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
 
+def c_outside_threshold(c, configs, xy_threshold, th_threshold):
+    min_dist = np.inf
+    c = np.array(c)
+    for cprime in configs:
+        cprime = np.array(cprime)
+        xy_dist = np.linalg.norm(c[0:2] - cprime[0:2])
+        # th_dist = abs(c[2]-cprime[2])
+        th_dist = abs(c[2] - cprime[2]) if abs(c[2] - cprime[2]) < np.pi else 2 * np.pi - abs(c[2] - cprime[2])
+        assert (th_dist < np.pi)
+
+        if xy_dist < xy_threshold and th_dist < th_threshold:
+            return False
+    return True
+
+
+def filter_configs_that_are_too_close(path, xy_threshold=0.4, th_threshold=45*np.pi/180):
+    configs = []
+    for c in path:
+        if c[-1] < 0:
+            c[-1] += 2 * np.pi
+        if c[-1] > 2 * np.pi:
+            c[-1] -= 2 * np.pi
+        if c_outside_threshold(c, configs, xy_threshold, th_threshold):
+            configs.append(c)
+
+    return configs
+
 def make_konfs_relative_to_pose(obj_pose, key_configs):
     rel_konfs = []
     utils.clean_pose_data(obj_pose)

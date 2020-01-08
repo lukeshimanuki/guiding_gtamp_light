@@ -23,7 +23,7 @@ def load_weights(policy, seed, use_unregularized):
     policy.policy_model.load_weights(policy.save_folder + weight_fname)
 
 
-def create_policy(config, n_collisions, given_action_data_mode=None):
+def create_policy(config, n_collisions, n_key_configs, given_action_data_mode=None):
     if given_action_data_mode is None:
         action_data_mode = default_action_data_mode
     else:
@@ -50,14 +50,14 @@ def create_policy(config, n_collisions, given_action_data_mode=None):
     if config.algo == 'place_mse_qg_combination':
         policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                            save_folder=savedir, config=config)
-        #policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
-        #                                       save_folder=savedir, config=config)
+        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
+                                               save_folder=savedir, config=config)
     elif config.algo == 'pick_mse_qg_combination':
         policy = PickPolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                               save_folder=savedir, config=config)
     elif config.algo == 'imle_qg_combination':
-        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
-                                                save_folder=savedir, config=config)
+        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_poses=dim_pose,
+                                                save_folder=savedir, n_key_configs=n_key_configs, config=config)
     else:
         raise NotImplementedError
     return policy

@@ -217,16 +217,18 @@ def create_policy(place_holder_config):
     elif place_holder_config.atype == 'place':
         pick_place_holder_config = place_holder_config._replace(atype='pick')
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
-        pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291,
+        pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291, 291,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         place_place_holder_config = place_holder_config._replace(atype='place')
         place_place_holder_config = place_place_holder_config._replace(region=place_holder_config.region)
 
         if place_holder_config.region == 'loading_region':
+            n_collisions = 291
             n_key_configs = 291
         else:
-            n_key_configs = 284
-        place_policy = model_creation_utils.create_policy(place_place_holder_config, n_key_configs,
+            n_collisions = 284
+            n_key_configs = 155
+        place_policy = model_creation_utils.create_policy(place_place_holder_config, n_collisions, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}
     else:
