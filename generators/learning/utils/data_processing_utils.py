@@ -21,9 +21,10 @@ def c_outside_threshold(c, configs, xy_threshold, th_threshold):
     return True
 
 
-def filter_configs_that_are_too_close(path, xy_threshold=0.4, th_threshold=45*np.pi/180):
+def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20*np.pi/180):
     configs = []
     for c in path:
+        print len(configs)
         if c[-1] < 0:
             c[-1] += 2 * np.pi
         if c[-1] > 2 * np.pi:

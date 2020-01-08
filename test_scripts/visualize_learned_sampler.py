@@ -225,10 +225,10 @@ def create_policy(place_holder_config):
 
         if place_holder_config.region == 'loading_region':
             n_collisions = 291
-            n_key_configs = 291
+            n_key_configs = 261
         else:
             n_collisions = 284
-            n_key_configs = 284
+            n_key_configs = 342
         place_policy = model_creation_utils.create_policy(place_place_holder_config, n_collisions, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}
@@ -336,7 +336,7 @@ def main():
         seed=seed,
         atype=atype,
         epoch=epoch,
-        region='home_region'
+        region='loading_region'
     )
 
     problem_seed = 0
@@ -346,13 +346,14 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+    check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
 
     use_uniform = False
     utils.viewer()
     obj_to_visualize = 'rectangular_packing_box2'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
+    import pdb;pdb.set_trace()
 
 
 if __name__ == '__main__':
