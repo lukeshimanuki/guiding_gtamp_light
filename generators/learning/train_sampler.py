@@ -6,6 +6,7 @@ import random
 import socket
 
 from generators.learning.utils.model_creation_utils import create_policy
+from generators.learning.utils import sampler_utils
 from test_scripts.visualize_learned_sampler import create_environment
 
 
@@ -200,20 +201,9 @@ def train(config):
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
 
     # to delete: 399, 274, 295, 297, 332, 352, 409, 410, 411, 412, 461, 488,
-    if config.region == 'loading_region':
-        xmin = -0.7
-        xmax = 4.3
-        ymin = -8.55
-        ymax = -4.85
-    elif config.region == 'home_region':
-        xmin = -1.11322709
-        xmax = 4.99456405
-        ymin = -2.9463328
-        ymax = 2.54926346
 
+    indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
     """
-    indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
-                                   np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     states = np.delete(states, indices_to_delete, axis=1)
     konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
