@@ -135,7 +135,7 @@ def unprocess_place_smpls(smpls):
 
 def generate_smpls(problem_env, sampler, target_obj_name, config):
     state = compute_state(target_obj_name, config.region, problem_env)
-    z_smpls = gaussian_noise(z_size=(200, 7))
+    z_smpls = gaussian_noise(z_size=(100, 7))
 
     if config.atype == 'place':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
@@ -156,7 +156,6 @@ def get_pick_feasibility_rate(smpls, target_obj, problem_env):
         if status == 'HasSolution':
             motion, status = problem_env.motion_planner.get_motion_plan([pick_param['q_goal']], cached_collisions=None)
         n_success += status == 'HasSolution'
-        # print status
 
     total_samples = len(smpls)
     return n_success / float(total_samples) * 100
@@ -213,27 +212,26 @@ def create_policy(place_holder_config):
     if place_holder_config.atype == 'pick':
         pick_place_holder_config = place_holder_config._replace(atype='pick')
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
-        pick_place_holder_config = pick_place_holder_config._replace(seed=0)
+        pick_place_holder_config = pick_place_holder_config._replace(seed=place_holder_config.pick_seed)
         pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291, 291,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         policy = pick_policy
     elif place_holder_config.atype == 'place':
         pick_place_holder_config = place_holder_config._replace(atype='pick')
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
-        pick_place_holder_config = pick_place_holder_config._replace(seed=0)
+        pick_place_holder_config = pick_place_holder_config._replace(seed=place_holder_config.pick_seed)
         pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291, 291,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         place_place_holder_config = place_holder_config._replace(atype='place')
         place_place_holder_config = place_place_holder_config._replace(region=place_holder_config.region)
+        place_place_holder_config = place_place_holder_config._replace(seed=place_holder_config.place_seed)
 
         if place_holder_config.region == 'loading_region':
             n_collisions = 291
-            n_key_configs = 291 #pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
-            #n_key_configs = len(key_configs)
+            n_key_configs = 291
         else:
             n_collisions = 284
-            key_configs = pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
-            n_key_configs = len(key_configs)
+            n_key_configs = 284 #pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
         place_policy = model_creation_utils.create_policy(place_place_holder_config, n_collisions, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}
@@ -275,7 +273,8 @@ def get_smpls(problem_env, atype, sampler, target_obj_name, placeholder_config, 
         if atype == 'pick':
             smpls = np.random.uniform(domain_min, domain_max, (500, dim_parameters)).squeeze()
         else:
-            pick_smpls = np.random.uniform(domain_min, domain_max, (500, dim_parameters)).squeeze()
+            #pick_smpls = np.random.uniform(domain_min, domain_max, (500, dim_parameters)).squeeze()
+            pick_smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config)[0]
             place_domain = utils.get_place_domain(region=problem_env.regions['loading_region'])
             dim_parameters = place_domain.shape[-1]
             domain_min = place_domain[0]
@@ -333,7 +332,7 @@ def main():
     algo = str(sys.argv[3])
 
     atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region')
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region pick_seed place_seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
@@ -341,7 +340,9 @@ def main():
         seed=seed,
         atype=atype,
         epoch=epoch,
-        region='loading_region'
+        region='home_region',
+        pick_seed=1,
+        place_seed=seed
     )
 
     problem_seed = 0
@@ -351,13 +352,13 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
 
     use_uniform = False
     utils.viewer()
     obj_to_visualize = 'rectangular_packing_box2'
+    obj_to_visualize = 'square_packing_box3'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
-    import pdb;pdb.set_trace()
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
 
 

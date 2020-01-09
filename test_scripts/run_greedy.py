@@ -67,11 +67,11 @@ def get_solution_file_name(config):
 
     if config.integrated:
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated_sampler_epoch_%d/shortest_irsc/' % config.sampler_epoch
+        solution_file_dir += '/integrated_sampler_epoch_%d/' % config.sampler_epoch
         solution_file_dir += sampler_config
     elif config.integrated_unregularized_sampler:
         sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated/shortest_irsc/'
+        solution_file_dir += '/integrated/'
         solution_file_dir += sampler_config
 
     if config.integrated or config.integrated_unregularized_sampler:
@@ -200,7 +200,7 @@ def get_pap_gnn_model(mover, config):
 def get_learned_smpler(sampler_seed, epoch, algo):
     print "Creating the learned sampler.."
     atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region')
+    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region pick_seed place_seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
@@ -208,28 +208,25 @@ def get_learned_smpler(sampler_seed, epoch, algo):
         seed=sampler_seed,
         atype=atype,
         epoch=epoch,
-        region='loading_region'
+        region='loading_region',
+        pick_seed=1,
+        place_seed=sampler_seed
     )
     placeholder_config = placeholder_config._replace(atype='pick')
     pick_policy = create_policy(placeholder_config)
 
     placeholder_config = placeholder_config._replace(atype='place')
     placeholder_config = placeholder_config._replace(region='loading_region')
-    placeholder_config = placeholder_config._replace(seed=0)
     loading_place_policy = create_policy(placeholder_config)['place']
 
     placeholder_config = placeholder_config._replace(region='home_region')
-    placeholder_config = placeholder_config._replace(seed=0)
     home_place_policy = create_policy(placeholder_config)['place']
 
     pick_policy.load_best_weights()
     loading_place_policy.load_best_weights()
     home_place_policy.load_best_weights()
-    import pdb;pdb.set_trace()
 
     policy = {'pick': pick_policy, 'place_loading': loading_place_policy, 'place_home': home_place_policy}
-    policy['pick'].load_best_weights()
-    policy['place'].load_best_weights()
     return policy
 
 
@@ -250,9 +247,8 @@ def main():
     np.random.seed(config.pidx)
     random.seed(config.pidx)
 
-    goal_objs = ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+    goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
     goal_region = 'home_region'
-
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:
@@ -271,7 +267,7 @@ def main():
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
     plan_length = 0
-    if is_problem_solved_before and not config.f:
+    if is_problem_solved_before and not config.f and not config.gather_planning_exp:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
@@ -280,15 +276,21 @@ def main():
             num_nodes = trajectory['num_nodes']
     else:
         t = time.time()
-        plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler)
+        nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler)
         tottime = time.time() - t
         success = plan is not None
         plan_length = len(plan) if success else 0
         if success and config.domain == 'one_arm_mover':
             make_pklable(plan)
 
-        for n in nodes:
-            n.state.make_pklable()
+        h_for_sampler_training = []
+        if success:
+            h_for_sampler_training = []
+            for n in nodes_to_goal:
+                h_for_sampler_training.append(n.h_for_sampler_training)
+            # todo check to see if h[t+1] - h[t] is indeed a mark of success
+            # because at some point, the value goes down and then up, but the plan still leads to a goal.
+            # Why would it go up? I would have to see the states as I simulate the plan.
 
         nodes = None
 
@@ -299,7 +301,7 @@ def main():
             'plan_length': plan_length,
             'num_nodes': num_nodes,
             'plan': plan,
-            'nodes': nodes
+            'hvalues': h_for_sampler_training
         }
         with open(solution_file_name, 'wb') as f:
             pickle.dump(data, f)

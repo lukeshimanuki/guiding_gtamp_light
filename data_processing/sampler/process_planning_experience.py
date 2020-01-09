@@ -24,9 +24,7 @@ def get_save_dir():
 def get_raw_dir():
     raw_dir = ROOTDIR + '/planning_experience/raw/two_arm_mover/n_objs_pack_1//'
     raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/' \
-                        'qlearned_hcount_obj_already_in_goal_old_number_in_goal/' \
-                        'shortest_irsc/loss_largemargin/num_train_5000/mse_weight_1.0/' \
-                        'use_region_agnostic_False/mix_rate_1.0/'
+                        'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
     return raw_dir
 
 
@@ -46,9 +44,12 @@ def process_plan_file(filename, pidx):
     print "Plan file name", filename
     plan_data = pickle.load(open(filename, 'r'))
     plan = plan_data['plan']
+    hvals = plan_data['hvalues']
+    if not plan_data['success']:
+        return None
     # traj = SamplerTrajectory(pidx)
     traj = SAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
-    traj.add_trajectory(plan)
+    traj.add_trajectory(plan, hvals)
     return traj
 
 
@@ -93,7 +94,8 @@ def main():
     # at all configs anyways. todo: reprocess the data using the full prm
     # key_configs = np.delete(key_configs, 293, axis=0)
     traj = process_plan_file(raw_dir + raw_fname, parameters.pidx)
-    save_traj(traj, save_dir + processed_fname)
+    if traj is not None:
+        save_traj(traj, save_dir + processed_fname)
 
 
 if __name__ == '__main__':

@@ -90,7 +90,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         print "Time %.2f / %.2f " % (curr_time, config.timelimit)
         print "Iter %d / %d" % (iter, config.num_node_limit)
         if curr_time > config.timelimit or iter > config.num_node_limit:
-            return None, iter, nodes
+            return None, None, iter, nodes
 
         # persistency
         if search_queue.empty():
@@ -122,10 +122,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
                 action.execute()
                 placement_poses_match = np.all(np.isclose(utils.get_body_xytheta(action.discrete_parameters['object']),
                                                           action.continuous_parameters['place']['object_pose']))
-                try:
-                    assert placement_poses_match
-                except:
-                    import pdb;pdb.set_trace()
+                assert placement_poses_match
                 print "Action executed"
             else:
                 print "Failed to sample an action"
@@ -133,9 +130,9 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
             is_goal_achieved = np.all([goal_region.contains(mover.env.GetKinBody(o).ComputeAABB()) for o in goal_objs])
             if is_goal_achieved:
                 print("found successful plan: {}".format(n_objs_pack))
-                plan = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
-                plan = [nd.action for nd in plan[1:]] + [action]
-                return plan, iter, nodes
+                nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
+                plan = [nd.action for nd in nodes_to_goal[1:]] + [action]
+                return nodes_to_goal, plan, iter, nodes
             else:
                 newstate = statecls(mover, goal, node.state, action)
                 print "New state computed"
@@ -190,9 +187,9 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
 
                 if is_goal_achieved:
                     print("found successful plan: {}".format(n_objs_pack))
-                    plan = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
-                    plan = [nd.action for nd in plan[1:]] + [action]
-                    return plan, iter, nodes
+                    nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
+                    plan = [nd.action for nd in nodes_to_goal[1:]] + [action]
+                    return nodes_to_goal, plan, iter, nodes
                 else:
                     newstate = statecls(mover, goal, node.state, action)
                     newnode = Node(node, action, newstate)

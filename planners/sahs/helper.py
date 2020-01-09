@@ -1,5 +1,5 @@
 from learn.data_traj import extract_individual_example
-from planners.heuristics import compute_hcount_with_action, compute_hcount
+from planners.heuristics import compute_hcount_with_action, compute_hcount, get_goal_objs_not_in_goal_region
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
 from learn.data_traj import get_actions as convert_action_to_predictable_form
@@ -95,12 +95,12 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
     elif h_option == 'qlearned_hcount_old_number_in_goal':
         number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
 
-        nodes, edges, actions, _ = extract_individual_example(state, action) # why do I call this again?
+        nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
 
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         hcount = compute_hcount(state, problem_env)
-        obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
+        obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
         hval = -number_in_goal + obj_already_in_goal + hcount - config.mixrate * q_bonus
     elif h_option == 'qlearned_old_number_in_goal':
         number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
@@ -140,12 +140,18 @@ def compute_number_in_goal(state, target_o, problem_env, region_is_goal):
     return number_in_goal
 
 
-def compute_new_number_in_goal(state, goal_objs, goal_region):
+def compute_new_number_in_goal(state):
+
     number_in_goal = 0
-    for obj_name in goal_objs:
-        is_obj_in_goal_region = state.binary_edges[(obj_name, goal_region)][0]
-        if is_obj_in_goal_region:
-            number_in_goal += 1
+    goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
+    for goal_obj in state.goal_entities:
+        is_obj_entity = 'region' not in goal_obj
+        if is_obj_entity:
+            goal_obj_body = state.problem_env.env.GetKinBody(goal_obj)
+            is_goal_region_contains_entity = state.problem_env.regions[goal_r].contains(goal_obj_body.ComputeAABB())
+            if is_goal_region_contains_entity:
+                number_in_goal += 1
+
     return number_in_goal
 
 
@@ -153,6 +159,15 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
     print "Enqueuing..."
     for a in actions:
         hval = compute_heuristic(state, a, pap_model, mover, config)
+        if config.gather_planning_exp:
+            h_for_sampler_training = compute_hcount(state, mover)
+            num_in_goal = compute_new_number_in_goal(state)
+            # hcount recursively counts the number of objects obstructing the way to the goal objs not in the goal reigon
+            # This can potentially have error in estimating the cost-to-go, because even a single object not in a goal
+            # can have all objects in its way, since our motion planner is not optimal in MCR sense.
+            # So, I have to track the number of objects in goal.
+            node.h_for_sampler_training = h_for_sampler_training - num_in_goal
+
         discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
         node.set_heuristic(discrete_params, hval)
         action_queue.put((hval, float('nan'), a, node))  # initial q

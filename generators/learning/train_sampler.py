@@ -10,6 +10,7 @@ from generators.learning.utils.data_processing_utils import filter_configs_that_
 from generators.learning.utils import sampler_utils
 from test_scripts.visualize_learned_sampler import create_environment
 
+from trajectory_representation.operator import Operator
 
 
 def parse_args():
@@ -42,7 +43,7 @@ from utils import data_processing_utils
 from gtamp_utils import utils
 
 
-def load_data(traj_dir, action_type, region):
+def load_data(traj_dir, action_type, desired_region):
     traj_files = os.listdir(traj_dir)
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
@@ -55,7 +56,7 @@ def load_data(traj_dir, action_type, region):
                                                                               action_data_mode, action_type, region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
-        return pickle.load(open(traj_dir + cache_file_name, 'r'))
+        # return pickle.load(open(traj_dir + cache_file_name, 'r'))
 
     print 'caching file...%s' % cache_file_name
     all_states = []
@@ -78,12 +79,16 @@ def load_data(traj_dir, action_type, region):
         if len(traj.states) == 0:
             continue
 
+        pidx = int(traj_file.split('_')[3])
+        problem_env, openrave_env = create_environment(pidx)
+
         states = []
         poses = []
         actions = []
         traj_rel_konfs = []
         konf_relevance = []
         place_paths = []
+        utils.viewer()
         for s, a in zip(traj.states, traj.actions):
             # todo this should depend on whether I am training a pick sampler or a place sampler
             if action_type == 'pick':
@@ -101,9 +106,24 @@ def load_data(traj_dir, action_type, region):
             is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
 
             is_move_to_goal_region = s.region in s.goal_entities
-            if region == 'home_region' and not is_move_to_goal_region:
+            print desired_region, s.region
+            if desired_region == 'home_region' and not is_move_to_goal_region:
+                import pdb;
+                pdb.set_trace()
+                pick_op = Operator('two_arm_pick', {'object': a['object_name']}, {'q_goal': a['pick_abs_base_pose']})
+                place_op = Operator('two_arm_place', {'object': a['object_name']}, {'q_goal': a['place_abs_base_pose']})
+                pick_op.execute()
+                place_op.execute()
+                place_motion = a['place_motion']
                 continue
-            if region == 'loading_region' and is_move_to_goal_region:
+            if desired_region == 'loading_region' and is_move_to_goal_region:
+                pick_op = Operator('two_arm_pick', {'object': a['object_name']}, {'q_goal': a['pick_abs_base_pose']})
+                place_op = Operator('two_arm_place', {'object': a['object_name']}, {'q_goal': a['place_abs_base_pose']})
+                pick_op.execute()
+                place_op.execute()
+                place_motion = a['place_motion']
+                import pdb;
+                pdb.set_trace()
                 continue
 
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
@@ -123,6 +143,16 @@ def load_data(traj_dir, action_type, region):
             konf_relevance.append(place_relevance)
 
             pick_motion = a['pick_motion']
+
+            pick_cont = a['pick_base_ir_parameters']
+            pick_op = Operator('two_arm_pick', {'object': a['object_name']}, {'q_goal': a['pick_abs_base_pose']})
+            place_op = Operator('two_arm_place', {'object': a['object_name']}, {'q_goal': a['place_abs_base_pose']})
+            import pdb;
+            pdb.set_trace()
+            pick_op.execute()
+            place_op.execute()
+            import pdb;
+            pdb.set_trace()
             # pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
 
         states = np.array(states)
@@ -169,7 +199,8 @@ def get_data(datatype, action_type, region):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir, action_type, region)
+    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir, action_type,
+                                                                                       region)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -210,9 +241,9 @@ def train(config):
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
     ############
 
-    #key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
-    #key_configs = filter_configs_that_are_too_close(key_configs)
-    #pickle.dump(key_configs, open('placements_%s.pkl' %(config.region), 'wb'))
+    # key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
+    # key_configs = filter_configs_that_are_too_close(key_configs)
+    # pickle.dump(key_configs, open('placements_%s.pkl' %(config.region), 'wb'))
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))

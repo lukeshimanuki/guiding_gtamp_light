@@ -1,7 +1,7 @@
 from gtamp_problem_environments.mover_env import Mover
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
-
+from generators.feasibility_checkers import two_arm_place_feasibility_checker
 import numpy as np
 import random
 import sys
@@ -39,6 +39,7 @@ class SamplerTrajectory:
         self.states = []
         self.actions = []
         self.rewards = []
+        self.hvalues = []
         self.state_prime = []
         self.seed = None  # this defines the initial state
         self.problem_env = None
@@ -52,10 +53,11 @@ class SamplerTrajectory:
     def add_state_prime(self):
         self.state_prime = self.states[1:]
 
-    def add_sar_tuples(self, s, a, r):
+    def add_sar_tuples(self, s, a, r, hvalue):
         self.states.append(s)
         self.actions.append(a)
         self.rewards.append(r)
+        self.hvalues.append(hvalue)
 
     def create_environment(self):
         problem_env = Mover(self.problem_idx)
@@ -135,7 +137,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
     def __init__(self, problem_idx, n_objs_pack):
         SamplerTrajectory.__init__(self, problem_idx, n_objs_pack)
 
-    def add_trajectory(self, plan):
+    def add_trajectory(self, plan, hvalues):
         print "Problem idx", self.problem_idx
         self.set_seed(self.problem_idx)
         problem_env, openrave_env = self.create_environment()
@@ -148,10 +150,13 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         self.problem_env = problem_env
 
         # utils.viewer()
-        for action_idx, action in enumerate(plan):
+        idx = 0
+        hvalues.append(0)
+
+        for action, hvalue in zip(plan, hvalues):
             assert action.type == 'two_arm_pick_two_arm_place'
             state = self.compute_state(action.discrete_parameters['object'],
-                                       action.discrete_parameters['region'],
+                                       action.discrete_parameters['place_region'],
                                        goal_entities)
 
             pick_action_info = action.continuous_parameters['pick']
@@ -167,7 +172,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             place_motion = [utils.clean_pose_data(q) for q in place_action_info['motion']]
             action_info = {
                 'object_name': action.discrete_parameters['object'],
-                'region_name': action.discrete_parameters['region'],
+                'region_name': action.discrete_parameters['place_region'],
                 'pick_base_ir_parameters': pick_parameters,  # todo this is a bad name. It should be called action_parameters
                 'place_abs_base_pose': place_base_pose,
                 'place_obj_abs_pose': place_obj_abs_pose,
@@ -175,16 +180,19 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
                 'pick_motion': pick_motion,
                 'place_motion': place_motion
             }
-            if action == plan[-1]:
-                reward = 0
-            else:
-                reward = -1
 
-            print action.discrete_parameters['object'], action.discrete_parameters['region']
+            reward = hvalue - hvalues[idx + 1]
+            print reward
+            idx += 1
+            print action.discrete_parameters['object'], action.discrete_parameters['place_region']
             action.execute_pick()
+            place_checker = two_arm_place_feasibility_checker.TwoArmPlaceFeasibilityChecker(problem_env)
+            through_checker, _ = place_checker.check_feasibility(action, action.continuous_parameters['place']['action_parameters'])
             state.place_collision_vector = state.get_collison_vector(None)
             action.execute()
-            self.add_sar_tuples(state, action_info, reward)
+            print utils.get_body_xytheta(action.discrete_parameters['object']), through_checker['action_parameters']
+            print utils.get_body_xytheta(self.problem_env.robot), through_checker['q_goal']
+            self.add_sar_tuples(state, action_info, reward, hvalue)
 
         self.add_state_prime()
         print "Done!"

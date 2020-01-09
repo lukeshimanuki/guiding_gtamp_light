@@ -1,19 +1,27 @@
 import Queue
 
 
-def get_objects_to_move(state, problem_env):
-    objects_to_move = set()
-    potential_obj_to_move_queue = Queue.Queue()
+def get_goal_objs_not_in_goal_region(state, problem_env):
+    not_in_goal = []
     goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
-
-    # Putting goal objects that are not in the goal region to objects_to_move set
     for entity in state.goal_entities:
         is_obj_entity = 'region' not in entity
         if is_obj_entity:
             goal_obj_body = problem_env.env.GetKinBody(entity)
             is_goal_region_contains_entity = problem_env.regions[goal_r].contains(goal_obj_body.ComputeAABB())
             if not is_goal_region_contains_entity:
-                potential_obj_to_move_queue.put(entity)
+                not_in_goal.append(entity)
+    return not_in_goal
+
+
+def get_objects_to_move(state, problem_env):
+    objects_to_move = set()
+    potential_obj_to_move_queue = Queue.Queue()
+
+    # Putting goal objects that are not in the goal region to objects_to_move set
+    goal_objs_not_in_goal_region = get_goal_objs_not_in_goal_region(state, problem_env)
+    for entity in goal_objs_not_in_goal_region:
+        potential_obj_to_move_queue.put(entity)
 
     object_names = [o for o in problem_env.entity_names if 'region' not in o]
 
@@ -33,6 +41,7 @@ def get_objects_to_move(state, problem_env):
                 is_o2_in_way_of_obj_to_move = state.binary_edges[(o2, obj_to_move)][1]
 
                 # OccludesManip - should this be to any region?
+                # Yes, because we don't want to be in the way of any of obj_to_move
                 is_o2_in_way_of_obj_to_move_to_any_region = any(
                     [state.ternary_edges[(obj_to_move, o2, r)][0] for r in regions])
 
