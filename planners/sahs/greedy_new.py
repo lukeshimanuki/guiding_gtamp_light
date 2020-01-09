@@ -29,21 +29,13 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     global sum_smpl_time
     target_obj = abstract_action.discrete_parameters['object']
     place_region = abstract_action.discrete_parameters['place_region']
-    if learned_sampler is None: # or 'loading' not in place_region:
+    if learned_sampler is None or 'loading' not in place_region:
         smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
                                                 cached_collisions=abstract_state.collides,
                                                 cached_holding_collisions=None)
     else:
-        """
-        if abstract_node.smpler is None:
-            smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
-            abstract_node.smpler = smpler
-        else:
-            smpler = abstract_node.smpler
-        """
-
         stime = time.time()
         if (target_obj, place_region) in abstract_node.smplers_for_each_action:
             smpler = abstract_node.smplers_for_each_action[(target_obj, place_region)]
@@ -51,7 +43,8 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
             if 'loading' in place_region:
                 smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_loading']}
             elif 'home' in place_region:
-                smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_home']}
+                #smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_home']}
+                raise NotImplementedError
             else:
                 raise NotImplementedError
 
@@ -126,9 +119,13 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
-                import pdb;pdb.set_trace()
                 action.execute()
-                import pdb;pdb.set_trace()
+                placement_poses_match = np.all(np.isclose(utils.get_body_xytheta(action.discrete_parameters['object']),
+                                                          action.continuous_parameters['place']['object_pose']))
+                try:
+                    assert placement_poses_match
+                except:
+                    import pdb;pdb.set_trace()
                 print "Action executed"
             else:
                 print "Failed to sample an action"
