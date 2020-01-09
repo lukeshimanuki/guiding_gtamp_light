@@ -16,7 +16,8 @@ class TwoArmPlaceFeasibilityChecker:
         # Note:
         #    this function checks if the target region contains the robot when we place object at place_parameters
         #    and whether the robot will be in collision
-        obj_region = operator_skeleton.discrete_parameters['place_region']  # I see. This is the problem.
+        obj_region = operator_skeleton.discrete_parameters['place_region']
+        assert parameter_mode == 'obj_pose'
         if parameter_mode == 'obj_pose':
             return self.check_place_at_obj_pose_feasible(obj_region, place_parameters, swept_volume_to_avoid)
         elif parameter_mode == 'robot_base_pose':
@@ -98,6 +99,7 @@ class TwoArmPlaceFeasibilityChecker:
 
         robot_xytheta = self.compute_robot_base_pose_given_object_pose(obj, self.robot, obj_pose, T_r_wrt_o)
         set_robot_config(robot_xytheta, self.robot)
+
 
         is_feasible = self.is_collision_and_region_constraints_satisfied(target_robot_region1, target_robot_region2,
                                                                          target_obj_region)

@@ -12,8 +12,6 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
         orig_config = get_robot_xytheta(self.robot)
         set_robot_config(pick_base_pose, self.robot)
         were_objects_enabled = [o.IsEnabled() for o in self.problem_env.objects]  # for RSC
-        self.problem_env.disable_objects_in_region('entire_region')
-        obj.Enable(True)
         if self.env.CheckCollision(self.robot):
             for enabled, o in zip(were_objects_enabled, self.problem_env.objects):
                 if enabled:
@@ -36,6 +34,8 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
             else:
                 o.Enable(False)
         set_robot_config(orig_config, self.robot)
+        #if g_config is None:
+        #    print "No IK solution exists"
         return g_config
 
     def is_grasp_config_feasible(self, obj, pick_base_pose, grasp_params, grasp_config):
@@ -56,6 +56,12 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
         """
         two_arm_place_object(pick_action)
         set_robot_config(orig_config, self.robot)
+
+        #if not no_collision:
+        #    print "Robot in collision in pick conf"
+        #if not inside_region:
+        #    print "Robot out of region in pick conf"
+
         return no_collision and inside_region
 
 
