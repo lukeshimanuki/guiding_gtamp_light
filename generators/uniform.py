@@ -193,30 +193,22 @@ class PaPUniformGenerator(UniformGenerator):
     def get_pap_param_with_feasible_motion_plan(self, operator_skeleton, feasible_op_parameters,
                                                 cached_collisions, cached_holding_collisions):
         # getting pick motion - I can still use the cached collisions from state computation
-        pick_op_params = [op['pick'] for op in feasible_op_parameters]
+        for op in feasible_op_parameters:
+            chosen_pick_param = self.get_op_param_with_feasible_motion_plan([op['pick']], cached_collisions)
 
-        chosen_pick_param = self.get_op_param_with_feasible_motion_plan(pick_op_params, cached_collisions)
-        if not chosen_pick_param['is_feasible']:
-            # print "Motion planning to pick failed"
-            return {'is_feasible': False}
+            if not chosen_pick_param['is_feasible']:
+                print "Motion planning to pick failed"
+                return {'is_feasible': False}
 
-        target_obj = operator_skeleton.discrete_parameters['object']
-        if target_obj in self.feasible_pick_params:
-            self.feasible_pick_params[target_obj].append(chosen_pick_param)
-        else:
-            self.feasible_pick_params[target_obj] = [chosen_pick_param]
+            original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
+            utils.two_arm_pick_object(operator_skeleton.discrete_parameters['object'], chosen_pick_param)
 
-        # self.feasible_pick_params[target_obj].append(pick_op_params)
-
-        # getting place motion
-        original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
-        utils.two_arm_pick_object(operator_skeleton.discrete_parameters['object'], chosen_pick_param)
-        place_op_params = [op['place'] for op in feasible_op_parameters]
-        chosen_place_param = self.get_op_param_with_feasible_motion_plan(place_op_params, cached_holding_collisions)
-        utils.two_arm_place_object(chosen_pick_param)
-        utils.set_robot_config(original_config)
+            chosen_place_param = self.get_op_param_with_feasible_motion_plan([op['place']], cached_holding_collisions)
+            utils.two_arm_place_object(chosen_pick_param)
+            utils.set_robot_config(original_config)
 
         if not chosen_place_param['is_feasible']:
+            print "Motion planning to place failed"
             return {'is_feasible': False}
 
         chosen_pap_param = {'pick': chosen_pick_param, 'place': chosen_place_param, 'is_feasible': True}
