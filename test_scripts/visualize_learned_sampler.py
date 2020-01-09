@@ -194,7 +194,6 @@ def get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_o
         parameters = np.hstack([pick_smpl, place_smpl])
         param, status = feasibility_checker.check_feasibility(op, parameters, swept_volume_to_avoid=None,
                                                               parameter_mode='obj_pose')
-        """
         if status == 'HasSolution':
             motion, status = problem_env.motion_planner.get_motion_plan([param['pick']['q_goal']],
                                                                         cached_collisions=None)
@@ -204,7 +203,6 @@ def get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_o
                                                                             cached_collisions=None)
                 utils.two_arm_place_object(param['pick'])
                 utils.set_robot_config(orig_xytheta, problem_env.robot)
-        """
 
         n_success += status == 'HasSolution'
     total_samples = len(pick_smpls)
@@ -334,7 +332,7 @@ def main():
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
 
-    atype = 'pick'
+    atype = 'place'
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region')
     placeholder_config = placeholder_config_definition(
         algo=algo,
@@ -359,8 +357,8 @@ def main():
     utils.viewer()
     obj_to_visualize = 'rectangular_packing_box2'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
-    visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
     import pdb;pdb.set_trace()
+    visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
 
 
 if __name__ == '__main__':

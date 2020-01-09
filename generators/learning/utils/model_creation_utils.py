@@ -46,7 +46,6 @@ def create_policy(config, n_collisions, n_key_configs, given_action_data_mode=No
                       (config.dtype, state_data_mode, config.algo)
     else:
         savedir = ''
-
     if config.algo == 'place_mse_qg_combination':
         policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                            save_folder=savedir, config=config)
