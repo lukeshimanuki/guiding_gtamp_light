@@ -65,13 +65,15 @@ class PlacePolicyIMLECombinationOfQg(PlacePolicyIMLE):
     def construct_value_output(self):
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
+        """
         collision_inp = Flatten()(self.collision_input)
         collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
         collision_inp = Reshape((self.n_key_confs, self.n_collisions * 2, 1))(collision_inp)
+        """
 
         noise_input = RepeatVector(self.n_key_confs)(self.noise_input)
         noise_input = Reshape((self.n_key_confs, self.dim_noise, 1))(noise_input)
-        concat_input = Concatenate(axis=2)([pose_input, noise_input, self.key_config_input, collision_inp])
+        concat_input = Concatenate(axis=2)([pose_input, noise_input, self.key_config_input])
 
         n_dim = concat_input.shape[2]._value
         n_filters = 32
