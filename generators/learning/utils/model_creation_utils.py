@@ -1,7 +1,7 @@
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
 from generators.learning.PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
-from generators.learning.PickPolicyMSECombinationOfQg import PickPolicyMSECombinationOfQg
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
+from generators.learning.PickPolicyIMLECombinationOfQg import PickPolicyIMLECombinationOfQg
 
 from data_processing_utils import state_data_mode
 from data_processing_utils import action_data_mode as default_action_data_mode
@@ -56,8 +56,13 @@ def create_policy(config, n_collisions, n_key_configs, given_action_data_mode=No
         policy = PickPolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                               save_folder=savedir, config=config)
     elif config.algo == 'imle_qg_combination':
-        policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_poses=dim_pose,
-                                                save_folder=savedir, n_key_configs=n_key_configs, config=config)
+        if config.atype == 'pick':
+            policy = PickPolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                    dim_poses=dim_pose,
+                                                    save_folder=savedir, n_key_configs=n_key_configs, config=config)
+        else:
+            policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_poses=dim_pose,
+                                                    save_folder=savedir, n_key_configs=n_key_configs, config=config)
     else:
         raise NotImplementedError
     return policy

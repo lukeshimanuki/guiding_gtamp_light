@@ -82,7 +82,7 @@ def prepare_input(smpler_state, noise_batch, delete=False, region=None, filter_k
 
 
 def make_predictions(smpler_state, smpler, noise_batch):
-    inp = prepare_input(smpler_state, noise_batch)
+    inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region')
     pred_batch = smpler.policy_model.predict(inp)
     return pred_batch
 
