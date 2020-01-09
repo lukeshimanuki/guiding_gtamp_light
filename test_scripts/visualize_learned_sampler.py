@@ -135,7 +135,7 @@ def unprocess_place_smpls(smpls):
 
 def generate_smpls(problem_env, sampler, target_obj_name, config):
     state = compute_state(target_obj_name, config.region, problem_env)
-    z_smpls = gaussian_noise(z_size=(100, 7))
+    z_smpls = gaussian_noise(z_size=(200, 7))
 
     if config.atype == 'place':
         samples = sampler_utils.generate_pick_and_place_batch(state, sampler, z_smpls)
@@ -212,8 +212,11 @@ def get_uniform_sampler_place_feasibility_rate(pick_smpls, place_smpls, target_o
 def create_policy(place_holder_config):
     if place_holder_config.atype == 'pick':
         pick_place_holder_config = place_holder_config._replace(atype='pick')
-        policy = model_creation_utils.create_policy(pick_place_holder_config,
-                                                    given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
+        pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
+        pick_place_holder_config = pick_place_holder_config._replace(seed=0)
+        pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291, 291,
+                                                         given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
+        policy = pick_policy
     elif place_holder_config.atype == 'place':
         pick_place_holder_config = place_holder_config._replace(atype='pick')
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
@@ -225,10 +228,12 @@ def create_policy(place_holder_config):
 
         if place_holder_config.region == 'loading_region':
             n_collisions = 291
-            n_key_configs = 261
+            key_configs = pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
+            n_key_configs = len(key_configs)
         else:
             n_collisions = 284
-            n_key_configs = 342
+            key_configs = pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
+            n_key_configs = len(key_configs)
         place_policy = model_creation_utils.create_policy(place_place_holder_config, n_collisions, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}

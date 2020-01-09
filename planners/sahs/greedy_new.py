@@ -29,7 +29,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     global sum_smpl_time
     target_obj = abstract_action.discrete_parameters['object']
     place_region = abstract_action.discrete_parameters['place_region']
-    if learned_sampler is None or 'loading' not in place_region:
+    if learned_sampler is None: # or 'loading' not in place_region:
         smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
@@ -48,7 +48,14 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
         if (target_obj, place_region) in abstract_node.smplers_for_each_action:
             smpler = abstract_node.smplers_for_each_action[(target_obj, place_region)]
         else:
-            smpler = LearnedGenerator(abstract_action, mover, learned_sampler, abstract_state, max_n_iter=200)
+            if 'loading' in place_region:
+                smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_loading']}
+            elif 'home' in place_region:
+                smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_home']}
+            else:
+                raise NotImplementedError
+
+            smpler = LearnedGenerator(abstract_action, mover, smplers, abstract_state, max_n_iter=200)
             abstract_node.smplers_for_each_action[(target_obj, place_region)] = smpler
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
