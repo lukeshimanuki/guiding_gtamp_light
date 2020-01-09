@@ -212,9 +212,8 @@ def train(config):
 
     #key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
     #key_configs = filter_configs_that_are_too_close(key_configs)
-    pickle.dump(key_configs, open('placements_%s.pkl' %(config.region), 'wb'))
-    #key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
-    import pdb;pdb.set_trace()
+    #pickle.dump(key_configs, open('placements_%s.pkl' %(config.region), 'wb'))
+    key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
