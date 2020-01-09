@@ -230,7 +230,7 @@ def create_policy(place_holder_config):
 
         if place_holder_config.region == 'loading_region':
             n_collisions = 291
-            key_configs = pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
+            key_configs = 291 #pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
             n_key_configs = len(key_configs)
         else:
             n_collisions = 284

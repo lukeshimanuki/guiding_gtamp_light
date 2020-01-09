@@ -43,7 +43,7 @@ def create_policy(config, n_collisions, n_key_configs, given_action_data_mode=No
                       (config.dtype, state_data_mode, action_data_mode, config.algo, config.region)
         else:
             savedir = './generators/learning/learned_weights/dtype_%s_state_data_mode_%s_action_data_mode_PICK_grasp_params_and_ir_parameters_PLACE_abs_base/%s/' % \
-                      (config.dtype, state_data_mode, action_data_mode, config.algo)
+                      (config.dtype, state_data_mode, config.algo)
     else:
         savedir = ''
 
