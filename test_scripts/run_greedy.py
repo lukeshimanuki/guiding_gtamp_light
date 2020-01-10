@@ -267,7 +267,7 @@ def main():
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
     plan_length = 0
-    if is_problem_solved_before and not config.f and not config.gather_planning_exp:
+    if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
