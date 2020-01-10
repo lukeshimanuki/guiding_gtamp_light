@@ -50,6 +50,14 @@ class Mover(ProblemEnvironment):
         self.objects_to_check_collision = None
         self.goal = None
 
+    def get_n_collisions_with_objects_at_given_base_conf(self, conf):
+        set_robot_config(conf)
+        n_collisions = 0
+        for obj_name in self.object_names:
+            obj = self.env.GetKinBody(obj_name)
+            n_collisions += self.env.CheckCollision(self.robot, obj)
+        return n_collisions
+
     def set_problem_type(self, problem_type):
         if problem_type == 'normal':
             pass
