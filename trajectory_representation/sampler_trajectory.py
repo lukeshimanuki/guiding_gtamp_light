@@ -142,14 +142,20 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         self.set_seed(self.problem_idx)
         problem_env, openrave_env = self.create_environment()
 
+        """
         if 'two_arm' in problem_env.name:
             goal_entities = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:self.n_objs_pack]]
         else:
             raise NotImplementedError
+        """
+        goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+        goal_entities = ['home_region'] + goal_objs
+
+        [utils.set_color(g, [1, 0, 0]) for g in goal_objs]
 
         self.problem_env = problem_env
 
-        # utils.viewer()
+        #utils.viewer()
         idx = 0
         hvalues.append(0)
 
@@ -173,27 +179,29 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             action_info = {
                 'object_name': action.discrete_parameters['object'],
                 'region_name': action.discrete_parameters['place_region'],
-                'pick_base_ir_parameters': pick_parameters,  # todo this is a bad name. It should be called action_parameters
+                'pick_base_ir_parameters': pick_parameters,
+                # todo this is a bad name. It should be called action_parameters
                 'place_abs_base_pose': place_base_pose,
                 'place_obj_abs_pose': place_obj_abs_pose,
                 'pick_abs_base_pose': pick_base_pose,
                 'pick_motion': pick_motion,
                 'place_motion': place_motion
             }
-
-            reward = hvalue - hvalues[idx + 1]
-            print reward
+            if idx == len(plan)-1:
+                reward = 10
+            else:
+                reward = hvalue - hvalues[idx + 1]
+            print reward, action.discrete_parameters['object'], action.discrete_parameters['place_region']
             idx += 1
-            print action.discrete_parameters['object'], action.discrete_parameters['place_region']
             action.execute_pick()
             place_checker = two_arm_place_feasibility_checker.TwoArmPlaceFeasibilityChecker(problem_env)
-            through_checker, _ = place_checker.check_feasibility(action, action.continuous_parameters['place']['action_parameters'])
+            through_checker, _ = place_checker.check_feasibility(action, action.continuous_parameters['place'][
+                'action_parameters'])
             state.place_collision_vector = state.get_collison_vector(None)
             action.execute()
             print utils.get_body_xytheta(action.discrete_parameters['object']), through_checker['action_parameters']
             print utils.get_body_xytheta(self.problem_env.robot), through_checker['q_goal']
             self.add_sar_tuples(state, action_info, reward, hvalue)
-
         self.add_state_prime()
         print "Done!"
         openrave_env.Destroy()

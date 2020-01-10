@@ -294,6 +294,7 @@ def main():
 
         nodes = None
 
+        # todo save the goal objs and goal regions in the future
         data = {
             'n_objs_pack': config.n_objs_pack,
             'tottime': tottime,
