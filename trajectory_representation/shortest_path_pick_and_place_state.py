@@ -12,6 +12,7 @@ from gtamp_utils import utils
 from pick_and_place_state import PaPState
 
 import numpy as np
+import time
 
 
 class ShortestPathPaPState(PaPState):
@@ -101,8 +102,10 @@ class ShortestPathPaPState(PaPState):
 
         operator_skeleton = Operator('two_arm_pick', {'object': object})
         generator = UniformGenerator(operator_skeleton, self.problem_env, None)
-        # we should disable objects, because we are getting shortest path that ignors all collisions anyways
+        # we should disable objects, because we are getting shortest path that ignores all collisions anyways
+        # 2020 January 10th: but I think we should keep the target object enabled?
         self.problem_env.disable_objects_in_region('entire_region')
+        object.Enable(True)
 
         motion_plan_goals = []
         n_iters = range(10, 500, 10)
@@ -113,10 +116,26 @@ class ShortestPathPaPState(PaPState):
             motion_plan_goals = [op['q_goal'] for op in op_cont_params if op['q_goal'] is not None]
             if len(motion_plan_goals) > 2:
                 break
+
+        orig_xytheta = get_body_xytheta(self.problem_env.robot)
         self.problem_env.enable_objects_in_region('entire_region')
 
+        # todo
+        #   choose among all the goals the one with the least number of collisions.
+        #   this does not guarantee that it will minimize the number of collisions on pick path, but
+        #   it is sort of a greedy approximation to it
+        min_n_collisions = np.inf
+        chosen_pick_base_conf = None
+        for q_goal in motion_plan_goals:
+            n_collisions = self.problem_env.get_n_collisions_with_objects_at_given_base_conf(q_goal)
+            if min_n_collisions > n_collisions:
+                chosen_pick_base_conf = q_goal
+                min_n_collisions = n_collisions
+        utils.set_robot_config(orig_xytheta)
+
         # assert len(motion_plan_goals) > 0 # if we can't find a pick pose then the object should be treated as unreachable
-        operator_skeleton.continuous_parameters['q_goal'] = motion_plan_goals  # to make it consistent with Dpl
+        operator_skeleton.continuous_parameters['q_goal'] = [chosen_pick_base_conf]  # to make it consistent with Dpl
+        #operator_skeleton.continuous_parameters['q_goal'] = motion_plan_goals
         return operator_skeleton
 
     def set_cached_pick_paths(self, parent_state, moved_obj):
@@ -130,6 +149,9 @@ class ShortestPathPaPState(PaPState):
             if status == 'HasSolution':
                 self.reachable_entities.append(obj)
             else:
+                # todo
+                #  we are going to use any one of the pick configs;
+                #  can we at least use the one with the least collisions?
                 path, _ = motion_planner.get_motion_plan(motion_plan_goals, cached_collisions={})
             assert path is not None
             self.cached_pick_paths[obj] = path
@@ -148,6 +170,7 @@ class ShortestPathPaPState(PaPState):
                                                not (obj, region_name) in parent_state.reachable_regions_while_holding
 
                 saver = CustomStateSaver(self.problem_env.env)
+                # todo use the pick that has the least number of collisions
                 pick_used = self.pick_used[obj]
                 pick_used.execute()
                 if region.contains(self.problem_env.env.GetKinBody(obj).ComputeAABB()):
