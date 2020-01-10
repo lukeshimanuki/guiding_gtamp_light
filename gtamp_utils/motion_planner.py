@@ -343,10 +343,11 @@ def find_prm_path(start, goal_fns, heuristic, is_collision):
 
         for next in prm_edges[vertex] - visited:
             visited.add(next)
-            if is_collision(next): # I think this can be lazily checked?
+            if is_collision(next):  # I think this can be lazily checked?
                 continue
             for i, goal_fn in enumerate(goal_fns):
                 if results[i] is None and goal_fn(next):
+                    # what does results[i] supposed to hold? The path and next node if the next node is a goal node.
                     results[i] = path + [next]
             else:
                 newdist = dist + np.linalg.norm(prm_vertices[vertex] - prm_vertices[next])
@@ -379,17 +380,19 @@ def prm_connect(q1, q2, collision_checker):
         prm_vertices, prm_edges = pickle.load(open('./prm.pkl', 'rb'))
 
     no_collision_checking = collision_checker_is_set and len(collision_checker) == 0
+
+    # todo I cannot read this code below and understand what happens when q2 is a region
+
+    ## Base case checks
     if not no_collision_checking:
         env = openravepy.RaveGetEnvironment(1)
         robot = env.GetRobot('pr2')
         non_prm_config_collision_checker = collision_fn(env, robot)
 
         if non_prm_config_collision_checker(q1):
-            #print "initial config in collision"
             return None
 
         if is_single_goal and non_prm_config_collision_checker(q2):
-            #print "goal config in collision"
             return None
 
         if is_multiple_goals:
@@ -406,7 +409,9 @@ def prm_connect(q1, q2, collision_checker):
         for q_goal in q2:
             if are_base_confs_close_enough(q1, q_goal, xy_threshold=0.8, th_threshold=50.):
                 return [q1, q_goal]
+    ###
 
+    ## Defines a goal test function
     if is_multiple_goals:
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
@@ -423,6 +428,7 @@ def prm_connect(q1, q2, collision_checker):
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
             return are_base_confs_close_enough(q, q2, xy_threshold=0.8, th_threshold=50.)
+    #####
 
     def heuristic(q):
         return 0
@@ -438,6 +444,7 @@ def prm_connect(q1, q2, collision_checker):
         if q_close_enough_to_q1:
             if not is_collision(idx):
                 start.add(idx)
+
     path = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision)[0]
     if path is not None:
         path = [q1] + [prm_vertices[i] for i in path]
