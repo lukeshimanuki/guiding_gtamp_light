@@ -2,9 +2,14 @@ from gtamp_problem_environments.mover_env import Mover
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.feasibility_checkers import two_arm_place_feasibility_checker
+from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
+from planners.sahs.helper import compute_hcount, compute_new_number_in_goal, \
+    count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region
+
 import numpy as np
 import random
 import sys
+import time
 
 
 def get_pick_base_poses(action, smples):
@@ -40,6 +45,9 @@ class SamplerTrajectory:
         self.actions = []
         self.rewards = []
         self.hvalues = []
+        self.hcounts = []
+        self.num_in_goal = []
+        self.num_papable_to_goal = []
         self.state_prime = []
         self.seed = None  # this defines the initial state
         self.problem_env = None
@@ -53,11 +61,13 @@ class SamplerTrajectory:
     def add_state_prime(self):
         self.state_prime = self.states[1:]
 
-    def add_sar_tuples(self, s, a, r, hvalue):
+    def add_sah_tuples(self, s, a, hvalue, hcount, num_in_goal, num_papable_to_goal):
         self.states.append(s)
         self.actions.append(a)
-        self.rewards.append(r)
         self.hvalues.append(hvalue)
+        self.hcounts.append(hcount)
+        self.num_in_goal.append(num_in_goal)
+        self.num_papable_to_goal.append(num_papable_to_goal)
 
     def create_environment(self):
         problem_env = Mover(self.problem_idx)
@@ -80,7 +90,7 @@ class SamplerTrajectory:
             raise NotImplementedError
 
         state = None
-        utils.viewer()
+        #utils.viewer()
         for action_idx, action in enumerate(plan):
             if 'pick' in action.type:
                 associated_place = plan[action_idx + 1]
@@ -155,11 +165,17 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
 
         self.problem_env = problem_env
 
-        #utils.viewer()
         idx = 0
         hvalues.append(0)
 
-        for action, hvalue in zip(plan, hvalues):
+        abs_state = ShortestPathPaPState(problem_env, goal_entities)
+        hcount = compute_hcount(abs_state, problem_env)
+        num_in_goal = compute_new_number_in_goal(abs_state)
+        num_papable_to_goal = count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region(abs_state)
+        hval = hcount - num_in_goal - num_papable_to_goal
+        print hval
+
+        for action, _ in zip(plan, hvalues):
             assert action.type == 'two_arm_pick_two_arm_place'
             state = self.compute_state(action.discrete_parameters['object'],
                                        action.discrete_parameters['place_region'],
@@ -179,29 +195,41 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             action_info = {
                 'object_name': action.discrete_parameters['object'],
                 'region_name': action.discrete_parameters['place_region'],
-                'pick_base_ir_parameters': pick_parameters,
-                # todo this is a bad name. It should be called action_parameters
+                'pick_action_parameters': pick_parameters,
+                'pick_abs_base_pose': pick_base_pose,
                 'place_abs_base_pose': place_base_pose,
                 'place_obj_abs_pose': place_obj_abs_pose,
-                'pick_abs_base_pose': pick_base_pose,
                 'pick_motion': pick_motion,
                 'place_motion': place_motion
             }
-            if idx == len(plan)-1:
-                reward = 10
-            else:
-                reward = hvalue - hvalues[idx + 1]
-            print reward, action.discrete_parameters['object'], action.discrete_parameters['place_region']
-            idx += 1
+            print action.discrete_parameters['object'], action.discrete_parameters['place_region']
+
             action.execute_pick()
             place_checker = two_arm_place_feasibility_checker.TwoArmPlaceFeasibilityChecker(problem_env)
             through_checker, _ = place_checker.check_feasibility(action, action.continuous_parameters['place'][
                 'action_parameters'])
             state.place_collision_vector = state.get_collison_vector(None)
             action.execute()
-            print utils.get_body_xytheta(action.discrete_parameters['object']), through_checker['action_parameters']
-            print utils.get_body_xytheta(self.problem_env.robot), through_checker['q_goal']
-            self.add_sar_tuples(state, action_info, reward, hvalue)
+
+            self.add_sah_tuples(state, action_info, hval, hcount, num_in_goal, num_papable_to_goal)
+
+            # Heuristic computation in the new state
+            prev_state = abs_state
+            abs_state = ShortestPathPaPState(problem_env, goal_entities, abs_state, action)
+            hcount = compute_hcount(abs_state, problem_env)
+            num_in_goal = compute_new_number_in_goal(abs_state)
+            num_papable_to_goal = count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region(
+                abs_state)
+            hval = hcount - num_in_goal - num_papable_to_goal
+            print hval
+
+        # adding the last hvals
+        self.hvalues.append(hval)
+        self.hcounts.append(hcount)
+        self.num_in_goal.append(num_in_goal)
+        self.num_papable_to_goal.append(num_papable_to_goal)
+
+        # I need the last hval
         self.add_state_prime()
         print "Done!"
         openrave_env.Destroy()
