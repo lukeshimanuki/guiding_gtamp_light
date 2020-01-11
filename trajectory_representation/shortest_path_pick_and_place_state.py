@@ -120,10 +120,6 @@ class ShortestPathPaPState(PaPState):
         orig_xytheta = get_body_xytheta(self.problem_env.robot)
         self.problem_env.enable_objects_in_region('entire_region')
 
-        # todo
-        #   choose among all the goals the one with the least number of collisions.
-        #   this does not guarantee that it will minimize the number of collisions on pick path, but
-        #   it is sort of a greedy approximation to it
         min_n_collisions = np.inf
         chosen_pick_base_conf = None
         for q_goal in motion_plan_goals:
@@ -180,8 +176,8 @@ class ShortestPathPaPState(PaPState):
                     if self.holding_collides is not None:
                         path, status = motion_planner.get_motion_plan(region, cached_collisions=self.holding_collides)
                     else:
-                        path, status = motion_planner.get_motion_plan(region,
-                                                                      cached_collisions=self.collides)
+                        # note: self.collides is computed without holding the object.
+                        path, status = motion_planner.get_motion_plan(region, cached_collisions=self.collides)
                     if status == 'HasSolution':
                         self.reachable_regions_while_holding.append((obj, region_name))
                     else:
