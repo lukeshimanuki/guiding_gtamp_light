@@ -47,13 +47,12 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
         # Changing this to loading, home, and bridge regions will hurt the performance for uniform sampler,
         # and I will have to re-run experiments. Our planning experience might involve base poses outside of
         # the loading or kitchen regions too. I will leave it as is for now.
-        inside_region = self.problem_env.regions['entire_region'].contains(self.robot.ComputeAABB())
-        """
+        #inside_region = self.problem_env.regions['entire_region'].contains(self.robot.ComputeAABB())
         inside_region = \
             self.problem_env.regions['loading_region'].contains(self.robot.ComputeAABB()) or \
             self.problem_env.regions['home_region'].contains(self.robot.ComputeAABB()) or \
             self.problem_env.regions['bridge_region'].contains(self.robot.ComputeAABB())
-        """
+
         two_arm_place_object(pick_action)
         set_robot_config(orig_config, self.robot)
 
