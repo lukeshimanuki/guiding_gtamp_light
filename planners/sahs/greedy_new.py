@@ -76,6 +76,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
     state = statecls(mover, goal)
+    [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     initnode = Node(None, None, state)
     actions = get_actions(mover, goal, config)
 

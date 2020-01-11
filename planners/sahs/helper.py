@@ -141,7 +141,6 @@ def compute_number_in_goal(state, target_o, problem_env, region_is_goal):
 
 
 def compute_new_number_in_goal(state):
-
     number_in_goal = 0
     goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
     for goal_obj in state.goal_entities:
@@ -153,6 +152,17 @@ def compute_new_number_in_goal(state):
                 number_in_goal += 1
 
     return number_in_goal
+
+
+def count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region(state):
+    goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
+    goal_objs = [entity for entity in state.goal_entities if not 'region' in entity]
+    n_pickable_and_placeable = 0
+    for goal_obj in goal_objs:
+        goal_obj_pickable = state.nodes[goal_obj][-2]
+        goal_obj_placeable = state.binary_edges[(goal_obj, goal_r)][-1]
+        n_pickable_and_placeable += goal_obj_pickable and goal_obj_placeable
+    return n_pickable_and_placeable
 
 
 def update_search_queue(state, actions, node, action_queue, pap_model, mover, config):
