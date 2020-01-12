@@ -50,15 +50,19 @@ def load_data(traj_dir, action_type, desired_region):
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
     if action_type == 'pick':
+        use_filter=False
         action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
-        action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
-                                                                                         action_data_mode,
-                                                                                         action_type,
-                                                                                         desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
+        use_filter=True
+        action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'  
+        if use_filter:
+            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
+                                                                                           action_data_mode,
+                                                                                           action_type,
+                                                                                           desired_region)
+        else:
+            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
@@ -127,7 +131,7 @@ def load_data(traj_dir, action_type, desired_region):
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
-            if reward <= 0:
+            if reward <= 0 and action_type=='pick' and use_filter:
                 #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
