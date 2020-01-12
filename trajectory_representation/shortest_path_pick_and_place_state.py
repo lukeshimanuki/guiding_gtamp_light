@@ -145,11 +145,11 @@ class ShortestPathPaPState(PaPState):
             if status == 'HasSolution':
                 self.reachable_entities.append(obj)
             else:
-                # todo
-                #  we are going to use any one of the pick configs;
-                #  can we at least use the one with the least collisions?
                 path, _ = motion_planner.get_motion_plan(motion_plan_goals, cached_collisions={})
-            assert path is not None
+            try:
+                assert path is not None
+            except:
+                import pdb;pdb.set_trace()
             self.cached_pick_paths[obj] = path
             op_instance.low_level_motion = path
 
