@@ -58,7 +58,7 @@ def load_data(traj_dir, action_type, desired_region):
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
