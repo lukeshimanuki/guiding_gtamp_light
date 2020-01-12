@@ -163,10 +163,9 @@ def load_data(traj_dir, action_type, desired_region):
     all_actions = np.vstack(all_actions).squeeze()
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
     all_poses = np.vstack(all_poses).squeeze()
-    all_konf_relevance = np.vstack(all_konf_relevance).squeeze()
-    pickle.dump((all_states, all_konf_relevance, all_poses, all_actions, all_sum_rewards, all_paths),
+    pickle.dump((all_states, all_poses, all_actions, all_sum_rewards, all_paths),
                 open(traj_dir + cache_file_name, 'wb'))
-    return all_states, all_konf_relevance, all_poses, all_actions, all_sum_rewards[:, None]
+    return all_states, all_poses, all_actions, all_sum_rewards[:, None]
 
 
 def get_data(datatype, action_type, region):
@@ -180,7 +179,7 @@ def get_data(datatype, action_type, region):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, konf_relelvance, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
+    states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -190,14 +189,12 @@ def get_data(datatype, action_type, region):
     actions = actions[:5000, :]
     sum_rewards = sum_rewards[:5000]
     is_goal_flags = is_goal_flag[:5000, :]
-    konf_relelvance = konf_relelvance[:5000, :]
 
-    return states, konf_relelvance, poses, is_goal_flags, actions, sum_rewards
+    return states, poses, is_goal_flags, actions, sum_rewards
 
 
 def train(config):
-    states, konf_relevance, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
-                                                                                          config.region)
+    states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region)
     import pdb;pdb.set_trace()
 
     if config.atype == 'pick':
