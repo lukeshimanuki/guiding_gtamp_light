@@ -53,7 +53,7 @@ def load_data(traj_dir, action_type, desired_region):
     else:
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (state_data_mode,
-                                                                              action_data_mode, action_type, region)
+                                                                              action_data_mode, action_type, desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         # return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -70,7 +70,7 @@ def load_data(traj_dir, action_type, desired_region):
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
 
-    for traj_file in traj_files:
+    for traj_file_idx, traj_file in enumerate(traj_files):
         if 'pidx' not in traj_file:
             continue
         if 'no_collision_at' in traj_file:
@@ -80,7 +80,9 @@ def load_data(traj_dir, action_type, desired_region):
             continue
 
         pidx = int(traj_file.split('_')[3])
-        problem_env, openrave_env = create_environment(pidx)
+        # problem_env, openrave_env = create_environment(pidx)
+        # utils.viewer()
+        # utils.set_robot_config([0, 0, 0])
 
         states = []
         poses = []
@@ -88,9 +90,11 @@ def load_data(traj_dir, action_type, desired_region):
         traj_rel_konfs = []
         konf_relevance = []
         place_paths = []
-        utils.viewer()
-        for s, a in zip(traj.states, traj.actions):
-            # todo this should depend on whether I am training a pick sampler or a place sampler
+        rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
+        #rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
+        #rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
+        for s, a, reward in zip(traj.states, traj.actions, rewards):
+            #print s, a
             if action_type == 'pick':
                 state_vec = s.pick_collision_vector
             elif action_type == 'place':
@@ -106,25 +110,19 @@ def load_data(traj_dir, action_type, desired_region):
             is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
 
             is_move_to_goal_region = s.region in s.goal_entities
-            print desired_region, s.region
             if desired_region == 'home_region' and not is_move_to_goal_region:
-                import pdb;
-                pdb.set_trace()
-                pick_op = Operator('two_arm_pick', {'object': a['object_name']}, {'q_goal': a['pick_abs_base_pose']})
-                place_op = Operator('two_arm_place', {'object': a['object_name']}, {'q_goal': a['place_abs_base_pose']})
-                pick_op.execute()
-                place_op.execute()
-                place_motion = a['place_motion']
+                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
             if desired_region == 'loading_region' and is_move_to_goal_region:
-                pick_op = Operator('two_arm_pick', {'object': a['object_name']}, {'q_goal': a['pick_abs_base_pose']})
-                place_op = Operator('two_arm_place', {'object': a['object_name']}, {'q_goal': a['place_abs_base_pose']})
-                pick_op.execute()
-                place_op.execute()
-                place_motion = a['place_motion']
-                import pdb;
-                pdb.set_trace()
+                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
+
+            if reward <= 0:
+                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+                continue
+
+            #utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
+            #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
 
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
@@ -136,24 +134,12 @@ def load_data(traj_dir, action_type, desired_region):
 
             place_motion = a['place_motion']
             place_paths.append(place_motion)
-            binary_collision_vector = state_vec.squeeze()[:, 0]
-            place_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector,
-                                                                       place_motion)
-
-            konf_relevance.append(place_relevance)
-
             pick_motion = a['pick_motion']
+            binary_collision_vector = state_vec.squeeze()[:, 0]
 
-            pick_cont = a['pick_base_ir_parameters']
-            pick_op = Operator('two_arm_pick', {'object': a['object_name']}, {'q_goal': a['pick_abs_base_pose']})
-            place_op = Operator('two_arm_place', {'object': a['object_name']}, {'q_goal': a['place_abs_base_pose']})
-            import pdb;
-            pdb.set_trace()
-            pick_op.execute()
-            place_op.execute()
-            import pdb;
-            pdb.set_trace()
-            # pick_relevance = data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
+            place_relevance = None # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
+            pick_relevance = None # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
+            konf_relevance.append(place_relevance)
 
         states = np.array(states)
         poses = np.array(poses)
@@ -162,7 +148,6 @@ def load_data(traj_dir, action_type, desired_region):
 
         rewards = traj.rewards
         sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
-        print sum_rewards, traj_file
         if len(states) == 0:
             continue
         all_poses.append(poses)
@@ -173,10 +158,13 @@ def load_data(traj_dir, action_type, desired_region):
         all_konf_relevance.append(konf_relevance)
         all_paths.append(place_paths)
 
+        print 'n_data %d progress %d/%d' %(len(np.vstack(all_actions).squeeze()), traj_file_idx, len(traj_files))
+
         n_data = len(np.vstack(all_rel_konfs))
         assert len(np.vstack(all_states)) == n_data
-        if n_data > 5000:
+        if n_data >= 5000:
             break
+
     all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions).squeeze()
@@ -218,6 +206,7 @@ def get_data(datatype, action_type, region):
 def train(config):
     states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
                                                                                           config.region)
+    import pdb;pdb.set_trace()
 
     if config.atype == 'pick':
         actions = actions[:, :-4]

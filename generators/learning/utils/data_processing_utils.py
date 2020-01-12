@@ -165,7 +165,7 @@ def get_processed_poses_from_action(state, action):
     # 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
     if 'PICK_grasp_params_and_abs_base' in action_data_mode:
-        grasp_params = action['pick_base_ir_parameters'][0:3][None, :]
+        grasp_params = action['pick_action_parameters'][0:3][None, :]
         abs_pick_pose = utils.encode_pose_with_sin_and_cos_angle(action['pick_abs_base_pose'])[None, :]
         pick_params = np.hstack([grasp_params, abs_pick_pose])
     elif 'PICK_grasp_params_and_ir_parameters' in action_data_mode:
