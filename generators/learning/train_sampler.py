@@ -4,6 +4,7 @@ import numpy as np
 import random
 import socket
 import argparse
+import matplotlib.pyplot as plt
 
 from generators.learning.utils.model_creation_utils import create_policy
 from generators.learning.utils.data_processing_utils import filter_configs_that_are_too_close
@@ -52,11 +53,20 @@ def load_data(traj_dir, action_type, desired_region):
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_n_papable.pkl' % (state_data_mode,
+                                                                              action_data_mode, action_type,
+                                                                              desired_region)
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (state_data_mode,
-                                                                              action_data_mode, action_type, desired_region)
+                                                                                         action_data_mode,
+                                                                                         action_type,
+                                                                                         desired_region)
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
+                                                                                         action_data_mode,
+                                                                                         action_type,
+                                                                                         desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
-        # return pickle.load(open(traj_dir + cache_file_name, 'r'))
+        return pickle.load(open(traj_dir + cache_file_name, 'r'))
 
     print 'caching file...%s' % cache_file_name
     all_states = []
@@ -90,10 +100,10 @@ def load_data(traj_dir, action_type, desired_region):
         konf_relevance = []
         place_paths = []
         rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
-        #rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
-        #rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
+        # rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
+        # rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         for s, a, reward in zip(traj.states, traj.actions, rewards):
-            #print s, a
+            # print s, a
             if action_type == 'pick':
                 state_vec = s.pick_collision_vector
             elif action_type == 'place':
@@ -110,18 +120,18 @@ def load_data(traj_dir, action_type, desired_region):
 
             is_move_to_goal_region = s.region in s.goal_entities
             if desired_region == 'home_region' and not is_move_to_goal_region:
-                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
             if desired_region == 'loading_region' and is_move_to_goal_region:
-                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
             if reward <= 0:
-                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
-            #utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
-            #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+            # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
+            # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
 
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
@@ -133,8 +143,8 @@ def load_data(traj_dir, action_type, desired_region):
             pick_motion = a['pick_motion']
             binary_collision_vector = state_vec.squeeze()[:, 0]
 
-            place_relevance = None # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
-            pick_relevance = None # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
+            place_relevance = None  # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
+            pick_relevance = None  # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
             konf_relevance.append(place_relevance)
 
         states = np.array(states)
@@ -179,7 +189,7 @@ def get_data(datatype, action_type, region):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
+    states, poses, actions, sum_rewards, all_paths = load_data(root_dir + data_dir, action_type, region)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -195,7 +205,20 @@ def get_data(datatype, action_type, region):
 
 def train(config):
     states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region)
-    import pdb;pdb.set_trace()
+
+    x = actions[:, -4]
+    y = actions[:, -3]
+    H, xedges, yedges = np.histogram2d(x, y, 5)
+
+    p_place = H / np.sum(H)
+    #plt.imshow(p_place, interpolation='nearest', origin='low',  extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
+    #plt.colorbar()
+    #plt.show()
+    from scipy.stats import entropy
+    print "entropy", entropy(p_place.flatten())
+    print np.max(p_place)
+    import pdb;
+    pdb.set_trace()
 
     if config.atype == 'pick':
         actions = actions[:, :-4]
@@ -215,7 +238,6 @@ def train(config):
     indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
     key_configs = np.delete(key_configs, indices_to_delete, axis=0)
     states = np.delete(states, indices_to_delete, axis=1)
-    konf_relevance = np.delete(konf_relevance, indices_to_delete, axis=1)
     goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
     ############
 
@@ -230,7 +252,7 @@ def train(config):
     n_collisions = states.shape[1]
     policy = create_policy(config, n_collisions, n_key_configs)
     policy.policy_model.summary()
-    policy.train_policy(states, konf_relevance, poses, key_configs, goal_flags, actions, sum_rewards)
+    policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
 def main():
