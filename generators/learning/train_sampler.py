@@ -145,7 +145,6 @@ def load_data(traj_dir, action_type, desired_region):
         sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
         if len(states) == 0:
             continue
-        import pdb;pdb.set_trace()
         all_poses.append(poses)
         all_states.append(states)
         all_actions.append(actions)
@@ -153,7 +152,7 @@ def load_data(traj_dir, action_type, desired_region):
         all_konf_relevance.append(konf_relevance)
         all_paths.append(place_paths)
 
-        print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions).squeeze()), traj_file_idx, len(traj_files))
+        print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
 
         n_data = len(np.vstack(all_actions))
         assert len(np.vstack(all_states)) == n_data
