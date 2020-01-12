@@ -99,10 +99,10 @@ class PlacePolicyIMLE(PlacePolicy):
         ]
         return callbacks
 
-    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=1000):
+    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=1000):
         # todo factor this code
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
-        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags,
+        train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
 
@@ -111,7 +111,6 @@ class PlacePolicyIMLE(PlacePolicy):
         t_poses = test_data['poses']
         t_rel_konfs = test_data['rel_konfs']
         t_collisions = test_data['states']
-        t_sum_rewards = test_data['sum_rewards']
 
         n_test_data = len(t_collisions)
 
@@ -123,7 +122,6 @@ class PlacePolicyIMLE(PlacePolicy):
         poses = train_data['poses']
         rel_konfs = train_data['rel_konfs']
         collisions = train_data['states']
-        sum_rewards = train_data['sum_rewards']
         callbacks = self.create_callbacks_for_training()
 
         gen_w_norm_patience = 10

@@ -57,7 +57,7 @@ class PlacePolicy(Policy):
         ]
         return callbacks
 
-    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         raise NotImplementedError
 
     def generate_k_smples_for_multiple_states(self, states, noise_smpls):
