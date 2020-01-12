@@ -23,8 +23,8 @@ import tensorflow as tf
 
 
 class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
-    def __init__(self, dim_action, dim_collision, dim_pose, save_folder, config):
-        PlacePolicyMSE.__init__(self, dim_action, dim_collision, dim_pose, save_folder, config)
+    def __init__(self, dim_action, dim_collision, dim_pose, n_key_configs, save_folder, config):
+        PlacePolicyMSE.__init__(self, dim_action, dim_collision, dim_pose, n_key_configs, save_folder, config)
         self.weight_file_name = '%s_mse_qg_combination_seed_%d' % (config.atype, config.seed)
         self.loss_model = self.construct_loss_model()
         print "Created Self-attention Dense Gen Net Dense Eval Net"
@@ -129,9 +129,9 @@ class PlacePolicyMSECombinationOfQg(PlacePolicyMSE):
         mse_model.compile(loss='mse', optimizer=self.opt_D)
         return mse_model
 
-    def train_policy(self, states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
+    def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
-        train_data, test_data = self.get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags,
+        train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
         callbacks = self.create_callbacks_for_training()

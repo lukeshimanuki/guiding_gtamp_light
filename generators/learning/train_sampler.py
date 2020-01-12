@@ -10,6 +10,7 @@ from generators.learning.utils.model_creation_utils import create_policy
 from generators.learning.utils.data_processing_utils import filter_configs_that_are_too_close
 from generators.learning.utils import sampler_utils
 from test_scripts.visualize_learned_sampler import create_environment
+from scipy.stats import entropy
 
 from trajectory_representation.operator import Operator
 
@@ -57,7 +58,7 @@ def load_data(traj_dir, action_type, desired_region):
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
@@ -217,14 +218,8 @@ def train(config):
     H, xedges, yedges = np.histogram2d(x, y, 10)
 
     p_place = H / np.sum(H)
-    #plt.imshow(p_place, interpolation='nearest', origin='low',  extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
-    #plt.colorbar()
-    #plt.show()
-    from scipy.stats import entropy
     print "entropy", entropy(p_place.flatten())
     print np.max(p_place)
-    import pdb;
-    pdb.set_trace()
 
     if config.atype == 'pick':
         actions = actions[:, :-4]

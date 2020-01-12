@@ -103,24 +103,22 @@ class Policy:
         self.policy_model.load_weights(fdir+fname)
 
     @staticmethod
-    def get_train_and_test_data(states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards,
+    def get_train_and_test_data(states, poses, rel_konfs, goal_flags, actions, sum_rewards,
                                 train_indices,
                                 test_indices):
         train = {'states': states[train_indices, :],
                  'poses': poses[train_indices, :],
                  'actions': actions[train_indices, :],
                  'rel_konfs': rel_konfs[train_indices, :],
-                 'sum_rewards': sum_rewards[train_indices, :],
+                 #'sum_rewards': sum_rewards[train_indices, :],
                  'goal_flags': goal_flags[train_indices, :],
-                 'konf_relevance': konf_relevance[train_indices, :]
                  }
         test = {'states': states[test_indices, :],
                 'poses': poses[test_indices, :],
                 'goal_flags': goal_flags[test_indices, :],
                 'actions': actions[test_indices, :],
                 'rel_konfs': rel_konfs[test_indices, :],
-                'sum_rewards': sum_rewards[test_indices, :],
-                'konf_relevance': konf_relevance[test_indices, :]
+                #'sum_rewards': sum_rewards[test_indices, :],
                 }
         return train, test
 

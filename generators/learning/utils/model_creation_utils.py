@@ -47,20 +47,20 @@ def create_policy(config, n_collisions, n_key_configs, given_action_data_mode=No
     else:
         savedir = ''
     if config.algo == 'place_mse_qg_combination':
-        policy = PlacePolicyMSEFeedForward(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
-                                           save_folder=savedir, config=config)
-        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
-                                               save_folder=savedir, config=config)
+        policy = PlacePolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                               dim_pose=dim_pose,
+                                               save_folder=savedir, n_key_configs=n_key_configs, config=config)
     elif config.algo == 'pick_mse_qg_combination':
         policy = PickPolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                               save_folder=savedir, config=config)
     elif config.algo == 'imle_qg_combination':
         if config.atype == 'pick':
             policy = PickPolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
-                                                    dim_poses=dim_pose,
-                                                    save_folder=savedir, n_key_configs=n_key_configs, config=config)
+                                                   dim_poses=dim_pose,
+                                                   save_folder=savedir, n_key_configs=n_key_configs, config=config)
         else:
-            policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_poses=dim_pose,
+            policy = PlacePolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,
+                                                    dim_poses=dim_pose,
                                                     save_folder=savedir, n_key_configs=n_key_configs, config=config)
     else:
         raise NotImplementedError
