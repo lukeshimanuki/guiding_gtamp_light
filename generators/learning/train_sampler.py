@@ -56,16 +56,16 @@ def load_data(traj_dir, action_type, desired_region):
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_n_papable.pkl' % (state_data_mode,
                                                                               action_data_mode, action_type,
                                                                               desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (state_data_mode,
-                                                                                         action_data_mode,
-                                                                                         action_type,
-                                                                                         desired_region)
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
                                                                               action_data_mode, action_type, desired_region)
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
+                                                                                         action_data_mode,
+                                                                                         action_type,
+                                                                                         desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -101,11 +101,11 @@ def load_data(traj_dir, action_type, desired_region):
         traj_konfs = []
         konf_relevance = []
         place_paths = []
-        rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         # rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         # rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         rewards = np.array(traj.hcounts)[:-1] - np.array(traj.hcounts[1:])
+        rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         for s, a, reward in zip(traj.states, traj.actions, rewards):
             # print s, a
             if action_type == 'pick':
@@ -130,9 +130,9 @@ def load_data(traj_dir, action_type, desired_region):
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
-            #if reward <= 0:
+            if reward <= 0:
                 #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
-            #    continue
+                continue
 
             # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
             # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
@@ -170,7 +170,7 @@ def load_data(traj_dir, action_type, desired_region):
 
         n_data = len(np.vstack(all_actions))
         assert len(np.vstack(all_states)) == n_data
-        if traj_file_idx >= 3000:
+        if traj_file_idx >= 5000:
             break
 
     all_states = np.vstack(all_states).squeeze(axis=1)
@@ -193,7 +193,7 @@ def get_data(datatype, action_type, region):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, poses, actions, sum_rewards, all_paths = load_data(root_dir + data_dir, action_type, region)
+    states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
