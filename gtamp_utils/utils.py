@@ -68,6 +68,10 @@ def set_body_transparency(body, transparency):
 def set_obj_xytheta(xytheta, obj):
     if isinstance(xytheta, list) or isinstance(xytheta, tuple):
         xytheta = np.array(xytheta)
+    env = openravepy.RaveGetEnvironments()[0]
+    if type(obj) == unicode or type(obj) == str:
+        obj = env.GetKinBody(obj)
+
     xytheta = xytheta.squeeze()
     set_quat(obj, quat_from_angle_vector(xytheta[-1], np.array([0, 0, 1])))
     set_xy(obj, xytheta[0], xytheta[1])
