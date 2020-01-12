@@ -63,7 +63,6 @@ def load_data(traj_dir, action_type, desired_region):
     all_actions = []
     all_sum_rewards = []
     all_poses = []
-    all_rel_konfs = []
     all_konf_relevance = []
     all_paths = []
 
@@ -87,7 +86,7 @@ def load_data(traj_dir, action_type, desired_region):
         states = []
         poses = []
         actions = []
-        traj_rel_konfs = []
+        traj_konfs = []
         konf_relevance = []
         place_paths = []
         rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
@@ -128,9 +127,6 @@ def load_data(traj_dir, action_type, desired_region):
             states.append(state_vec)
             poses.append(get_processed_poses_from_state(s, a))
             actions.append(get_processed_poses_from_action(s, a))
-            rel_konfs = make_konfs_relative_to_pose(s.abs_obj_pose, key_configs)
-
-            traj_rel_konfs.append(np.array(rel_konfs).reshape((1, 615, 4, 1)))
 
             place_motion = a['place_motion']
             place_paths.append(place_motion)
@@ -144,36 +140,34 @@ def load_data(traj_dir, action_type, desired_region):
         states = np.array(states)
         poses = np.array(poses)
         actions = np.array(actions)
-        traj_rel_konfs = np.array(traj_rel_konfs)
 
         rewards = traj.rewards
         sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
         if len(states) == 0:
             continue
+        import pdb;pdb.set_trace()
         all_poses.append(poses)
         all_states.append(states)
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
-        all_rel_konfs.append(traj_rel_konfs)
         all_konf_relevance.append(konf_relevance)
         all_paths.append(place_paths)
 
-        print 'n_data %d progress %d/%d' %(len(np.vstack(all_actions).squeeze()), traj_file_idx, len(traj_files))
+        print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions).squeeze()), traj_file_idx, len(traj_files))
 
-        n_data = len(np.vstack(all_rel_konfs))
+        n_data = len(np.vstack(all_actions))
         assert len(np.vstack(all_states)) == n_data
         if n_data >= 5000:
             break
 
-    all_rel_konfs = np.vstack(all_rel_konfs).squeeze(axis=1)
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions).squeeze()
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
     all_poses = np.vstack(all_poses).squeeze()
     all_konf_relevance = np.vstack(all_konf_relevance).squeeze()
-    pickle.dump((all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards, all_paths),
+    pickle.dump((all_states, all_konf_relevance, all_poses, all_actions, all_sum_rewards, all_paths),
                 open(traj_dir + cache_file_name, 'wb'))
-    return all_states, all_konf_relevance, all_poses, all_rel_konfs, all_actions, all_sum_rewards[:, None]
+    return all_states, all_konf_relevance, all_poses, all_actions, all_sum_rewards[:, None]
 
 
 def get_data(datatype, action_type, region):
@@ -187,8 +181,7 @@ def get_data(datatype, action_type, region):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, konf_relelvance, poses, rel_konfs, actions, sum_rewards, paths = load_data(root_dir + data_dir, action_type,
-                                                                                       region)
+    states, konf_relelvance, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
     is_goal_flag = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
@@ -200,11 +193,11 @@ def get_data(datatype, action_type, region):
     is_goal_flags = is_goal_flag[:5000, :]
     konf_relelvance = konf_relelvance[:5000, :]
 
-    return states, konf_relelvance, poses, rel_konfs, is_goal_flags, actions, sum_rewards
+    return states, konf_relelvance, poses, is_goal_flags, actions, sum_rewards
 
 
 def train(config):
-    states, konf_relevance, poses, rel_konfs, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
+    states, konf_relevance, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype,
                                                                                           config.region)
     import pdb;pdb.set_trace()
 
