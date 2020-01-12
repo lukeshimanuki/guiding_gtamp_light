@@ -64,6 +64,8 @@ def load_data(traj_dir, action_type, desired_region):
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
+                                                                              action_data_mode, action_type, desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -102,6 +104,8 @@ def load_data(traj_dir, action_type, desired_region):
         rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         # rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         # rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
+        rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
+        rewards = np.array(traj.hcounts)[:-1] - np.array(traj.hcounts[1:])
         for s, a, reward in zip(traj.states, traj.actions, rewards):
             # print s, a
             if action_type == 'pick':
@@ -126,9 +130,9 @@ def load_data(traj_dir, action_type, desired_region):
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
-            if reward <= 0:
-                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
-                continue
+            #if reward <= 0:
+                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+            #    continue
 
             # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
             # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
@@ -139,7 +143,7 @@ def load_data(traj_dir, action_type, desired_region):
             actions.append(get_processed_poses_from_action(s, a))
 
             place_motion = a['place_motion']
-            place_paths.append(place_motion)
+            #place_paths.append(place_motion)
             pick_motion = a['pick_motion']
             binary_collision_vector = state_vec.squeeze()[:, 0]
 
@@ -160,20 +164,20 @@ def load_data(traj_dir, action_type, desired_region):
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
         all_konf_relevance.append(konf_relevance)
-        all_paths.append(place_paths)
+        #all_paths.append(place_paths)
 
         print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
 
         n_data = len(np.vstack(all_actions))
         assert len(np.vstack(all_states)) == n_data
-        if n_data >= 5000:
+        if traj_file_idx >= 3000:
             break
 
     all_states = np.vstack(all_states).squeeze(axis=1)
     all_actions = np.vstack(all_actions).squeeze()
     all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
     all_poses = np.vstack(all_poses).squeeze()
-    pickle.dump((all_states, all_poses, all_actions, all_sum_rewards, all_paths),
+    pickle.dump((all_states, all_poses, all_actions, all_sum_rewards),
                 open(traj_dir + cache_file_name, 'wb'))
     return all_states, all_poses, all_actions, all_sum_rewards[:, None]
 
