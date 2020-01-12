@@ -25,6 +25,8 @@ def get_raw_dir():
     raw_dir = ROOTDIR + '/planning_experience/raw/two_arm_mover/n_objs_pack_1//'
     raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/' \
                         'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
+    raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
+
     return raw_dir
 
 
@@ -88,7 +90,7 @@ def main():
     processed_fname = get_processed_fname(raw_fname)
     print "Raw fname", raw_dir + raw_fname
     print "Processed fname ", save_dir + processed_fname
-    #quit_if_already_done(save_dir + processed_fname, parameters)
+    quit_if_already_done(save_dir + processed_fname, parameters)
 
     # Every second element in the prm - it does not have to be, because state computation checks the collisions
     # at all configs anyways. todo: reprocess the data using the full prm
