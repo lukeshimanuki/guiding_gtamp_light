@@ -7,6 +7,8 @@ import Queue
 import openravepy
 import time
 
+from gtamp_utils import utils
+
 from gtamp_utils.utils import visualize_path, se2_distance, are_base_confs_close_enough
 
 prm_vertices = prm_edges = None
@@ -352,6 +354,8 @@ def find_prm_path(start, goal_fns, heuristic, is_collision):
             else:
                 newdist = dist + np.linalg.norm(prm_vertices[vertex] - prm_vertices[next])
                 queue.put((newdist + heuristic(next), newdist, np.random.rand(), next, path + [next]))
+
+    # todo keep track of the configuration that is closest to the goal config
     return results
 
 
@@ -418,7 +422,7 @@ def prm_connect(q1, q2, collision_checker):
             goals = q2
             if len(q.squeeze()) != 3:
                 raise NotImplementedError
-            return any(are_base_confs_close_enough(q, g, xy_threshold=0.8, th_threshold=50.) for g in goals)
+            return any(are_base_confs_close_enough(q, g, xy_threshold=0.8, th_threshold=52.) for g in goals)
     elif is_goal_region:
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
@@ -427,7 +431,7 @@ def prm_connect(q1, q2, collision_checker):
     else:
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
-            return are_base_confs_close_enough(q, q2, xy_threshold=0.8, th_threshold=50.)
+            return are_base_confs_close_enough(q, q2, xy_threshold=0.8, th_threshold=52.)
     #####
 
     def heuristic(q):
@@ -436,14 +440,14 @@ def prm_connect(q1, q2, collision_checker):
     def is_collision(q):
         return q in collision_checker if collision_checker_is_set else collision_checker(prm_vertices[q])
 
-    # start = {i for i, q in enumerate(prm_vertices) if np.linalg.norm((q - q1)[:2]) < .8}
-
+    ### making a set of qinit idxs
     start = set()
     for idx, q in enumerate(prm_vertices):
         q_close_enough_to_q1 = are_base_confs_close_enough(q, q1, xy_threshold=0.8, th_threshold=50.)
         if q_close_enough_to_q1:
             if not is_collision(idx):
                 start.add(idx)
+    #####
 
     path = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision)[0]
     if path is not None:
