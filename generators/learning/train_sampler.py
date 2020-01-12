@@ -53,9 +53,7 @@ def load_data(traj_dir, action_type, desired_region):
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_n_papable.pkl' % (state_data_mode,
-                                                                              action_data_mode, action_type,
-                                                                              desired_region)
+
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (state_data_mode,
                                                                                          action_data_mode,
                                                                                          action_type,
@@ -64,8 +62,10 @@ def load_data(traj_dir, action_type, desired_region):
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
-                                                                              action_data_mode, action_type, desired_region)
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_n_papable.pkl' % (state_data_mode,
+                                                                                                 action_data_mode,
+                                                                                                 action_type,
+                                                                                                 desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -193,16 +193,22 @@ def get_data(datatype, action_type, region):
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
-    states, poses, actions, sum_rewards, all_paths = load_data(root_dir + data_dir, action_type, region)
-    is_goal_flag = states[:, :, 2:, :]
+    try:
+        states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
+    except ValueError:
+        states, poses, actions, sum_rewards, _ = load_data(root_dir + data_dir, action_type, region)
+
+    is_goal_flags = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
 
+    """
     n_data = 5000
     states = states[:5000, :]
     poses = poses[:n_data, :]
     actions = actions[:5000, :]
     sum_rewards = sum_rewards[:5000]
     is_goal_flags = is_goal_flag[:5000, :]
+    """
 
     return states, poses, is_goal_flags, actions, sum_rewards
 
@@ -212,7 +218,7 @@ def train(config):
 
     x = actions[:, -4]
     y = actions[:, -3]
-    H, xedges, yedges = np.histogram2d(x, y, 5)
+    H, xedges, yedges = np.histogram2d(x, y, 10)
 
     p_place = H / np.sum(H)
     #plt.imshow(p_place, interpolation='nearest', origin='low',  extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]])
