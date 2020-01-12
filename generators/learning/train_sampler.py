@@ -53,19 +53,15 @@ def load_data(traj_dir, action_type, desired_region):
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
-
+        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
+                                                                                         action_data_mode,
+                                                                                         action_type,
+                                                                                         desired_region)
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s.pkl' % (state_data_mode,
                                                                                          action_data_mode,
                                                                                          action_type,
                                                                                          desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
-                                                                                         action_data_mode,
-                                                                                         action_type,
-                                                                                         desired_region)
-        cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_n_papable.pkl' % (state_data_mode,
-                                                                                                 action_data_mode,
-                                                                                                 action_type,
-                                                                                                 desired_region)
+
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
         return pickle.load(open(traj_dir + cache_file_name, 'r'))
@@ -101,11 +97,11 @@ def load_data(traj_dir, action_type, desired_region):
         traj_konfs = []
         konf_relevance = []
         place_paths = []
-        rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         # rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         # rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         rewards = np.array(traj.hcounts)[:-1] - np.array(traj.hcounts[1:])
+        rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
         for s, a, reward in zip(traj.states, traj.actions, rewards):
             # print s, a
             if action_type == 'pick':
@@ -130,9 +126,9 @@ def load_data(traj_dir, action_type, desired_region):
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
-            #if reward <= 0:
+            if reward <= 0:
                 #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
-            #    continue
+                continue
 
             # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
             # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
@@ -170,7 +166,7 @@ def load_data(traj_dir, action_type, desired_region):
 
         n_data = len(np.vstack(all_actions))
         assert len(np.vstack(all_states)) == n_data
-        if traj_file_idx >= 3000:
+        if traj_file_idx >= 5000:
             break
 
     all_states = np.vstack(all_states).squeeze(axis=1)
