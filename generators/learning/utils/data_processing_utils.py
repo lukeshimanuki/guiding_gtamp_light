@@ -159,7 +159,7 @@ def get_relevance_info(konf, collisions, motion):
     return np.array(labels)
 
 
-def get_processed_poses_from_action(state, action):
+def get_processed_poses_from_action(state, action, action_data_mode):
     # grasp_params abs_pick_pose
     # grasp params ir_parameters
     # 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
@@ -173,7 +173,7 @@ def get_processed_poses_from_action(state, action):
         portion, base_angle, facing_angle_offset \
             = utils.get_ir_parameters_from_robot_obj_poses(abs_pick_pose, state.abs_obj_pose)
         base_angle = utils.encode_angle_in_sin_and_cos(base_angle)
-        grasp_params = action['pick_base_ir_parameters'][0:3]
+        grasp_params = action['pick_action_parameters'][0:3]
         pick_params = np.hstack([grasp_params, portion, base_angle, facing_angle_offset])[None, :]
     else:
         raise NotImplementedError

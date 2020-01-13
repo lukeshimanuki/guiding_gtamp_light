@@ -5,6 +5,7 @@ from generators.feasibility_checkers import two_arm_place_feasibility_checker
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from planners.sahs.helper import compute_hcount, compute_new_number_in_goal, \
     count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region
+from planners.subplanners.motion_planner import BaseMotionPlanner
 
 import numpy as np
 import random
@@ -152,12 +153,22 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         self.set_seed(self.problem_idx)
         problem_env, openrave_env = self.create_environment()
 
+        motion_planner = BaseMotionPlanner(problem_env, 'prm')
+        problematic_conf = np.array([[3.02522493, -6.66844574, 5.28469751]])
+        utils.set_robot_config(problematic_conf)
+        motion_plan_goals = [np.array([3.8164897, -7.05587995, -1.48455205])]
+        path, status = motion_planner.get_motion_plan(motion_plan_goals, cached_collisions={})
+        print status
+        utils.viewer()
+        import pdb;pdb.set_trace()
+
         """
         if 'two_arm' in problem_env.name:
             goal_entities = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:self.n_objs_pack]]
         else:
             raise NotImplementedError
         """
+
         goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
         goal_entities = ['home_region'] + goal_objs
 

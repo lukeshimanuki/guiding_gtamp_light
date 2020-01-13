@@ -49,14 +49,14 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
                 return None, "PickFailed"
             else:
                 self.feasible_pick.append(pick_parameters)
-        print "Pick Succeeded"
+        #print "Pick Succeeded"
         place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton,
                                                                    parameter_mode=parameter_mode)
 
         if place_status != 'HasSolution':
             return None, "PlaceFailed"
         else:
-            print "Place without motion Succeeded"
+            #print "Place without motion Succeeded"
             pap_continuous_parameters = {'pick': pick_parameters, 'place': place_parameters}
             self.feasible_pick = []
             return pap_continuous_parameters, 'HasSolution'

@@ -331,7 +331,7 @@ def main():
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
 
-    atype = 'place'
+    atype = 'pick'
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region pick_seed place_seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
@@ -340,7 +340,7 @@ def main():
         seed=seed,
         atype=atype,
         epoch=epoch,
-        region='home_region',
+        region='loading_region',
         pick_seed=1,
         place_seed=seed
     )
@@ -352,14 +352,17 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+    check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+    import pdb;pdb.set_trace()
 
     use_uniform = False
     utils.viewer()
+    #obj_to_visualize = 'square_packing_box3'
+    obj_to_visualize = 'square_packing_box4'
     obj_to_visualize = 'rectangular_packing_box2'
-    obj_to_visualize = 'square_packing_box3'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
+    import pdb;pdb.set_trace()
 
 
 if __name__ == '__main__':

@@ -50,12 +50,12 @@ def load_data(traj_dir, action_type, desired_region):
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
     if action_type == 'pick':
-        use_filter=False
+        use_filter = False
         action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
-        use_filter=True
-        action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'  
+        use_filter = True
+        action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
         if use_filter:
             cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
                                                                                            action_data_mode,
@@ -63,13 +63,13 @@ def load_data(traj_dir, action_type, desired_region):
                                                                                            desired_region)
         else:
             cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
-                                                                                         action_data_mode,
-                                                                                         action_type,
-                                                                                         desired_region)
-
+                                                                                             action_data_mode,
+                                                                                             action_type,
+                                                                                             desired_region)
+    import pdb;pdb.set_trace()
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
-        return pickle.load(open(traj_dir + cache_file_name, 'r'))
+        #return pickle.load(open(traj_dir + cache_file_name, 'r'))
 
     print 'caching file...%s' % cache_file_name
     all_states = []
@@ -131,8 +131,8 @@ def load_data(traj_dir, action_type, desired_region):
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
-            if reward <= 0 and action_type=='pick' and use_filter:
-                #utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+            if reward <= 0 and use_filter:
+                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
 
             # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
@@ -141,15 +141,9 @@ def load_data(traj_dir, action_type, desired_region):
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
             poses.append(get_processed_poses_from_state(s, a))
-            actions.append(get_processed_poses_from_action(s, a))
-
-            place_motion = a['place_motion']
-            #place_paths.append(place_motion)
-            pick_motion = a['pick_motion']
-            binary_collision_vector = state_vec.squeeze()[:, 0]
+            actions.append(get_processed_poses_from_action(s, a, action_data_mode))
 
             place_relevance = None  # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
-            pick_relevance = None  # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, pick_motion)
             konf_relevance.append(place_relevance)
 
         states = np.array(states)
@@ -165,7 +159,7 @@ def load_data(traj_dir, action_type, desired_region):
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
         all_konf_relevance.append(konf_relevance)
-        #all_paths.append(place_paths)
+        # all_paths.append(place_paths)
 
         print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
 
