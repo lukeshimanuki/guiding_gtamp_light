@@ -29,7 +29,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     global sum_smpl_time
     target_obj = abstract_action.discrete_parameters['object']
     place_region = abstract_action.discrete_parameters['place_region']
-    if learned_sampler is None and 'home' in place_region:
+    if learned_sampler is None or 'home' in place_region:
         smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
