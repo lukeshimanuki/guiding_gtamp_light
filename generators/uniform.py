@@ -170,7 +170,9 @@ class PaPUniformGenerator(UniformGenerator):
 
         status = "NoSolution"
         n_parameters_to_try_motion_planning = 10
-        for curr_n_iter in range(10, self.max_n_iter, 10):
+        #for curr_n_iter in range(10, self.max_n_iter, 10): #why do i do this? Problem with this is that it will be done with sampling may be one feasible op, if it succeeds within curr_n_iter=10
+        #for curr_n_iter in range(1900): # this probably has the same effect
+        for curr_n_iter in [1900]:
             print curr_n_iter
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
@@ -194,13 +196,22 @@ class PaPUniformGenerator(UniformGenerator):
     def get_pap_param_with_feasible_motion_plan(self, operator_skeleton, feasible_op_parameters,
                                                 cached_collisions, cached_holding_collisions):
         # getting pick motion - I can still use the cached collisions from state computation
+        n_feasible = len(feasible_op_parameters)
+        n_mp_tried = 0
+        if operator_skeleton.discrete_parameters['place_region'] == 'loading_region' \
+            and operator_skeleton.discrete_parameters['object'] == 'square_packing_box4':
+            pick_base_poses = [op['pick']['q_goal'] for op in feasible_op_parameters]
+            place_base_poses = [op['place']['q_goal'] for op in feasible_op_parameters]
+            #import pdb;pdb.set_trace()
+            pass
         for op in feasible_op_parameters:
+            print "n_mp_tried / n_feasible_params = %d / %d" % (n_mp_tried, n_feasible)
             chosen_pick_param = self.get_op_param_with_feasible_motion_plan([op['pick']], cached_collisions)
+            n_mp_tried += 1
 
             if not chosen_pick_param['is_feasible']:
                 # so this is the source of the problem
                 # if the first one fails we will never look
-                print "Motion planning to pick failed"
                 continue
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
@@ -210,12 +221,16 @@ class PaPUniformGenerator(UniformGenerator):
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
 
+            if chosen_place_param['is_feasible']:
+                print 'Motion plan exists'
+                break
+
         if not chosen_pick_param['is_feasible']:
-            print "Motion planning to pick failed"
+            print "Motion plan does not exist"
             return {'is_feasible': False}
 
         if not chosen_place_param['is_feasible']:
-            print "Motion planning to place failed"
+            print "Motion plan does not exist"
             return {'is_feasible': False}
 
         chosen_pap_param = {'pick': chosen_pick_param, 'place': chosen_place_param, 'is_feasible': True}
