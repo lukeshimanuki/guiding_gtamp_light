@@ -1,4 +1,5 @@
 from generators.learning.utils import data_processing_utils
+from generators.learning.PlacePolicyIMLE import gaussian_noise
 from gtamp_utils import utils
 
 import pickle
@@ -6,8 +7,6 @@ import numpy as np
 import time
 
 
-def gaussian_noise(z_size):
-    return np.random.normal(size=z_size, scale=0.5).astype('float32')
 
 
 def unprocess_pick_and_place_smpls(smpls):
@@ -108,12 +107,13 @@ def get_konf_obstacles_while_holding(pick_samples, sampler_state, problem_env):
 
 def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     pick_smpler = policy['pick']
-    pick_samples = make_predictions(smpler_state, pick_smpler, noise_batch)
+    #pick_samples = make_predictions(smpler_state, pick_smpler, noise_batch)
+    inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region')
+    pick_samples = pick_smpler.policy_model.predict(inp)
 
     # preparation for place sampler
     pick_base_poses = []
     pick_params = []
-    unpro = []
     for p in pick_samples:
         ir_parameters = p[3:]
         portion = ir_parameters[0]
@@ -122,7 +122,6 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         pick_param = np.hstack([p[:3], portion, base_angle, facing_angle_offset])
         _, pick_base_pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(smpler_state.obj, pick_param)
         pick_params.append({'q_goal': pick_base_pose})
-        unpro.append(pick_base_pose)
         pick_base_pose = utils.encode_pose_with_sin_and_cos_angle(pick_base_pose)
         pick_base_poses.append(pick_base_pose)
     pick_base_poses = np.array(pick_base_poses)
