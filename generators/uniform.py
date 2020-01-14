@@ -169,6 +169,7 @@ class PaPUniformGenerator(UniformGenerator):
             self.op_feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         status = "NoSolution"
+        n_parameters_to_try_motion_planning = 10
         for curr_n_iter in range(10, self.max_n_iter, 10):
             print curr_n_iter
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
@@ -197,8 +198,10 @@ class PaPUniformGenerator(UniformGenerator):
             chosen_pick_param = self.get_op_param_with_feasible_motion_plan([op['pick']], cached_collisions)
 
             if not chosen_pick_param['is_feasible']:
+                # so this is the source of the problem
+                # if the first one fails we will never look
                 print "Motion planning to pick failed"
-                return {'is_feasible': False}
+                continue
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(operator_skeleton.discrete_parameters['object'], chosen_pick_param)
@@ -206,6 +209,10 @@ class PaPUniformGenerator(UniformGenerator):
             chosen_place_param = self.get_op_param_with_feasible_motion_plan([op['place']], cached_holding_collisions)
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
+
+        if not chosen_pick_param['is_feasible']:
+            print "Motion planning to pick failed"
+            return {'is_feasible': False}
 
         if not chosen_place_param['is_feasible']:
             print "Motion planning to place failed"
