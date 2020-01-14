@@ -209,7 +209,7 @@ def get_learned_smpler(sampler_seed, epoch, algo):
         atype=atype,
         epoch=epoch,
         region='loading_region',
-        pick_seed=1,
+        pick_seed=0,
         place_seed=sampler_seed
     )
     placeholder_config = placeholder_config._replace(atype='pick')

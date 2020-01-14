@@ -59,6 +59,8 @@ def compute_state(obj, region, problem_env):
                      'home_region']
     goal_entities = ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
+    goal_entities = ['square_packing_box1', 'square_packing_box2',
+                     'rectangular_packing_box3', 'rectangular_packing_box4', 'home_region']
     return ConcreteNodeState(problem_env, obj, region, goal_entities)
 
 
@@ -331,7 +333,7 @@ def main():
     epoch = sys.argv[2]
     algo = str(sys.argv[3])
 
-    atype = 'pick'
+    atype = 'place'
     placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region pick_seed place_seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
@@ -341,7 +343,7 @@ def main():
         atype=atype,
         epoch=epoch,
         region='loading_region',
-        pick_seed=1,
+        pick_seed=0,
         place_seed=seed
     )
 
@@ -352,16 +354,19 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
-    import pdb;pdb.set_trace()
+    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
 
     use_uniform = False
     utils.viewer()
     #obj_to_visualize = 'square_packing_box3'
     obj_to_visualize = 'square_packing_box4'
-    obj_to_visualize = 'rectangular_packing_box2'
+    obj_to_visualize = 'rectangular_packing_box1'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
-    visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
+    if atype == 'place':
+        visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
+    else:
+        visualize_samples(smpls, problem_env, obj_to_visualize, atype)
+
     import pdb;pdb.set_trace()
 
 

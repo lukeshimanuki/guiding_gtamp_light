@@ -210,6 +210,7 @@ def get_data(datatype, action_type, region):
 
 def train(config):
     states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region)
+    import pdb;pdb.set_trace()
 
     x = actions[:, -4]
     y = actions[:, -3]

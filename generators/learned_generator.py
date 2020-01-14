@@ -6,11 +6,14 @@ from generators.learning.utils import data_processing_utils
 from gtamp_utils import utils
 from generators.learning.utils.sampler_utils import generate_pick_and_place_batch
 from generators.learning.utils.sampler_utils import unprocess_pick_and_place_smpls
-from generators.learning.PlacePolicyIMLE import uniform_noise
 
 import time
 import numpy as np
 import pickle
+
+
+def gaussian_noise(z_size):
+    return np.random.normal(size=z_size, scale=0.5).astype('float32')
 
 
 class LearnedGenerator(PaPUniformGenerator):
@@ -26,31 +29,34 @@ class LearnedGenerator(PaPUniformGenerator):
         goal_entities = self.abstract_state.goal_entities
         key_config_obstacles = self.process_abstract_state_collisions_into_key_config_obstacles(abstract_state)
         self.key_configs = np.delete(abstract_state.prm_vertices, [415, 586, 615, 618, 619], axis=0)
+        # todo There is a mismatch between the true key configs and the key config obstacles from the abstract state.
+        #   I will fix this error later. For now, check the number of nodes explored
         self.smpler_state = ConcreteNodeState(self.problem_env, self.obj, self.region,
                                               goal_entities,
-                                              key_configs=self.key_configs,
-                                              collision_vector=key_config_obstacles)
+                                              key_configs=self.key_configs)
+
         self.noises_used = []
         self.tried_smpls = []
 
         # to do generate 1000 smpls here
         n_total_iters = sum(range(10, self.max_n_iter, 10))
 
-        z_smpls = uniform_noise(z_size=(1900, 7))
+        z_smpls = gaussian_noise(z_size=(1900, 7))
         stime=time.time()
         smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
         print "Prediction time", time.time() - stime
 
-        utils.viewer()
+        #utils.viewer()
+        """
         orig_color = utils.get_color_of(self.obj)
-        utils.set_color(self.obj, [1, 0, 0])
+        utils.set_color(self.obj, [0, 1, 0])
         utils.visualize_placements(self.policy_smpl_batch[0:100, -3:], self.obj)
         utils.set_color(self.obj, orig_color)
+        """
 
         #pick_base_poses = [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, p[:-3])[1] for p in self.policy_smpl_batch]
         #utils.visualize_path(pick_base_poses[0:30])
-        import pdb;pdb.set_trace()
 
         self.policy_smpl_idx = 0
 
@@ -115,7 +121,7 @@ class LearnedGenerator(PaPUniformGenerator):
         smpl = self.policy_smpl_batch[self.policy_smpl_idx]
         self.policy_smpl_idx += 1
         if self.policy_smpl_idx >= len(self.policy_smpl_batch):
-            z_smpls = uniform_noise(z_size=(500, 7))
+            z_smpls = gaussian_noise(z_size=(500, 7))
             stime = time.time()
             smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
             self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
