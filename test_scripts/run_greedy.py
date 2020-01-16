@@ -54,16 +54,15 @@ def get_solution_file_name(config):
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/sahs_results/using_weights_for_submission/domain_%s/n_objs_pack_%d' \
+        solution_file_dir = root_dir + '/test_results/sahs_results/domain_%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
-    is_use_gnn = 'qlearned' in config.h_option
     solution_file_dir += '/' + config.h_option + '/'
-    if is_use_gnn:
-        q_config = '/q_config_num_train_' + str(config.num_train) + \
-                   '_mse_weight_' + str(config.mse_weight) + \
-                   '_use_region_agnostic_' + str(config.use_region_agnostic) + \
-                   '_mix_rate_' + str(config.mixrate) + '/'
-        solution_file_dir += q_config
+
+    q_config = '/q_config_num_train_' + str(config.num_train) + \
+               '_mse_weight_' + str(config.mse_weight) + \
+               '_use_region_agnostic_' + str(config.use_region_agnostic) + \
+               '_mix_rate_' + str(config.mixrate) + '/'
+    solution_file_dir += q_config
 
     if config.integrated:
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
@@ -74,19 +73,21 @@ def get_solution_file_name(config):
         solution_file_dir += '/integrated/'
         solution_file_dir += sampler_config
 
+    solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
+
     if config.integrated or config.integrated_unregularized_sampler:
         solution_file_name = 'pidx_' + str(config.pidx) + \
                              '_planner_seed_' + str(config.planner_seed) + \
-                             '_train_seed_' + str(config.absq_seed) + \
-                             '_smpler_seed_' + str(config.sampler_seed) + \
-                             '_domain_' + str(config.domain) + '.pkl'
+                             '_gnn_seed_' + str(config.absq_seed) + \
+                             '_smpler_seed_' + str(config.sampler_seed) + '.pkl'
     else:
         solution_file_name = 'pidx_' + str(config.pidx) + \
                              '_planner_seed_' + str(config.planner_seed) + \
-                             '_train_seed_' + str(config.absq_seed) + \
-                             '_domain_' + str(config.domain) + '.pkl'
+                             '_gnn_seed_' + str(config.absq_seed) + '.pkl'
+
     if not os.path.isdir(solution_file_dir):
         os.makedirs(solution_file_dir)
+
     solution_file_name = solution_file_dir + solution_file_name
     return solution_file_name
 
@@ -111,6 +112,8 @@ def parse_arguments():
     parser.add_argument('-num_train', type=int, default=5000)
     parser.add_argument('-timelimit', type=float, default=300)
     parser.add_argument('-mse_weight', type=float, default=1.0)
+    parser.add_argument('-n_mp_limit', type=int, default=10)
+    parser.add_argument('-n_iter_limit', type=int, default=200)
 
     # abstract Q setup
     parser.add_argument('-dontsimulate', action='store_true', default=False)
@@ -225,7 +228,6 @@ def get_learned_smpler(sampler_seed, epoch, algo):
     pick_policy.load_best_weights()
     loading_place_policy.load_best_weights()
     home_place_policy.load_best_weights()
-
     policy = {'pick': pick_policy, 'place_loading': loading_place_policy, 'place_home': home_place_policy}
     return policy
 
@@ -266,7 +268,7 @@ def main():
 
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
-    plan_length = 0
+    [utils.set_color(o, [1,0,0]) for o in goal_objs]
     if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
@@ -274,6 +276,7 @@ def main():
             success = trajectory['success']
             tottime = trajectory['tottime']
             num_nodes = trajectory['num_nodes']
+            plan_length = len(trajectory['plan']) if success else 0
     else:
         t = time.time()
         nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler)
