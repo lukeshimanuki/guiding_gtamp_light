@@ -161,7 +161,7 @@ class PaPUniformGenerator(UniformGenerator):
         UniformGenerator.__init__(self, operator_skeleton, problem_env, max_n_iter, swept_volume_constraint)
         self.feasible_pick_params = {}
 
-    def sample_next_point(self, operator_skeleton, n_parameters_to_try_motion_planning=1,
+    def sample_next_point(self, operator_skeleton, n_parameters_to_try_motion_planning=10, curr_n_iter_limit=200,
                           cached_collisions=None, cached_holding_collisions=None, dont_check_motion_existence=False):
         # Not yet motion-planning-feasible
         target_obj = operator_skeleton.discrete_parameters['object']
@@ -169,10 +169,9 @@ class PaPUniformGenerator(UniformGenerator):
             self.op_feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         status = "NoSolution"
-        n_parameters_to_try_motion_planning = 10
         #for curr_n_iter in range(10, self.max_n_iter, 10): #why do i do this? Problem with this is that it will be done with sampling may be one feasible op, if it succeeds within curr_n_iter=10
         #for curr_n_iter in range(1900): # this probably has the same effect
-        for curr_n_iter in [1900]:
+        for curr_n_iter in [curr_n_iter_limit]:
             print curr_n_iter
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
