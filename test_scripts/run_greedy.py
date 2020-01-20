@@ -26,7 +26,7 @@ def get_problem_env(config, goal_region, goal_objs):
     n_objs_pack = config.n_objs_pack
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
-        #goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
+        # goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
         goal = [goal_region] + goal_objs
         for obj in problem_env.objects[:n_objs_pack]:
             utils.set_color(obj, [0, 1, 0])
@@ -203,7 +203,8 @@ def get_pap_gnn_model(mover, config):
 def get_learned_smpler(sampler_seed, epoch, algo):
     print "Creating the learned sampler.."
     atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region pick_seed place_seed')
+    placeholder_config_definition = collections.namedtuple('config',
+                                                           'algo dtype tau seed atype epoch region pick_seed place_seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
@@ -268,7 +269,7 @@ def main():
 
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
-    [utils.set_color(o, [1,0,0]) for o in goal_objs]
+    [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:

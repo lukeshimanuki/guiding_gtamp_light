@@ -19,6 +19,7 @@ import pickle
 import sys
 import collections
 
+"""
 
 def gaussian_noise(z_size):
     return np.random.normal(size=z_size, scale=0.5).astype('float32')
@@ -27,6 +28,14 @@ def gaussian_noise(z_size):
 def uniform_noise(z_size):
     noise_dim = z_size[-1]
     return np.random.uniform([0] * noise_dim, [1] * noise_dim, size=z_size).astype('float32')
+"""
+
+
+#def gaussian_noise(z_size):
+#    return np.random.normal(size=z_size, scale=0.5).astype('float32')
+
+
+from generators.learning.PlacePolicyIMLE import gaussian_noise, uniform_noise
 
 
 def get_pick_base_poses(action, smples):
@@ -59,8 +68,8 @@ def compute_state(obj, region, problem_env):
                      'home_region']
     goal_entities = ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
-    goal_entities = ['square_packing_box1', 'square_packing_box2',
-                     'rectangular_packing_box3', 'rectangular_packing_box4', 'home_region']
+    #goal_entities = ['square_packing_box1', 'square_packing_box2',
+    #                 'rectangular_packing_box3', 'rectangular_packing_box4', 'home_region']
     return ConcreteNodeState(problem_env, obj, region, goal_entities)
 
 
@@ -233,7 +242,7 @@ def create_policy(place_holder_config):
             n_key_configs = 291
         else:
             n_collisions = 284
-            n_key_configs = 284 #pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
+            n_key_configs = 284  # pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
         place_policy = model_creation_utils.create_policy(place_place_holder_config, n_collisions, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
         policy = {'pick': pick_policy, 'place': place_policy}
@@ -275,7 +284,7 @@ def get_smpls(problem_env, atype, sampler, target_obj_name, placeholder_config, 
         if atype == 'pick':
             smpls = np.random.uniform(domain_min, domain_max, (500, dim_parameters)).squeeze()
         else:
-            #pick_smpls = np.random.uniform(domain_min, domain_max, (500, dim_parameters)).squeeze()
+            # pick_smpls = np.random.uniform(domain_min, domain_max, (500, dim_parameters)).squeeze()
             pick_smpls = generate_smpls(problem_env, sampler, target_obj_name, placeholder_config)[0]
             place_domain = utils.get_place_domain(region=problem_env.regions['loading_region'])
             dim_parameters = place_domain.shape[-1]
@@ -290,13 +299,6 @@ def get_smpls(problem_env, atype, sampler, target_obj_name, placeholder_config, 
         else:
             pick_smpls = unprocess_pick_smpls(smpls[0])
             place_smpls = unprocess_place_smpls(smpls[1])
-            """
-            place_domain = utils.get_place_domain(region=problem_env.regions['loading_region'])
-            dim_parameters = place_domain.shape[-1]
-            domain_min = place_domain[0]
-            domain_max = place_domain[1]
-            place_smpls = np.random.uniform(domain_min, domain_max, (200, dim_parameters)).squeeze()
-            """
             smpls = (pick_smpls, place_smpls)
 
     return smpls
@@ -334,7 +336,8 @@ def main():
     algo = str(sys.argv[3])
 
     atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config', 'algo dtype tau seed atype epoch region pick_seed place_seed')
+    placeholder_config_definition = collections.namedtuple('config',
+                                                           'algo dtype tau seed atype epoch region pick_seed place_seed')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
@@ -354,11 +357,11 @@ def main():
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+    check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
 
     use_uniform = False
     utils.viewer()
-    #obj_to_visualize = 'square_packing_box3'
+    # obj_to_visualize = 'square_packing_box3'
     obj_to_visualize = 'square_packing_box4'
     obj_to_visualize = 'rectangular_packing_box1'
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
@@ -366,8 +369,6 @@ def main():
         visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
     else:
         visualize_samples(smpls, problem_env, obj_to_visualize, atype)
-
-    import pdb;pdb.set_trace()
 
 
 if __name__ == '__main__':
