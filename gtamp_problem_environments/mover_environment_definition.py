@@ -4,6 +4,7 @@ import sys
 #    FAR_HOLDING_LEFT_ARM, LOWER_TOP_HOLDING_LEFT_ARM, REGION_Z_OFFSET
 
 from gtamp_utils.utils import *
+from gtamp_utils import utils
 from manipulation.bodies.bodies import place_body, place_body_on_floor
 from manipulation.primitives.transforms import set_point
 from manipulation.regions import create_region, AARegion
@@ -125,11 +126,11 @@ def create_doors(x_lim, y_lim, door_x, door_y, door_width, th, env):
     left_wall = box_body(env,
                          0.04 * 2, left_wall_size * 2, 1 * 2,
                          name='left_wall',
-                         color=(0, 0, 0))
+                         color=(.82, .70, .55))
     right_wall = box_body(env,
                           0.04 * 2, right_wall_size * 2, 1 * 2,
                           name='right_wall',
-                          color=(0, 0, 0))
+                          color=(.82, .70, .55))
     if th == 0:
         place_body(env, left_wall, (door_x, door_y + left_wall_size + (door_width / 2.), th),
                    base_name='bottom_wall')
@@ -140,6 +141,9 @@ def create_doors(x_lim, y_lim, door_x, door_y, door_width, th, env):
                    base_name='bottom_wall')
         place_body(env, right_wall, (door_x - right_wall_size - (door_width / 2.), door_y, th),
                    base_name='bottom_wall')
+
+    set_body_transparency(left_wall, 0.3)
+    set_body_transparency(right_wall, 0.3)
 
 
 def create_box_bodies(body_shape, color, name, n_objs, env):
