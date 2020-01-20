@@ -50,18 +50,6 @@ class LearnedGenerator(PaPUniformGenerator):
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
         print "Prediction time", time.time() - stime
 
-        #utils.viewer()
-        """
-        orig_color = utils.get_color_of(self.obj)
-        utils.set_color(self.obj, [0, 1, 0])
-        utils.visualize_placements(self.policy_smpl_batch[0:100, -3:], self.obj)
-        utils.set_color(self.obj, orig_color)
-
-        #pick_base_poses = [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, p[:-3])[1] for p in self.policy_smpl_batch]
-        #utils.visualize_path(pick_base_poses[0:30])
-        import pdb;pdb.set_trace()
-        """
-
         self.policy_smpl_idx = 0
 
     def process_abstract_state_collisions_into_key_config_obstacles(self, abstract_state):
@@ -90,7 +78,6 @@ class LearnedGenerator(PaPUniformGenerator):
         for obj_name_pose_pair in abstract_state.collides.keys():
             obj_name = obj_name_pose_pair[0]
             assert type(obj_name) == str or type(obj_name) == unicode
-            print obj_name, target_obj_name
             if obj_name == target_obj_name:
                 continue
             colliding_vtx_idxs.append(abstract_state.collides[obj_name_pose_pair])
@@ -142,12 +129,11 @@ class LearnedGenerator(PaPUniformGenerator):
         obj = operator_skeleton.discrete_parameters['object']
 
         orig_color = utils.get_color_of(obj)
-        # utils.set_color(obj, [1, 0, 0])
-        # utils.viewer()
         for i in range(n_iter):
             stime = time.time()
             op_parameters = self.sample_from_learned_samplers()
-            op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton, op_parameters,
+            op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton,
+                                                                                  op_parameters,
                                                                                   self.swept_volume_constraint,
                                                                                   parameter_mode='obj_pose')
             smpling_time = time.time() - stime
@@ -161,7 +147,6 @@ class LearnedGenerator(PaPUniformGenerator):
             feasible_op_parameters.append(op_parameters)  # place holder
             status = "NoSolution"
         else:
-            # import pdb; pdb.set_trace()
             status = "HasSolution"
 
         utils.set_color(obj, orig_color)
