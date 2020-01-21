@@ -15,9 +15,13 @@ prm_vertices = prm_edges = None
 
 
 def get_number_of_confs_in_between(q1, q2, body):
-    n = int(
-        np.max(np.abs(np.divide(body.SubtractActiveDOFValues(q1, q2), np.array([0.3, 0.3, 40 * np.pi / 180.0]))))) + 1
+    #n = int(
+    #    np.max(np.abs(np.divide(body.SubtractActiveDOFValues(q1, q2), np.array([0.3, 0.3, 40 * np.pi / 180.0]))))) + 1
+    base_conf_diff = utils.base_conf_diff(q1, q2)
+    n = int(np.max(base_conf_diff[0:2] / np.array([0.35, 0.35])))
+    #print np.linalg.norm(base_conf_diff[0:2]), n
     return n
+    #return n
 
 
 def leftarm_torso_linear_interpolation(body, q1, q2, resolution):  # Sequence doesn't include q1
@@ -177,7 +181,7 @@ def base_linear_interpolation(body, q1, q2):
     for i in range(n):
         curr_q = q
         q = (1. / (n - i)) * body.SubtractActiveDOFValues(q2,
-                                                          curr_q) + curr_q  # NOTE - do I need to repeatedly do the subtract?
+                                                          curr_q) + curr_q  # NOTE - do I need to repeatedly do the subtraction?
         if q[-1] > np.pi:
             q[-1] = q[-1] - 2 * np.pi
         if q[-1] < -np.pi:
@@ -333,7 +337,7 @@ def get_goal_config_used(motion_plan, potential_goal_configs):
 
 
 # returns list of paths, 1 for each goal function
-def find_prm_path(start, goal_fns, heuristic, is_collision):
+def find_prm_path(start, goal_fns, heuristic, is_collision, source=''):
     results = [None] * len(goal_fns)  # why do you have multiple goal functions?
     visited = {s for s in start}
     queue = Queue.PriorityQueue()
@@ -347,13 +351,18 @@ def find_prm_path(start, goal_fns, heuristic, is_collision):
             visited.add(next)
             if is_collision(next):  # I think this can be lazily checked?
                 continue
-            for i, goal_fn in enumerate(goal_fns):
-                if results[i] is None and goal_fn(next):
-                    # what does results[i] supposed to hold? The path and next node if the next node is a goal node.
-                    results[i] = path + [next]
+
+            #for i, goal_fn in enumerate(goal_fns):
+            if results[0] is None and goal_fns[0](next):
+                # what does results[i] supposed to hold? The path and next node if the next node is a goal node.
+                results[0] = path + [next]
+                break
             else:
                 newdist = dist + np.linalg.norm(prm_vertices[vertex] - prm_vertices[next])
                 queue.put((newdist + heuristic(next), newdist, np.random.rand(), next, path + [next]))
+
+    #if source == 'sampler' and results[0] is None:
+    #    import pdb; pdb.set_trace()
 
     # todo keep track of the configuration that is closest to the goal config
     return results
@@ -366,7 +375,7 @@ def init_prm():
         prm_vertices, prm_edges = pickle.load(open('./prm.pkl', 'rb'))
 
 
-def prm_connect(q1, q2, collision_checker):
+def prm_connect(q1, q2, collision_checker, source=''):
     global prm_vertices
     global prm_edges
 
@@ -394,9 +403,11 @@ def prm_connect(q1, q2, collision_checker):
         non_prm_config_collision_checker = collision_fn(env, robot)
 
         if non_prm_config_collision_checker(q1):
+            print "Base case failed 1"
             return None
 
         if is_single_goal and non_prm_config_collision_checker(q2):
+            print "Base case failed 2"
             return None
 
         if is_multiple_goals:
@@ -404,6 +415,7 @@ def prm_connect(q1, q2, collision_checker):
             q2 = [q_goal for q_goal in q2_original if not non_prm_config_collision_checker(q_goal)]
 
             if len(q2) == 0:
+                print "Base case failed 3"
                 return None
 
     if is_single_goal and are_base_confs_close_enough(q1, q2, xy_threshold=0.8, th_threshold=50.):
@@ -417,12 +429,20 @@ def prm_connect(q1, q2, collision_checker):
 
     ## Defines a goal test function
     if is_multiple_goals:
+        close_points = []
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
             goals = q2
             if len(q.squeeze()) != 3:
                 raise NotImplementedError
-            return any(are_base_confs_close_enough(q, g, xy_threshold=0.8, th_threshold=52.) for g in goals)
+
+            #if source == 'sampler':
+            #    diff = utils.base_conf_diff(q, q2[0])
+            #    xydist = np.linalg.norm(diff[0:2])
+            #    if xydist < 0.8:
+            #        close_points.append(q)
+
+            return any(are_base_confs_close_enough(q, g, xy_threshold=0.8, th_threshold=360.) for g in goals)
     elif is_goal_region:
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
@@ -443,13 +463,17 @@ def prm_connect(q1, q2, collision_checker):
     ### making a set of qinit idxs
     start = set()
     for idx, q in enumerate(prm_vertices):
-        q_close_enough_to_q1 = are_base_confs_close_enough(q, q1, xy_threshold=0.8, th_threshold=50.)
+        q_close_enough_to_q1 = are_base_confs_close_enough(q, q1, xy_threshold=0.8, th_threshold=360.)
         if q_close_enough_to_q1:
             if not is_collision(idx):
                 start.add(idx)
     #####
 
-    path = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision)[0]
+    path = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision, source)[0]
+
+    #if source == 'sampler':
+    #    import pdb;pdb.set_trace()
+
     if path is not None:
         path = [q1] + [prm_vertices[i] for i in path]
         if is_single_goal:
