@@ -3,6 +3,8 @@ from gtamp_utils.motion_planner import collision_fn, base_extend_fn, base_sample
     rrt_connect, prm_connect, rrt_region, arm_base_sample_fn, arm_base_distance_fn, \
     arm_base_extend_fn
 
+from gtamp_utils import utils
+
 
 class MotionPlanner:
     def __init__(self, problem_env):
@@ -40,7 +42,7 @@ class BaseMotionPlanner(MotionPlanner):
         else:
             c_fn = collision_fn(self.problem_env.env, self.problem_env.robot)
 
-        q_init = self.problem_env.robot.GetActiveDOFValues()
+        q_init = utils.get_body_xytheta(self.problem_env.robot).squeeze()
 
         if n_iterations is None:
             n_iterations = [20, 50, 100, 500, 1000]
