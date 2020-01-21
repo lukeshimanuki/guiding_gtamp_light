@@ -590,11 +590,13 @@ def base_conf_diff(x, y):
     #
     th_diff = base_diff[-1]
 
-    if x[-1] < 0: x[-1] += 2 * np.pi
-    if y[-1] < 0: y[-1] += 2 * np.pi
+    if x[-1] < 0:
+        x[-1] += 2 * np.pi
+    if y[-1] < 0:
+        y[-1] += 2 * np.pi
     try:
-        assert 0 < x[-1] < 2*np.pi
-        assert 0 < y[-1] < 2*np.pi
+        assert 0 <= x[-1] < 2*np.pi
+        assert 0 <= y[-1] < 2*np.pi
     except:
         raise AssertionError, 'Base conf needs to be between [0,2pi]'
     base_diff[-1] = min(np.abs(th_diff), 2*np.pi - np.abs(th_diff))
@@ -805,6 +807,7 @@ def se2_distance(base_a1, base_a2, c1, c2):
 def are_base_confs_close_enough(q1, q2, xy_threshold, th_threshold):
     diff = base_conf_diff(q1, q2)
     th_threshold = th_threshold * np.pi / 180.0
+    assert diff[-1] < 180.0
     if np.linalg.norm(diff[0:2]) < xy_threshold and diff[-1] < th_threshold:
         return True
     else:
