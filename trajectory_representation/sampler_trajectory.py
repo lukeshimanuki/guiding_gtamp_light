@@ -153,6 +153,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         self.set_seed(self.problem_idx)
         problem_env, openrave_env = self.create_environment()
 
+        """
         motion_planner = BaseMotionPlanner(problem_env, 'prm')
         problematic_conf = np.array([[3.02522493, -6.66844574, 5.28469751]])
         utils.set_robot_config(problematic_conf)
@@ -161,6 +162,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         print status
         utils.viewer()
         import pdb;pdb.set_trace()
+        """
 
         """
         if 'two_arm' in problem_env.name:
@@ -169,7 +171,9 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             raise NotImplementedError
         """
 
+        #goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
         goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+
         goal_entities = ['home_region'] + goal_objs
 
         [utils.set_color(g, [1, 0, 0]) for g in goal_objs]
