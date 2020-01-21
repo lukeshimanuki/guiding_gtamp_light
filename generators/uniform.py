@@ -135,8 +135,11 @@ class UniformGenerator:  # Only used in RSC
 
     def get_op_param_with_feasible_motion_plan(self, feasible_op_params, cached_collisions):
         motion_plan_goals = [op['q_goal'] for op in feasible_op_params]
-        motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals,
-                                                                         cached_collisions=cached_collisions)
+        self.problem_env.motion_planner.algorithm = 'rrt'
+        motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0],
+                                                                         cached_collisions=cached_collisions,
+                                                                         source='sampler')
+        self.problem_env.motion_planner.algorithm = 'prm'
         found_feasible_motion_plan = status == "HasSolution"
         if found_feasible_motion_plan:
             which_op_param = np.argmin(np.linalg.norm(motion[-1] - motion_plan_goals, axis=-1))
@@ -211,6 +214,7 @@ class PaPUniformGenerator(UniformGenerator):
             if not chosen_pick_param['is_feasible']:
                 # so this is the source of the problem
                 # if the first one fails we will never look
+                print "Pick motion does not exist"
                 continue
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
@@ -223,6 +227,8 @@ class PaPUniformGenerator(UniformGenerator):
             if chosen_place_param['is_feasible']:
                 print 'Motion plan exists'
                 break
+            else:
+                print "Place motion does not exist"
 
         if not chosen_pick_param['is_feasible']:
             print "Motion plan does not exist"
