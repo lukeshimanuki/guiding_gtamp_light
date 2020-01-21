@@ -50,7 +50,7 @@ def get_solution_file_name(config):
         root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/raw/'
+        root_dir = root_dir + '/planning_experience/raw/uses_rrt/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
@@ -221,9 +221,11 @@ def get_learned_smpler(sampler_seed, epoch, algo):
 
     placeholder_config = placeholder_config._replace(atype='place')
     placeholder_config = placeholder_config._replace(region='loading_region')
+    placeholder_config = placeholder_config._replace(place_seed=sampler_seed)
     loading_place_policy = create_policy(placeholder_config)['place']
 
     placeholder_config = placeholder_config._replace(region='home_region')
+    placeholder_config = placeholder_config._replace(place_seed=0)
     home_place_policy = create_policy(placeholder_config)['place']
 
     pick_policy.load_best_weights()
