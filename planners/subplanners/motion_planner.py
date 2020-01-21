@@ -17,7 +17,7 @@ class BaseMotionPlanner(MotionPlanner):
         MotionPlanner.__init__(self, problem_env)
         self.algorithm = algorithm
 
-    def get_motion_plan(self, goal, region_name='entire_region', n_iterations=None, cached_collisions=None):
+    def get_motion_plan(self, goal, region_name='entire_region', n_iterations=None, cached_collisions=None, source=''):
         self.problem_env.robot.SetActiveDOFs([], DOFAffine.X | DOFAffine.Y | DOFAffine.RotationAxis, [0, 0, 1])
 
         if region_name == 'bridge_region':
@@ -33,7 +33,7 @@ class BaseMotionPlanner(MotionPlanner):
 
         e_fn = base_extend_fn(self.problem_env.robot)
 
-        if cached_collisions is not None:
+        if cached_collisions is not None and self.algorithm == 'prm':
             c_fn = set()
             for tmp in cached_collisions.values():
                 c_fn = c_fn.union(tmp)
@@ -49,7 +49,7 @@ class BaseMotionPlanner(MotionPlanner):
         status = 'NoSolution'
         if self.algorithm == 'rrt':
             planning_algorithm = rrt_connect
-            assert cached_collisions is None
+            #assert cached_collisions is None
             if not isinstance(goal, list):
                 goal = [goal]
             for n_iter in n_iterations:
@@ -60,7 +60,7 @@ class BaseMotionPlanner(MotionPlanner):
                         return path, 'HasSolution'
         else:
             planning_algorithm = prm_connect
-            path = planning_algorithm(q_init, goal, c_fn)
+            path = planning_algorithm(q_init, goal, c_fn, source)
             if path is not None:
                 status = "HasSolution"
 
