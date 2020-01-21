@@ -584,7 +584,13 @@ def pick_distance(a1, a2, curr_obj):
 
 def base_conf_diff(x, y):
     base_diff = abs(x - y)
-    base_diff[-1] = base_diff[-1] if base_diff[-1] <= np.pi else 2 * np.pi - base_diff[-1]
+
+    # This base diff computation is problematic.
+    #   If the value is negative, then it will always be smaller than np.pi
+    #
+    th_diff = base_diff[-1]
+    base_diff[-1] = min(np.abs(th_diff), 2*np.pi - np.abs(th_diff))
+    #base_diff[-1] = base_diff[-1] if base_diff[-1] <= np.pi else 2 * np.pi - base_diff[-1]
     return base_diff
 
 
