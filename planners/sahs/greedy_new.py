@@ -51,7 +51,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
             smpler = LearnedGenerator(abstract_action, mover, smplers, abstract_state, max_n_iter=200)
             abstract_node.smplers_for_each_action[(target_obj, place_region)] = smpler
 
-        smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=3,
+        smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=config.n_mp_limit,
                                                 cached_collisions=abstract_state.collides,
                                                 cached_holding_collisions=None,
                                                 curr_n_iter_limit=config.n_iter_limit)
@@ -105,6 +105,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         # can a node be associated with different action? I think so.
         # For example, the init node can be associated with many actions
         curr_hval, _, action, node = search_queue.get()
+        print "Chosen abstract action", action.discrete_parameters['object'],  action.discrete_parameters['place_region']
         state = node.state
         print "Curr hval", curr_hval
 
