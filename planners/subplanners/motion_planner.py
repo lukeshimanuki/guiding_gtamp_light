@@ -55,7 +55,7 @@ class BaseMotionPlanner(MotionPlanner):
             if not isinstance(goal, list):
                 goal = [goal]
             for n_iter in n_iterations:
-                print n_iter
+                #print n_iter
                 for g in goal:
                     path = planning_algorithm(q_init, g, d_fn, s_fn, e_fn, c_fn, iterations=n_iter)
                     if path is not None:
