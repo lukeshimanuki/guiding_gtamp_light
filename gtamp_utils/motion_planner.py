@@ -403,11 +403,9 @@ def prm_connect(q1, q2, collision_checker, source=''):
         non_prm_config_collision_checker = collision_fn(env, robot)
 
         if non_prm_config_collision_checker(q1):
-            print "Base case failed 1"
             return None
 
         if is_single_goal and non_prm_config_collision_checker(q2):
-            print "Base case failed 2"
             return None
 
         if is_multiple_goals:
@@ -415,7 +413,6 @@ def prm_connect(q1, q2, collision_checker, source=''):
             q2 = [q_goal for q_goal in q2_original if not non_prm_config_collision_checker(q_goal)]
 
             if len(q2) == 0:
-                print "Base case failed 3"
                 return None
 
     if is_single_goal and are_base_confs_close_enough(q1, q2, xy_threshold=0.8, th_threshold=50.):
