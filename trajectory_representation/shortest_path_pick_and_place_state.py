@@ -146,10 +146,11 @@ class ShortestPathPaPState(PaPState):
                 self.reachable_entities.append(obj)
             else:
                 path, _ = motion_planner.get_motion_plan(motion_plan_goals, cached_collisions={})
-            try:
-                assert path is not None
-            except:
-                import pdb;pdb.set_trace()
+            [t.Enable(False) for t in self.problem_env.objects]
+            rrt_motion_planner = BaseMotionPlanner(self.problem_env, 'rrt')
+            path, status = rrt_motion_planner.get_motion_plan(motion_plan_goals[0])
+            [t.Enable(True) for t in self.problem_env.objects]
+            assert path is not None, 'Even RRT failed!'
             self.cached_pick_paths[obj] = path
             op_instance.low_level_motion = path
 
