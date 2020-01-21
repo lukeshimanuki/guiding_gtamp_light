@@ -589,8 +589,15 @@ def base_conf_diff(x, y):
     #   If the value is negative, then it will always be smaller than np.pi
     #
     th_diff = base_diff[-1]
+
+    if x[-1] < 0: x[-1] += 2 * np.pi
+    if y[-1] < 0: y[-1] += 2 * np.pi
+    try:
+        assert 0 < x[-1] < 2*np.pi
+        assert 0 < y[-1] < 2*np.pi
+    except:
+        raise AssertionError, 'Base conf needs to be between [0,2pi]'
     base_diff[-1] = min(np.abs(th_diff), 2*np.pi - np.abs(th_diff))
-    #base_diff[-1] = base_diff[-1] if base_diff[-1] <= np.pi else 2 * np.pi - base_diff[-1]
     return base_diff
 
 
