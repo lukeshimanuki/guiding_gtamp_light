@@ -82,24 +82,29 @@ class UniformGenerator:  # Only used in RSC
     def sample_feasible_op_parameters(self, operator_skeleton, n_iter, n_parameters_to_try_motion_planning):
         assert n_iter > 0
         feasible_op_parameters = []
+        feasibility_check_time = 0
         stime = time.time()
+
         for i in range(n_iter):
             # print 'Sampling attempts %d/%d' % (i, n_iter)
             op_parameters = self.sample_from_uniform()
 
             self.tried_smpls.append(op_parameters)
+            stime2 = time.time()
             op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton,
                                                                                   op_parameters,
                                                                                   self.swept_volume_constraint)
+            feasibility_check_time += time.time()-stime2
 
             if status == 'HasSolution':
                 feasible_op_parameters.append(op_parameters)
                 if len(feasible_op_parameters) >= n_parameters_to_try_motion_planning:
                     break
+
         smpling_time = time.time() - stime
-        print "Sampling time", smpling_time
         if n_iter == 200:
-            import pdb;pdb.set_trace()
+            print "Sampling time", smpling_time
+            print "Feasibilty time", feasibility_check_time
 
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
@@ -178,6 +183,7 @@ class PaPUniformGenerator(UniformGenerator):
         #for curr_n_iter in range(1900): # this probably has the same effect
         for curr_n_iter in [curr_n_iter_limit]:
             print curr_n_iter
+            stime2 = time.time()
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
                                                                                 n_parameters_to_try_motion_planning)
