@@ -7,13 +7,16 @@ from gtamp_utils import utils
 
 from generators.learning.utils.sampler_utils import generate_pick_and_place_batch, prepare_input_except_noise
 from generators.learning.utils.sampler_utils import unprocess_pick_and_place_smpls, get_indices_to_delete
-from generators.learning.PlacePolicyIMLE import uniform_noise
 from generators.learning.PlacePolicyIMLE import gaussian_noise
+
+from feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick
+
+
 
 import time
 import numpy as np
-import copy
-import pickle
+from gtamp_utils.utils import get_pick_domain, get_place_domain
+
 
 # noise = uniform_noise
 noise = gaussian_noise
@@ -28,6 +31,22 @@ class LearnedGenerator(PaPUniformGenerator):
         self.abstract_state = abstract_state
         self.obj = operator_skeleton.discrete_parameters['object']
         self.region = operator_skeleton.discrete_parameters['place_region']
+
+        is_place_in_operator = 'place' in operator_skeleton.type
+        if is_place_in_operator:
+            target_region = operator_skeleton.discrete_parameters['place_region']
+            assert target_region is not None
+            if type(target_region) == str:
+                target_region = self.problem_env.regions[target_region]
+
+        pick_min = get_pick_domain()[0]
+        pick_max = get_pick_domain()[1]
+        place_min = get_place_domain(target_region)[0]
+        place_max = get_place_domain(target_region)[1]
+        mins = np.hstack([pick_min, place_min])
+        maxes = np.hstack([pick_max, place_max])
+        self.domain = np.vstack([mins, maxes])
+        self.op_feasibility_checker = TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick(problem_env)
 
         goal_entities = self.abstract_state.goal_entities
         key_config_obstacles = self.process_abstract_state_collisions_into_key_config_obstacles(abstract_state)
