@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
     parser.add_argument('-atype', type=str, default='pick')
     parser.add_argument('-region', type=str, default='loading_region')
+    parser.add_argument('-filtered', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -45,16 +46,14 @@ from utils import data_processing_utils
 from gtamp_utils import utils
 
 
-def load_data(traj_dir, action_type, desired_region):
+def load_data(traj_dir, action_type, desired_region, use_filter):
     traj_files = os.listdir(traj_dir)
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
     #    state_data_mode, action_data_mode)
     if action_type == 'pick':
-        use_filter = False
         action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
-        use_filter = True
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
         if use_filter:
             cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
@@ -178,7 +177,7 @@ def load_data(traj_dir, action_type, desired_region):
     return all_states, all_poses, all_actions, all_sum_rewards[:, None]
 
 
-def get_data(datatype, action_type, region):
+def get_data(datatype, action_type, region, filtered):
     if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
         root_dir = './'
     else:
@@ -190,9 +189,9 @@ def get_data(datatype, action_type, region):
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
     try:
-        states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region)
+        states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region, filtered)
     except ValueError:
-        states, poses, actions, sum_rewards, _ = load_data(root_dir + data_dir, action_type, region)
+        states, poses, actions, sum_rewards, _ = load_data(root_dir + data_dir, action_type, region, filtered)
 
     is_goal_flags = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
@@ -210,7 +209,8 @@ def get_data(datatype, action_type, region):
 
 
 def train(config):
-    states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region)
+    states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region,
+                                                               config.filtered)
 
     x = actions[:, -4]
     y = actions[:, -3]
