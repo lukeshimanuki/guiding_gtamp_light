@@ -39,6 +39,8 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
         pick_parameters = parameters[:6]
         place_parameters = parameters[-3:]
 
+        """
+        # We are disabling this to make it easier to implement getting place-samples on-demand from learned sampler.
         we_already_have_feasible_pick = len(self.feasible_pick) > 0
         if we_already_have_feasible_pick:
             pick_parameters = self.feasible_pick[0]
@@ -49,7 +51,8 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
                 return None, "PickFailed"
             else:
                 self.feasible_pick.append(pick_parameters)
-        #print "Pick Succeeded"
+        """
+
         place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton,
                                                                    parameter_mode=parameter_mode)
 
@@ -60,3 +63,5 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
             pap_continuous_parameters = {'pick': pick_parameters, 'place': place_parameters}
             self.feasible_pick = []
             return pap_continuous_parameters, 'HasSolution'
+
+
