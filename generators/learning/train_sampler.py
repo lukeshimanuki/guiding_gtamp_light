@@ -111,7 +111,8 @@ def load_data(traj_dir, action_type, desired_region):
             if action_type == 'pick':
                 state_vec = s.pick_collision_vector
             elif action_type == 'place':
-                state_vec = s.place_collision_vector
+                #state_vec = s.place_collision_vector
+                state_vec = s.pick_collision_vector
             else:
                 raise NotImplementedError
 
@@ -126,6 +127,7 @@ def load_data(traj_dir, action_type, desired_region):
             if desired_region == 'home_region' and not is_move_to_goal_region:
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
+
             if desired_region == 'loading_region' and is_move_to_goal_region:
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
@@ -234,10 +236,10 @@ def train(config):
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
 
     if config.region != 'home_region':
-      indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
-      key_configs = np.delete(key_configs, indices_to_delete, axis=0)
-      states = np.delete(states, indices_to_delete, axis=1)
-      goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+        indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
+        key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+        states = np.delete(states, indices_to_delete, axis=1)
+        goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
     ############
 
     # key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
