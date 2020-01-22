@@ -26,6 +26,7 @@ def get_raw_dir():
     raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/' \
                         'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
     raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
+    raw_dir = ROOTDIR + 'planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
 
     return raw_dir
 
@@ -70,8 +71,9 @@ def get_processed_fname(raw_fname):
 
 
 def get_raw_fname(parameters):
-    # fname = 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
     fname = 'pidx_%d_planner_seed_0_train_seed_0_domain_two_arm_mover.pkl' % parameters.pidx
+    #fname = 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
+    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' %parameters.pidx
     return fname
 
 
