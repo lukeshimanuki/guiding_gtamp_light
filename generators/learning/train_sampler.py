@@ -54,7 +54,7 @@ def load_data(traj_dir, action_type, desired_region):
         action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
-        use_filter = False
+        use_filter = True
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
         if use_filter:
             cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
@@ -233,10 +233,11 @@ def train(config):
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
 
-    indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
-    key_configs = np.delete(key_configs, indices_to_delete, axis=0)
-    states = np.delete(states, indices_to_delete, axis=1)
-    goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+    if config.region != 'home_region':
+      indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
+      key_configs = np.delete(key_configs, indices_to_delete, axis=0)
+      states = np.delete(states, indices_to_delete, axis=1)
+      goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
     ############
 
     # key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
