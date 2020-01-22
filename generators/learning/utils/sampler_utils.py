@@ -40,6 +40,9 @@ def get_indices_to_delete(region, key_configs):
         ymax = 2.54926346
     indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
                                    np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
+    if region == 'home_region':
+        indices_to_delete = np.array([])
+
     return indices_to_delete
 
 
