@@ -66,6 +66,7 @@ def prepare_input_except_noise(smpler_state, delete=False, region=None, filter_k
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
     inp = [goal_flags, key_configs, collisions, poses]
+    inp = {'goal_flags': goal_flags, 'key_configs': key_configs, 'collisions': collisions, 'poses': poses}
     return inp
 
 
@@ -133,24 +134,13 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     very_stime = time.time()
     pick_smpler = policy['pick']
     stime = time.time()
-    inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region')
+    inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region', filter_konfs=False)
     print "preparation_time_1", time.time() - stime
-    inp1, inp2, inp3, inp4, inp5 = inp
 
-    stime = time.time()
     pick_samples = pick_smpler.policy_model.predict(inp)
-    print "predicting all at once", time.time() - stime
-
-    stime=time.time()
-    for a, b, c, d, e in zip(inp1, inp2, inp3, inp4, inp5):
-        pick_samples = pick_smpler.policy_model.predict([a[None, :], b[None, :], c[None, :], d[None, :], e[None, :]])
-    print "pick prediction time", time.time() - stime
-    import pdb;
-    pdb.set_trace()
 
     # preparation for place sampler
     pick_base_poses = []
-    # pick_params = []
     stime = time.time()
 
     # todo generate place for picks that are actually going to be used. This would almost half the prediction time.
@@ -186,7 +176,5 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     # place_sample_values = place_smpler.value_model.predict(inp)
     # place_sample_values = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_sample_values[0]]
     print "Total time taken", time.time() - very_stime
-    import pdb;
-    pdb.set_trace()
 
     return pick_samples, place_samples
