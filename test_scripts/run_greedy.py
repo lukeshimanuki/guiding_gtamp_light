@@ -225,7 +225,7 @@ def get_learned_smpler(sampler_seed, epoch, algo):
     loading_place_policy = create_policy(placeholder_config)['place']
 
     placeholder_config = placeholder_config._replace(region='home_region')
-    placeholder_config = placeholder_config._replace(place_seed=0)
+    placeholder_config = placeholder_config._replace(place_seed=sampler_seed)
     home_place_policy = create_policy(placeholder_config)['place']
 
     pick_policy.load_best_weights()
