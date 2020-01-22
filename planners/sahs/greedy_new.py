@@ -30,7 +30,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     target_obj = abstract_action.discrete_parameters['object']
     place_region = abstract_action.discrete_parameters['place_region']
     if learned_sampler is None: #or 'loading' not in place_region:
-        smpler = PaPUniformGenerator(abstract_action, mover, max_n_iter=200)
+        smpler = PaPUniformGenerator(abstract_action, mover)
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=config.n_mp_limit,
                                                 cached_collisions=abstract_state.collides,
@@ -48,7 +48,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
                 #raise NotImplementedError
             else:
                 raise NotImplementedError
-            smpler = LearnedGenerator(abstract_action, mover, smplers, abstract_state, max_n_iter=200)
+            smpler = LearnedGenerator(abstract_action, mover, smplers, abstract_state)
             abstract_node.smplers_for_each_action[(target_obj, place_region)] = smpler
 
         smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=config.n_mp_limit,
