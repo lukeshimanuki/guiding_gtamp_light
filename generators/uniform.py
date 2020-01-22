@@ -15,7 +15,7 @@ import time
 
 
 class UniformGenerator:  # Only used in RSC
-    def __init__(self, operator_skeleton, problem_env, max_n_iter, swept_volume_constraint=None):
+    def __init__(self, operator_skeleton, problem_env, swept_volume_constraint=None):
         self.problem_env = problem_env
         self.env = problem_env.env
         self.evaled_actions = []
@@ -24,7 +24,6 @@ class UniformGenerator:  # Only used in RSC
         self.objects_to_check_collision = None
         self.tried_smpls = []
         self.smpling_time = []
-        self.max_n_iter = max_n_iter
         operator_type = operator_skeleton.type
 
         target_region = None
@@ -167,8 +166,8 @@ class UniformGenerator:  # Only used in RSC
 
 
 class PaPUniformGenerator(UniformGenerator):
-    def __init__(self, operator_skeleton, problem_env, max_n_iter, swept_volume_constraint=None):
-        UniformGenerator.__init__(self, operator_skeleton, problem_env, max_n_iter, swept_volume_constraint)
+    def __init__(self, operator_skeleton, problem_env, swept_volume_constraint=None):
+        UniformGenerator.__init__(self, operator_skeleton, problem_env, swept_volume_constraint)
         self.feasible_pick_params = {}
 
     def sample_next_point(self, operator_skeleton, n_parameters_to_try_motion_planning=10, curr_n_iter_limit=200,

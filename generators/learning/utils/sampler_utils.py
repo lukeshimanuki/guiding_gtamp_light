@@ -135,7 +135,7 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     pick_smpler = policy['pick']
     stime = time.time()
     inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region', filter_konfs=False)
-    print "preparation_time_1", time.time() - stime
+    #print "preparation_time_1", time.time() - stime
 
     pick_samples = pick_smpler.policy_model.predict(inp)
 

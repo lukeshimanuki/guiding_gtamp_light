@@ -20,9 +20,9 @@ noise = gaussian_noise
 
 
 class LearnedGenerator(PaPUniformGenerator):
-    def __init__(self, operator_skeleton, problem_env, sampler, abstract_state, max_n_iter,
+    def __init__(self, operator_skeleton, problem_env, sampler, abstract_state,
                  swept_volume_constraint=None):
-        PaPUniformGenerator.__init__(self, operator_skeleton, problem_env, max_n_iter, swept_volume_constraint)
+        PaPUniformGenerator.__init__(self, operator_skeleton, problem_env, swept_volume_constraint)
         self.feasible_pick_params = {}
         self.sampler = sampler
         self.abstract_state = abstract_state
@@ -50,7 +50,7 @@ class LearnedGenerator(PaPUniformGenerator):
         """
 
         # to do generate 1000 smpls here
-        z_smpls = noise(z_size=(201, 7))
+        z_smpls = noise(z_size=(101, 7))
         stime = time.time()
         smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
@@ -188,10 +188,8 @@ class LearnedGenerator(PaPUniformGenerator):
                     #break
                     pass
             """
-
         smpling_time = time.time() - stime
-        print "Total sampling time", smpling_time
-        print "Feasibilty time", feasibility_check_time
+        print "Total sampling time %.2f Feasibility time %.2f Total iter %d" % (smpling_time, feasibility_check_time, i)
 
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
