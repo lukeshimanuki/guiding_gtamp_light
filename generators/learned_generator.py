@@ -41,26 +41,27 @@ class LearnedGenerator(PaPUniformGenerator):
         self.noises_used = []
         self.tried_smpls = []
 
+        """
         self.pick_input = prepare_input_except_noise(self.smpler_state, delete=True, region='loading_region',
                                                      filter_konfs=False)
         self.place_input = prepare_input_except_noise(self.smpler_state, delete=True,
                                                       region=operator_skeleton.discrete_parameters['place_region'],
                                                       filter_konfs=False)
+        """
 
         # to do generate 1000 smpls here
-        # n_total_iters = sum(range(10, self.max_n_iter, 10))
-        # z_smpls = noise(z_size=(1900, 7))
-        # stime = time.time()
-        # smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
-        # self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
-        # print "Prediction time", time.time() - stime
+        z_smpls = noise(z_size=(201, 7))
+        stime = time.time()
+        smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
+        self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
+        print "Prediction time", time.time() - stime
         """
         orig_color = utils.get_color_of(self.obj)
         utils.set_color(self.obj, [0, 1, 0])
         utils.visualize_placements(self.policy_smpl_batch[0:100, -3:], self.obj)
         utils.set_color(self.obj, orig_color)
         """
-        # self.policy_smpl_idx = 0
+        self.policy_smpl_idx = 0
 
     def process_abstract_state_collisions_into_key_config_obstacles(self, abstract_state):
         # todo prevent collision with the target object
@@ -103,11 +104,11 @@ class LearnedGenerator(PaPUniformGenerator):
         smpl = self.policy_smpl_batch[self.policy_smpl_idx]
         self.policy_smpl_idx += 1
         if self.policy_smpl_idx >= len(self.policy_smpl_batch):
-            z_smpls = noise(z_size=(500, 7))
+            z_smpls = noise(z_size=(100, 7))
             stime = time.time()
             smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
             self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
-            print "Prediction time for further sampling", time.time() - stime
+            #print "Prediction time for further sampling", time.time() - stime
             self.policy_smpl_idx = 0
         self.tried_smpls.append(smpl)
         # parameters = self.sample_from_uniform()
@@ -148,14 +149,21 @@ class LearnedGenerator(PaPUniformGenerator):
         obj = operator_skeleton.discrete_parameters['object']
 
         orig_color = utils.get_color_of(obj)
+        feasibility_check_time = 0
         stime = time.time()
         for i in range(n_iter):
-            """
             op_parameters = self.sample_from_learned_samplers()
+            stime2 = time.time()
             op_parameters, status = self.op_feasibility_checker.check_feasibility(operator_skeleton,
                                                                                   op_parameters,
                                                                                   self.swept_volume_constraint,
                                                                                   parameter_mode='obj_pose')
+            feasibility_check_time += time.time()-stime2
+
+            if status == 'HasSolution':
+                feasible_op_parameters.append(op_parameters)
+                if len(feasible_op_parameters) >= n_parameters_to_try_motion_planning:
+                    break
             """
 
             pick_op_parameters = self.sample_from_pick_sampler()
@@ -179,10 +187,11 @@ class LearnedGenerator(PaPUniformGenerator):
                 if len(feasible_op_parameters) >= n_parameters_to_try_motion_planning:
                     #break
                     pass
+            """
 
         smpling_time = time.time() - stime
-        print "Sampling time", smpling_time
-        import pdb;pdb.set_trace()
+        print "Total sampling time", smpling_time
+        print "Feasibilty time", feasibility_check_time
 
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
