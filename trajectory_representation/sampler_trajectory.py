@@ -171,7 +171,6 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             raise NotImplementedError
         """
 
-        #goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
         goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
 
         goal_entities = ['home_region'] + goal_objs
@@ -188,7 +187,8 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         num_in_goal = compute_new_number_in_goal(abs_state)
         num_papable_to_goal = count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region(abs_state)
         hval = hcount - num_in_goal - num_papable_to_goal
-        print hval
+        #print hval
+        #print [(p.discrete_parameters['object'], p.discrete_parameters['place_region']) for p in plan]
 
         for action, _ in zip(plan, hvalues):
             assert action.type == 'two_arm_pick_two_arm_place'
@@ -220,16 +220,12 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             print action.discrete_parameters['object'], action.discrete_parameters['place_region']
 
             action.execute_pick()
-            place_checker = two_arm_place_feasibility_checker.TwoArmPlaceFeasibilityChecker(problem_env)
-            through_checker, _ = place_checker.check_feasibility(action, action.continuous_parameters['place'][
-                'action_parameters'])
             state.place_collision_vector = state.get_collison_vector(None)
             action.execute()
 
             self.add_sah_tuples(state, action_info, hval, hcount, num_in_goal, num_papable_to_goal)
 
             # Heuristic computation in the new state
-            prev_state = abs_state
             abs_state = ShortestPathPaPState(problem_env, goal_entities, abs_state, action)
             hcount = compute_hcount(abs_state, problem_env)
             num_in_goal = compute_new_number_in_goal(abs_state)
