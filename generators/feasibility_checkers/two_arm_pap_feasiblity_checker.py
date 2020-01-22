@@ -39,7 +39,6 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
         pick_parameters = parameters[:6]
         place_parameters = parameters[-3:]
 
-        """
         # We are disabling this to make it easier to implement getting place-samples on-demand from learned sampler.
         we_already_have_feasible_pick = len(self.feasible_pick) > 0
         if we_already_have_feasible_pick:
@@ -55,6 +54,7 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
         pick_parameters, pick_status = self.check_pick_feasible(pick_parameters, operator_skeleton)
         if pick_status != 'HasSolution':
             return None, "PickFailed"
+        """
 
         place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton,
                                                                    parameter_mode=parameter_mode)
