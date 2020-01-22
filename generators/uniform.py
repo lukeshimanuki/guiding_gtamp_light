@@ -212,8 +212,6 @@ class PaPUniformGenerator(UniformGenerator):
             n_mp_tried += 1
 
             if not chosen_pick_param['is_feasible']:
-                # so this is the source of the problem
-                # if the first one fails we will never look
                 print "Pick motion does not exist"
                 continue
 
