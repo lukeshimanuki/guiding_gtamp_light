@@ -156,12 +156,12 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         pick_base_pose = utils.encode_pose_with_sin_and_cos_angle(pick_base_pose)
         pick_base_poses.append(pick_base_pose)
     pick_base_poses = np.array(pick_base_poses)
-    print "pick processing time", time.time() - stime
+    #print "pick processing time", time.time() - stime
 
     # making place samples based on pick base poses
     stime = time.time()
     inp = prepare_input(smpler_state, noise_batch, delete=True, region=smpler_state.region, filter_konfs=False)
-    print "preparation_time_2", time.time() - stime
+    #print "preparation_time_2", time.time() - stime
 
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
@@ -170,11 +170,11 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     inp[-1] = z_smpls
     place_smpler = policy['place']
 
-    stime = time.time()
+    #stime = time.time()
     place_samples = place_smpler.policy_model.predict(inp)
-    print "place_prediction_time", time.time() - stime
+    #print "place_prediction_time", time.time() - stime
     # place_sample_values = place_smpler.value_model.predict(inp)
     # place_sample_values = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_sample_values[0]]
-    print "Total time taken", time.time() - very_stime
+    #print "Total predictio time taken", time.time() - very_stime
 
     return pick_samples, place_samples
