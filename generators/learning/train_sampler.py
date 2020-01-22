@@ -54,7 +54,7 @@ def load_data(traj_dir, action_type, desired_region):
         action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
         cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
     else:
-        use_filter = True
+        use_filter = False
         action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
         if use_filter:
             cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
@@ -183,7 +183,7 @@ def get_data(datatype, action_type, region):
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/planning_experience/processed/'
 
     if datatype == 'n_objs_pack_4':
-        data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/sampler_trajectory_data/'
+        data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/uses_rrt/sampler_trajectory_data/'
     else:
         data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
     print "Loading data from", data_dir
@@ -209,7 +209,6 @@ def get_data(datatype, action_type, region):
 
 def train(config):
     states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region)
-    import pdb;pdb.set_trace()
 
     x = actions[:, -4]
     y = actions[:, -3]
