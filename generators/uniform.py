@@ -12,6 +12,8 @@ from generators.generator import PaPGenerator
 
 import numpy as np
 import time
+import pickle
+import uuid
 
 
 class UniformGenerator:  # Only used in RSC
@@ -182,7 +184,6 @@ class PaPUniformGenerator(UniformGenerator):
         #for curr_n_iter in range(1900): # this probably has the same effect
         for curr_n_iter in [curr_n_iter_limit]:
             print curr_n_iter
-            stime2 = time.time()
             feasible_op_parameters, status = self.sample_feasible_op_parameters(operator_skeleton,
                                                                                 curr_n_iter,
                                                                                 n_parameters_to_try_motion_planning)
@@ -207,33 +208,47 @@ class PaPUniformGenerator(UniformGenerator):
         # getting pick motion - I can still use the cached collisions from state computation
         n_feasible = len(feasible_op_parameters)
         n_mp_tried = 0
-        if operator_skeleton.discrete_parameters['place_region'] == 'loading_region' \
-            and operator_skeleton.discrete_parameters['object'] == 'square_packing_box4':
-            pick_base_poses = [op['pick']['q_goal'] for op in feasible_op_parameters]
-            place_base_poses = [op['place']['q_goal'] for op in feasible_op_parameters]
-            #import pdb;pdb.set_trace()
-            pass
+
+        obj_poses = {o.GetName(): utils.get_body_xytheta(o) for o in self.problem_env.objects}
+        prepick_q0 = utils.get_body_xytheta(self.problem_env.robot)
+
+        all_mp_data = []
         for op in feasible_op_parameters:
             print "n_mp_tried / n_feasible_params = %d / %d" % (n_mp_tried, n_feasible)
             chosen_pick_param = self.get_op_param_with_feasible_motion_plan([op['pick']], cached_collisions)
             n_mp_tried += 1
 
+            mp_data = {'q0': prepick_q0, 'qg': op['pick']['q_goal'], 'object_poses': obj_poses, 'held_obj': None}
             if not chosen_pick_param['is_feasible']:
                 print "Pick motion does not exist"
+                mp_data['label'] = False
+                all_mp_data.append(mp_data)
                 continue
+            else:
+                mp_data['label'] = True
+                mp_data['motion'] = chosen_pick_param['motion']
+                all_mp_data.append(mp_data)
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(operator_skeleton.discrete_parameters['object'], chosen_pick_param)
+            mp_data = {'q0': op['pick']['q_goal'], 'qg': op['place']['q_goal'], 'object_poses': obj_poses,
+                       'held_obj': operator_skeleton.discrete_parameters['object']}
 
             chosen_place_param = self.get_op_param_with_feasible_motion_plan([op['place']], cached_holding_collisions)
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
 
             if chosen_place_param['is_feasible']:
+                mp_data['label'] = True
+                mp_data['motion'] = chosen_place_param['motion']
+                all_mp_data.append(mp_data)
                 print 'Motion plan exists'
                 break
             else:
+                mp_data['label'] = False
+                all_mp_data.append(mp_data)
                 print "Place motion does not exist"
+        pickle.dump(all_mp_data, open('./planning_experience/motion_planning_experience/' + str(uuid.uuid4()) + '.pkl', 'wb'))
 
         if not chosen_pick_param['is_feasible']:
             print "Motion plan does not exist"
