@@ -1,2 +1,2 @@
 #!/bin/sh
-scp -r beomjoon@phaedra.csail.mit.edu:/home/beomjoon/guiding_gtamp_light/planning_experience/raw/two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/* ./planning_experience/raw/two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/
+scp -r beomjoon@phaedra.csail.mit.edu:/home/beomjoon/guiding_gtamp_light/planning_experience/raw/* ./planning_experience/raw/
