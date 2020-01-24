@@ -20,7 +20,7 @@ def get_number_of_confs_in_between(q1, q2, body):
     base_conf_diff = utils.base_conf_diff(q1, q2)
     assert base_conf_diff[-1] < np.pi
     n_angle = int(base_conf_diff[-1] / (30.0/180.0 * np.pi))
-    n_xy = int(np.max(base_conf_diff[0:2] / np.array([0.3, 0.3])))
+    n_xy = int(np.max(base_conf_diff[0:2] / np.array([0.2, 0.2])))
     #print np.linalg.norm(base_conf_diff[0:2]), n
     return max(n_xy, n_angle)
     #return n_xy
