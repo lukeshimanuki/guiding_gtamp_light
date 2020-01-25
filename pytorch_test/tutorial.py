@@ -1,9 +1,10 @@
 import torch
 from torch import nn
 from torch_geometric.nn import MessagePassing
-from torch_geometric.data import Data
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+from torch_geometric.data import Data, DataLoader
+from torch_geometric.datasets import TUDataset
+import torch.nn.functional as F
+import time
 
 
 class FirstGraphNet(MessagePassing):
@@ -88,20 +89,59 @@ class FinalGraphNet(MessagePassing):
         return output
 
 
-# Where do I have access to the neighboring node's values?
-first_net = FirstGraphNet()
-final_net = FinalGraphNet()
+class Net(torch.nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.firstnet = FirstGraphNet()
+        self.finalnet = FinalGraphNet()
+        self.clf = torch.nn.Linear(3, 1)
+
+    def forward(self, data):
+        output = []
+        x, edge_index = data.x, data.edge_index
+        # What do I do if I have multiple inputs?
+        first_output = self.firstnet(x, edge_idx)
+        final_output = self.finalnet(first_output, edge_idx)
+        import pdb;pdb.set_trace()
+        # todo figure out a way to predict the reachability from the graph
+        n_nodes = x.shape[0]
+        final_output = torch.reshape(final_output, [1, n_nodes])
+        self.clf(final_output)
+        return output
+
 
 x = torch.randn(3, 10)  # but then how do I create multiple data points?
 edge_idx = torch.tensor([[0, 1, 1, 2],
                          [1, 0, 2, 1]],
                         dtype=torch.long)  # 2 x n_edges, top indicating the src and bottom indicating the dest
 
-first_output = first_net(x, edge_idx)
-final_output = final_net(first_output, edge_idx)
 
-import pdb;
-pdb.set_trace()
+data = Data(edge_idx=edge_idx, x=x, y=0)
+data_list = [data] * 100
+loader = DataLoader(data_list, batch_size=32)
+net = Net()
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+device = torch.device('cpu')
+
+
+def train(epoch):
+    net.train()
+    total_loss = 0
+    for data in loader:
+        data = data.to(device)
+        optimizer.zero_grad()
+        out = net(data)
+        loss = ((out - data.y).pow(2)).mean()
+        loss.backward()
+        optimizer.step()
+
+    import pdb;
+    pdb.set_trace()
+    return total_loss / len(train_loader.dataset)
+
+train(1)
+
+
 
 # I need to put it through a dense net to produce results
 
