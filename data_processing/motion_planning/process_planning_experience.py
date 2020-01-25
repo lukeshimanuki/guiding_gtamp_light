@@ -36,7 +36,6 @@ def process_single_data(fname, problem_env, key_configs, save_file):
     collisions = []
 
     collision_vector = utils.compute_occ_vec(key_configs)
-
     for mp_result in mp_results:
         object_poses = mp_result['object_poses']
         assert object_poses == first_obj_poses
@@ -51,7 +50,7 @@ def process_single_data(fname, problem_env, key_configs, save_file):
     labels = np.vstack(labels)
 
     pickle.dump({'q0s': q0s, 'qgs': qgs, 'collisions': collisions, 'labels': labels}, open(save_file, 'wb'))
-    print "Done with file",fname
+    print "Done with file", fname
 
 
 def process_data(raw_dir, save_dir):
