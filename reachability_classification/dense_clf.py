@@ -2,6 +2,8 @@ import os
 import pickle
 import numpy as np
 import torch
+import time
+
 from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
@@ -133,7 +135,12 @@ class ReachabilityDataset(Dataset):
 
 
 def main():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    print device
+
     net = ReachabilityNet()
+    net.to(device)
     loss_fn = nn.BCELoss()
 
     dataset = ReachabilityDataset()
@@ -143,16 +150,18 @@ def main():
     test_qgs = testset.dataset.qgs[testset.indices]
     test_cols = testset.dataset.collisions[testset.indices]
     test_labels = testset.dataset.labels[testset.indices]
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=2)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=2, pin_memory=True)
 
     learning_rate = 1e-3
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     for epoch in range(100):  # loop over the dataset multiple times
+        
         for i, batch in enumerate(trainloader, 0):
-            q0s = batch['x'][0]
-            qgs = batch['x'][1]
-            cols = batch['x'][2]
-            labels = batch['y']
+            q0s = batch['x'][0].to(device)
+            qgs = batch['x'][1].to(device)
+            cols = batch['x'][2].to(device)
+            labels = batch['y'].to(device)
+
             pred = net(q0s, qgs, cols)
             loss = loss_fn(pred, labels)
             optimizer.zero_grad()
