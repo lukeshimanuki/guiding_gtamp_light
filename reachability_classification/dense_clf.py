@@ -34,9 +34,10 @@ class ReachabilityNet(nn.Module):
             nn.ReLU())
         in_channels = 618
         out_channels = 64
-        """
+
         self.collision_lin = nn.Sequential(
-            nn.Linear(in_channels, out_channels),
+            nn.Flatten(),
+            nn.Linear(618*2, out_channels),
             nn.ReLU(),
             nn.Linear(out_channels, out_channels),
             nn.ReLU(),
@@ -56,9 +57,10 @@ class ReachabilityNet(nn.Module):
             nn.MaxPool2d(kernel_size=(4, 1)),
             nn.Flatten()
         )
+        """
 
         self.output_lin = nn.Sequential(
-            nn.Linear(280, out_channels),
+            nn.Linear(64+8*3, out_channels),
             nn.ReLU(),
             nn.Linear(out_channels, 1),
             nn.Sigmoid()
@@ -172,7 +174,7 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print loss.item()
+            #print loss.item()
 
         test_q0s.to(device)
         test_qgs.to(device)
