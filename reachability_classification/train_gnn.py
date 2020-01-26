@@ -5,8 +5,8 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
 
-from classifiers.dense_clf import DenseReachabilityNet
-from datasets.dataset import ReachabilityDataset, GNNReachabilityDataset
+from classifiers.gnn import GNNReachabilityNet
+from datasets.dataset import GNNReachabilityDataset
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     device = torch.device("cpu")
     print device
 
-    net = DenseReachabilityNet()
+    net = GNNReachabilityNet()
     net.to(device)
     loss_fn = nn.BCELoss()
 
@@ -36,12 +36,8 @@ def main():
     for epoch in range(100):  # loop over the dataset multiple times
         for i, batch in enumerate(trainloader, 0):
             import pdb;pdb.set_trace()
-            q0s = batch['x'][0].to(device)
-            qgs = batch['x'][1].to(device)
-            cols = batch['x'][2].to(device)
-            labels = batch['y'].to(device)
-            if len(q0s)==0:
-                continue
+
+
             pred = net(q0s, qgs, cols)
             loss = loss_fn(pred, labels)
             optimizer.zero_grad()

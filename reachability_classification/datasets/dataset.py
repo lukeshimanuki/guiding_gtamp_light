@@ -43,7 +43,7 @@ class ReachabilityDataset(Dataset):
             labels.append(np.array(plan['labels'], dtype=np.float32))
 
             n_episodes += 1
-            if n_episodes == 1000:
+            if n_episodes == 4000:
                 break
 
         q0s = np.vstack(q0s)
@@ -63,3 +63,26 @@ class ReachabilityDataset(Dataset):
 
     def __getitem__(self, idx):
         return {'x': [self.q0s[idx], self.qgs[idx], self.collisions[idx]], 'y': self.labels[idx]}
+
+
+class GNNReachabilityDataset(ReachabilityDataset):
+    def __init__(self):
+        super(GNNReachabilityDataset, self).__init__()
+        self.prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
+        self.gnn_vertices = self.prm_vertices
+        self.collisions = self.collisions.squeeze()
+
+        edges = [[], []]
+        for src_idx, _ in enumerate(self.prm_vertices):
+            neighbors = list(self.prm_edges[src_idx])
+            n_edges = len(neighbors)
+            edges[0] += [src_idx] * n_edges
+            edges[1] += neighbors
+            # How to make sure it is bidrectional?
+        self.edges = np.array(edges)
+
+    def __getitem__(self, idx):
+        repeat_q0 = np.repeat(self.q0s[idx][None, :], 618, axis=0)
+        repeat_qg = np.repeat(self.q0s[idx][None, :], 618, axis=0)
+        v = np.hstack([self.prm_vertices, repeat_q0, repeat_qg, self.collisions[idx]])
+        return {'vertex': v, 'edges': self.edges, 'y': self.labels[idx]}
