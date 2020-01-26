@@ -7,6 +7,8 @@ import time
 from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
+from torchsummary import summary
+
 from gtamp_utils import utils
 
 import torch.optim as optim
@@ -99,6 +101,8 @@ class ReachabilityDataset(Dataset):
         n_episodes = 0
         for plan_exp_file in plan_exp_files:
             plan = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
+            if len(plan['q0s']) == 0:
+                continue
             q0s.append(np.array(plan['q0s'], dtype=np.float32))
             qgs.append(np.array(plan['qgs'], dtype=np.float32))
 
@@ -112,7 +116,7 @@ class ReachabilityDataset(Dataset):
             labels.append(np.array(plan['labels'], dtype=np.float32))
 
             n_episodes += 1
-            if n_episodes == 5000:
+            if n_episodes == 1000:
                 break
 
         q0s = np.vstack(q0s)
@@ -144,7 +148,7 @@ def main():
     loss_fn = nn.BCELoss()
 
     dataset = ReachabilityDataset()
-    trainset, testset = torch.utils.data.random_split(dataset, [20000, len(dataset) - 20000])
+    trainset, testset = torch.utils.data.random_split(dataset, [3000, len(dataset) - 3000])
 
     test_q0s = testset.dataset.q0s[testset.indices]
     test_qgs = testset.dataset.qgs[testset.indices]
@@ -154,27 +158,30 @@ def main():
 
     learning_rate = 1e-3
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+    acc_list = []
     for epoch in range(100):  # loop over the dataset multiple times
-        
         for i, batch in enumerate(trainloader, 0):
             q0s = batch['x'][0].to(device)
             qgs = batch['x'][1].to(device)
             cols = batch['x'][2].to(device)
             labels = batch['y'].to(device)
-
+            if len(q0s)==0:
+                continue
             pred = net(q0s, qgs, cols)
             loss = loss_fn(pred, labels)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            #print loss.item()
+            print loss.item()
 
+        test_q0s.to(device)
+        test_qgs.to(device)
+        test_cols.to(device)
         test_pred = net(test_q0s, test_qgs, test_cols)
         clf_result = test_pred > 0.5
         acc = np.mean(clf_result.numpy() == test_labels.numpy())
-        print epoch, acc
-    import pdb;
-    pdb.set_trace()
+        acc_list.append(acc)
+        print epoch, acc_list
 
 
 if __name__ == '__main__':
