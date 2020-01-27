@@ -44,7 +44,7 @@ class ReachabilityDataset(Dataset):
             labels.append(np.array(plan['labels'], dtype=np.float32))
 
             n_episodes += 1
-            if n_episodes == 4000:
+            if n_episodes == 1000:
                 break
 
         q0s = np.vstack(q0s)
@@ -92,6 +92,6 @@ class GNNReachabilityDataset(ReachabilityDataset):
             prm_vertices = np.repeat(np.array(self.prm_vertices)[None, :], len(idx), axis=0)
             q0s = np.repeat(np.array(self.q0s)[idx][:, None, :], 618, axis=1)
             qgs = np.repeat(np.array(self.qgs)[idx][:, None, :], 618, axis=1)
-            v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]],axis=-1)
+            v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
 
         return {'vertex': v, 'edges': self.edges, 'y': self.labels[idx]}
