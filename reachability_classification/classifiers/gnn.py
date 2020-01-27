@@ -6,69 +6,74 @@ import time
 import torch
 import torch_scatter
 
+
 class GNNReachabilityNet(nn.Module):
-    def __init__(self):
+    def __init__(self, edges, n_key_configs):
         super(GNNReachabilityNet, self).__init__()
 
+        # Vertex model. Currently takes all xyth, col into account
         in_channels = 11
-        out_channels = 8
+        out_channels = 32
         self.x_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
+            nn.ReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
+            nn.ReLU()
         )
 
+        # Edge model
         in_channels = out_channels * 2
-        out_channels = 23
+        out_channels = 32
         self.edge_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
+            nn.ReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
+            nn.ReLU()
         )
 
-        in_channels = 64
+        in_channels = 32
         out_channels = 1
-        self.vertex_output_lin = torch.nn.Linear(in_channels, out_channels)
+        self.vertex_output_lin = nn.Sequential(
+            torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
+            nn.ReLU(),
+            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
+            nn.ReLU()
+        )
 
-        n_nodes = 618
-        self.graph_output_lin = torch.nn.Linear(n_nodes, 1)
+        n_nodes = n_key_configs
+        self.graph_output_lin = nn.Sequential(
+            torch.nn.Linear(n_nodes, 1),
+            nn.Sigmoid()
+        )
 
-        self.edges = torch.tensor([[0, 1, 1, 2],  # it's always bidrectional
-                                   [1, 0, 2, 1]],
-                                    dtype=torch.long)  # 2 x n_edges, top indicating the src and bottom indicating the dest
-        self.n_nodes = 3
-        self.node_idxs = torch.arange(0, 3)
+        self.edges = torch.from_numpy(edges)
+        self.n_nodes = n_key_configs
 
     def forward(self, vertices):
         # This function computes the node values
         # vertices has shape [n_data, in_channels, n_nodes]
         # edge_index has shape [2, E], top indicating the source and bottom indicating the dest
 
-        vertices = vertices.reshape((32, 1, 3, 11))
+        vertices = vertices.reshape((vertices.shape[0], 1, self.n_nodes, 11))
         v_features = self.x_lin(vertices).squeeze()
 
         neighboring_pairs = torch.cat((v_features[:, :, self.edges[0]], v_features[:, :, self.edges[1]]), 1)
-        neighboring_pairs = neighboring_pairs.reshape((32, 1, 16, 4))
+        neighboring_pairs = neighboring_pairs.reshape((vertices.shape[0], 1, neighboring_pairs.shape[1],
+                                                       neighboring_pairs.shape[-1]))
         msgs = self.edge_lin(neighboring_pairs).squeeze()
 
-        # I would like to compute the mean at each destination node.
-        # How to do this?
-        # Look at how pytorch geometric aggregates things
-        # This is how he does it. Yay!
         agg = torch_scatter.scatter_mean(msgs, self.edges[1], dim=-1)
-        values_at_final_vertices = torch.flatten(agg, 1, 2)
 
-        import pdb;pdb.set_trace()
+        agg = agg.reshape((agg.shape[0], 1, agg.shape[1], agg.shape[2]))
 
+        final_vertex_output = self.vertex_output_lin(agg).squeeze()
+        return self.graph_output_lin(final_vertex_output)
 
-        # I need 4 by n_edge_features
-
-        edge_features = self.edge_lin
-
-
-x = torch.rand(3, 11)  # but then how do I create multiple data points?
-edge_idx = torch.tensor([[0, 1, 2], # it's always bidrectional
+"""
+x = torch.rand(618, 11)  # but then how do I create multiple data points?
+edge_idx = torch.tensor([[0, 1, 2],  # it's always bidrectional
                          [1, 2, 1]],
                         dtype=torch.long)  # 2 x n_edges, top indicating the src and bottom indicating the dest
-
 
 data = {'vtxs': x}
 data_list = [data] * 10000
@@ -94,9 +99,8 @@ def train(epoch):
     pdb.set_trace()
     return total_loss / len(train_loader.dataset)
 
+
 train(1)
-
-
 
 # I need to put it through a dense net to produce results
 
@@ -105,3 +109,4 @@ train(1)
 #   2. Multiple rounds of msg passing? I guess I take the output and put it through the net again? This requires
 #       maintaining the same output value. What I perhaps want to do is to create another network that now takes the
 #       graph data.
+"""
