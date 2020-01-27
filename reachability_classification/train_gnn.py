@@ -23,7 +23,7 @@ def main():
     trainset, testset = torch.utils.data.random_split(dataset, [3433, len(dataset)-3433])
     print "N_train", len(trainset)
 
-    net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618)
+    net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618, device=device)
     net.to(device)
     loss_fn = nn.BCELoss()
 
@@ -32,8 +32,9 @@ def main():
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True)
     acc_list = []
 
-    test_vertices = torch.from_numpy(testset.dataset[testset.indices[0:1000]]['vertex']).float().to(device)
-    test_labels = testset.dataset[testset.indices[0:1000]]['y'].to(device)
+    test_vertices = torch.from_numpy(testset.dataset[testset.indices[0:100]]['vertex']).float().to(device)
+    test_labels = testset.dataset[testset.indices[0:100]]['y'].to(device)
+    import pdb;pdb.set_trace()
     test_pred = net(test_vertices)
     for epoch in range(100):
         for i, batch in enumerate(trainloader, 0):

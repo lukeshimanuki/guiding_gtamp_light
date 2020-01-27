@@ -8,7 +8,7 @@ import torch_scatter
 
 
 class GNNReachabilityNet(nn.Module):
-    def __init__(self, edges, n_key_configs):
+    def __init__(self, edges, n_key_configs, device):
         super(GNNReachabilityNet, self).__init__()
 
         # Vertex model. Currently takes all xyth, col into account
@@ -46,7 +46,7 @@ class GNNReachabilityNet(nn.Module):
             nn.Sigmoid()
         )
 
-        self.edges = torch.from_numpy(edges)
+        self.edges = torch.from_numpy(edges).to(device)
         self.n_nodes = n_key_configs
 
     def forward(self, vertices):
