@@ -62,12 +62,13 @@ class GNNReachabilityNet(nn.Module):
                                                        neighboring_pairs.shape[-1]))
         msgs = self.edge_lin(neighboring_pairs).squeeze()
 
-        agg = torch_scatter.scatter_mean(msgs, self.edges[1], dim=-1)
+        agg,argmax = torch_scatter.scatter_max(msgs, self.edges[1], dim=-1)
 
         agg = agg.reshape((agg.shape[0], 1, agg.shape[1], agg.shape[2]))
 
         final_vertex_output = self.vertex_output_lin(agg).squeeze()
-        return self.graph_output_lin(final_vertex_output)
+        graph_output = self.graph_output_lin(final_vertex_output)
+        import pdb;pdb.set_trace()
 
 """
 x = torch.rand(618, 11)  # but then how do I create multiple data points?
