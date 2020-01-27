@@ -1,130 +1,79 @@
 import torch
 from torch import nn
-from torch_geometric.nn import MessagePassing, global_max_pool
-from torch_geometric.data import Data, DataLoader
-from torch_geometric.datasets import TUDataset
+from torch_geometric.utils import scatter_
 import torch.nn.functional as F
 import time
+import torch
+import torch_scatter
 
-
-class FirstGraphNet(MessagePassing):
+class GNNReachabilityNet(nn.Module):
     def __init__(self):
-        super(FirstGraphNet, self).__init__(aggr='mean', flow='source_to_target')
-        """
-        in_channels = 2
-        out_channels = 32
-        self.x_lin = torch.nn.Linear(in_channels, out_channels)
-        self.y_lin = torch.nn.Linear(in_channels, out_channels)
-
-        in_channels = 2
-        self.th_lin = torch.nn.Linear(in_channels, out_channels)
-        """
+        super(GNNReachabilityNet, self).__init__()
 
         in_channels = 11
-        out_channels = 64
-        self.vertex_lin = torch.nn.Linear(in_channels, out_channels)
+        out_channels = 8
+        self.x_lin = nn.Sequential(
+            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
+            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
+        )
 
-        in_channels = out_channels * 2 + 4
-        out_channels = 128
-        self.edge_lin = torch.nn.Linear(in_channels, out_channels)
-
-    def forward(self, vertex_input, edge_index):
-        # This function computes the node values
-        # x has shape [N, in_channels]
-        # edge_index has shape [2, E]
-        """
-        q_k_q0_x_val = self.x_lin(vertex_input[:, [0, 4]])
-        q0_y_val = self.x_lin(vertex_input[:, [1, 5]])
-        y_val = self.y_lin(vertex_input[:, 1,5])
-        th_val = self.th_lin(vertex_input[:, 4:8])
-        xyth = torch.cat((x_val, y_val, th_val), -1)
-        """
-        xyth = self.vertex_lin(vertex_input)
-        f_detector = self.vertex_lin(xyth)
-        return self.propagate(edge_index, size=(f_detector.size(0), f_detector.size(0)), x=f_detector,
-                              col=vertex_input[:, 8:])
-
-    def message(self, x_i, x_j, col_i, col_j, size):
-        # This function computes the msg from x_j to its neighboring node based on the output from the forward function
-        # Convention - *_i: destination *_j: source
-        # Can take any argument which was initially passed to propagate()
-        # I am supposed to construct messages at each edge
-        edge_input = torch.cat((x_i, x_j, col_i, col_j), -1)
-        msg = self.edge_lin(edge_input)
-        return msg
-
-    def update(self, aggr_out):
-        # This function updates node embeddings for every node
-        # aggr_out has shape [N, out_channels]
-        return aggr_out
-
-
-class FinalGraphNet(MessagePassing):
-    def __init__(self):
-        super(FinalGraphNet, self).__init__(aggr='mean', flow='source_to_target')
-        in_channels = 64
-        out_channels = 64
-        self.x_lin = torch.nn.Linear(in_channels, out_channels)
-        in_channels = 64 * 2
-        self.edge_lin = torch.nn.Linear(in_channels, out_channels)
+        in_channels = out_channels * 2
+        out_channels = 23
+        self.edge_lin = nn.Sequential(
+            torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
+            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
+        )
 
         in_channels = 64
         out_channels = 1
-        self.output_lin = torch.nn.Linear(in_channels, out_channels)
+        self.vertex_output_lin = torch.nn.Linear(in_channels, out_channels)
 
-    def forward(self, vertex_input, edge_index):
+        n_nodes = 618
+        self.graph_output_lin = torch.nn.Linear(n_nodes, 1)
+
+        self.edges = torch.tensor([[0, 1, 1, 2],  # it's always bidrectional
+                                   [1, 0, 2, 1]],
+                                    dtype=torch.long)  # 2 x n_edges, top indicating the src and bottom indicating the dest
+        self.n_nodes = 3
+        self.node_idxs = torch.arange(0, 3)
+
+    def forward(self, vertices):
         # This function computes the node values
-        # x has shape [N, in_channels]
-        # edge_index has shape [2, E]
-        x_val = self.x_lin(vertex_input)
-        return self.propagate(edge_index, size=(x_val.size(0), x_val.size(0)), x=x_val)
+        # vertices has shape [n_data, in_channels, n_nodes]
+        # edge_index has shape [2, E], top indicating the source and bottom indicating the dest
 
-    def message(self, x_i, x_j):
-        # This function computes the msg from x_j to its neighboring node based on the output from the forward function
-        # Convention - *_i: destination *_j: source
-        # Can take any argument which was initially passed to propagate()
-        # I am supposed to construct messages at each edge
-        edge_input = torch.cat((x_i, x_j), -1)
-        msg = self.edge_lin(edge_input)
-        return msg
+        vertices = vertices.reshape((32, 1, 3, 11))
+        v_features = self.x_lin(vertices).squeeze()
 
-    def update(self, aggr_out):
-        # This function updates node embeddings for every node
-        # aggr_out has shape [N, out_channels]
-        output = self.output_lin(aggr_out)
-        return output
+        neighboring_pairs = torch.cat((v_features[:, :, self.edges[0]], v_features[:, :, self.edges[1]]), 1)
+        neighboring_pairs = neighboring_pairs.reshape((32, 1, 16, 4))
+        msgs = self.edge_lin(neighboring_pairs).squeeze()
+
+        # I would like to compute the mean at each destination node.
+        # How to do this?
+        # Look at how pytorch geometric aggregates things
+        # This is how he does it. Yay!
+        agg = torch_scatter.scatter_mean(msgs, self.edges[1], dim=-1)
+        values_at_final_vertices = torch.flatten(agg, 1, 2)
+
+        import pdb;pdb.set_trace()
 
 
-class GNNReachabilityNet(torch.nn.Module):
-    def __init__(self):
-        super(GNNReachabilityNet, self).__init__()
-        self.firstnet = FirstGraphNet()
-        self.finalnet = FinalGraphNet()
+        # I need 4 by n_edge_features
 
-    def forward(self, data, batch):
-        x, edge_index = data.x, data.edge_index
-        # What do I do if I have multiple inputs?
-        first_output = self.firstnet(x, edge_index)
-        final_output = self.finalnet(first_output, edge_index)
-        # The way to read batch:
-        #   [0,0,0,0,0, 1, 1,1,1,1] means that your first graph has 5 nodes,
-        #   and these are the output from the five nodes.
-        #   What I want to do is to take the local pooling, make the graph smaller, and then pass it through a dense network.
+        edge_features = self.edge_lin
 
-        return global_max_pool(final_output, batch)
 
-"""
-
-x = torch.randn(5, 10)  # but then how do I create multiple data points?
-edge_idx = torch.tensor([[0, 1, 1, 2],
-                         [1, 0, 2, 1]],
+x = torch.rand(3, 11)  # but then how do I create multiple data points?
+edge_idx = torch.tensor([[0, 1, 2], # it's always bidrectional
+                         [1, 2, 1]],
                         dtype=torch.long)  # 2 x n_edges, top indicating the src and bottom indicating the dest
 
 
-data = Data(edge_idx=edge_idx, x=x, y=0.0)
-data_list = [data] * 100
-loader = DataLoader(data_list, batch_size=32)
-net = Net()
+data = {'vtxs': x}
+data_list = [data] * 10000
+loader = torch.utils.data.DataLoader(data_list, batch_size=32, shuffle=True, num_workers=2)
+net = GNNReachabilityNet()
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 device = torch.device('cpu')
 
@@ -134,9 +83,9 @@ def train(epoch):
     net.train()
     total_loss = 0
     for data in loader:
-        data = data.to(device)
+        data['vtxs'].to(device)
         optimizer.zero_grad()
-        out = net(data, data.batch)
+        out = net(data['vtxs'])
         loss = ((out - data.y).pow(2)).mean()
         loss.backward()
         optimizer.step()
@@ -146,7 +95,6 @@ def train(epoch):
     return total_loss / len(train_loader.dataset)
 
 train(1)
-"""
 
 
 

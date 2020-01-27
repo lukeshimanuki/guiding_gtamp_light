@@ -4,7 +4,6 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-
 from classifiers.gnn import GNNReachabilityNet
 from datasets.dataset import GNNReachabilityDataset
 
@@ -32,13 +31,12 @@ def main():
     learning_rate = 1e-3
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     acc_list = []
-    import pdb;pdb.set_trace()
     for epoch in range(100):  # loop over the dataset multiple times
         for i, batch in enumerate(trainloader, 0):
             import pdb;pdb.set_trace()
 
 
-            pred = net(q0s, qgs, cols)
+            pred = net(batch, batch)
             loss = loss_fn(pred, labels)
             optimizer.zero_grad()
             loss.backward()
