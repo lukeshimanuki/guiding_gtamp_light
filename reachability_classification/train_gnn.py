@@ -34,8 +34,6 @@ def main():
 
     test_vertices = torch.from_numpy(testset.dataset[testset.indices[0:100]]['vertex']).float().to(device)
     test_labels = testset.dataset[testset.indices[0:100]]['y'].to(device)
-    import pdb;pdb.set_trace()
-    test_pred = net(test_vertices)
     for epoch in range(100):
         for i, batch in enumerate(trainloader, 0):
             labels = batch['y'].to(device)
@@ -45,12 +43,11 @@ def main():
             loss = loss_fn(pred, labels)
             loss.backward()
             optimizer.step()
-            print i, loss
-        import pdb;pdb.set_trace()
+            print i
 
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
-        acc = np.mean(clf_result.numpy() == test_labels.numpy())
+        acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
         acc_list.append(acc)
         print acc_list
 
