@@ -3,6 +3,7 @@ from torch import nn
 from torch_geometric.utils import scatter_
 import torch.nn.functional as F
 import time
+import numpy as np
 import torch
 import torch_scatter
 
@@ -57,14 +58,26 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
             nn.LeakyReLU()
         )
 
-        self.edges = torch.from_numpy(edges).to(device)
+        non_duplicate_edges = [[], []]
+        duplicate_checker = []
+        for src, dest in zip(edges[0], edges[1]):
+            to_add = set((src, dest))
+            if to_add not in duplicate_checker:
+                duplicate_checker.append(to_add)
+                non_duplicate_edges[0].append(src)
+                non_duplicate_edges[1].append(dest)
+
+        self.edges = torch.from_numpy(np.array(non_duplicate_edges)).to(device)
+        self.dest_edges = torch.from_numpy(np.hstack((non_duplicate_edges[1], non_duplicate_edges[0]))).to(device)
         self.n_nodes = n_key_configs
 
     def compute_msgs(self, v_features, n_data):
+        # self.edges[0] - src
+        # self.edges[1] - dest
         neighboring_pairs = torch.cat((v_features[:, :, self.edges[0]], v_features[:, :, self.edges[1]]), 1)
         neighboring_pairs = neighboring_pairs.reshape((n_data, 1, neighboring_pairs.shape[1],
                                                        neighboring_pairs.shape[-1]))
-        msgs = self.edge_lin(neighboring_pairs).squeeze()
+        msgs = self.edge_lin(neighboring_pairs).squeeze()  # 0.4 seconds... but that's cause I am using a cpu
         return msgs
 
     def forward(self, vertices):
@@ -76,11 +89,11 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
         v_features = self.x_lin(vertices).squeeze()
 
         msgs = self.compute_msgs(v_features, len(vertices))
-        agg = torch_scatter.scatter_mean(msgs, self.edges[1], dim=-1)
+        msgs = msgs.repeat((1, 1, 2))
+        agg = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
 
         #####
-        n_msg_passing = 10
-        stime = time.time()
+        n_msg_passing = 1
         for i in range(n_msg_passing):
             agg = agg[:, None, :, :]
             agg = agg.permute((0, 1, 3, 2))
