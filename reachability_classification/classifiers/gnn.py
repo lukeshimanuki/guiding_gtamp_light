@@ -18,7 +18,7 @@ class GNNReachabilityNet(nn.Module):
             torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
             nn.ReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
 
         # Edge model
@@ -28,16 +28,20 @@ class GNNReachabilityNet(nn.Module):
             torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
             nn.ReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
 
         in_channels = 32
+        out_channels_1 = 32
         out_channels = 1
+
         self.vertex_output_lin = nn.Sequential(
-            torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
+            torch.nn.Conv2d(1, out_channels_1, kernel_size=(in_channels, 1), stride=1),
             nn.ReLU(),
-            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
-            nn.ReLU()
+            torch.nn.Conv2d(out_channels_1, out_channels, kernel_size=(1, 1), stride=1),
+            # if all weights are negative, then this will create problems.
+            # how can I resolve this probelm? Use leaky relu
+            nn.LeakyReLU()
         )
 
         n_nodes = n_key_configs
@@ -62,13 +66,12 @@ class GNNReachabilityNet(nn.Module):
                                                        neighboring_pairs.shape[-1]))
         msgs = self.edge_lin(neighboring_pairs).squeeze()
 
-        agg,argmax = torch_scatter.scatter_max(msgs, self.edges[1], dim=-1)
+        agg = torch_scatter.scatter_mean(msgs, self.edges[1], dim=-1)
 
         agg = agg.reshape((agg.shape[0], 1, agg.shape[1], agg.shape[2]))
-
         final_vertex_output = self.vertex_output_lin(agg).squeeze()
         graph_output = self.graph_output_lin(final_vertex_output)
-        import pdb;pdb.set_trace()
+        return graph_output
 
 """
 x = torch.rand(618, 11)  # but then how do I create multiple data points?
