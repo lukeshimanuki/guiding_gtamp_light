@@ -84,7 +84,7 @@ def main():
         test_acc = get_test_acc(testloader, net, device, n_test)
         acc_list.append(test_acc)
         if test_acc == np.max(acc_list):
-            save_weights(net, 'epoch_%d' % epoch)
+            save_weights(net, epoch)
         print acc_list, np.max(acc_list)
 
 
