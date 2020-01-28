@@ -7,7 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from classifiers.gnn import GNNReachabilityNet
 from datasets.dataset import GNNReachabilityDataset
 import socket
-from torchsummary import summary
+import time
 
 
 def main():
@@ -20,6 +20,7 @@ def main():
 
     dataset = GNNReachabilityDataset()
     n_train = int(len(dataset) * 0.9)
+    n_train = 3000
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset)-n_train])
     print "N_train", len(trainset)
 
@@ -39,6 +40,7 @@ def main():
     acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
     acc_list.append(acc)
     for epoch in range(100):
+        stime = time.time()
         for i, batch in enumerate(trainloader, 0):
             labels = batch['y'].to(device)
             vertices = batch['vertex'].float().to(device).float()
@@ -48,7 +50,7 @@ def main():
             loss.backward()
             optimizer.step()
             #print i, loss
-
+        print "Epoch took ", time.time()-stime
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
         acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
