@@ -20,7 +20,6 @@ def main():
 
     dataset = GNNReachabilityDataset()
     n_train = int(len(dataset) * 0.9)
-    n_train = 3000
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     print "N_train", len(trainset)
 
