@@ -93,7 +93,7 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
         agg = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
 
         #####
-        n_msg_passing = 1
+        n_msg_passing = 0
         for i in range(n_msg_passing):
             agg = agg[:, None, :, :]
             agg = agg.permute((0, 1, 3, 2))
