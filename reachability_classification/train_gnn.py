@@ -25,6 +25,19 @@ def get_test_acc(testloader, net, device, n_test):
     return np.mean(np.vstack(accuracies))
 
 
+def save_weights(net, epoch):
+    gnn_name = net.__class__._get_name(net)
+    PATH = './reachability_classification/weights/%s_epoch_%d.pt' % (gnn_name, epoch)
+    torch.save(net.state_dict(), PATH)
+
+
+def load_weights(net):
+    gnn_name = net.__class__._get_name(net)
+    PATH = './reachability_classification/weights/' + gnn_name + '.pt'
+    net.load_state_dict(torch.load(PATH))
+    net.eval()
+
+
 def main():
     if socket.gethostname() == 'lab':
         device = torch.device("cpu")
@@ -69,6 +82,8 @@ def main():
 
     test_acc = get_test_acc(testloader, net, device, n_test)
     acc_list.append(test_acc)
+    if test_acc == np.max(acc_list):
+        save_weights(net, 'epoch_%d' % epoch)
     print acc_list, np.max(acc_list)
 
 
