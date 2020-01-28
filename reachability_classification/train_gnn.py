@@ -10,6 +10,20 @@ import socket
 import time
 
 
+def get_test_acc(testloader, net, device, n_test):
+    accuracies = []
+    for testset in testloader:
+        test_vertices = testset['vertex'].float().to(device)
+        test_labels = testset['y'].to(device)
+        test_pred = net(test_vertices)
+        clf_result = test_pred > 0.5
+        accuracies.append(clf_result.cpu().numpy() == test_labels.cpu().numpy())
+        if len(np.vstack(accuracies)) >= n_test:
+            break
+
+    return np.mean(np.vstack(accuracies))
+
+
 def main():
     if socket.gethostname() == 'lab':
         device = torch.device("cpu")
@@ -33,13 +47,10 @@ def main():
     acc_list = []
 
     n_test = min(500, len(testset))
-    test_vertices = torch.from_numpy(testset.dataset[testset.indices[0:n_test]]['vertex']).float().to(device)
-    test_labels = testset.dataset[testset.indices[0:n_test]]['y'].to(device)
-    test_pred = net(test_vertices)
-    clf_result = test_pred > 0.5
-    acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
-    acc_list.append(acc)
+    testloader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=False, num_workers=20, pin_memory=True)
 
+    test_acc = get_test_acc(testloader, net, device, n_test)
+    acc_list.append(test_acc)
     for epoch in range(100):
         print "Starting an epoch %d" % epoch
         stime_ = time.time()
@@ -55,11 +66,9 @@ def main():
 
         print "Epoch took ", time.time() - stime_
 
-        test_pred = net(test_vertices)
-        clf_result = test_pred > 0.5
-        acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
-        acc_list.append(acc)
-        print acc_list, np.max(acc_list)
+    test_acc = get_test_acc(testloader, net, device, n_test)
+    acc_list.append(test_acc)
+    print acc_list, np.max(acc_list)
 
 
 if __name__ == '__main__':
