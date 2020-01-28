@@ -17,7 +17,7 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
         out_channels = 32
         self.x_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
         )
@@ -27,7 +27,7 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
         out_channels = 32
         self.edge_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
         )
@@ -38,7 +38,7 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
 
         self.vertex_output_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels_1, kernel_size=(in_channels, 1), stride=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels_1, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
         )
@@ -52,8 +52,8 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
         in_channels = 32
         out_channels = 32
         self.x_lin_after_first_round = nn.Sequential(
-            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
-            nn.ReLU(),
+            torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
+            nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
         )
@@ -84,25 +84,27 @@ class SimpleMultiplePassGNNReachabilityNet(nn.Module):
         # This function computes the node values
         # vertices has shape [n_data, in_channels, n_nodes]
         # edge_index has shape [2, E], top indicating the source and bottom indicating the dest
-
         vertices = vertices.reshape((vertices.shape[0], 1, self.n_nodes, 11))
         v_features = self.x_lin(vertices).squeeze()
 
         msgs = self.compute_msgs(v_features, len(vertices))
         msgs = msgs.repeat((1, 1, 2))
-        agg = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
+        new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
+        new_vertex = new_vertex[:, None, :, :]
 
-        #####
-        n_msg_passing = 0
+        ##### msg passing
+        n_msg_passing = 5
         for i in range(n_msg_passing):
-            agg = agg[:, None, :, :]
-            agg = agg.permute((0, 1, 3, 2))
-            vertices_after_first_round = self.x_lin_after_first_round(agg).squeeze()
+            vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze()
             msgs = self.compute_msgs(vertices_after_first_round, len(vertices))
-            agg = torch_scatter.scatter_mean(msgs, self.edges[1], dim=-1)
+            msgs = msgs.repeat((1, 1, 2))
+            residual = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
+            residual = residual[:, None, :, :]
+            new_vertex = new_vertex + residual
+        ##### end of msg passing
 
         # Final round of output
-        agg = agg.reshape((agg.shape[0], 1, agg.shape[1], agg.shape[2]))
-        final_vertex_output = self.vertex_output_lin(agg).squeeze()
+        # new_vertex = new_vertex, 1, new_vertex.shape[1], new_vertex.shape[2]))
+        final_vertex_output = self.vertex_output_lin(new_vertex).squeeze()
         graph_output = self.graph_output_lin(final_vertex_output)
         return graph_output
