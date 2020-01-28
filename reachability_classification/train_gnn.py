@@ -41,7 +41,7 @@ def main():
     acc_list.append(acc)
     for epoch in range(100):
         print "Starting an epoch %d" % epoch
-        stime = time.time()
+        stime_ = time.time()
         for i, batch in enumerate(trainloader, 0):
             stime = time.time()
             labels = batch['y'].to(device)
@@ -58,15 +58,17 @@ def main():
             print time.time()-stime
 
             stime = time.time()
-            loss.backward()
+            loss.backward() # this is computing the dloss/dx for every layer
             print time.time()-stime
 
             stime = time.time()
             optimizer.step()
             print time.time()-stime
 
-            import pdb;pdb.set_trace()
-        print "Epoch took ", time.time()-stime
+            print "Epoch took ", time.time()-stime_
+            if i == 2:
+                import pdb;pdb.set_trace()
+
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
         acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
