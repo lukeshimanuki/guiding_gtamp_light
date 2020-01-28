@@ -4,7 +4,7 @@ import torch
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 
-from classifiers.gnn import GNNReachabilityNet
+from classifiers.gnn import SimpleGNNReachabilityNet as GNNReachabilityNet
 from datasets.dataset import GNNReachabilityDataset
 import socket
 import time

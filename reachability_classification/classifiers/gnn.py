@@ -7,9 +7,9 @@ import torch
 import torch_scatter
 
 
-class GNNReachabilityNet(nn.Module):
+class SimpleGNNReachabilityNet(nn.Module):
     def __init__(self, edges, n_key_configs, device):
-        super(GNNReachabilityNet, self).__init__()
+        super(SimpleGNNReachabilityNet, self).__init__()
 
         # Vertex model. Currently takes all xyth, col into account
         in_channels = 11
