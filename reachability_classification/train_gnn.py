@@ -21,7 +21,7 @@ def main():
     dataset = GNNReachabilityDataset()
     n_train = int(len(dataset) * 0.9)
     n_train = 3000
-    trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset)-n_train])
+    trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     print "N_train", len(trainset)
 
     net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618, device=device)
@@ -32,42 +32,29 @@ def main():
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=20, pin_memory=True)
     acc_list = []
-    
-    test_vertices = torch.from_numpy(testset.dataset[testset.indices[0:100]]['vertex']).float().to(device)
-    test_labels = testset.dataset[testset.indices[0:100]]['y'].to(device)
+
+    n_test = min(500, len(testset))
+    test_vertices = torch.from_numpy(testset.dataset[testset.indices[0:n_test]]['vertex']).float().to(device)
+    test_labels = testset.dataset[testset.indices[0:n_test]]['y'].to(device)
     test_pred = net(test_vertices)
     clf_result = test_pred > 0.5
     acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
     acc_list.append(acc)
+
     for epoch in range(100):
         print "Starting an epoch %d" % epoch
         stime_ = time.time()
         for i, batch in enumerate(trainloader, 0):
-            stime = time.time()
             labels = batch['y'].to(device)
             vertices = batch['vertex'].float().to(device).float()
-            print time.time()-stime
             optimizer.zero_grad()
 
-            stime = time.time()
-            pred = net(vertices)
-            print time.time()-stime
-
-            stime = time.time()
+            pred = net(vertices)  # this is computing the forward pass
             loss = loss_fn(pred, labels)
-            print time.time()-stime
+            loss.backward()  # this is computing the dloss/dx for every layer
+            optimizer.step()  # taking the gradient step
 
-            stime = time.time()
-            loss.backward() # this is computing the dloss/dx for every layer
-            print time.time()-stime
-
-            stime = time.time()
-            optimizer.step()
-            print time.time()-stime
-
-            print "Epoch took ", time.time()-stime_
-            if i == 2:
-                import pdb;pdb.set_trace()
+        print "Epoch took ", time.time() - stime_
 
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
@@ -78,4 +65,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
