@@ -79,12 +79,11 @@ def main():
             optimizer.step()  # taking the gradient step
 
         print "Epoch took ", time.time() - stime_
-
-    test_acc = get_test_acc(testloader, net, device, n_test)
-    acc_list.append(test_acc)
-    if test_acc == np.max(acc_list):
-        save_weights(net, 'epoch_%d' % epoch)
-    print acc_list, np.max(acc_list)
+        test_acc = get_test_acc(testloader, net, device, n_test)
+        acc_list.append(test_acc)
+        if test_acc == np.max(acc_list):
+            save_weights(net, 'epoch_%d' % epoch)
+        print acc_list, np.max(acc_list)
 
 
 if __name__ == '__main__':
