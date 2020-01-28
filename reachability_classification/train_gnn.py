@@ -63,7 +63,7 @@ def main():
     acc_list = []
 
     n_test = min(500, len(testset))
-    testloader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=False, num_workers=20, pin_memory=True)
+    testloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
 
     test_acc = get_test_acc(testloader, net, device, n_test)
     acc_list.append(test_acc)
