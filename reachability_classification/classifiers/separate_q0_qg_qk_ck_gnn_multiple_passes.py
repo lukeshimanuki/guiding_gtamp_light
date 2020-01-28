@@ -45,7 +45,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         out_channels = 32
         self.edge_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
         )
@@ -56,7 +56,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
 
         self.vertex_output_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels_1, kernel_size=(in_channels, 1), stride=1),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels_1, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
         )
@@ -76,7 +76,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
             nn.LeakyReLU()
         )
 
-        # todo factor the code below
+        ### todo factor the code below
         non_duplicate_edges = [[], []]
         duplicate_checker = []
         for src, dest in zip(edges[0], edges[1]):
@@ -89,7 +89,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         self.edges = torch.from_numpy(np.array(non_duplicate_edges)).to(device)
         self.dest_edges = torch.from_numpy(np.hstack((non_duplicate_edges[1], non_duplicate_edges[0]))).to(device)
         self.n_nodes = n_key_configs
-        # it should repeated in every gnn code
+        ### it should repeated in every gnn code
 
     def concat_at_idx(self, vertex_val_1, vertex_val_2, idx):
         return torch.cat((vertex_val_1[:, :, idx][:, :, None], vertex_val_2[:, :, idx][:, :, None]), -1)
@@ -112,6 +112,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         # vertices has shape [n_data, in_channels, n_nodes]
         # edge_index has shape [2, E], top indicating the source and bottom indicating the dest
 
+        ### First round of vertex feature computation
         # v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
         vertex_qk_vals = vertices[:, :, 0:3]
         vertex_q0_vals = vertices[:, :, 3:6]
@@ -155,13 +156,24 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         collisions = vertices[:, :, 9:]
         collisions = collisions.permute((0, 2, 1))
         v_features = torch.cat((v_features, collisions), 1)
-
-        # below cat line takes 0.5 seconds. I can reduce it by half by using the fact that graph is always bidrectional
+        ##############
 
         msgs = self.compute_msgs(v_features, len(vertices))
         msgs = msgs.repeat((1, 1, 2))
         new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
         new_vertex = new_vertex[:, None, :, :]
+
+        ##### msg passing
+        n_msg_passing = 5
+        for i in range(n_msg_passing):
+            vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze()
+            vertices_after_first_round = torch.cat((vertices_after_first_round, collisions), 1)
+            msgs = self.compute_msgs(vertices_after_first_round, len(vertices))
+            msgs = msgs.repeat((1, 1, 2))
+            residual = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
+            residual = residual[:, None, :, :]
+            new_vertex = new_vertex + residual
+        ##### end of msg passing
 
         final_vertex_output = self.vertex_output_lin(new_vertex).squeeze()
         graph_output = self.graph_output_lin(final_vertex_output)
