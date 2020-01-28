@@ -40,16 +40,32 @@ def main():
     acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
     acc_list.append(acc)
     for epoch in range(100):
+        print "Starting an epoch %d" % epoch
         stime = time.time()
         for i, batch in enumerate(trainloader, 0):
+            stime = time.time()
             labels = batch['y'].to(device)
             vertices = batch['vertex'].float().to(device).float()
+            print time.time()-stime
             optimizer.zero_grad()
+
+            stime = time.time()
             pred = net(vertices)
+            print time.time()-stime
+
+            stime = time.time()
             loss = loss_fn(pred, labels)
+            print time.time()-stime
+
+            stime = time.time()
             loss.backward()
+            print time.time()-stime
+
+            stime = time.time()
             optimizer.step()
-            #print i, loss
+            print time.time()-stime
+
+            import pdb;pdb.set_trace()
         print "Epoch took ", time.time()-stime
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
