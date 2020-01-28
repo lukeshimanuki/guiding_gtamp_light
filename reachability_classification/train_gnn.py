@@ -59,7 +59,7 @@ def main():
         clf_result = test_pred > 0.5
         acc = np.mean(clf_result.cpu().numpy() == test_labels.cpu().numpy())
         acc_list.append(acc)
-        print acc_list
+        print acc_list, np.max(acc_list)
 
 
 if __name__ == '__main__':
