@@ -341,7 +341,10 @@ def compute_occ_vec(key_configs):
     return np.array(occ_vec)
 
 
-def get_robot_xytheta(robot):
+def get_robot_xytheta(robot=None):
+    if robot is None:
+        env = openravepy.RaveGetEnvironments()[0]
+        robot = env.GetRobot('pr2')
     with robot:
         robot.SetActiveDOFs([], DOFAffine.X | DOFAffine.Y | DOFAffine.RotationAxis, [0, 0, 1])
         robot_xytheta = robot.GetActiveDOFValues()
