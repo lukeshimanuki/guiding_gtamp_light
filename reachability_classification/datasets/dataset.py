@@ -10,12 +10,12 @@ import torch
 
 
 class ReachabilityDataset(Dataset):
-    def __init__(self):
-        self.q0s, self.qgs, self.collisions, self.labels = self.get_data()
+    def __init__(self, action_type):
+        self.q0s, self.qgs, self.collisions, self.labels = self.get_data(action_type)
 
-    def get_data(self):
+    def get_data(self, action_type):
         plan_exp_dir = './planning_experience/processed/motion_plans/'
-        cache_file_name = plan_exp_dir + './cached_data.pkl'
+        cache_file_name = plan_exp_dir + './' + action_type + '_cached_data.pkl'
         if os.path.isfile(cache_file_name):
             q0s, qgs, collisions, labels = pickle.load(open(cache_file_name, 'r'))
             return q0s, qgs, collisions, labels
@@ -29,10 +29,11 @@ class ReachabilityDataset(Dataset):
         n_episodes = 0
         for plan_exp_file in plan_exp_files:
             plan = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
-            if len(plan['q0s']) == 0:
+            if 'cached' in plan_exp_file: continue
+            if len(plan[action_type + 'q0s']) == 0:
                 continue
-            q0s.append(np.array(plan['q0s'], dtype=np.float32))
-            qgs.append(np.array(plan['qgs'], dtype=np.float32))
+            q0s.append(np.array(plan[action_type + 'q0s'], dtype=np.float32))
+            qgs.append(np.array(plan[action_type + 'qgs'], dtype=np.float32))
 
             cols = []
             for c in plan['collisions']:
@@ -41,11 +42,12 @@ class ReachabilityDataset(Dataset):
                 cols.append(col)
 
             collisions.append(np.array(cols, dtype=np.float32))
-            labels.append(np.array(plan['labels'], dtype=np.float32))
+            labels.append(np.array(plan[action_type + 'labels'], dtype=np.float32))
 
             n_episodes += 1
             if n_episodes == 5000:
                 break
+
         q0s = np.vstack(q0s)
         qgs = np.vstack(qgs)
         collisions = np.vstack(collisions)
