@@ -7,7 +7,8 @@ from torch.utils.data import Dataset, DataLoader
 from classifiers.gnn import SimpleGNNReachabilityNet as GNNReachabilityNet
 from classifiers.separate_q0_qg_qk_ck_gnn import Separateq0qgqkckGNNReachabilityNet
 from classifiers.gnn_multiple_passes import SimpleMultiplePassGNNReachabilityNet
-from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import  Separateq0qgqkckMultiplePassGNNReachabilityNet as GNNReachabilityNet
+from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
+    Separateq0qgqkckMultiplePassGNNReachabilityNet as GNNReachabilityNet
 
 from datasets.dataset import GNNReachabilityDataset
 import socket
@@ -22,6 +23,7 @@ def get_test_acc(testloader, net, device, n_test):
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
         accuracies.append(clf_result.cpu().numpy() == test_labels.cpu().numpy())
+        #print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
         if len(np.vstack(accuracies)) >= n_test:
             break
 
@@ -32,13 +34,6 @@ def save_weights(net, epoch):
     gnn_name = net.__class__._get_name(net)
     PATH = './reachability_classification/weights/%s_epoch_%d.pt' % (gnn_name, epoch)
     torch.save(net.state_dict(), PATH)
-
-
-def load_weights(net):
-    gnn_name = net.__class__._get_name(net)
-    PATH = './reachability_classification/weights/' + gnn_name + '.pt'
-    net.load_state_dict(torch.load(PATH))
-    net.eval()
 
 
 def main():
@@ -53,7 +48,6 @@ def main():
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     print "N_train", len(trainset)
-
     net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618, device=device)
     net.to(device)
     loss_fn = nn.BCELoss()
@@ -63,7 +57,7 @@ def main():
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=20, pin_memory=True)
     acc_list = []
 
-    n_test = min(500, len(testset))
+    n_test = min(5000, len(testset))
     testloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
 
     test_acc = get_test_acc(testloader, net, device, n_test)
