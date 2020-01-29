@@ -13,6 +13,7 @@ from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
 from datasets.dataset import GNNReachabilityDataset
 import socket
 import time
+import sys
 
 
 def get_test_acc(testloader, net, device, n_test):
@@ -23,16 +24,16 @@ def get_test_acc(testloader, net, device, n_test):
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
         accuracies.append(clf_result.cpu().numpy() == test_labels.cpu().numpy())
-        print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
+        #print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
         if len(np.vstack(accuracies)) >= n_test:
             break
 
     return np.mean(np.vstack(accuracies))
 
 
-def save_weights(net, epoch, action_type):
+def save_weights(net, epoch, action_type, seed):
     gnn_name = net.__class__._get_name(net)
-    PATH = './reachability_classification/weights/atype_%s_%s_epoch_%d.pt' % (action_type, gnn_name, epoch)
+    PATH = './reachability_classification/weights/atype_%s_seed_%d_%s_epoch_%d.pt' % (action_type, seed, gnn_name, epoch)
     torch.save(net.state_dict(), PATH)
 
 
@@ -44,7 +45,11 @@ def main():
 
     print device
 
-    action_type = 'pick'
+    action_type = sys.argv[1]
+    seed = int(sys.argv[2])
+    np.random.seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
     dataset = GNNReachabilityDataset(action_type)
 
     n_train = int(len(dataset) * 0.9)
@@ -81,7 +86,7 @@ def main():
         test_acc = get_test_acc(testloader, net, device, n_test)
         acc_list.append(test_acc)
         if test_acc == np.max(acc_list):
-            save_weights(net, epoch, action_type)
+            save_weights(net, epoch, action_type, seed)
         print acc_list, np.max(acc_list)
 
 
