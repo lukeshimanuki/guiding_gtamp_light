@@ -30,19 +30,19 @@ class ReachabilityDataset(Dataset):
         for plan_exp_file in plan_exp_files:
             plan = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
             if 'cached' in plan_exp_file: continue
-            if len(plan[action_type + 'q0s']) == 0:
+            if len(plan[action_type + '_q0s']) == 0:
                 continue
-            q0s.append(np.array(plan[action_type + 'q0s'], dtype=np.float32))
-            qgs.append(np.array(plan[action_type + 'qgs'], dtype=np.float32))
+            q0s.append(np.array(plan[action_type + '_q0s'], dtype=np.float32))
+            qgs.append(np.array(plan[action_type + '_qgs'], dtype=np.float32))
 
             cols = []
-            for c in plan['collisions']:
+            for c in plan[action_type + '_collisions']:
                 col = utils.convert_binary_vec_to_one_hot(c.squeeze())
                 col = col.reshape((1, 618, 2))
                 cols.append(col)
 
             collisions.append(np.array(cols, dtype=np.float32))
-            labels.append(np.array(plan[action_type + 'labels'], dtype=np.float32))
+            labels.append(np.array(plan[action_type + '_labels'], dtype=np.float32))
 
             n_episodes += 1
             if n_episodes == 5000:
@@ -68,8 +68,8 @@ class ReachabilityDataset(Dataset):
 
 
 class GNNReachabilityDataset(ReachabilityDataset):
-    def __init__(self):
-        super(GNNReachabilityDataset, self).__init__()
+    def __init__(self, action_type):
+        super(GNNReachabilityDataset, self).__init__(action_type)
         self.prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
         self.gnn_vertices = self.prm_vertices
         self.collisions = self.collisions.squeeze()

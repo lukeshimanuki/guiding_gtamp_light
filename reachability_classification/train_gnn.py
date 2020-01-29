@@ -23,16 +23,16 @@ def get_test_acc(testloader, net, device, n_test):
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
         accuracies.append(clf_result.cpu().numpy() == test_labels.cpu().numpy())
-        #print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
+        print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
         if len(np.vstack(accuracies)) >= n_test:
             break
 
     return np.mean(np.vstack(accuracies))
 
 
-def save_weights(net, epoch):
+def save_weights(net, epoch, action_type):
     gnn_name = net.__class__._get_name(net)
-    PATH = './reachability_classification/weights/%s_epoch_%d.pt' % (gnn_name, epoch)
+    PATH = './reachability_classification/weights/atype_%s_%s_epoch_%d.pt' % (action_type, gnn_name, epoch)
     torch.save(net.state_dict(), PATH)
 
 
@@ -44,7 +44,9 @@ def main():
 
     print device
 
-    dataset = GNNReachabilityDataset()
+    action_type = 'pick'
+    dataset = GNNReachabilityDataset(action_type)
+
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     print "N_train", len(trainset)
@@ -79,7 +81,7 @@ def main():
         test_acc = get_test_acc(testloader, net, device, n_test)
         acc_list.append(test_acc)
         if test_acc == np.max(acc_list):
-            save_weights(net, epoch)
+            save_weights(net, epoch, action_type)
         print acc_list, np.max(acc_list)
 
 
