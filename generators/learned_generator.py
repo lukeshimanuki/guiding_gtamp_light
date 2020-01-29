@@ -70,14 +70,13 @@ class LearnedGenerator(PaPUniformGenerator):
 
         # to do generate 1000 smpls here
         z_smpls = noise(z_size=(101, 7))
-        stime = time.time()
         smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
-        print "Prediction time", time.time() - stime
         """
         orig_color = utils.get_color_of(self.obj)
         utils.set_color(self.obj, [0, 1, 0])
         utils.visualize_placements(self.policy_smpl_batch[0:100, -3:], self.obj)
+        import pdb;pdb.set_trace()
         utils.set_color(self.obj, orig_color)
         """
         self.policy_smpl_idx = 0
