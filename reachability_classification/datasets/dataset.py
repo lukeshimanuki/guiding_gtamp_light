@@ -28,8 +28,8 @@ class ReachabilityDataset(Dataset):
         labels = []
         n_episodes = 0
         for plan_exp_file in plan_exp_files:
-            plan = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
             if 'cached' in plan_exp_file: continue
+            plan = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
             if len(plan[action_type + '_q0s']) == 0:
                 continue
             q0s.append(np.array(plan[action_type + '_q0s'], dtype=np.float32))
@@ -51,7 +51,11 @@ class ReachabilityDataset(Dataset):
         q0s = np.vstack(q0s)
         qgs = np.vstack(qgs)
         collisions = np.vstack(collisions)
-        labels = np.vstack(labels)
+        try:
+            labels = np.vstack(labels)
+        except ValueError:
+            labels = np.hstack(labels)
+
 
         q0s = Variable(torch.from_numpy(q0s))
         qgs = Variable(torch.from_numpy(qgs))
