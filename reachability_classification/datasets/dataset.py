@@ -44,9 +44,8 @@ class ReachabilityDataset(Dataset):
             labels.append(np.array(plan['labels'], dtype=np.float32))
 
             n_episodes += 1
-            if n_episodes == 1000:
+            if n_episodes == 5000:
                 break
-
         q0s = np.vstack(q0s)
         qgs = np.vstack(qgs)
         collisions = np.vstack(collisions)
