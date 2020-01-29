@@ -58,7 +58,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
             torch.nn.Conv2d(1, out_channels_1, kernel_size=(in_channels, 1), stride=1),
             nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels_1, out_channels, kernel_size=(1, 1), stride=1),
-            nn.LeakyReLU()
+            nn.LeakyReLU()  # To visualize the true key config activation I think I will have to replace this with sigmoid. What if I look at the abs of the output here?
         )
 
         n_nodes = n_key_configs
@@ -104,14 +104,10 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         neighboring_pairs = torch.cat((v_features[:, :, self.edges[0]], v_features[:, :, self.edges[1]]), 1)
         neighboring_pairs = neighboring_pairs.reshape((n_data, 1, neighboring_pairs.shape[1],
                                                        neighboring_pairs.shape[-1]))
-        msgs = self.edge_lin(neighboring_pairs).squeeze()  # 0.4 seconds... but that's cause I am using a cpu
+        msgs = self.edge_lin(neighboring_pairs).squeeze(dim=2)  # 0.4 seconds... but that's cause I am using a cpu
         return msgs
 
-    def forward(self, vertices):
-        # This function computes the node values
-        # vertices has shape [n_data, in_channels, n_nodes]
-        # edge_index has shape [2, E], top indicating the source and bottom indicating the dest
-
+    def get_vertex_activations(self, vertices):
         ### First round of vertex feature computation
         # v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
         vertex_qk_vals = vertices[:, :, 0:3]
@@ -151,8 +147,8 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         vertex_qkqg_feature = self.config_lin(qk_qg_config_features)
 
         config_features = torch.cat((vertex_qkq0_feature, vertex_qkqg_feature), 1)
-        v_features = self.vertex_lin(config_features).squeeze()
 
+        v_features = self.vertex_lin(config_features).squeeze(dim=-1)
         collisions = vertices[:, :, 9:]
         collisions = collisions.permute((0, 2, 1))
         v_features = torch.cat((v_features, collisions), 1)
@@ -162,11 +158,10 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         msgs = msgs.repeat((1, 1, 2))
         new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
         new_vertex = new_vertex[:, None, :, :]
-
         ##### msg passing
-        n_msg_passing = 5
+        n_msg_passing = 1
         for i in range(n_msg_passing):
-            vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze()
+            vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze(dim=2)
             vertices_after_first_round = torch.cat((vertices_after_first_round, collisions), 1)
             msgs = self.compute_msgs(vertices_after_first_round, len(vertices))
             msgs = msgs.repeat((1, 1, 2))
@@ -176,5 +171,15 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         ##### end of msg passing
 
         final_vertex_output = self.vertex_output_lin(new_vertex).squeeze()
+        if n_data == 1:
+            final_vertex_output = final_vertex_output[None, :]
+        return final_vertex_output
+
+    def forward(self, vertices):
+        # This function computes the node values
+        # vertices has shape [n_data, in_channels, n_nodes]
+        # edge_index has shape [2, E], top indicating the source and bottom indicating the dest
+
+        final_vertex_output = self.get_vertex_activations(vertices)
         graph_output = self.graph_output_lin(final_vertex_output)
         return graph_output
