@@ -70,6 +70,8 @@ def compute_state(obj, region, problem_env):
                      'rectangular_packing_box4', 'home_region']
     #goal_entities = ['square_packing_box1', 'square_packing_box2',
     #                 'rectangular_packing_box3', 'rectangular_packing_box4', 'home_region']
+    goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                     'rectangular_packing_box4', 'home_region']
     return ConcreteNodeState(problem_env, obj, region, goal_entities)
 
 
@@ -233,6 +235,15 @@ def create_policy(place_holder_config):
         pick_place_holder_config = pick_place_holder_config._replace(seed=place_holder_config.pick_seed)
         pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291, 291,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
+        n_key_configs = 291
+        dummy_inp1 = np.zeros((10, n_key_configs, 4, 1))
+        dummy_inp2 = np.zeros((10, n_key_configs, 4, 1))
+        dummy_inp3 = np.zeros((10, n_key_configs, 2, 1))
+        dummy_inp4 = np.zeros((10, 24))
+        dummy_inp5_pick = np.zeros((10, 7))
+        pick_policy.policy_model.predict([dummy_inp1, dummy_inp2, dummy_inp3, dummy_inp4, dummy_inp5_pick])
+
+
         place_place_holder_config = place_holder_config._replace(atype='place')
         place_place_holder_config = place_place_holder_config._replace(region=place_holder_config.region)
         place_place_holder_config = place_place_holder_config._replace(seed=place_holder_config.place_seed)
@@ -241,10 +252,19 @@ def create_policy(place_holder_config):
             n_collisions = 291
             n_key_configs = 291
         else:
-            n_collisions = 284
-            n_key_configs = 284  # pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
+            n_collisions = 615
+            n_key_configs = 615  # pickle.load(open('placements_%s.pkl' % (place_holder_config.region), 'r'))
         place_policy = model_creation_utils.create_policy(place_place_holder_config, n_collisions, n_key_configs,
                                                           given_action_data_mode='PICK_grasp_params_and_abs_base_PLACE_abs_base')
+
+        dummy_inp1 = np.zeros((10, n_key_configs, 4, 1))
+        dummy_inp2 = np.zeros((10, n_key_configs, 4, 1))
+        dummy_inp3 = np.zeros((10, n_key_configs, 2, 1))
+        dummy_inp4 = np.zeros((10, 24))
+        dummy_inp5 = np.zeros((10, 4))
+        dummy_inp5 = np.zeros((10, 4))
+        place_policy.policy_model.predict([dummy_inp1, dummy_inp2, dummy_inp3, dummy_inp4, dummy_inp5])
+
         policy = {'pick': pick_policy, 'place': place_policy}
     else:
         raise NotImplementedError
@@ -345,7 +365,7 @@ def main():
         seed=seed,
         atype=atype,
         epoch=epoch,
-        region='loading_region',
+        region='home_region',
         pick_seed=0,
         place_seed=seed
     )
@@ -354,21 +374,29 @@ def main():
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
+    mp_data = pickle.load(open('planning_experience/motion_planning_experience/7ffe04bb-7498-49cc-a87a-9ee1bf21796b.pkl', 'r'))
+    obj_poses = mp_data[0]['object_poses']
+    [utils.set_obj_xytheta(obj_poses[o], o) for o in obj_poses]
+    #utils.set_robot_config(mp_data[0]['q_goal'])
+
     sampler = create_policy(placeholder_config)
     load_sampler_weights(sampler, placeholder_config)
 
-    check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
-
+    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
     use_uniform = False
     utils.viewer()
     # obj_to_visualize = 'square_packing_box3'
-    obj_to_visualize = 'square_packing_box4'
+    obj_to_visualize = 'rectangular_packing_box2'
+    obj_to_visualize = 'square_packing_box3'
+    obj_to_visualize = 'rectangular_packing_box2'
     obj_to_visualize = 'rectangular_packing_box1'
+
     smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
     if atype == 'place':
         visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
     else:
         visualize_samples(smpls, problem_env, obj_to_visualize, atype)
+    import pdb;pdb.set_trace()
 
 
 if __name__ == '__main__':
