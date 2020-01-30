@@ -120,14 +120,13 @@ def main():
 
     problem_seed = 0
     problem_env, openrave_env = create_environment(problem_seed)
-    for problem_seed in range(0, 30):
+    for problem_seed in range(1, 30):
         np.random.seed(problem_seed)
         random.seed(problem_seed)
         [utils.randomly_place_region(obj, problem_env.regions['loading_region']) for obj in problem_env.objects]
         utils.randomly_place_region(problem_env.robot, problem_env.regions['loading_region'])
         key_configs, _ = pickle.load(open('prm.pkl', 'r'))
         clf_rate = get_clf_accuracy(problem_env, key_configs, net)
-        openrave_env.Destroy()
         print "pidx %d Clf rate %.2f " % (problem_seed, clf_rate)
 
     import pdb;pdb.set_trace()
