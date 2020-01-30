@@ -15,7 +15,7 @@ class ReachabilityDataset(Dataset):
 
     def get_data(self, action_type):
         plan_exp_dir = './planning_experience/processed/motion_plans/'
-        cache_file_name = plan_exp_dir + './' + action_type + '_cached_data.pkl'
+        cache_file_name = plan_exp_dir + '/' + action_type + '_cached_data.pkl'
         if os.path.isfile(cache_file_name):
             q0s, qgs, collisions, labels = pickle.load(open(cache_file_name, 'r'))
             return q0s, qgs, collisions, labels
