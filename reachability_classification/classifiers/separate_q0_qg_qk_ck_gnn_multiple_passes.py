@@ -101,7 +101,17 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
     def compute_msgs(self, v_features, n_data):
         # self.edges[0] - src
         # self.edges[1] - dest
+        """
         neighboring_pairs = torch.cat((v_features[:, :, self.edges[0]], v_features[:, :, self.edges[1]]), 1)
+        """
+        t1 = v_features[:, :, self.edges[0]]
+        t2 = v_features[:, :, self.edges[1]]
+        t1_dim = t1.shape[1]
+        t2_dim = t2.shape[1]
+        neighboring_pairs = torch.zeros((n_data, t1_dim+t2_dim, t1.shape[-1]))
+        neighboring_pairs[:, 0:t1_dim, :] = t1
+        neighboring_pairs[:, t1_dim:, :] = t2
+
         neighboring_pairs = neighboring_pairs.reshape((n_data, 1, neighboring_pairs.shape[1],
                                                        neighboring_pairs.shape[-1]))
         msgs = self.edge_lin(neighboring_pairs).squeeze(dim=2)  # 0.4 seconds... but that's cause I am using a cpu
@@ -153,11 +163,12 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         collisions = collisions.permute((0, 2, 1))
         v_features = torch.cat((v_features, collisions), 1)
         ##############
-
         msgs = self.compute_msgs(v_features, len(vertices))
+
         msgs = msgs.repeat((1, 1, 2))
         new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
         new_vertex = new_vertex[:, None, :, :]
+
         ##### msg passing
         for i in range(self.n_msg_passing):
             vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze(dim=2)
