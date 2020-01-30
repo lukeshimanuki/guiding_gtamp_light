@@ -31,9 +31,10 @@ def get_test_acc(testloader, net, device, n_test):
     return np.mean(np.vstack(accuracies))
 
 
-def save_weights(net, epoch, action_type, seed):
+def save_weights(net, epoch, action_type, seed, n_msg_passing):
     gnn_name = net.__class__._get_name(net)
-    PATH = './reachability_classification/weights/atype_%s_seed_%d_%s_epoch_%d.pt' % (action_type, seed, gnn_name, epoch)
+    PATH = './reachability_classification/weights/atype_%s_n_msgs_%d_seed_%d_%s_epoch_%d.pt' \
+           % (action_type, n_msg_passing, seed, gnn_name, epoch)
     torch.save(net.state_dict(), PATH)
 
 
@@ -47,6 +48,7 @@ def main():
 
     action_type = sys.argv[1]
     seed = int(sys.argv[2])
+    n_msg_passing = int(sys.argv[3])
     np.random.seed(seed)
     torch.cuda.manual_seed_all(seed)
 
@@ -55,7 +57,7 @@ def main():
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     print "N_train", len(trainset)
-    net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618, device=device)
+    net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618, device=device, n_msg_passing=n_msg_passing)
     net.to(device)
     loss_fn = nn.BCELoss()
 

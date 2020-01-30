@@ -6,9 +6,9 @@ import torch_scatter
 
 
 class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
-    def __init__(self, edges, n_key_configs, device):
+    def __init__(self, edges, n_key_configs, device, n_msg_passing):
         super(Separateq0qgqkckMultiplePassGNNReachabilityNet, self).__init__()
-
+        self.n_msg_passing = n_msg_passing
         in_channels = 2
         out_channels = 8
         self.x_lin = nn.Sequential(
@@ -159,8 +159,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
         new_vertex = new_vertex[:, None, :, :]
         ##### msg passing
-        n_msg_passing = 1
-        for i in range(n_msg_passing):
+        for i in range(self.n_msg_passing):
             vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze(dim=2)
             vertices_after_first_round = torch.cat((vertices_after_first_round, collisions), 1)
             msgs = self.compute_msgs(vertices_after_first_round, len(vertices))
