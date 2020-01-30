@@ -67,7 +67,7 @@ def main():
     acc_list = []
 
     n_test = min(5000, len(testset))
-    testloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
 
     test_acc = get_test_acc(testloader, net, device, n_test)
     acc_list.append(test_acc)
@@ -88,7 +88,7 @@ def main():
         test_acc = get_test_acc(testloader, net, device, n_test)
         acc_list.append(test_acc)
         if test_acc == np.max(acc_list):
-            save_weights(net, epoch, action_type, seed)
+            save_weights(net, epoch, action_type, seed, n_msg_passing)
         print acc_list, np.max(acc_list)
 
 
