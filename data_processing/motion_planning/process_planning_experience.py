@@ -2,6 +2,7 @@ import socket
 import os
 import pickle
 import numpy as np
+import sys
 
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_utils import utils
@@ -53,12 +54,10 @@ def process_single_data(fname, problem_env, key_configs, save_file):
             place_q0s.append(mp_result['q0'])
             place_qgs.append(mp_result['qg'])
             place_labels.append(mp_result['label'])
-            place_collisions.append(collision_vector)
-
-    pick_q0s = np.vstack(pick_q0s)
-    pick_qgs = np.vstack(pick_qgs)
-    pick_collisions = np.vstack(pick_collisions)
-    pick_labels = np.vstack(pick_labels)
+            utils.two_arm_pick_object(mp_result['held_obj'], {'q_goal': mp_result['q0']})
+            place_collision = utils.compute_occ_vec(key_configs)
+            utils.two_arm_place_object({'q_goal': mp_result['q0']})
+            place_collisions.append(place_collision)
 
     pickle.dump({'pick_q0s': pick_q0s, 'pick_qgs': pick_qgs, 'pick_collisions': pick_collisions,
                  'pick_labels': pick_labels,
@@ -68,18 +67,20 @@ def process_single_data(fname, problem_env, key_configs, save_file):
     print "Done with file", fname
 
 
-def process_data(raw_dir, save_dir):
+def process_data(raw_dir, save_dir, idx):
     problem_env = PaPMoverEnv(0)
     key_configs, edges = pickle.load(open('prm.pkl', 'r'))
-    for raw_file in os.listdir(raw_dir):
-        save_file = save_dir + raw_file
-        process_single_data(raw_dir + raw_file, problem_env, key_configs, save_file)
+    raw_files = os.listdir(raw_dir)
+    raw_file = raw_files[idx]
+    save_file = save_dir + raw_file
+    process_single_data(raw_dir + raw_file, problem_env, key_configs, save_file)
 
 
 def main():
     raw_dir = get_raw_dir()
     save_dir = get_save_dir()
-    process_data(raw_dir, save_dir)
+    idx = int(sys.argv[1])
+    process_data(raw_dir, save_dir, idx)
 
 
 if __name__ == '__main__':
