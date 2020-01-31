@@ -7,6 +7,7 @@ import random
 import os
 import tensorflow as tf
 import collections
+import torch
 
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
@@ -20,6 +21,11 @@ from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECo
 from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
+
+from reachability_classification.classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
+    Separateq0qgqkckMultiplePassGNNReachabilityNet as ReachabilityNet
+
+from test_reachability_clf import load_weights
 
 
 def get_problem_env(config, goal_region, goal_objs):
@@ -131,8 +137,9 @@ def parse_arguments():
     parser.add_argument('-sampler_algo', type=str, default='imle_qg_combination')
     parser.add_argument('-sampler_epoch', type=int, default=500)
 
-    # whether to use the sampler
+    # whether to use the learned sampler and the reachability
     parser.add_argument('-integrated', action='store_true', default=False)
+    parser.add_argument('-use_reachability_clf', action='store_true', default=False)
 
     config = parser.parse_args()
     return config
@@ -264,10 +271,19 @@ def main():
         pap_model = get_pap_gnn_model(problem_env, config)
     else:
         pap_model = None
+
     if config.integrated or config.integrated_unregularized_sampler:
         smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
     else:
         smpler = None
+
+    if config.use_reachability_clf:
+        device = torch.device("cpu")
+        edges = pickle.load(open('prm_edges_for_reachability_gnn.pkl', 'r'))
+        reachable_clf = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
+        load_weights(reachable_clf, 88, 'pick', 0, 0, device)
+    else:
+        reachable_clf = None
 
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
@@ -282,7 +298,8 @@ def main():
             plan_length = len(trajectory['plan']) if success else 0
     else:
         t = time.time()
-        nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler)
+        nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler,
+                                                       reachable_clf)
         tottime = time.time() - t
         success = plan is not None
         plan_length = len(plan) if success else 0
