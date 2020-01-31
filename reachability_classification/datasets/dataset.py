@@ -90,8 +90,10 @@ class GNNReachabilityDataset(ReachabilityDataset):
     def __getitem__(self, idx):
         if type(idx) is int:
             prm_vertices = self.prm_vertices
-            repeat_q0 = np.repeat(np.array(self.q0s)[idx][None, :], 618, axis=0)
-            repeat_qg = np.repeat(np.array(self.qgs)[idx][None, :], 618, axis=0)
+            q0 = np.array(self.q0s).reshape((len(self.q0s),3))[idx][None, :]
+            qg = np.array(self.qgs).reshape((len(self.qgs),3))[idx][None, :]
+            repeat_q0 = np.repeat(q0, 618, axis=0)
+            repeat_qg = np.repeat(qg, 618, axis=0)
             v = np.hstack([prm_vertices, repeat_q0, repeat_qg, self.collisions[idx]])
         else:
             prm_vertices = np.repeat(np.array(self.prm_vertices)[None, :], len(idx), axis=0)

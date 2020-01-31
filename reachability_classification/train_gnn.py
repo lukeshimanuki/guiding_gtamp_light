@@ -23,7 +23,7 @@ def get_test_acc(testloader, net, device, n_test):
         test_labels = testset['y'].to(device)
         test_pred = net(test_vertices)
         clf_result = test_pred > 0.5
-        accuracies.append(clf_result.cpu().numpy() == test_labels.cpu().numpy())
+        accuracies.append(clf_result.cpu().numpy() == test_labels.cpu().numpy()[:, None])
         #print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
         if len(np.vstack(accuracies)) >= n_test:
             break
