@@ -35,12 +35,11 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
         sampler = UniformSampler(place_region)
         generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
                                        n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                       n_iter_limit=config.n_iter_limit, problem_env=problem_env)
+                                       n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                       reachability_clf=reachability_clf)
         smpled_param = generator.sample_next_point()
-
     else:
         raise NotImplementedError
-
 
     return smpled_param
 

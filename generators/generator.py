@@ -57,8 +57,8 @@ class Generator:
             if status == 'HasSolution':
                 if self.reachability_clf is not None:
                     # make a vertex
-                    pred = self.reachability_clf.predict(op_parameters['pick']['q_goal'], self.abstract_state)
-                    is_reachable = (pred > 0.5).numpy()[0, 0]
+                    #pred = self.reachability_clf.predict(op_parameters['pick']['q_goal'], self.abstract_state)
+                    is_reachable = self.reachability_clf.predict(op_parameters, self.abstract_state, self.abstract_action)
                     if not is_reachable:
                         continue
 
@@ -150,7 +150,11 @@ class Generator:
     def get_motion_plan(self, candidate_parameters):
         motion_plan_goals = [op['q_goal'] for op in candidate_parameters]
         self.problem_env.motion_planner.algorithm = 'rrt'
-        motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0], source='sampler')
+        motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0],
+                                                                         source='sampler',
+                                                                         n_iterations=[20, 50, 100, 500,
+                                                                                       1000, 5000, 10000,
+                                                                                       20000])
         self.problem_env.motion_planner.algorithm = 'prm'
         found_feasible_motion_plan = status == "HasSolution"
 

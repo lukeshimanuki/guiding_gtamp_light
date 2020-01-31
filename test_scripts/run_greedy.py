@@ -14,6 +14,7 @@ from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.utils.model_creation_utils import create_policy
+from generators.reachability_predictor import ReachabilityPredictor
 from gtamp_utils import utils
 
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
@@ -280,10 +281,13 @@ def main():
     if config.use_reachability_clf:
         device = torch.device("cpu")
         edges = pickle.load(open('prm_edges_for_reachability_gnn.pkl', 'r'))
-        reachable_clf = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
-        load_weights(reachable_clf, 88, 'pick', 0, 0, device)
+        pick_net = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
+        place_net = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
+        load_weights(pick_net, 94, 'pick', 0, 0, device)
+        load_weights(place_net, 45, 'place', 0, 0, device)
+        reachability_predictor = ReachabilityPredictor(pick_net, place_net)
     else:
-        reachable_clf = None
+        reachability_predictor = None
 
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
@@ -299,7 +303,7 @@ def main():
     else:
         t = time.time()
         nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler,
-                                                       reachable_clf)
+                                                       reachability_predictor)
         tottime = time.time() - t
         success = plan is not None
         plan_length = len(plan) if success else 0
