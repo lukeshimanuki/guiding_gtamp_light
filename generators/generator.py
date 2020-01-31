@@ -153,8 +153,7 @@ class Generator:
         motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0],
                                                                          source='sampler',
                                                                          n_iterations=[20, 50, 100, 500,
-                                                                                       1000, 5000, 10000,
-                                                                                       20000])
+                                                                                       1000, 5000, 10000])
         self.problem_env.motion_planner.algorithm = 'prm'
         found_feasible_motion_plan = status == "HasSolution"
 
