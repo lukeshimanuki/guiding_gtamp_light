@@ -18,7 +18,7 @@ def worker_p(config):
     command = 'python ./data_processing/motion_planning/process_planning_experience.py ' + str(config)
 
     print command
-    #os.system(command)
+    os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
