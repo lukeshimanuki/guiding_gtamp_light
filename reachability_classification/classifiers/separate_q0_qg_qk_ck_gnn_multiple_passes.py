@@ -12,7 +12,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         in_channels = 2
         out_channels = 8
         self.x_lin = nn.Sequential(
-            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1), # Do this with conv1d
+            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),  # Do this with conv1d
             nn.LeakyReLU())
 
         self.y_lin = nn.Sequential(
@@ -25,13 +25,13 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
 
         out_channels = 32
         self.config_lin = nn.Sequential(
-            torch.nn.Conv2d(8*3, out_channels, kernel_size=(1, 1), stride=1),
+            torch.nn.Conv2d(8 * 3, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU(),
         )
 
-        in_channels = out_channels*2
+        in_channels = out_channels * 2
         out_channels = 32
         self.vertex_lin = nn.Sequential(
             torch.nn.Conv2d(in_channels, out_channels, kernel_size=(1, 1), stride=1),
@@ -41,7 +41,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         )
 
         # Edge model
-        in_channels = out_channels * 2 + 2*2
+        in_channels = out_channels * 2 + 2 * 2
         out_channels = 32
         self.edge_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
@@ -58,7 +58,8 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
             torch.nn.Conv2d(1, out_channels_1, kernel_size=(in_channels, 1), stride=1),
             nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels_1, out_channels, kernel_size=(1, 1), stride=1),
-            nn.LeakyReLU()  # To visualize the true key config activation I think I will have to replace this with sigmoid. What if I look at the abs of the output here?
+            nn.LeakyReLU()
+            # To visualize the true key config activation I think I will have to replace this with sigmoid. What if I look at the abs of the output here?
         )
 
         n_nodes = n_key_configs
@@ -101,7 +102,17 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
     def compute_msgs(self, v_features, n_data):
         # self.edges[0] - src
         # self.edges[1] - dest
+        """
         neighboring_pairs = torch.cat((v_features[:, :, self.edges[0]], v_features[:, :, self.edges[1]]), 1)
+        """
+        t1 = v_features[:, :, self.edges[0]]
+        t2 = v_features[:, :, self.edges[1]]
+        t1_dim = t1.shape[1]
+        t2_dim = t2.shape[1]
+        neighboring_pairs = torch.zeros((n_data, t1_dim + t2_dim, t1.shape[-1]))
+        neighboring_pairs[:, 0:t1_dim, :] = t1
+        neighboring_pairs[:, t1_dim:, :] = t2
+
         neighboring_pairs = neighboring_pairs.reshape((n_data, 1, neighboring_pairs.shape[1],
                                                        neighboring_pairs.shape[-1]))
         msgs = self.edge_lin(neighboring_pairs).squeeze(dim=2)  # 0.4 seconds... but that's cause I am using a cpu
@@ -153,11 +164,12 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         collisions = collisions.permute((0, 2, 1))
         v_features = torch.cat((v_features, collisions), 1)
         ##############
-
         msgs = self.compute_msgs(v_features, len(vertices))
+
         msgs = msgs.repeat((1, 1, 2))
         new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
         new_vertex = new_vertex[:, None, :, :]
+
         ##### msg passing
         for i in range(self.n_msg_passing):
             vertices_after_first_round = self.x_lin_after_first_round(new_vertex).squeeze(dim=2)

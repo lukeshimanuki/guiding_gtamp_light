@@ -13,10 +13,14 @@ import random
 import time
 
 
-def load_weights(net, epoch):
+def load_weights(net, epoch, action_type, seed, n_msg_passing, device):
     gnn_name = net.__class__._get_name(net)
-    PATH = './reachability_classification/weights/%s_epoch_%d.pt' % (gnn_name, epoch)
-    net.load_state_dict(torch.load(PATH))
+    PATH = './reachability_classification/weights/atype_%s_seed_%d_%s_epoch_%d.pt' % (action_type, seed, gnn_name, epoch)
+    #PATH = './reachability_classification/weights/atype_%s_%s_epoch_%d.pt' % (action_type, gnn_name, epoch)
+    PATH = './reachability_classification/weights/atype_%s_n_msgs_%d_seed_%d_%s_epoch_%d.pt' \
+           % (action_type, n_msg_passing, seed, gnn_name, epoch)
+    print PATH
+    net.load_state_dict(torch.load(PATH), device)
     net.eval()
 
 
@@ -52,62 +56,80 @@ def compute_collision_and_make_predictions(qg, key_configs, net):
     col = utils.convert_binary_vec_to_one_hot(collisions.squeeze())
     vertex = make_vertices(qg, key_configs, col)
     output = net(vertex)
-    print output, (output > 0.5).numpy()[0, 0]
+    #print output, (output > 0.5).numpy()[0, 0]
     return (output > 0.5).numpy()[0, 0]
 
 
 def check_motion_plan(qg, problem_env):
     problem_env.motion_planner.algorithm = 'rrt'
     motion, status = problem_env.motion_planner.get_motion_plan(qg, source='sampler')
-    print status
+    #print status
     return motion, status
 
 
 def get_clf_accuracy(problem_env, key_configs, net):
     misclf = 0
 
+    false_positives = 0
+    false_negatives = 0
+    n_negatives = 0
+    n_positives = 0
     for _ in range(100):
         qg = sample_qg(problem_env, region_name='loading_region')
         pred = compute_collision_and_make_predictions(qg, key_configs, net)
-        stime = time.time()
+        #stime = time.time()
         path, status = check_motion_plan(qg, problem_env)
-        print time.time() - stime
+        if status == "HasSolution":
+            n_positives += 1
+        else:
+            n_negatives += 1
+
+        #print time.time() - stime
         if status == "HasSolution" and pred == False:
             misclf += 1
+            false_negatives += 1
         elif status == "NoSolution" and pred == True:
             misclf += 1
+            false_positives += 1
+    if n_negatives > 0:
+        print "False positives (true no but predicted yes) %.2f" % (false_positives/float(n_negatives)) # how bad am I in detecting infeasible instances?
+    if n_positives > 0:
+        print "False negatives (true yes but predicted no) %.2f" % (false_negatives/float(n_positives)) # how bad am I in detecting positive samples?
+    print "N_negative ", n_negatives
+    print "N positive ", n_positives
     return (100.0 - misclf) / 100.0
 
 
 def main():
     device = torch.device("cpu")
     edges = pickle.load(open('prm_edges_for_reachability_gnn.pkl', 'r'))
-    net = ReachabilityNet(edges, n_key_configs=618, device=device)
-    load_weights(net, 98)
-    """
-    dataset = GNNReachabilityDataset()
-    n_train = int(len(dataset) * 0.9)
-    trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
-    testloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
-    test_acc = get_test_acc(testloader, net, device, 5000)
-    import pdb;pdb.set_trace()
-    """
+    n_msg_passing = 0
+    net = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=n_msg_passing)
+    action_type = 'pick'
+    get_data_test_acc = False
+    load_weights(net, 88, action_type, 0, n_msg_passing, device)
 
-    problem_seed = 6
-    np.random.seed(problem_seed)
-    random.seed(problem_seed)
+    if get_data_test_acc:
+        dataset = GNNReachabilityDataset(action_type)
+        n_train = int(len(dataset) * 0.9)
+        trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
+        testloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
+        print "Getting test accuracy for n_test %d..." % len(testset)
+        test_acc = get_test_acc(testloader, net, device, len(testset))
+        print test_acc
+
+    problem_seed = 0
     problem_env, openrave_env = create_environment(problem_seed)
-    utils.viewer()
+    for problem_seed in range(1, 30):
+        np.random.seed(problem_seed)
+        random.seed(problem_seed)
+        [utils.randomly_place_region(obj, problem_env.regions['loading_region']) for obj in problem_env.objects]
+        utils.randomly_place_region(problem_env.robot, problem_env.regions['loading_region'])
+        key_configs, _ = pickle.load(open('prm.pkl', 'r'))
+        clf_rate = get_clf_accuracy(problem_env, key_configs, net)
+        print "pidx %d Clf rate %.2f " % (problem_seed, clf_rate)
 
-    key_configs, _ = pickle.load(open('prm.pkl', 'r'))
-
-    # qg = np.array([0.0534, -7.87, 0])
-    # utils.visualize_path([qg])
-
-    clf_rate = get_clf_accuracy(problem_env, key_configs, net)
-    print "Clf rate %.2f " % clf_rate
-    import pdb;
-    pdb.set_trace()
+    import pdb;pdb.set_trace()
 
     vertex_outputs = net.get_vertex_activations(vertex).data.numpy().squeeze()
     top_k_args = np.argsort(abs(vertex_outputs))[-60:]

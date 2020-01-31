@@ -6,8 +6,8 @@ from node import Node
 from gtamp_utils import utils
 
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
-from generators.uniform import PaPUniformGenerator
-from generators.learned_generator import LearnedGenerator
+from generators.sampler import UniformSampler
+from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
 from trajectory_representation.operator import Operator
 
@@ -24,47 +24,28 @@ counter = 1
 sum_smpl_time = 0
 
 
-def sample_continuous_parameters(abstract_action, abstract_state, abstract_node, mover, learned_sampler, config):
+def sample_continuous_parameters(abstract_action, abstract_state, abstract_node, mover, learned_sampler,
+                                 reachability_clf, config):
     global counter
     global sum_smpl_time
-    target_obj = abstract_action.discrete_parameters['object']
-    place_region = abstract_action.discrete_parameters['place_region']
-    if learned_sampler is None: #or 'loading' not in place_region:
-        smpler = PaPUniformGenerator(abstract_action, mover)
+    problem_env = abstract_state.problem_env
+    place_region = problem_env.regions[abstract_action.discrete_parameters['place_region']]
 
-        smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                                cached_collisions=abstract_state.collides,
-                                                cached_holding_collisions=None,
-                                                curr_n_iter_limit=config.n_iter_limit)
+    if learned_sampler is None:  # or 'loading' not in place_region:
+        sampler = UniformSampler(place_region)
+        generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                       n_iter_limit=config.n_iter_limit, problem_env=problem_env)
+        smpled_param = generator.sample_next_point()
+
     else:
-        stime = time.time()
-        if (target_obj, place_region) in abstract_node.smplers_for_each_action:
-            smpler = abstract_node.smplers_for_each_action[(target_obj, place_region)]
-        else:
-            if 'loading' in place_region:
-                smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_loading']}
-            elif 'home' in place_region:
-                smplers = {'pick': learned_sampler['pick'], 'place': learned_sampler['place_home']}
-                #raise NotImplementedError
-            else:
-                raise NotImplementedError
-            smpler = LearnedGenerator(abstract_action, mover, smplers, abstract_state)
-            abstract_node.smplers_for_each_action[(target_obj, place_region)] = smpler
+        raise NotImplementedError
 
-        smpled_param = smpler.sample_next_point(abstract_action, n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                                cached_collisions=abstract_state.collides,
-                                                cached_holding_collisions=None,
-                                                curr_n_iter_limit=config.n_iter_limit)
-        sum_smpl_time += time.time() - stime
-        counter += 1
-
-        print 'smpling time', time.time() - stime
-        print "avgs smapling time", sum_smpl_time / counter
 
     return smpled_param
 
 
-def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler=None):
+def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler=None, reachability_clf=None):
     tt = time.time()
     goal_region = mover.placement_regions[goal_region_name]
     obj_names = [obj.GetName() for obj in mover.objects]
@@ -105,7 +86,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         # can a node be associated with different action? I think so.
         # For example, the init node can be associated with many actions
         curr_hval, _, action, node = search_queue.get()
-        print "Chosen abstract action", action.discrete_parameters['object'],  action.discrete_parameters['place_region']
+        print "Chosen abstract action", action.discrete_parameters['object'], action.discrete_parameters['place_region']
         state = node.state
         print "Curr hval", curr_hval
 
@@ -118,7 +99,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
             # todo save the smpler with the abstract node
-            smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler, config)
+            smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler, reachability_clf,
+                                                        config)
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
@@ -129,7 +111,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
                 try:
                     assert placement_poses_match
                 except:
-                    import pdb;pdb.set_trace()
+                    import pdb;
+                    pdb.set_trace()
                 print "Action executed"
             else:
                 print "Failed to sample an action"
