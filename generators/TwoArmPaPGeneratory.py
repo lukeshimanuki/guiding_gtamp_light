@@ -6,9 +6,10 @@ import numpy as np
 
 
 class TwoArmPaPGenerator(Generator):
-    def __init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning, n_iter_limit, problem_env):
+    def __init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning, n_iter_limit, problem_env,
+                 reachability_clf=None):
         Generator.__init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning, n_iter_limit,
-                           problem_env)
+                           problem_env, reachability_clf)
 
     def get_feasibility_checker(self):
         return TwoArmPaPFeasibilityChecker(self.problem_env)

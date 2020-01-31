@@ -2,12 +2,14 @@ import time
 import numpy as np
 import pickle
 import uuid
+import torch
+
 from gtamp_utils import utils
 
 
 class Generator:
     def __init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning, n_iter_limit,
-                 problem_env):
+                 problem_env, reachability_clf=None):
         self.abstract_state = abstract_state
         self.abstract_action = abstract_action
         self.sampler = sampler
@@ -17,6 +19,7 @@ class Generator:
         self.feasible_pick_params = {}
         self.feasibility_checker = self.get_feasibility_checker()
         self.tried_samples = []
+        self.reachability_clf = reachability_clf
 
     def get_feasibility_checker(self):
         raise NotImplementedError
@@ -52,6 +55,13 @@ class Generator:
             feasibility_check_time += time.time() - stime2
 
             if status == 'HasSolution':
+                if self.reachability_clf is not None:
+                    # make a vertex
+                    pred = self.reachability_clf.predict(op_parameters['pick']['q_goal'], self.abstract_state)
+                    is_reachable = (pred > 0.5).numpy()[0, 0]
+                    if not is_reachable:
+                        continue
+
                 feasible_op_parameters.append(op_parameters)
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
                     break

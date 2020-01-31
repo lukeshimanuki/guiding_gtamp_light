@@ -8,7 +8,7 @@ from feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeas
 from feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFeasibilityChecker
 from feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityChecker
 
-from generators.generator import PaPGenerator
+from generators.generator_retired import PaPGenerator
 
 import numpy as np
 import time
@@ -232,9 +232,9 @@ class PaPUniformGenerator(UniformGenerator):
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(operator_skeleton.discrete_parameters['object'], chosen_pick_param)
             mp_data = {'q0': op['pick']['q_goal'], 'qg': op['place']['q_goal'], 'object_poses': obj_poses,
-                       'held_obj': operator_skeleton.discrete_parameters['object']}
-
-            chosen_place_param = self.get_op_param_with_feasible_motion_plan([op['place']], cached_holding_collisions)
+                       'held_obj': operator_skeleton.discrete_parameters['object'],
+                       'region': operator_skeleton.discrete_parameters['place_region']}
+            chosen_place_param = self.get_op_param_with_feasible_motion_plan([op['place']], cached_holding_collisions) # calls MP
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
 
@@ -248,6 +248,7 @@ class PaPUniformGenerator(UniformGenerator):
                 mp_data['label'] = False
                 all_mp_data.append(mp_data)
                 print "Place motion does not exist"
+
         pickle.dump(all_mp_data, open('./planning_experience/motion_planning_experience/' + str(uuid.uuid4()) + '.pkl', 'wb'))
 
         if not chosen_pick_param['is_feasible']:
