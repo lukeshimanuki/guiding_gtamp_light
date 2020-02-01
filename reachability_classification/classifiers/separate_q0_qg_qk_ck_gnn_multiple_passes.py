@@ -90,6 +90,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         self.edges = torch.from_numpy(np.array(non_duplicate_edges)).to(device)
         self.dest_edges = torch.from_numpy(np.hstack((non_duplicate_edges[1], non_duplicate_edges[0]))).to(device)
         self.n_nodes = n_key_configs
+        self.device = device
         ### it should repeated in every gnn code
 
     def concat_at_idx(self, vertex_val_1, vertex_val_2, idx):
@@ -109,7 +110,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         t2 = v_features[:, :, self.edges[1]]
         t1_dim = t1.shape[1]
         t2_dim = t2.shape[1]
-        neighboring_pairs = torch.zeros((n_data, t1_dim + t2_dim, t1.shape[-1]))
+        neighboring_pairs = torch.zeros((n_data, t1_dim + t2_dim, t1.shape[-1])).to(self.device)
         neighboring_pairs[:, 0:t1_dim, :] = t1
         neighboring_pairs[:, t1_dim:, :] = t2
 
