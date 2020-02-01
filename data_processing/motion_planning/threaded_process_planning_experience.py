@@ -28,9 +28,9 @@ def worker_wrapper_multi_input(multi_args):
 
 def main():
     flist = os.listdir(ROOTDIR + '/planning_experience/motion_planning_experience/')
-    configs = range(len(flist))
-
+    flist2 = os.listdir(ROOTDIR + '/planning_experience/processed/motion_plans/')
     n_workers = multiprocessing.cpu_count()
+    configs = [flist.index(f) for f in flist if f not in flist2] #range(len(flist))
     print configs
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
