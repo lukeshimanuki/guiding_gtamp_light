@@ -21,6 +21,7 @@ class ReachabilityDataset(Dataset):
             return q0s, qgs, collisions, labels
 
         plan_exp_files = os.listdir(plan_exp_dir)
+        np.random.shuffle(plan_exp_files)
 
         q0s = []
         qgs = []

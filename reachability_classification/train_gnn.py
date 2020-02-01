@@ -68,6 +68,7 @@ def main():
 
     n_test = min(5000, len(testset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
+    print "N test", len(testloader)
 
     test_acc = get_test_acc(testloader, net, device, n_test)
     acc_list.append(test_acc)
