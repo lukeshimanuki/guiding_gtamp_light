@@ -33,7 +33,15 @@ class ReachabilityDataset(Dataset):
             plan = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
             if len(plan[action_type + '_q0s']) == 0:
                 continue
-            q0s.append(np.array(plan[action_type + '_q0s'], dtype=np.float32))
+            file_q0s = plan[action_type + '_q0s']
+            for idx, q0 in enumerate(file_q0s):
+                file_q0s[idx] = utils.encode_pose_with_sin_and_cos_angle(q0)
+
+            file_qgs = plan[action_type + '_qgs']
+            for idx, qg in enumerate(file_qgs):
+                file_qgs[idx] = utils.encode_pose_with_sin_and_cos_angle(qg)
+
+            q0s.append(np.array(file_q0s, dtype=np.float32))
             qgs.append(np.array(plan[action_type + '_qgs'], dtype=np.float32))
 
             cols = []
@@ -57,7 +65,6 @@ class ReachabilityDataset(Dataset):
         except ValueError:
             labels = np.hstack(labels)
 
-
         q0s = Variable(torch.from_numpy(q0s))
         qgs = Variable(torch.from_numpy(qgs))
         collisions = Variable(torch.from_numpy(collisions))
@@ -75,7 +82,10 @@ class ReachabilityDataset(Dataset):
 class GNNReachabilityDataset(ReachabilityDataset):
     def __init__(self, action_type):
         super(GNNReachabilityDataset, self).__init__(action_type)
-        self.prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
+        self.tmp_prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
+        self.prm_vertices = np.zeros((len(self.tmp_prm_vertices), 4))
+        for pidx, p in enumerate(self.tmp_prm_vertices):
+            self.prm_vertices[pidx] = utils.encode_pose_with_sin_and_cos_angle(p)
         self.gnn_vertices = self.prm_vertices
         self.collisions = self.collisions.squeeze()
 
@@ -91,8 +101,9 @@ class GNNReachabilityDataset(ReachabilityDataset):
     def __getitem__(self, idx):
         if type(idx) is int:
             prm_vertices = self.prm_vertices
-            q0 = np.array(self.q0s).reshape((len(self.q0s),3))[idx][None, :]
-            qg = np.array(self.qgs).reshape((len(self.qgs),3))[idx][None, :]
+            dim_q = self.q0s.shape[-1]
+            q0 = np.array(self.q0s).reshape((len(self.q0s), dim_q))[idx][None, :]
+            qg = np.array(self.qgs).reshape((len(self.qgs), dim_q))[idx][None, :]
             repeat_q0 = np.repeat(q0, 618, axis=0)
             repeat_qg = np.repeat(qg, 618, axis=0)
             v = np.hstack([prm_vertices, repeat_q0, repeat_qg, self.collisions[idx]])
