@@ -5,9 +5,9 @@ import numpy as np
 import socket
 import random
 import os
+import torch
 import tensorflow as tf
 import collections
-import torch
 
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
