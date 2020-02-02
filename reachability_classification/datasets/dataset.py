@@ -114,3 +114,44 @@ class GNNReachabilityDataset(ReachabilityDataset):
             v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
 
         return {'vertex': v, 'edges': self.edges, 'y': self.labels[idx]}
+
+
+class GNNRelativeReachabilityDataset(GNNReachabilityDataset):
+    def __init__(self, action_type):
+        super(GNNRelativeReachabilityDataset, self).__init__(action_type)
+
+    @staticmethod
+    def compute_relative_config(src_config, end_config):
+        src_config = np.array(src_config)
+        end_config = np.array(end_config)
+
+        assert len(src_config.shape) == 2, \
+            'Put configs in shapes (n_config,dim_config)'
+
+        rel_config = end_config - src_config
+        neg_idxs_to_fix = rel_config[:, -1] < -np.pi
+        pos_idxs_to_fix = rel_config[:, -1] > np.pi
+
+        # making unique rel angles; keep the range to [-pi,pi]
+        rel_config[neg_idxs_to_fix, -1] = rel_config[neg_idxs_to_fix, -1] + 2 * np.pi
+        rel_config[pos_idxs_to_fix, -1] = rel_config[pos_idxs_to_fix, -1] - 2 * np.pi
+
+        return rel_config
+
+    def __getitem__(self, idx):
+        if type(idx) is int:
+            prm_vertices = self.prm_vertices
+            dim_q = self.q0s.shape[-1]
+            q0 = np.array(self.q0s).reshape((len(self.q0s), dim_q))[idx][None, :]
+            qg = np.array(self.qgs).reshape((len(self.qgs), dim_q))[idx][None, :]
+            repeat_q0 = np.repeat(q0, 618, axis=0)
+            repeat_qg = np.repeat(qg, 618, axis=0)
+            import pdb;pdb.set_trace()
+            v = np.hstack([prm_vertices, repeat_q0, repeat_qg, self.collisions[idx]])
+        else:
+            prm_vertices = np.repeat(np.array(self.prm_vertices)[None, :], len(idx), axis=0)
+            q0s = np.repeat(np.array(self.q0s)[idx][:, None, :], 618, axis=1)
+            qgs = np.repeat(np.array(self.qgs)[idx][:, None, :], 618, axis=1)
+            v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
+
+        return {'vertex': v, 'edges': self.edges, 'y': self.labels[idx]}

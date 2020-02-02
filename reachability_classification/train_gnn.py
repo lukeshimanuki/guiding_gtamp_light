@@ -12,7 +12,7 @@ from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
 from classifiers.encoded_q_gnn import \
     EncodedQGNNReachabilityNet as GNNReachabilityNet
 
-from datasets.dataset import GNNReachabilityDataset
+from datasets.dataset import GNNRelativeReachabilityDataset as GNNReachabilityDataset
 import socket
 import time
 import sys
