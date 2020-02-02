@@ -34,12 +34,12 @@ class ReachabilityDataset(Dataset):
             if len(plan[action_type + '_q0s']) == 0:
                 continue
             file_q0s = plan[action_type + '_q0s']
-            for idx, q0 in enumerate(file_q0s):
-                file_q0s[idx] = utils.encode_pose_with_sin_and_cos_angle(q0)
+            #for idx, q0 in enumerate(file_q0s):
+            #    file_q0s[idx] = utils.encode_pose_with_sin_and_cos_angle(q0)
 
             file_qgs = plan[action_type + '_qgs']
-            for idx, qg in enumerate(file_qgs):
-                file_qgs[idx] = utils.encode_pose_with_sin_and_cos_angle(qg)
+            #for idx, qg in enumerate(file_qgs):
+            #    file_qgs[idx] = utils.encode_pose_with_sin_and_cos_angle(qg)
 
             q0s.append(np.array(file_q0s, dtype=np.float32))
             qgs.append(np.array(plan[action_type + '_qgs'], dtype=np.float32))
@@ -54,8 +54,8 @@ class ReachabilityDataset(Dataset):
             labels.append(np.array(plan[action_type + '_labels'], dtype=np.float32))
 
             n_episodes += 1
-            if n_episodes == 5000:
-                break
+            #if n_episodes == 5000:
+            #    break
 
         q0s = np.vstack(q0s)
         qgs = np.vstack(qgs)
@@ -82,10 +82,10 @@ class ReachabilityDataset(Dataset):
 class GNNReachabilityDataset(ReachabilityDataset):
     def __init__(self, action_type):
         super(GNNReachabilityDataset, self).__init__(action_type)
-        self.tmp_prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
-        self.prm_vertices = np.zeros((len(self.tmp_prm_vertices), 4))
-        for pidx, p in enumerate(self.tmp_prm_vertices):
-            self.prm_vertices[pidx] = utils.encode_pose_with_sin_and_cos_angle(p)
+        self.prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
+        #self.prm_vertices = np.zeros((len(self.tmp_prm_vertices), 4))
+        #for pidx, p in enumerate(self.tmp_prm_vertices):
+        #    self.prm_vertices[pidx] = utils.encode_pose_with_sin_and_cos_angle(p)
         self.gnn_vertices = self.prm_vertices
         self.collisions = self.collisions.squeeze()
 

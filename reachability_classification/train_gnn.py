@@ -7,10 +7,11 @@ from torch.utils.data import Dataset, DataLoader
 from classifiers.gnn import SimpleGNNReachabilityNet as GNNReachabilityNet
 from classifiers.separate_q0_qg_qk_ck_gnn import Separateq0qgqkckGNNReachabilityNet
 from classifiers.gnn_multiple_passes import SimpleMultiplePassGNNReachabilityNet
-from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
-    Separateq0qgqkckMultiplePassGNNReachabilityNet as GNNReachabilityNet
 from classifiers.encoded_q_gnn import \
     EncodedQGNNReachabilityNet as GNNReachabilityNet
+
+from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
+    Separateq0qgqkckMultiplePassGNNReachabilityNet as GNNReachabilityNet
 
 from datasets.dataset import GNNReachabilityDataset
 import socket
@@ -71,6 +72,7 @@ def main():
     n_test = min(5000, len(testset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
     print "N test", len(testset)
+
 
     test_acc = get_test_acc(testloader, net, device, n_test)
     acc_list.append(test_acc)

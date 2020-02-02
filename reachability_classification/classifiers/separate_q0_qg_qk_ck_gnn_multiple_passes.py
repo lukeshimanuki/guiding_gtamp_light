@@ -114,8 +114,7 @@ class Separateq0qgqkckMultiplePassGNNReachabilityNet(nn.Module):
         neighboring_pairs[:, 0:t1_dim, :] = t1
         neighboring_pairs[:, t1_dim:, :] = t2
 
-        neighboring_pairs = neighboring_pairs.reshape((n_data, 1, neighboring_pairs.shape[1],
-                                                       neighboring_pairs.shape[-1]))
+        neighboring_pairs = neighboring_pairs.reshape((n_data, 1, neighboring_pairs.shape[1], neighboring_pairs.shape[-1]))
         msgs = self.edge_lin(neighboring_pairs).squeeze(dim=2)  # 0.4 seconds... but that's cause I am using a cpu
         return msgs
 
