@@ -148,9 +148,17 @@ class ShortestPathPaPState(PaPState):
                 path, _ = motion_planner.get_motion_plan(motion_plan_goals, cached_collisions={})
             [t.Enable(False) for t in self.problem_env.objects]
             rrt_motion_planner = BaseMotionPlanner(self.problem_env, 'rrt')
-            path, status = rrt_motion_planner.get_motion_plan(motion_plan_goals[0])
+            for _ in range(100):
+                path, status = rrt_motion_planner.get_motion_plan(motion_plan_goals[0])
+                if status == 'HasSolution':
+                    break
             [t.Enable(True) for t in self.problem_env.objects]
-            assert path is not None, 'Even RRT failed!'
+            try:
+                assert path is not None, 'Even RRT failed!'
+            except:
+                import pdb;
+                pdb.set_trace()
+
             self.cached_pick_paths[obj] = path
             op_instance.low_level_motion = path
 
