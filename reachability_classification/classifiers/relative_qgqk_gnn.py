@@ -45,7 +45,7 @@ class RelativeQgQkGNN(nn.Module):
         in_channels = out_channels * 2 + 2 * 2
         out_channels = 32
         self.edge_lin = nn.Sequential(
-            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
+            torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
             nn.LeakyReLU(),
             torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.LeakyReLU()
@@ -152,7 +152,6 @@ class RelativeQgQkGNN(nn.Module):
         v_features = torch.cat((v_features, collisions), 1)
         ##############
         msgs = self.compute_msgs(v_features, len(vertices))
-
         msgs = msgs.repeat((1, 1, 2))
         new_vertex = torch_scatter.scatter_mean(msgs, self.dest_edges, dim=-1)
         new_vertex = new_vertex[:, None, :, :]
