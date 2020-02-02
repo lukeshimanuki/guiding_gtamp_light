@@ -140,18 +140,15 @@ class GNNRelativeReachabilityDataset(GNNReachabilityDataset):
 
     def __getitem__(self, idx):
         if type(idx) is int:
-            prm_vertices = self.prm_vertices
             dim_q = self.q0s.shape[-1]
             q0 = np.array(self.q0s).reshape((len(self.q0s), dim_q))[idx][None, :]
             qg = np.array(self.qgs).reshape((len(self.qgs), dim_q))[idx][None, :]
-            repeat_q0 = np.repeat(q0, 618, axis=0)
-            repeat_qg = np.repeat(qg, 618, axis=0)
-            import pdb;pdb.set_trace()
-            v = np.hstack([prm_vertices, repeat_q0, repeat_qg, self.collisions[idx]])
+
+            rel_qg = self.compute_relative_config(q0, qg)
+            rel_key_configs = self.compute_relative_config(q0, self.prm_vertices)
+            repeat_qg = np.repeat(rel_qg, 618, axis=0)
+            v = np.hstack([rel_key_configs, repeat_qg, self.collisions[idx]])
         else:
-            prm_vertices = np.repeat(np.array(self.prm_vertices)[None, :], len(idx), axis=0)
-            q0s = np.repeat(np.array(self.q0s)[idx][:, None, :], 618, axis=1)
-            qgs = np.repeat(np.array(self.qgs)[idx][:, None, :], 618, axis=1)
-            v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
+            raise NotImplementedError
 
         return {'vertex': v, 'edges': self.edges, 'y': self.labels[idx]}

@@ -14,6 +14,9 @@ from datasets.dataset import GNNRelativeReachabilityDataset as GNNReachabilityDa
 from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
     Separateq0qgqkckMultiplePassGNNReachabilityNet as GNNReachabilityNet
 
+from classifiers.relative_qgqk_gnn import \
+    RelativeQgQkGNN as GNNReachabilityNet
+
 import socket
 import time
 import sys
