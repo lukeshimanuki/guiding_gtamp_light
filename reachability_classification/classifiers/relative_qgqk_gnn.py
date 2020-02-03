@@ -5,6 +5,13 @@ import torch
 import torch_scatter
 
 
+from torch import nn
+import numpy as np
+import time
+import torch
+import torch_scatter
+
+
 class RelativeQgQkGNN(nn.Module):
     def __init__(self, edges, n_key_configs, device, n_msg_passing):
         super(RelativeQgQkGNN, self).__init__()
@@ -32,7 +39,7 @@ class RelativeQgQkGNN(nn.Module):
             nn.LeakyReLU(),
         )
 
-        in_channels = out_channels + 2
+        in_channels = out_channels
         out_channels = 32
         self.vertex_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
@@ -42,7 +49,7 @@ class RelativeQgQkGNN(nn.Module):
         )
 
         # Edge model
-        in_channels = out_channels * 2
+        in_channels = out_channels * 2 + 2 * 2
         out_channels = 32
         self.edge_lin = nn.Sequential(
             torch.nn.Conv2d(1, out_channels, kernel_size=(in_channels, 1), stride=1),
@@ -145,11 +152,11 @@ class RelativeQgQkGNN(nn.Module):
         qk_qg_config_features = qk_qg_config_features.permute((0, 3, 2, 1))
         vertex_qkqg_feature = self.config_lin(qk_qg_config_features)
         vertex_qkqg_feature = vertex_qkqg_feature.permute((0, 3, 2, 1))
-        collisions = vertices[:, :, 6:]
-        collisions = collisions[:, None, :, :]
-        v_input = torch.cat((vertex_qkqg_feature, collisions), 3)
-        v_features = self.vertex_lin(v_input).squeeze(dim=-1)
+        v_features = self.vertex_lin(vertex_qkqg_feature).squeeze(dim=-1)
 
+        collisions = vertices[:, :, 6:]
+        collisions = collisions.permute((0, 2, 1))
+        v_features = torch.cat((v_features, collisions), 1)
         ##############
         msgs = self.compute_msgs(v_features, len(vertices))
         msgs = msgs.repeat((1, 1, 2))
@@ -180,3 +187,4 @@ class RelativeQgQkGNN(nn.Module):
         final_vertex_output = self.get_vertex_activations(vertices)
         graph_output = self.graph_output_lin(final_vertex_output)
         return graph_output
+
