@@ -125,8 +125,7 @@ class EncodedQGNNReachabilityNet(nn.Module):
         msgs = self.edge_lin(neighboring_pairs).squeeze(dim=2)  # 0.4 seconds... but that's cause I am using a cpu
         return msgs
 
-    def get_vertex_activations(self, vertices):
-        ### First round of vertex feature computation
+    def get_vertex_features(self, vertices):
         # v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
         vertex_qk_vals = vertices[:, :, 0:4]
         vertex_q0_vals = vertices[:, :, 4:8]
@@ -167,6 +166,12 @@ class EncodedQGNNReachabilityNet(nn.Module):
         config_features = torch.cat((vertex_qkq0_feature, vertex_qkqg_feature), 1)
 
         v_features = self.vertex_lin(config_features).squeeze(dim=-1)
+        return v_features
+
+    def get_vertex_activations(self, vertices):
+        ### First round of vertex feature computation
+        v_features = self.get_vertex_features(vertices)
+
         collisions = vertices[:, :, 12:]
         collisions = collisions.permute((0, 2, 1))
         v_features = torch.cat((v_features, collisions), 1)
