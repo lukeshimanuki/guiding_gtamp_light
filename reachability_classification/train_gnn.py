@@ -16,6 +16,8 @@ from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
 
 from classifiers.relative_qgqk_gnn import \
     RelativeQgQkGNN as GNNReachabilityNet
+from classifiers.bigger_relative_qgqk_gnn import \
+    BiggerRelativeQgQkGNN as GNNReachabilityNet
 
 import socket
 import time
