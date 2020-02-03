@@ -33,7 +33,6 @@ def get_test_acc(testloader, net, device, n_test):
         #print np.mean(np.vstack(accuracies)), len(np.vstack(accuracies))
         if len(np.vstack(accuracies)) >= n_test:
             break
-
     return np.mean(np.vstack(accuracies))
 
 
@@ -76,7 +75,6 @@ def main():
     testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
     print "N test", len(testset)
 
-
     test_acc = get_test_acc(testloader, net, device, n_test)
     acc_list.append(test_acc)
     for epoch in range(100):
@@ -97,7 +95,7 @@ def main():
         acc_list.append(test_acc)
         if test_acc == np.max(acc_list):
             save_weights(net, epoch, action_type, seed, n_msg_passing)
-        print acc_list, np.max(acc_list)
+        print epoch, np.max(acc_list)
 
 
 if __name__ == '__main__':
