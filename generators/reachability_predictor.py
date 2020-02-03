@@ -3,6 +3,24 @@ import numpy as np
 import torch
 
 
+def compute_relative_config(src_config, end_config):
+    src_config = np.array(src_config)
+    end_config = np.array(end_config)
+
+    assert len(src_config.shape) == 2, \
+        'Put configs in shapes (n_config,dim_config)'
+
+    rel_config = end_config - src_config
+    neg_idxs_to_fix = rel_config[:, -1] < -np.pi
+    pos_idxs_to_fix = rel_config[:, -1] > np.pi
+
+    # making unique rel angles; keep the range to [-pi,pi]
+    rel_config[neg_idxs_to_fix, -1] = rel_config[neg_idxs_to_fix, -1] + 2 * np.pi
+    rel_config[pos_idxs_to_fix, -1] = rel_config[pos_idxs_to_fix, -1] - 2 * np.pi
+
+    return rel_config
+
+
 class ReachabilityPredictor:
     def __init__(self, pick_net, place_net):
         self.pick_net = pick_net
@@ -10,9 +28,16 @@ class ReachabilityPredictor:
 
     def make_vertices(self, qg, key_configs, collisions):
         q0 = utils.get_robot_xytheta().squeeze()
-        repeat_q0 = np.repeat(np.array(q0)[None, :], 618, axis=0)
-        repeat_qg = np.repeat(np.array(qg)[None, :], 618, axis=0)
-        v = np.hstack([key_configs, repeat_q0, repeat_qg, collisions])
+        if 'Relative' in self.pick_net.__class__.__name__:
+            rel_qg = compute_relative_config(q0[None, :], qg[None, :])
+            rel_qk = compute_relative_config(q0[None, :], key_configs)
+            repeat_qg = np.repeat(np.array(rel_qg), 618, axis=0)
+            v = np.hstack([rel_qk, repeat_qg, collisions])
+        else:
+            repeat_q0 = np.repeat(np.array(q0)[None, :], 618, axis=0)
+            repeat_qg = np.repeat(np.array(qg)[None, :], 618, axis=0)
+            v = np.hstack([key_configs, repeat_q0, repeat_qg, collisions])
+
         v = v[None, :]
         v = torch.from_numpy(v).float()
         return v
@@ -23,7 +48,6 @@ class ReachabilityPredictor:
 
         pick_qg = op_parameters['pick']['q_goal']
         v = self.make_vertices(pick_qg, key_configs, collisions)
-
         is_pick_reachable = ((self.pick_net(v) > 0.5).cpu().numpy() == True)[0, 0]
 
         if is_pick_reachable:
