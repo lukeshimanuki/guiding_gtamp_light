@@ -127,9 +127,7 @@ class RelativeQgQkGNN(nn.Module):
         msgs = self.edge_lin(neighboring_pairs).squeeze(dim=2)  # 0.4 seconds... but that's cause I am using a cpu
         return msgs
 
-    def get_vertex_activations(self, vertices):
-        ### First round of vertex feature computation
-        # v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
+    def get_vertex_features(self, vertices):
         vertex_qk_vals = vertices[:, :, 0:3]
         vertex_qg_vals = vertices[:, :, 3:6]
 
@@ -153,6 +151,12 @@ class RelativeQgQkGNN(nn.Module):
         vertex_qkqg_feature = self.config_lin(qk_qg_config_features)
         vertex_qkqg_feature = vertex_qkqg_feature.permute((0, 3, 2, 1))
         v_features = self.vertex_lin(vertex_qkqg_feature).squeeze(dim=-1)
+        return v_features
+
+    def get_vertex_activations(self, vertices):
+        ### First round of vertex feature computation
+        # v = np.concatenate([prm_vertices, q0s, qgs, self.collisions[idx]], axis=-1)
+        v_features = self.get_vertex_features(vertices)
 
         collisions = vertices[:, :, 6:]
         collisions = collisions.permute((0, 2, 1))
@@ -175,6 +179,7 @@ class RelativeQgQkGNN(nn.Module):
         ##### end of msg passing
 
         final_vertex_output = self.vertex_output_lin(new_vertex).squeeze()
+        n_data = len(vertices)
         if n_data == 1:
             final_vertex_output = final_vertex_output[None, :]
         return final_vertex_output
