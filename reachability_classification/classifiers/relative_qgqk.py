@@ -12,9 +12,9 @@ import torch
 import torch_scatter
 
 
-class RelativeQgQkGNN(nn.Module):
+class RelativeQgQk(nn.Module):
     def __init__(self, edges, n_key_configs, device, n_msg_passing):
-        super(RelativeQgQkGNN, self).__init__()
+        super(RelativeQgQk, self).__init__()
         self.n_msg_passing = n_msg_passing
         in_channels = 2
         out_channels = 8

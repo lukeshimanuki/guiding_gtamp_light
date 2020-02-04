@@ -20,7 +20,7 @@ from classifiers.bigger_relative_qgqk_gnn import \
     BiggerRelativeQgQkGNN as GNNReachabilityNet
 
 from classifiers.relative_qgqk import \
-    RelativeQgQkGNN as GNNReachabilityNet
+    RelativeQgQk as GNNReachabilityNet
 
 
 import socket
