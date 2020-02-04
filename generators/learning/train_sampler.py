@@ -83,8 +83,6 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
     for traj_file_idx, traj_file in enumerate(traj_files):
         if 'pidx' not in traj_file:
             continue
-        if 'no_collision_at' in traj_file:
-            continue
         traj = pickle.load(open(traj_dir + traj_file, 'r'))
         if len(traj.states) == 0:
             continue
@@ -110,11 +108,11 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
             if action_type == 'pick':
                 state_vec = s.pick_collision_vector
             elif action_type == 'place':
-                #state_vec = s.place_collision_vector
-                state_vec = s.pick_collision_vector
+                state_vec = s.place_collision_vector
             else:
                 raise NotImplementedError
 
+            import pdb;pdb.set_trace()
             n_key_configs = state_vec.shape[1]
 
             is_goal_obj = utils.convert_binary_vec_to_one_hot(np.array([s.obj in s.goal_entities]))
@@ -186,7 +184,8 @@ def get_data(datatype, action_type, region, filtered):
     if datatype == 'n_objs_pack_4':
         data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/uses_rrt/sampler_trajectory_data/'
     else:
-        data_dir = '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
+        data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/'
+
     print "Loading data from", data_dir
     try:
         states, poses, actions, sum_rewards = load_data(root_dir + data_dir, action_type, region, filtered)
