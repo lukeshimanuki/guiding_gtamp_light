@@ -112,7 +112,6 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
             else:
                 raise NotImplementedError
 
-            import pdb;pdb.set_trace()
             n_key_configs = state_vec.shape[1]
 
             is_goal_obj = utils.convert_binary_vec_to_one_hot(np.array([s.obj in s.goal_entities]))
