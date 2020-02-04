@@ -19,6 +19,10 @@ from classifiers.relative_qgqk_gnn import \
 from classifiers.bigger_relative_qgqk_gnn import \
     BiggerRelativeQgQkGNN as GNNReachabilityNet
 
+from classifiers.relative_qgqk import \
+    RelativeQgQkGNN as GNNReachabilityNet
+
+
 import socket
 import time
 import sys
@@ -71,13 +75,13 @@ def main():
     learning_rate = 1e-3
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=32, shuffle=True, num_workers=20, pin_memory=True)
-    acc_list = []
 
     n_test = min(5000, len(testset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=32, shuffle=False, num_workers=20, pin_memory=True)
     print "N test", len(testset)
-
     test_acc = get_test_acc(testloader, net, device, n_test)
+
+    acc_list = []
     acc_list.append(test_acc)
     for epoch in range(100):
         print "Starting an epoch %d" % epoch

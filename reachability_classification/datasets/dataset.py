@@ -1,6 +1,5 @@
 from torch.autograd import Variable
 from torch.utils.data import Dataset
-from torch_geometric.data import Data
 
 import os
 import pickle
