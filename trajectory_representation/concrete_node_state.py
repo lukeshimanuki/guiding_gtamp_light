@@ -34,7 +34,7 @@ class ConcreteNodeState:
     def get_key_configs(self, given_konfs):
         if given_konfs is None:
             key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-            key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
+            #key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
         else:
             key_configs = given_konfs
         return key_configs
