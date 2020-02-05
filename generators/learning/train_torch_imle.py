@@ -45,7 +45,7 @@ def main():
         device = torch.device("cpu")
     else:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    net = DenseIMLETorch()
+    net = DenseIMLETorch().to(device)
     print device
     seed = 0
     torch.cuda.manual_seed_all(seed)
@@ -59,10 +59,11 @@ def main():
     batch_size = 32
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=20,
                                               pin_memory=True)
+    """
     n_test = min(5000, len(testset))
     testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=20,
                                              pin_memory=True)
-
+    """
     learning_rate = 1e-3
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     loss_fn = nn.MSELoss()
