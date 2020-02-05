@@ -19,8 +19,8 @@ class GeneratorDataset(Dataset):
                        'uses_rrt/sampler_trajectory_data/'
         cache_file_name = plan_exp_dir + '/' + action_type + '_cached_data.pkl'
         if os.path.isfile(cache_file_name):
-            q0s, qgs, collisions, actions = pickle.load(open(cache_file_name, 'r'))
-            return q0s, qgs, collisions, actions
+            cols, q0s, actions, goal_obj_poses, manip_obj_poses = pickle.load(open(cache_file_name, 'r'))
+            return cols, q0s, actions, goal_obj_poses, manip_obj_poses
 
         plan_exp_files = os.listdir(plan_exp_dir)
         np.random.shuffle(plan_exp_files)
@@ -120,14 +120,17 @@ class GNNDataset(GeneratorDataset):
     def __getitem__(self, idx):
         if type(idx) is int:
             prm_vertices = self.prm_vertices
+            n_konfs = len(prm_vertices)
             dim_q = self.q0s.shape[-1]
             q0 = np.array(self.q0s).reshape((len(self.q0s), dim_q))[idx][None, :]
-            repeat_q0 = np.repeat(q0, 615, axis=0)
+            repeat_q0 = np.repeat(q0, n_konfs, axis=0)
             goal_obj_poses = self.goal_obj_poses[idx].reshape((1, 4 * 3))
-            repeat_goal_obj_poses = np.repeat(goal_obj_poses, 615, axis=0)
+            repeat_goal_obj_poses = np.repeat(goal_obj_poses, n_konfs, axis=0)
             v = np.hstack([prm_vertices, repeat_q0, repeat_goal_obj_poses, self.cols[idx]])
         else:
             raise NotImplementedError
+
+        v = torch.from_numpy(v)
 
         return {'vertex': v, 'edges': self.edges, 'actions': self.actions[idx]}
 
