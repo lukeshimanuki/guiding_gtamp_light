@@ -31,11 +31,15 @@ class GeneratorDataset(Dataset):
         actions = []
         manip_obj_poses = []
         for plan_exp_file in plan_exp_files:
-            if 'cached' in plan_exp_file: continue
+            if 'pap_traj' not in plan_exp_file: continue
             traj = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
 
-            if len(traj.states) == 0:
-                continue
+            print plan_exp_file
+            try:
+                if len(traj.states) == 0:
+                    continue
+            except:
+                import pdb;pdb.set_trace()
 
             file_cols = []
             file_q0s = []
