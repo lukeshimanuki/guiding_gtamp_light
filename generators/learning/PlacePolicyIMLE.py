@@ -145,8 +145,7 @@ class PlacePolicyIMLE(PlacePolicy):
             world_states = (goal_flag_batch, rel_konf_batch, col_batch, pose_batch)
             noise_smpls = gaussian_noise(z_size=(batch_size, num_smpl_per_state, self.dim_noise))
             generated_actions = self.generate_k_smples_for_multiple_states(world_states, noise_smpls)
-            chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions,
-                                                                              noise_smpls)
+            chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(a_batch, generated_actions, noise_smpls)
             # validation data
             t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
             t_noise_smpls = gaussian_noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
