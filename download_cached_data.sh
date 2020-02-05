@@ -1,2 +1,2 @@
 #!/bin/sh
-scp -r beomjoon@phaedra.csail.mit.edu:/home/beomjoon/guiding_gtamp_light/planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/sampler_trajectory_data/*cache* ./planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/sampler_trajectory_data/
+scp -r beomjoon@phaedra.csail.mit.edu:/home/beomjoon/guiding_gtamp_light/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/*cach* ./planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/
