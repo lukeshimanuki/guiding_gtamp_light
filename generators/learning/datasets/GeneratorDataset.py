@@ -82,6 +82,13 @@ class GeneratorDataset(Dataset):
         goal_obj_poses = np.vstack(goal_obj_poses)
         manip_obj_poses = np.vstack(manip_obj_poses)
 
+        cols = Variable(torch.from_numpy(cols))
+        q0s = Variable(torch.from_numpy(q0s))
+        actions = Variable(torch.from_numpy(actions))
+        goal_obj_poses = Variable(torch.from_numpy(goal_obj_poses))
+        manip_obj_poses = Variable(torch.from_numpy(manip_obj_poses))
+        pickle.dump((cols, q0s, actions, goal_obj_poses, manip_obj_poses), open(cache_file_name, 'wb'))
+
         return cols, q0s, actions, goal_obj_poses, manip_obj_poses
 
     def __len__(self):
