@@ -15,7 +15,8 @@ class PickPolicyIMLECombinationOfQg(PlacePolicyIMLECombinationOfQg):
 
         noise_input = RepeatVector(self.n_key_confs)(self.noise_input)
         noise_input = Reshape((self.n_key_confs, self.dim_noise, 1))(noise_input)
-        concat_input = Concatenate(axis=2)([self.goal_flag_input, pose_input, noise_input, self.key_config_input])
+        import pdb;pdb.set_trace()
+        concat_input = Concatenate(axis=2)([pose_input, noise_input, self.key_config_input])
 
         n_dim = concat_input.shape[2]._value
         n_filters = 32
