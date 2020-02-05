@@ -13,10 +13,10 @@ def generate_k_smples_for_multiple_states(states, noise_smpls, net):
     k = noise_smpls.shape[1]
     for j in range(k):
         actions = net(states, noise_smpls[:, j, :])
-        k_smpls.append(actions.detach().numpy())
-    k_smpls = np.array(k_smpls)
-    new_k_smpls = np.array(k_smpls).swapaxes(0, 1)
-    return new_k_smpls
+        k_smpls.append(actions[None, :])
+    k_smpls = torch.cat(k_smpls)
+    k_smpls = k_smpls.permute((1, 0, 2))
+    return k_smpls
 
 
 def find_the_idx_of_closest_point_to_x1(x1, database):
@@ -27,10 +27,12 @@ def find_the_idx_of_closest_point_to_x1(x1, database):
 
 def get_closest_noise_smpls_for_each_action(actions, generated_actions, noise_smpls):
     chosen_noise_smpls = []
-    for true_action, generated, noise_smpls_for_action in zip(actions, generated_actions, noise_smpls):
-        closest_point, closest_point_idx = find_the_idx_of_closest_point_to_x1(true_action, generated)
+    idx = 0
+    for true_action, generated_action, noise_smpls_for_action in zip(actions, generated_actions, noise_smpls):
+        closest_point, closest_point_idx = find_the_idx_of_closest_point_to_x1(true_action, generated_action)
         noise_that_generates_closest_point_to_true_action = noise_smpls_for_action[closest_point_idx]
         chosen_noise_smpls.append(noise_that_generates_closest_point_to_true_action[None, :])
+        idx += 1
     return chosen_noise_smpls
 
 
