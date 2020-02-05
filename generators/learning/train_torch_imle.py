@@ -20,9 +20,8 @@ def generate_k_smples_for_multiple_states(states, noise_smpls, net):
 
 
 def find_the_idx_of_closest_point_to_x1(x1, database):
-    x1 = x1.numpy()
-    l2_distances = np.linalg.norm(x1 - database, axis=-1)
-    return database[np.argmin(l2_distances)], np.argmin(l2_distances)
+    l2_distances = (x1.float() - database.float()).norm(dim = -1)
+    return database[torch.argmin(l2_distances)], torch.argmin(l2_distances)
 
 
 def get_closest_noise_smpls_for_each_action(actions, generated_actions, noise_smpls):
