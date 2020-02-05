@@ -231,7 +231,6 @@ def train(config):
 
     #### This perhaps needs to be refactored ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
 
     if config.region != 'home_region':
         indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
@@ -247,8 +246,11 @@ def train(config):
     n_key_configs = len(key_configs)
     key_configs = key_configs.reshape((1, n_key_configs, 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
+
     print "Number of data", len(states)
     n_collisions = states.shape[1]
+    assert n_key_configs == n_collisions
+    assert n_key_configs == 618
     policy = create_policy(config, n_collisions, n_key_configs)
     policy.policy_model.summary()
     policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
