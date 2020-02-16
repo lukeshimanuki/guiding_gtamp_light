@@ -85,7 +85,7 @@ def main():
 
             chosen_noise_smpls = torch.cat(chosen_noise_smpls)
             pred = net(vertices, chosen_noise_smpls)  # this is computing the forward pass
-            loss = loss_fn(pred, target_actions)
+            loss = loss_fn(pred, target_actions.float())
             loss.backward()  # this is computing the dloss/dx for every layer
             optimizer.step()  # taking the gradient step
 
