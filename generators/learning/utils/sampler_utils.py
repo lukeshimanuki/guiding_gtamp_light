@@ -82,6 +82,7 @@ def prepare_input(smpler_state, noise_batch, delete=False, region=None, filter_k
     collisions = smpler_state.pick_collision_vector
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+    """
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
     if delete:
         indices_to_delete = get_indices_to_delete(region, key_configs)
@@ -91,6 +92,7 @@ def prepare_input(smpler_state, noise_batch, delete=False, region=None, filter_k
 
     if filter_konfs:
         key_configs = data_processing_utils.filter_configs_that_are_too_close(key_configs)
+    """
 
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
