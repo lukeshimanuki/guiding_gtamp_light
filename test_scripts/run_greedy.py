@@ -8,6 +8,7 @@ import os
 import torch
 import tensorflow as tf
 import collections
+import sys
 
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
@@ -27,6 +28,10 @@ from reachability_classification.classifiers.separate_q0_qg_qk_ck_gnn_multiple_p
     Separateq0qgqkckMultiplePassGNNReachabilityNet as ReachabilityNet
 
 from test_reachability_clf import load_weights
+
+
+from reachability_classification.classifiers.relative_qgqk_gnn import \
+    RelativeQgQkGNN as GNNReachabilityNet
 
 
 def get_problem_env(config, goal_region, goal_objs):
@@ -57,12 +62,12 @@ def get_solution_file_name(config):
         root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/raw/uses_rrt/'
+        root_dir = root_dir + '/planning_experience/raw/uses_rrt/use_reachability_clf_' + str(config.use_reachability_clf) + '/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/sahs_results/domain_%s/n_objs_pack_%d' \
-                            % (config.domain, config.n_objs_pack)
+        solution_file_dir = root_dir + '/test_results/sahs_results/uses_rrt/uses_reachability_clf_%s/domain_%s/n_objs_pack_%d' \
+                            % (config.use_reachability_clf, config.domain, config.n_objs_pack)
     solution_file_dir += '/' + config.h_option + '/'
 
     q_config = '/q_config_num_train_' + str(config.num_train) + \
@@ -255,6 +260,19 @@ def make_pklable(plan):
 
 def main():
     config = parse_arguments()
+    solution_file_name = get_solution_file_name(config)
+    is_problem_solved_before = os.path.isfile(solution_file_name)
+    if is_problem_solved_before and not config.f:
+        print "***************Already solved********************"
+        with open(solution_file_name, 'rb') as f:
+            trajectory = pickle.load(f)
+            success = trajectory['success']
+            tottime = trajectory['tottime']
+            num_nodes = trajectory['num_nodes']
+            plan_length = len(trajectory['plan']) if success else 0
+            print 'Time: %.2f Success: %d Plan length: %d Num nodes: %d' % (tottime, success, plan_length, num_nodes)
+        sys.exit(-1)
+
     if config.gather_planning_exp:
         config.timelimit = np.inf
     np.random.seed(config.pidx)
@@ -281,58 +299,45 @@ def main():
     if config.use_reachability_clf:
         device = torch.device("cpu")
         edges = pickle.load(open('prm_edges_for_reachability_gnn.pkl', 'r'))
-        pick_net = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
-        place_net = ReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
-        load_weights(pick_net, 94, 'pick', 0, 0, device)
-        load_weights(place_net, 45, 'place', 0, 0, device)
+        pick_net = GNNReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
+        place_net = GNNReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
+        load_weights(pick_net, 24, 'pick', 1, 0, device)
+        load_weights(place_net, 35, 'place', 1, 0, device)
         reachability_predictor = ReachabilityPredictor(pick_net, place_net)
     else:
         reachability_predictor = None
 
-    solution_file_name = get_solution_file_name(config)
-    is_problem_solved_before = os.path.isfile(solution_file_name)
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
-    if is_problem_solved_before and not config.f:
-        print "***************Already solved********************"
-        with open(solution_file_name, 'rb') as f:
-            trajectory = pickle.load(f)
-            success = trajectory['success']
-            tottime = trajectory['tottime']
-            num_nodes = trajectory['num_nodes']
-            plan_length = len(trajectory['plan']) if success else 0
-    else:
-        t = time.time()
-        nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler,
-                                                       reachability_predictor)
-        tottime = time.time() - t
-        success = plan is not None
-        plan_length = len(plan) if success else 0
-        if success and config.domain == 'one_arm_mover':
-            make_pklable(plan)
+    t = time.time()
+    nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler,
+                                                   reachability_predictor)
+    tottime = time.time() - t
+    success = plan is not None
+    plan_length = len(plan) if success else 0
+    if success and config.domain == 'one_arm_mover':
+        make_pklable(plan)
 
+    h_for_sampler_training = []
+    if success:
         h_for_sampler_training = []
-        if success:
-            h_for_sampler_training = []
-            for n in nodes_to_goal:
-                h_for_sampler_training.append(n.h_for_sampler_training)
-            # todo check to see if h[t+1] - h[t] is indeed a mark of success
-            # because at some point, the value goes down and then up, but the plan still leads to a goal.
-            # Why would it go up? I would have to see the states as I simulate the plan.
+        for n in nodes_to_goal:
+            h_for_sampler_training.append(n.h_for_sampler_training)
+        # todo check to see if h[t+1] - h[t] is indeed a mark of success
+        # because at some point, the value goes down and then up, but the plan still leads to a goal.
+        # Why would it go up? I would have to see the states as I simulate the plan.
 
-        nodes = None
-
-        # todo save the goal objs and goal regions in the future
-        data = {
-            'n_objs_pack': config.n_objs_pack,
-            'tottime': tottime,
-            'success': success,
-            'plan_length': plan_length,
-            'num_nodes': num_nodes,
-            'plan': plan,
-            'hvalues': h_for_sampler_training
-        }
-        with open(solution_file_name, 'wb') as f:
-            pickle.dump(data, f)
+    # todo save the goal objs and goal regions in the future
+    data = {
+        'n_objs_pack': config.n_objs_pack,
+        'tottime': tottime,
+        'success': success,
+        'plan_length': plan_length,
+        'num_nodes': num_nodes,
+        'plan': plan,
+        'hvalues': h_for_sampler_training
+    }
+    with open(solution_file_name, 'wb') as f:
+        pickle.dump(data, f)
     print 'Time: %.2f Success: %d Plan length: %d Num nodes: %d' % (tottime, success, plan_length, num_nodes)
 
 
