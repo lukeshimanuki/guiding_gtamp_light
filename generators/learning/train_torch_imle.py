@@ -79,7 +79,7 @@ def main():
 
             optimizer.zero_grad()
 
-            noise_smpls = torch.randn(batch_size, num_smpl_per_state, dim_noise, device=device)
+            noise_smpls = torch.randn(len(vertices), num_smpl_per_state, dim_noise, device=device)
             generated_actions = generate_k_smples_for_multiple_states(vertices, noise_smpls, net)
             chosen_noise_smpls = get_closest_noise_smpls_for_each_action(target_actions, generated_actions, noise_smpls)
 
