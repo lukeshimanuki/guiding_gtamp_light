@@ -164,7 +164,7 @@ def compute_clf_rates_from_diff_pinstances(problem_env, key_configs, net, action
                                            discrete_parameters={'object': target_obj, 'place_region':'home_region'})
                 op_parameters, status = checker.check_feasibility(abstract_action, pick_param)
             utils.two_arm_pick_object(target_obj, op_parameters['pick'])
-            region_name = 'home_region'
+            region_name = 'loading_region'
         else:
             region_name = 'loading_region'
 
@@ -199,7 +199,7 @@ def main():
         import pdb;
         pdb.set_trace()
 
-    problem_seed = 0
+    problem_seed = 1
     problem_env, openrave_env = create_environment(problem_seed)
 
     if 'Encoded' in net.__class__.__name__:
@@ -210,26 +210,39 @@ def main():
     else:
         key_configs, _ = pickle.load(open('prm.pkl', 'r'))
 
-    compute_clf_acc = True
+    compute_clf_acc = False
     if compute_clf_acc:
         compute_clf_rates_from_diff_pinstances(problem_env, key_configs, net, action_type)
 
-    import pdb;
-    pdb.set_trace()
     utils.viewer()
+    if action_type == 'place':
+        status = "NoSolution"
+        while status != "HasSolution":
+            sampler = UniformSampler(problem_env.regions['home_region'])
+            checker = TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick(problem_env)
+            pick_param = sampler.sample()
+            target_obj = problem_env.objects[np.random.randint(8)]
+            abstract_action = Operator(operator_type='two_arm_pick_two_arm_place',
+                                       discrete_parameters={'object': target_obj, 'place_region': 'home_region'})
+            op_parameters, status = checker.check_feasibility(abstract_action, pick_param)
+        utils.two_arm_pick_object(target_obj, op_parameters['pick'])
+
     collisions = utils.compute_occ_vec(key_configs)
     col = utils.convert_binary_vec_to_one_hot(collisions.squeeze())
-    qg = sample_qg(problem_env, 'loading_region')
+    qg = sample_qg(problem_env, 'home_region')
     utils.visualize_path([qg])
-    import pdb;
-    pdb.set_trace()
 
     vertex = make_vertices(qg, key_configs, col, net)
     vertex_outputs = net.get_vertex_activations(vertex).data.numpy().squeeze()
+    """
     top_activations = np.max(vertex_outputs, axis=0)
-    top_k_args = np.argsort(abs(top_activations))[-50:]
+    top_k_args = np.argsort(abs(top_activations))[-10:]
+    """
+    top_k_args = np.argsort(abs(vertex_outputs))[-30:]
     top_k_key_configs = key_configs[top_k_args, :]
 
+    import pdb;
+    pdb.set_trace()
     utils.visualize_path(top_k_key_configs)
     # todo visualize the activations
 
