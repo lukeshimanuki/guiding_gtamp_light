@@ -10,13 +10,13 @@ class DenseIMLETorch(nn.Module):
         out_channels = 512
         final_out_channels = 1
         self.x_lin = nn.Sequential(
-            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),  # Do this with conv1d
+            torch.nn.Conv2d(1, out_channels, kernel_size=(1, in_channels), stride=1),
             nn.ReLU(),
-            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),  # Do this with conv1d
+            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.ReLU(),
-            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),  # Do this with conv1d
+            torch.nn.Conv2d(out_channels, out_channels, kernel_size=(1, 1), stride=1),
             nn.ReLU(),
-            torch.nn.Conv2d(out_channels, final_out_channels, kernel_size=(1, 1), stride=1),  # Do this with conv1d
+            torch.nn.Conv2d(out_channels, final_out_channels, kernel_size=(1, 1), stride=1),
             nn.ReLU()
         )
         """
