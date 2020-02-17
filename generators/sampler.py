@@ -1,5 +1,15 @@
 import numpy as np
+import time
+
 from gtamp_utils.utils import get_pick_domain, get_place_domain
+from gtamp_utils import utils
+
+from trajectory_representation.concrete_node_state import ConcreteNodeState
+from generators.learning.PlacePolicyIMLE import gaussian_noise
+from generators.learning.utils.sampler_utils import generate_pick_and_place_batch
+from generators.learning.utils.sampler_utils import unprocess_pick_and_place_smpls
+
+noise = gaussian_noise
 
 
 class Sampler:
@@ -26,3 +36,46 @@ class UniformSampler(Sampler):
         domain_min = self.domain[0]
         domain_max = self.domain[1]
         return np.random.uniform(domain_min, domain_max, (1, dim_parameters)).squeeze()
+
+
+class LearnedSampler(Sampler):
+    def __init__(self, policy, abstract_state, abstract_action):
+        Sampler.__init__(self, policy)
+        self.key_configs = abstract_state.prm_vertices
+        self.abstract_state = abstract_state
+        self.obj = abstract_action.discrete_parameters['object']
+        self.region = abstract_action.discrete_parameters['place_region']
+
+        goal_entities = self.abstract_state.goal_entities
+        self.smpler_state = ConcreteNodeState(abstract_state.problem_env, self.obj, self.region,
+                                              goal_entities,
+                                              key_configs=self.key_configs)
+
+        self.noises_used = []
+        self.tried_smpls = []
+
+        z_smpls = noise(z_size=(101, 7))
+        smpls = generate_pick_and_place_batch(self.smpler_state, self.policy, z_smpls)
+        self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
+        self.policy_smpl_idx = 0
+        """
+        orig_color = utils.get_color_of(self.obj)
+        utils.set_color(self.obj, [0, 1, 0])
+        utils.visualize_placements(self.policy_smpl_batch[0:100, -3:], self.obj)
+        utils.set_color(self.obj, orig_color)
+        """
+
+    def sample(self):
+        smpl = self.policy_smpl_batch[self.policy_smpl_idx]
+        self.policy_smpl_idx += 1
+        if self.policy_smpl_idx >= len(self.policy_smpl_batch):
+            z_smpls = noise(z_size=(100, 7))
+            stime = time.time()
+            smpls = generate_pick_and_place_batch(self.smpler_state, self.policy, z_smpls)
+            self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
+            # print "Prediction time for further sampling", time.time() - stime
+            self.policy_smpl_idx = 0
+        self.tried_smpls.append(smpl)
+        # parameters = self.sample_from_uniform()
+        # parameters[6:] = place_smpl
+        return smpl

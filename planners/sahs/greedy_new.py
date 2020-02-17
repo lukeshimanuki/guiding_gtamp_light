@@ -6,7 +6,7 @@ from node import Node
 from gtamp_utils import utils
 
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
-from generators.sampler import UniformSampler
+from generators.sampler import UniformSampler, LearnedSampler
 from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
 from trajectory_representation.operator import Operator
@@ -39,7 +39,18 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
                                        reachability_clf=reachability_clf)
         smpled_param = generator.sample_next_point()
     else:
-        raise NotImplementedError
+        if 'AARegion' in str(type(place_region)):
+            place_region = place_region.name
+        if 'home' in place_region:
+            learned_sampler['place'] = learned_sampler['place_home']
+        else:
+            learned_sampler['place'] = learned_sampler['place_loading']
+        sampler = LearnedSampler(learned_sampler, abstract_state, abstract_action)
+        generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                       n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                       reachability_clf=reachability_clf)
+        smpled_param = generator.sample_next_point()
 
     return smpled_param
 
@@ -98,8 +109,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
             # todo save the smpler with the abstract node
-            smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler, reachability_clf,
-                                                        config)
+            smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler, reachability_clf, config)
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param

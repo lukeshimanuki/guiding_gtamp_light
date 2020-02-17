@@ -217,23 +217,25 @@ def get_learned_smpler(sampler_seed, epoch, algo):
     print "Creating the learned sampler.."
     atype = 'place'
     placeholder_config_definition = collections.namedtuple('config',
-                                                           'algo dtype tau seed atype epoch region pick_seed place_seed')
+                                                           'algo dtype tau seed atype epoch region pick_seed place_seed filtered')
     placeholder_config = placeholder_config_definition(
         algo=algo,
         tau=1.0,
-        dtype='n_objs_pack_4',
+        dtype='n_objs_pack_1',
         seed=sampler_seed,
         atype=atype,
         epoch=epoch,
         region='loading_region',
         pick_seed=0,
-        place_seed=sampler_seed
+        place_seed=sampler_seed,
+        filtered=False
     )
     placeholder_config = placeholder_config._replace(atype='pick')
     pick_policy = create_policy(placeholder_config)
 
     placeholder_config = placeholder_config._replace(atype='place')
     placeholder_config = placeholder_config._replace(region='loading_region')
+    placeholder_config = placeholder_config._replace(filtered=True)
     placeholder_config = placeholder_config._replace(place_seed=sampler_seed)
     loading_place_policy = create_policy(placeholder_config)['place']
 
