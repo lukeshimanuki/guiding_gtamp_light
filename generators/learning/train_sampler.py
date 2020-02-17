@@ -231,12 +231,13 @@ def train(config):
 
     #### This perhaps needs to be refactored ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-
+    """
     if config.region != 'home_region':
         indices_to_delete = sampler_utils.get_indices_to_delete(config.region, key_configs)
         key_configs = np.delete(key_configs, indices_to_delete, axis=0)
         states = np.delete(states, indices_to_delete, axis=1)
         goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
+    """
     ############
 
     # key_configs = [utils.decode_pose_with_sin_and_cos_angle(a) for a in actions]
