@@ -72,6 +72,7 @@ def compute_state(obj, region, problem_env):
     #                 'rectangular_packing_box3', 'rectangular_packing_box4', 'home_region']
     goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
+
     return ConcreteNodeState(problem_env, obj, region, goal_entities)
 
 
@@ -226,7 +227,8 @@ def create_policy(place_holder_config):
         pick_place_holder_config = place_holder_config._replace(atype='pick')
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
         pick_place_holder_config = pick_place_holder_config._replace(seed=place_holder_config.pick_seed)
-        pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 291, 291,
+        pick_place_holder_config = pick_place_holder_config._replace(filtered=False)
+        pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 618, 618,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         policy = pick_policy
     elif place_holder_config.atype == 'place':
@@ -234,7 +236,6 @@ def create_policy(place_holder_config):
         pick_place_holder_config = pick_place_holder_config._replace(region='loading_region')
         pick_place_holder_config = pick_place_holder_config._replace(seed=place_holder_config.pick_seed)
         pick_place_holder_config = pick_place_holder_config._replace(filtered=False)
-
         pick_policy = model_creation_utils.create_policy(pick_place_holder_config, 618, 618,
                                                          given_action_data_mode='PICK_grasp_params_and_ir_parameters_PLACE_abs_base')
         """
