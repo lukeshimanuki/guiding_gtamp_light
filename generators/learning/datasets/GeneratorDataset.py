@@ -30,11 +30,11 @@ class GeneratorDataset(Dataset):
         cols = []
         actions = []
         manip_obj_poses = []
-        for plan_exp_file in plan_exp_files:
+        for idx, plan_exp_file in enumerate(plan_exp_files):
             if 'pap_traj' not in plan_exp_file: continue
             traj = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
 
-            print plan_exp_file
+            print "%d / %d" % (float(idx), len(plan_exp_files))
             try:
                 if len(traj.states) == 0:
                     continue
@@ -58,13 +58,16 @@ class GeneratorDataset(Dataset):
 
                 if action_type == 'pick':
                     collisions = s.pick_collision_vector
+                    q0 = s.abs_robot_pose.squeeze()
                 elif action_type == 'place':
                     collisions = s.place_collision_vector
+                    q0 = a['pick_abs_base_pose'].squeeze()
                 else:
                     raise NotImplementedError
 
+                # todo use pick base pose as q0 for action_type=pick
+                file_q0s.append(q0)
                 file_cols.append(collisions)
-                file_q0s.append(s.abs_robot_pose.squeeze())
                 file_manip_obj_poses.append(s.abs_obj_pose.squeeze())
                 file_goal_obj_poses.append([p.squeeze() for p in s.abs_goal_obj_poses])
 
@@ -119,6 +122,7 @@ class GNNDataset(GeneratorDataset):
 
     def __getitem__(self, idx):
         if type(idx) is int:
+            # where is the pick robot pose?
             prm_vertices = self.prm_vertices
             n_konfs = len(prm_vertices)
             dim_q = self.q0s.shape[-1]
