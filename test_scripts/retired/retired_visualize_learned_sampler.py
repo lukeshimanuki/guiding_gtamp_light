@@ -102,13 +102,28 @@ def visualize_in_training_env(problem_env, learned_sampler, plan):
         action.execute()
 
 
-def visualize_samples(samples, problem_env, target_obj_name):
+def visualize_samples(samples, problem_env, target_obj_name, policy_mode):
     target_obj = problem_env.env.GetKinBody(target_obj_name)
 
     orig_color = utils.get_color_of(target_obj)
     utils.set_color(target_obj, [1, 0, 0])
 
-    utils.visualize_placements(samples, target_obj_name)
+    if policy_mode == 'full':
+        picks, places = samples[0], samples[1]
+        utils.visualize_path(picks[0:20, :])
+        utils.visualize_path(picks[20:40, :])
+        utils.visualize_path(picks[40:60, :])
+        utils.visualize_path(picks[60:80, :])
+    elif policy_mode == 'pick':
+        # assumes that pick sampler is predicting ir parameters
+        pick_base_poses = []
+        for p in samples:
+            _, pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(target_obj, p)
+            pick_base_poses.append(pose)
+        pick_base_poses = np.array(pick_base_poses)
+        utils.visualize_path(pick_base_poses[0:10, :], )
+    else:
+        utils.visualize_placements(samples, target_obj_name)
     utils.set_color(target_obj, orig_color)
 
 
@@ -343,14 +358,48 @@ def check_feasibility_rate(problem_env, atype, sampler, placeholder_config):
 
 
 def main():
+    seed = int(sys.argv[1])
+    epoch = sys.argv[2]
+    algo = str(sys.argv[3])
+
+    atype = 'place'
+    placeholder_config_definition = collections.namedtuple('config',
+                                                           'algo dtype tau seed atype epoch region pick_seed place_seed filtered')
+    placeholder_config = placeholder_config_definition(
+        algo=algo,
+        tau=1.0,
+        dtype='n_objs_pack_1',
+        seed=seed,
+        atype=atype,
+        epoch=epoch,
+        region='home_region',
+        pick_seed=0,
+        place_seed=seed,
+        filtered=True
+    )
+
     problem_seed = 0
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
 
+    sampler = create_policy(placeholder_config)
+    load_sampler_weights(sampler, placeholder_config)
 
+    #check_feasibility_rate(problem_env, atype, sampler, placeholder_config)
+    use_uniform = False
+    utils.viewer()
+    # obj_to_visualize = 'square_packing_box3'
+    obj_to_visualize = 'rectangular_packing_box2'
+    obj_to_visualize = 'rectangular_packing_box2'
+
+    obj_to_visualize = 'rectangular_packing_box1'
     obj_to_visualize = 'square_packing_box4'
-    visualize_samples(smpls, problem_env, obj_to_visualize)
+    smpls = get_smpls(problem_env, atype, sampler, obj_to_visualize, placeholder_config, use_uniform)
+    if atype == 'place':
+        visualize_samples(smpls[1], problem_env, obj_to_visualize, atype)
+    else:
+        visualize_samples(smpls, problem_env, obj_to_visualize, atype)
 
 
 if __name__ == '__main__':
