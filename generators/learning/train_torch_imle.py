@@ -2,13 +2,12 @@ import socket
 import torch
 from torch import nn
 
-from datasets.GeneratorDataset import GNNDataset
-from DenseIMLETorch import DenseIMLETorch
-import numpy as np
+from datasets.GeneratorDataset import StandardDataset
+from pytorch_implementations.SuggestionNetwork import SuggestionNetwork
 
 
 def generate_k_smples_for_multiple_states(states, noise_smpls, net):
-    #goal_flags, rel_konfs, collisions, poses = states
+    # goal_flags, rel_konfs, collisions, poses = states
     k_smpls = []
     k = noise_smpls.shape[1]
     for j in range(k):
@@ -20,7 +19,7 @@ def generate_k_smples_for_multiple_states(states, noise_smpls, net):
 
 
 def find_the_idx_of_closest_point_to_x1(x1, database):
-    l2_distances = (x1.float() - database.float()).norm(dim = -1)
+    l2_distances = (x1.float() - database.float()).norm(dim=-1)
     return database[torch.argmin(l2_distances)], torch.argmin(l2_distances)
 
 
@@ -46,13 +45,14 @@ def main():
         device = torch.device("cpu")
     else:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    net = DenseIMLETorch().to(device)
+    net = SuggestionNetwork().to(device)
+
     print device
     seed = 0
     torch.cuda.manual_seed_all(seed)
 
     action_type = 'place'
-    dataset = GNNDataset(action_type, 'home_region', True)
+    dataset = StandardDataset(action_type, 'home_region', True)
 
     n_train = int(len(dataset) * 100)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
@@ -70,6 +70,8 @@ def main():
         print "Starting an epoch %d" % epoch
         for i, batch in enumerate(trainloader, 0):
             target_actions = batch['actions'].to(device)
+            import pdb;pdb.set_trace()
+            """
             vertices = batch['vertex'].float().to(device).float()
             vertices = vertices[:, None, :, :]
 
@@ -78,6 +80,7 @@ def main():
             noise_smpls = torch.randn(len(vertices), num_smpl_per_state, dim_noise, device=device)
             generated_actions = generate_k_smples_for_multiple_states(vertices, noise_smpls, net)
             chosen_noise_smpls = get_closest_noise_smpls_for_each_action(target_actions, generated_actions, noise_smpls)
+            """
 
             chosen_noise_smpls = torch.cat(chosen_noise_smpls)
             pred = net(vertices, chosen_noise_smpls)  # this is computing the forward pass
@@ -86,7 +89,6 @@ def main():
             optimizer.step()  # taking the gradient step
 
         save_weights(net, epoch, action_type, seed)
-
 
 
 if __name__ == '__main__':

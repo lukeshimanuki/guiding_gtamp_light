@@ -39,7 +39,8 @@ class GeneratorDataset(Dataset):
                 if len(traj.states) == 0:
                     continue
             except:
-                import pdb;pdb.set_trace()
+                import pdb;
+                pdb.set_trace()
 
             file_cols = []
             file_q0s = []
@@ -65,7 +66,6 @@ class GeneratorDataset(Dataset):
                 else:
                     raise NotImplementedError
 
-                # todo use pick base pose as q0 for action_type=pick
                 file_q0s.append(q0)
                 file_cols.append(collisions)
                 file_manip_obj_poses.append(s.abs_obj_pose.squeeze())
@@ -103,6 +103,21 @@ class GeneratorDataset(Dataset):
 
     def __getitem__(self, idx):
         raise NotImplementedError
+
+
+class StandardDataset(GeneratorDataset):
+    def __init__(self, action_type, desired_region, use_filter):
+        super(StandardDataset, self).__init__(action_type, desired_region, use_filter)
+
+    def __getitem__(self, idx):
+        data = {
+            'collision': self.cols[idx],
+            'q0': self.q0s[idx],
+            'action': self.actions[idx],
+            'goal_poses': self.goal_obj_poses[idx],
+            'obj_pose': self.manip_obj_poses[idx]
+        }
+        return data
 
 
 class GNNDataset(GeneratorDataset):
