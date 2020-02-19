@@ -34,9 +34,9 @@ def get_closest_noise_smpls_for_each_action(actions, generated_actions, noise_sm
     return chosen_noise_smpls
 
 
-def save_weights(net, epoch, action_type, seed):
+def save_weights(net, epoch, action_type, seed, region):
     net_name = net.__class__._get_name(net)
-    PATH = './generators/learning/torch_weights/atype_%s_%s_seed_%d_epoch_%d.pt' % (action_type, net_name, seed, epoch)
+    PATH = './generators/learning/torch_weights/atype_%s_%s_region_%s_seed_%d_epoch_%d.pt' % (action_type, net_name, region, seed, epoch)
     torch.save(net.state_dict(), PATH)
 
 
@@ -52,6 +52,7 @@ def main():
     torch.cuda.manual_seed_all(seed)
 
     action_type = 'place'
+    region = 'loading_region'
     dataset = StandardDataset(action_type, 'home_region', True)
 
     n_train = int(len(dataset) * 100)
@@ -88,7 +89,7 @@ def main():
             loss.backward()  # this is computing the dloss/dx for every layer
             optimizer.step()  # taking the gradient step
 
-        save_weights(net, epoch, action_type, seed)
+        save_weights(net, epoch, action_type, seed, region)
 
 
 if __name__ == '__main__':
