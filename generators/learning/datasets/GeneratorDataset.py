@@ -17,7 +17,7 @@ class GeneratorDataset(Dataset):
     def get_data(self, action_type):
         plan_exp_dir = './planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/' \
                        'uses_rrt/sampler_trajectory_data/'
-        cache_file_name = plan_exp_dir + '/' + action_type + '_cached_data.pkl'
+        cache_file_name = plan_exp_dir + '/' + action_type + '_' + self.desired_region + '_cached_data.pkl'
         if os.path.isfile(cache_file_name):
             cols, q0s, actions, goal_obj_poses, manip_obj_poses = pickle.load(open(cache_file_name, 'r'))
             return cols, q0s, actions, goal_obj_poses, manip_obj_poses
@@ -49,9 +49,9 @@ class GeneratorDataset(Dataset):
             rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
             for s, a, reward in zip(traj.states, traj.actions, rewards):
                 is_move_to_goal_region = s.region in s.goal_entities
-                if self.desired_region == 'home_region' and not is_move_to_goal_region:
+                if self.desired_region == 'home_region' and not is_move_to_goal_region and action_type=='place':
                     continue
-                if self.desired_region == 'loading_region' and is_move_to_goal_region:
+                if self.desired_region == 'loading_region' and is_move_to_goal_region and action_type=='place':
                     continue
                 if reward <= 0 and self.use_filter:
                     continue
@@ -76,12 +76,12 @@ class GeneratorDataset(Dataset):
                 else:
                     action = a['place_abs_base_pose']
                 file_actions.append(action)
-
-            cols.append(file_cols)
-            q0s.append(file_q0s)
-            actions.append(file_actions)
-            goal_obj_poses.append(file_goal_obj_poses)
-            manip_obj_poses.append(file_manip_obj_poses)
+            if len(file_cols) > 0:
+                cols.append(file_cols)
+                q0s.append(file_q0s)
+                actions.append(file_actions)
+                goal_obj_poses.append(file_goal_obj_poses)
+                manip_obj_poses.append(file_manip_obj_poses)
 
         cols = np.vstack(cols).squeeze()
         q0s = np.vstack(q0s)
