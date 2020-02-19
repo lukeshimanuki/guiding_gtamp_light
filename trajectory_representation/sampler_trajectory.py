@@ -221,9 +221,8 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
 
             action.execute_pick()
             state.place_collision_vector = state.get_collison_vector(None)
-            action.execute()
-
             self.add_sah_tuples(state, action_info, hval, hcount, num_in_goal, num_papable_to_goal)
+            action.execute()
 
             # Heuristic computation in the new state
             abs_state = ShortestPathPaPState(problem_env, goal_entities, abs_state, action)
