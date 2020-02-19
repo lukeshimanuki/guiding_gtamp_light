@@ -49,8 +49,9 @@ class LearnedGenerator(PaPUniformGenerator):
         self.op_feasibility_checker = TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick(problem_env)
 
         goal_entities = self.abstract_state.goal_entities
-        key_config_obstacles = self.process_abstract_state_collisions_into_key_config_obstacles(abstract_state)
-        self.key_configs = np.delete(abstract_state.prm_vertices, [415, 586, 615, 618, 619], axis=0)
+        #key_config_obstacles = self.process_abstract_state_collisions_into_key_config_obstacles(abstract_state)
+        #self.key_configs = np.delete(abstract_state.prm_vertices, [415, 586, 615, 618, 619], axis=0)
+        self.key_configs = abstract_state.prm_vertices
         # todo There is a mismatch between the true key configs and the key config obstacles from the abstract state.
         #   I will fix this error later. For now, check the number of nodes explored
         self.smpler_state = ConcreteNodeState(self.problem_env, self.obj, self.region,
@@ -72,6 +73,7 @@ class LearnedGenerator(PaPUniformGenerator):
         z_smpls = noise(z_size=(101, 7))
         smpls = generate_pick_and_place_batch(self.smpler_state, self.sampler, z_smpls)
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
+
         """
         orig_color = utils.get_color_of(self.obj)
         utils.set_color(self.obj, [0, 1, 0])
