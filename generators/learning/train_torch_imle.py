@@ -53,7 +53,7 @@ def main():
 
     action_type = 'place'
     region = 'loading_region'
-    dataset = StandardDataset(action_type, 'home_region', True)
+    dataset = StandardDataset(action_type, region, True)
 
     n_train = int(len(dataset) * 100)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
@@ -66,25 +66,29 @@ def main():
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     loss_fn = nn.MSELoss()
     num_smpl_per_state = 10
-    dim_noise = 618
+    dim_noise = 3
     for epoch in range(100):
         print "Starting an epoch %d" % epoch
         for i, batch in enumerate(trainloader, 0):
-            target_actions = batch['actions'].to(device)
-            import pdb;pdb.set_trace()
-            """
-            vertices = batch['vertex'].float().to(device).float()
-            vertices = vertices[:, None, :, :]
+            target_actions = batch['action'].to(device)
+            target_actions = target_actions.squeeze()
+            noise_smpls = torch.randn(batch_size, num_smpl_per_state, dim_noise, device=device)
 
+            """
+            'collision': self.cols[idx],
+            'q0': self.q0s[idx],
+            'action': self.actions[idx],
+            'goal_poses': self.goal_obj_poses[idx],
+            'obj_pose': self.manip_obj_poses[idx]
+            """
+
+            x_vals = [batch['goal_poses'],  batch['obj_pose'], batch['q0'], batch['collision']]
+            generated_actions = generate_k_smples_for_multiple_states(x_vals, noise_smpls, net)
+            chosen_noise_smpls = get_closest_noise_smpls_for_each_action(target_actions, generated_actions, noise_smpls)
             optimizer.zero_grad()
 
-            noise_smpls = torch.randn(len(vertices), num_smpl_per_state, dim_noise, device=device)
-            generated_actions = generate_k_smples_for_multiple_states(vertices, noise_smpls, net)
-            chosen_noise_smpls = get_closest_noise_smpls_for_each_action(target_actions, generated_actions, noise_smpls)
-            """
-
             chosen_noise_smpls = torch.cat(chosen_noise_smpls)
-            pred = net(vertices, chosen_noise_smpls)  # this is computing the forward pass
+            pred = net(x_vals, chosen_noise_smpls)  # this is computing the forward pass
             loss = loss_fn(pred, target_actions.float())
             loss.backward()  # this is computing the dloss/dx for every layer
             optimizer.step()  # taking the gradient step
