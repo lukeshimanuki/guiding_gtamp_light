@@ -4,15 +4,9 @@ import numpy as np
 import random
 import socket
 import argparse
-import matplotlib.pyplot as plt
 
 from generators.learning.utils.model_creation_utils import create_policy
-from generators.learning.utils.data_processing_utils import filter_configs_that_are_too_close
-from generators.learning.utils import sampler_utils
-from test_scripts.visualize_learned_sampler import create_environment
 from scipy.stats import entropy
-
-from trajectory_representation.operator import Operator
 
 
 def parse_args():
@@ -41,8 +35,7 @@ import tensorflow as tf
 tf.set_random_seed(configs.seed)
 
 from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
-    state_data_mode, action_data_mode, make_konfs_relative_to_pose
-from utils import data_processing_utils
+    state_data_mode, action_data_mode
 from gtamp_utils import utils
 
 
