@@ -260,8 +260,8 @@ def make_node_pklable(node):
     node.tried_samples = {}
     node.tried_sample_feasibility_labels = {}
     for k in node.generators.keys():
-        node.tried_samples[k] = node.generators[k].tried_samples()
-        node.tried_sample_feasibility_labels[k] = node.generators[k].tried_sample_labels()
+        node.tried_samples[k] = node.generators[k].tried_samples
+        node.tried_sample_feasibility_labels[k] = node.generators[k].tried_sample_labels
     node.generators = None
 
 
