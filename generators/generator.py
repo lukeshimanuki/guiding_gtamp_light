@@ -50,7 +50,6 @@ class Generator:
         feasibility_check_time = 0
         stime = time.time()
 
-        # todo I need to collect the data at where it fails to pass the basic feasibility
         for i in range(self.n_iter_limit):
             sampled_op_parameters = self.sampler.sample()
 
@@ -62,7 +61,7 @@ class Generator:
             if status == 'HasSolution':
                 self.tried_samples.append(np.hstack([op_parameters['pick']['action_parameters'],
                                                      op_parameters['place']['action_parameters']]))
-                self.tried_sample_labels.append(-1) # tentative label
+                self.tried_sample_labels.append(-1)  # tentative label
                 feasible_op_parameters.append(op_parameters)
 
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
@@ -118,7 +117,6 @@ class Generator:
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(self.abstract_action.discrete_parameters['object'], chosen_pick_param)
-
             chosen_place_param = self.get_motion_plan([op['place']])  # calls MP
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
