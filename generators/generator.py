@@ -19,6 +19,10 @@ class Generator:
         self.feasible_pick_params = {}
         self.feasibility_checker = self.get_feasibility_checker()
         self.tried_samples = []
+        self.tried_sample_labels = []
+        # Convention:
+        #   -3 for pick_basic_infeasible, -2 for place_basic_infeasible,
+        #   -1 for pick_mp_infeasible, 0 for place_infeasible, 1 for place_feasible
         self.reachability_clf = reachability_clf
 
     def get_feasibility_checker(self):
@@ -46,25 +50,30 @@ class Generator:
         feasibility_check_time = 0
         stime = time.time()
 
+        # todo I need to collect the data at where it fails to pass the basic feasibility
         for i in range(self.n_iter_limit):
-            op_parameters = self.sampler.sample()
+            sampled_op_parameters = self.sampler.sample()
 
-            self.tried_samples.append(op_parameters)
             stime2 = time.time()
-            op_parameters, status = self.feasibility_checker.check_feasibility(self.abstract_action, op_parameters)
+            op_parameters, status = self.feasibility_checker.check_feasibility(self.abstract_action,
+                                                                               sampled_op_parameters)
             feasibility_check_time += time.time() - stime2
 
             if status == 'HasSolution':
-                if self.reachability_clf is not None:
-                    # make a vertex
-                    #pred = self.reachability_clf.predict(op_parameters['pick']['q_goal'], self.abstract_state)
-                    is_reachable = self.reachability_clf.predict(op_parameters, self.abstract_state, self.abstract_action)
-                    if not is_reachable:
-                        continue
-
+                self.tried_samples.append(np.hstack([op_parameters['pick']['action_parameters'],
+                                                     op_parameters['place']['action_parameters']]))
+                self.tried_sample_labels.append(-1) # tentative label
                 feasible_op_parameters.append(op_parameters)
+
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
                     break
+            else:
+                self.tried_samples.append(sampled_op_parameters)
+                # Why did it fail? Is it because of pick or place?
+                if status == 'PickFailed':
+                    self.tried_sample_labels.append(-3)
+                elif status == 'PlaceFailed':
+                    self.tried_sample_labels.append(-2)
 
         smpling_time = time.time() - stime
         print "Sampling time", smpling_time
@@ -93,48 +102,34 @@ class Generator:
         n_feasible = len(candidate_parameters)
         n_mp_tried = 0
 
-        obj_poses = {o.GetName(): utils.get_body_xytheta(o) for o in self.problem_env.objects}
-        prepick_q0 = utils.get_body_xytheta(self.problem_env.robot)
-
-        all_mp_data = []
         for op in candidate_parameters:
+            param = np.hstack([op['pick']['action_parameters'], op['place']['action_parameters']])
+            idx = np.where([np.all(np.isclose(param, p)) for p in self.tried_samples])[0][0]
+
+            # todo why is there a mismatch betwen pick and place samples?
             print "n_mp_tried / n_feasible_params = %d / %d" % (n_mp_tried, n_feasible)
             chosen_pick_param = self.get_motion_plan([op['pick']])
             n_mp_tried += 1
 
-            mp_data = {'q0': prepick_q0, 'qg': op['pick']['q_goal'], 'object_poses': obj_poses, 'held_obj': None}
             if not chosen_pick_param['is_feasible']:
                 print "Pick motion does not exist"
-                mp_data['label'] = False
-                all_mp_data.append(mp_data)
+                self.tried_sample_labels[idx] = -1
                 continue
-            else:
-                mp_data['label'] = True
-                mp_data['motion'] = chosen_pick_param['motion']
-                all_mp_data.append(mp_data)
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(self.abstract_action.discrete_parameters['object'], chosen_pick_param)
-            mp_data = {'q0': op['pick']['q_goal'], 'qg': op['place']['q_goal'], 'object_poses': obj_poses,
-                       'held_obj': self.abstract_action.discrete_parameters['object'],
-                       'region': self.abstract_action.discrete_parameters['place_region']}
+
             chosen_place_param = self.get_motion_plan([op['place']])  # calls MP
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
 
             if chosen_place_param['is_feasible']:
-                mp_data['label'] = True
-                mp_data['motion'] = chosen_place_param['motion']
-                all_mp_data.append(mp_data)
                 print 'Motion plan exists'
+                self.tried_sample_labels[idx] = 1
                 break
             else:
-                mp_data['label'] = False
-                all_mp_data.append(mp_data)
+                self.tried_sample_labels[idx] = 0
                 print "Place motion does not exist"
-
-        pickle.dump(all_mp_data,
-                    open('./planning_experience/motion_planning_experience/' + str(uuid.uuid4()) + '.pkl', 'wb'))
 
         if not chosen_pick_param['is_feasible']:
             print "Motion plan does not exist"
