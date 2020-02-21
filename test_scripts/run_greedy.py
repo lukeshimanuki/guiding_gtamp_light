@@ -18,14 +18,9 @@ from generators.learning.utils.model_creation_utils import create_policy
 from generators.reachability_predictor import ReachabilityPredictor
 from gtamp_utils import utils
 
-from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
-
-from test_scripts.visualize_learned_sampler import create_policy
+#from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
-
-from reachability_classification.classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
-    Separateq0qgqkckMultiplePassGNNReachabilityNet as ReachabilityNet
 
 from test_reachability_clf import load_weights
 
@@ -113,7 +108,7 @@ def parse_arguments():
     # problem definition
     parser.add_argument('-pidx', type=int, default=0)
     parser.add_argument('-planner_seed', type=int, default=0)
-    parser.add_argument('-n_objs_pack', type=int, default=1)
+    parser.add_argument('-n_objs_pack', type=int, default=4)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-problem_type', type=str, default='normal')  # was used for non-monotonic planning case
@@ -260,6 +255,16 @@ def make_pklable(plan):
             p.discrete_parameters['object'] = obj.GetName()
 
 
+def make_node_pklable(node):
+    node.state.make_pklable()
+    node.tried_samples = {}
+    node.tried_sample_feasibility_labels = {}
+    for k in node.generators.keys():
+        node.tried_samples[k] = node.generators[k].tried_samples()
+        node.tried_sample_feasibility_labels[k] = node.generators[k].tried_sample_labels()
+    node.generators = None
+
+
 def main():
     config = parse_arguments()
     solution_file_name = get_solution_file_name(config)
@@ -319,16 +324,17 @@ def main():
     if success and config.domain == 'one_arm_mover':
         make_pklable(plan)
 
+    if config.gather_planning_exp:
+        [make_node_pklable(nd) for nd in nodes]
+    else:
+        nodes = None
+
     h_for_sampler_training = []
     if success:
         h_for_sampler_training = []
         for n in nodes_to_goal:
             h_for_sampler_training.append(n.h_for_sampler_training)
-        # todo check to see if h[t+1] - h[t] is indeed a mark of success
-        # because at some point, the value goes down and then up, but the plan still leads to a goal.
-        # Why would it go up? I would have to see the states as I simulate the plan.
 
-    # todo save the goal objs and goal regions in the future
     data = {
         'n_objs_pack': config.n_objs_pack,
         'tottime': tottime,
@@ -336,6 +342,7 @@ def main():
         'plan_length': plan_length,
         'num_nodes': num_nodes,
         'plan': plan,
+        'nodes': nodes,
         'hvalues': h_for_sampler_training
     }
     with open(solution_file_name, 'wb') as f:
