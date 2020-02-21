@@ -1,16 +1,15 @@
 
 class Node(object):
-    def __init__(self, parent, action, state, reward=0):
+    def __init__(self, parent, parent_action, state, reward=0):
         self.parent = parent  # parent.state is initial state
-        self.action = action  # todo bad naming: this is the action that led to this node!
+        self.parent_action = parent_action
         self.state = state  # resulting state
         self.reward = reward  # resulting reward
         self.heuristic_vals = {}
-        self.smplers_for_each_action = {}
+        self.generators = {}
         self.h_for_sampler_training = None  # for planning experience purpose
-        #for a in self.action:
-        #    self.heuristic_vals[a] = None # used only for the root node
-
+        self.is_goal_traj = False
+        self.goal_action = None
         if parent is None:
             self.depth = 1
         else:
