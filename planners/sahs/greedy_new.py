@@ -30,28 +30,39 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     global sum_smpl_time
     problem_env = abstract_state.problem_env
     place_region = problem_env.regions[abstract_action.discrete_parameters['place_region']]
+    disc_param = (abstract_action.discrete_parameters['object'], abstract_action.discrete_parameters['place_region'])
 
+    assert type(abstract_action.discrete_parameters['object']) == unicode \
+           or type(abstract_action.discrete_parameters['object']) == str
+
+    assert type(abstract_action.discrete_parameters['place_region']) == unicode \
+           or type(abstract_action.discrete_parameters['place_region']) == str
+
+    # todo save the generator into the abstract node
     if learned_sampler is None:  # or 'loading' not in place_region:
-        sampler = UniformSampler(place_region)
-        generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                       n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                       reachability_clf=reachability_clf)
-        smpled_param = generator.sample_next_point()
+        if disc_param not in abstract_node.generators:
+            sampler = UniformSampler(place_region)
+            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                           reachability_clf=reachability_clf)
+            abstract_node.generators[disc_param] = generator
     else:
-        if 'AARegion' in str(type(place_region)):
-            place_region = place_region.name
-        if 'home' in place_region:
-            learned_sampler['place'] = learned_sampler['place_home']
-        else:
-            learned_sampler['place'] = learned_sampler['place_loading']
-        sampler = LearnedSampler(learned_sampler, abstract_state, abstract_action)
-        generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                       n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                       reachability_clf=reachability_clf)
-        smpled_param = generator.sample_next_point()
+        if disc_param not in abstract_node.generators:
+            if 'AARegion' in str(type(place_region)):
+                place_region = place_region.name
+            if 'home' in place_region:
+                learned_sampler['place'] = learned_sampler['place_home']
+            else:
+                learned_sampler['place'] = learned_sampler['place_loading']
+            sampler = LearnedSampler(learned_sampler, abstract_state, abstract_action)
+            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                           reachability_clf=reachability_clf)
+            abstract_node.generator[disc_param] = generator # Bah! it has to be actions
 
+    smpled_param = abstract_node.generators[disc_param].sample_next_point()
     return smpled_param
 
 
@@ -108,7 +119,6 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
 
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
-            # todo save the smpler with the abstract node
             smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler, reachability_clf, config)
 
             if smpled_param['is_feasible']:
@@ -129,8 +139,13 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
             is_goal_achieved = np.all([goal_region.contains(mover.env.GetKinBody(o).ComputeAABB()) for o in goal_objs])
             if is_goal_achieved:
                 print("found successful plan: {}".format(n_objs_pack))
+                node.is_goal_traj = True
                 nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
-                plan = [nd.action for nd in nodes_to_goal[1:]] + [action]
+                plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
+                for plan_action, nd in zip(plan, nodes_to_goal):
+                    nd.is_goal_traj = True
+                    nd.executed_action = plan_action
+
                 return nodes_to_goal, plan, iter, nodes
             else:
                 newstate = statecls(mover, goal, node.state, action)
@@ -186,6 +201,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
 
                 if is_goal_achieved:
                     print("found successful plan: {}".format(n_objs_pack))
+                    node.is_goal_traj = True
                     nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
                     plan = [nd.action for nd in nodes_to_goal[1:]] + [action]
                     return nodes_to_goal, plan, iter, nodes
