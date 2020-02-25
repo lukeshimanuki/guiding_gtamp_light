@@ -144,13 +144,15 @@ def visualize_pick_and_place(pick, place):
     saver.Restore()
 
 
-def visualize_placements(placements, obj):
+def visualize_placements(placements, obj=None):
     assert len(openravepy.RaveGetEnvironments()) == 1
     env = openravepy.RaveGetEnvironments()[0]
+    if obj is None:
+        obj = env.GetRobots()[0].GetGrabbed()[0]
     if type(obj) == unicode or type(obj) == str:
         obj = env.GetKinBody(obj)
     for idx, conf in enumerate(placements):
-        draw_obj_at_conf(conf, 0.9, 'place' + str(idx), obj, env)
+        draw_obj_at_conf(conf, 0.7, 'place' + str(idx), obj, env)
     raw_input("Continue?")
     remove_drawn_configs('place', env)
 
@@ -179,7 +181,7 @@ def visualize_path(path):
         #if is_goal_config:
         #    draw_robot_at_conf(conf, 0.5, 'path' + str(idx), robot, env)
         #else:
-        draw_robot_at_conf(conf, 0.9, 'path' + str(idx), robot, env)
+        draw_robot_at_conf(conf, 0.7, 'path' + str(idx), robot, env)
     raw_input("Continue?")
     remove_drawn_configs('path', env)
 
