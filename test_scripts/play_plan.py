@@ -20,6 +20,7 @@ def make_environment(config):
 
 def load_plan(config):
     solution_file_name = get_solution_file_name(config)
+    solution_file_name = './/test_results/sahs_results/uses_rrt/uses_reachability_clf_False/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal//q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0//n_mp_limit_10_n_iter_limit_200/pidx_0_planner_seed_3_gnn_seed_0.pkl'
     f = open(solution_file_name, 'rb')
     trajectory = pickle.load(f)
     plan = trajectory['plan']
@@ -43,12 +44,11 @@ def play_action(action, t_sleep):
 
 
 def play_plan(plan):
-    t_sleep = 0.08
+    t_sleep = 0.05
     raw_input("Begin recording?")
-    time.sleep(5)
+    time.sleep(3)
     for action in plan:
         play_action(action, t_sleep)
-    import pdb;pdb.set_trace()
 
 
 def main():
@@ -62,6 +62,7 @@ def main():
                          [0., 0., 0., 1.]])
     viewer = problem_env.env.GetViewer()
     viewer.SetCamera(T_viewer)
+    import pdb;pdb.set_trace()
     play_plan(plan)
 
 

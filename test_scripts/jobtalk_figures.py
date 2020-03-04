@@ -17,7 +17,7 @@ def create_sampler(problem_env):
 
     def pick_smpler(n): return np.random.uniform(pick_domain_min, place_domain_max, (n, pick_dim_parameters)).squeeze()
 
-    place_domain = utils.get_place_domain(problem_env.regions['loading_region'])
+    place_domain = utils.get_place_domain(problem_env.regions['home_region'])
     dim_parameters = place_domain.shape[-1]
     domain_min = place_domain[0]
     domain_max = place_domain[1]
@@ -29,6 +29,7 @@ def create_sampler(problem_env):
 
 target_obj_name = 'rectangular_packing_box3'
 target_obj_name = 'square_packing_box1'
+target_obj_name = 'rectangular_packing_box2'
 
 
 def visualize_pick(pick_smpler, problem_env):
@@ -37,11 +38,12 @@ def visualize_pick(pick_smpler, problem_env):
 
     orig_color = utils.get_color_of(target_obj)
     # utils.set_color(target_obj, [1, 0, 0])
+    utils.set_robot_config(np.array([[2.10064864, 0.93038344, 0.28421403]]))
 
     raw_input('Take a picture of c0')
 
     pick_base_poses = []
-    pick_smpls = pick_smpler(200)
+    pick_smpls = pick_smpler(2000)
     for p in pick_smpls:
         _, pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(target_obj, p)
         pick_base_poses.append(pose)
@@ -105,13 +107,16 @@ def main():
     scipy.misc.imsave('test.png', I)
     """
 
-    # Visualize c0 and pick samples
+    utils.set_obj_xytheta(np.array([0.01585576, 1.06516767, 5.77099297]), target_obj_name)
     pick_smpls = visualize_pick(pick_smpler, problem_env)
     feasible_pick_op = get_feasible_pick(problem_env, pick_smpls)
-    import pdb;
-    pdb.set_trace()
+    feasible_pick_op.execute()
+    utils.visualize_placements(place_smpler(100), problem_env.robot.GetGrabbed()[0])
+    import pdb; pdb.set_trace()
 
     # Visualize path
+
+    """
     paths = pickle.load(open('./test_scripts/jobtalk_figure_cache_files/paths.pkl', 'r'))
     pick_path = paths['pick_path']
     place_path = paths['place_path']
@@ -131,7 +136,8 @@ def main():
     # pickle.dump({"pick_path":path_to_feasible_pick, "place_path": path_to_feasible_place}),
     # open('./test_scripts/jobtalk_figure_cache_files/paths.pkl','wb'))
     utils.set_robot_config(q_goal)
-    utils.visualize_path(place_path, transparency=0.9, is_last_config_thick=True)
+    utils.visualize_path(place_path)
+    """
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-from visualize_learned_sampler import create_environment
+from test_scripts.visualize_learned_sampler import create_environment
 from generators.learning.train_sampler import get_data
 from generators.learning.utils.data_processing_utils import filter_configs_that_are_too_close
 from gtamp_utils import utils

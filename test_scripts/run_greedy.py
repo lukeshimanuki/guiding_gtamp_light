@@ -35,8 +35,10 @@ def get_problem_env(config, goal_region, goal_objs):
         problem_env = PaPMoverEnv(config.pidx)
         # goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
         goal = [goal_region] + goal_objs
-        for obj in problem_env.objects[:n_objs_pack]:
-            utils.set_color(obj, [0, 1, 0])
+        #for obj in problem_env.objects[:n_objs_pack]:
+        #    utils.set_color(obj, [0, 1, 0])
+        [utils.set_color(o, [0, 0, 0.8]) for o in goal_objs]
+
         # goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
         #                 'rectangular_packing_box4']
         problem_env.set_goal(goal)
