@@ -36,12 +36,12 @@ class OneArmPaPUniformGenerator:
                                 discrete_parameters={'object': target_obj})
 
         # I actually don't use the full feature of the generator, which allows you to do feasibilicy checks
-        self.pick_generator = UniformGenerator(self.pick_op, problem_env, max_n_iter=None)
+        self.pick_generator = UniformGenerator(self.pick_op, problem_env)
 
         self.place_op = Operator(operator_type='one_arm_place',
                                  discrete_parameters={'object': target_obj, 'place_region': target_region},
                                  continuous_parameters={})
-        self.place_generator = UniformGenerator(self.place_op, problem_env, max_n_iter=None)
+        self.place_generator = UniformGenerator(self.place_op, problem_env)
 
         self.pick_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
         self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)

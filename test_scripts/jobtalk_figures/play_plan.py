@@ -1,4 +1,4 @@
-from run_greedy import parse_arguments, set_problem_env_config, get_problem_env, get_solution_file_name
+from test_scripts.run_greedy import parse_arguments, set_problem_env_config, get_problem_env, get_solution_file_name
 from gtamp_utils import utils
 import numpy as np
 import random
