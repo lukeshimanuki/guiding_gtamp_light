@@ -107,31 +107,31 @@ class ShortestPathPaPState(PaPState):
         self.problem_env.disable_objects_in_region('entire_region')
         object.Enable(True)
 
-        motion_plan_goals = []
         n_iters = range(10, 500, 10)
+        feasible_cont_params = []
         for n_iter_to_try in n_iters:
             op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
                                                                         n_iter=n_iter_to_try,
                                                                         n_parameters_to_try_motion_planning=5)
-            motion_plan_goals = [op['q_goal'] for op in op_cont_params if op['q_goal'] is not None]
-            if len(motion_plan_goals) > 2:
+            feasible_cont_params = [op for op in op_cont_params if op['q_goal'] is not None]
+            if len(feasible_cont_params) > 2:
                 break
 
         orig_xytheta = get_body_xytheta(self.problem_env.robot)
         self.problem_env.enable_objects_in_region('entire_region')
 
         min_n_collisions = np.inf
-        chosen_pick_base_conf = None
-        for q_goal in motion_plan_goals:
-            n_collisions = self.problem_env.get_n_collisions_with_objects_at_given_base_conf(q_goal)
+        chosen_pick_param = None
+        for cont_param in feasible_cont_params:
+            n_collisions = self.problem_env.get_n_collisions_with_objects_at_given_base_conf(cont_param['q_goal'])
             if min_n_collisions > n_collisions:
-                chosen_pick_base_conf = q_goal
+                chosen_pick_param = cont_param
                 min_n_collisions = n_collisions
         utils.set_robot_config(orig_xytheta)
 
         # assert len(motion_plan_goals) > 0 # if we can't find a pick pose then the object should be treated as unreachable
-        operator_skeleton.continuous_parameters['q_goal'] = [chosen_pick_base_conf]  # to make it consistent with Dpl
-        #operator_skeleton.continuous_parameters['q_goal'] = motion_plan_goals
+        operator_skeleton.continuous_parameters = chosen_pick_param
+        operator_skeleton.continuous_parameters['q_goal'] = [chosen_pick_param['q_goal']]
         return operator_skeleton
 
     def set_cached_pick_paths(self, parent_state, moved_obj):
