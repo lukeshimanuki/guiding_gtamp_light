@@ -129,6 +129,8 @@ def main():
         viewer = problem_env.env.GetViewer()
         viewer.SetCamera(T_viewer)
 
+        import pdb;
+        pdb.set_trace()
         # prefree and occludespre
         target = 'rectangular_packing_box4'
         utils.set_obj_xytheta(np.array([[0.1098148, -6.33305931, 0.22135689]]), target)

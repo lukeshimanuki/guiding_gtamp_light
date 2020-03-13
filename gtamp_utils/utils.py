@@ -60,6 +60,9 @@ def convert_rel_to_abs_base_pose(rel_xytheta, src_xy):
 
 
 def set_body_transparency(body, transparency):
+    env = openravepy.RaveGetEnvironments()[0]
+    if type(body) == unicode or type(body) == str:
+        body = env.GetKinBody(body)
     for link in body.GetLinks():
         for geom in link.GetGeometries():
             geom.SetTransparency(transparency)
@@ -181,7 +184,7 @@ def visualize_path(path):
         if is_goal_config:
             draw_robot_at_conf(conf, 0.5, 'path' + str(idx), robot, env)
         else:
-            draw_robot_at_conf(conf, 0.9, 'path' + str(idx), robot, env)
+            draw_robot_at_conf(conf, 0.7, 'path' + str(idx), robot, env)
     raw_input("Continue?")
     remove_drawn_configs('path', env)
 
