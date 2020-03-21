@@ -189,7 +189,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         hval = hcount - num_in_goal - num_papable_to_goal
         #print hval
         #print [(p.discrete_parameters['object'], p.discrete_parameters['place_region']) for p in plan]
-
+        import pdb;pdb.set_trace()
         for action, _ in zip(plan, hvalues):
             assert action.type == 'two_arm_pick_two_arm_place'
             state = self.compute_state(action.discrete_parameters['object'],
@@ -222,6 +222,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
             action.execute_pick()
             state.place_collision_vector = state.get_collison_vector(None)
             self.add_sah_tuples(state, action_info, hval, hcount, num_in_goal, num_papable_to_goal)
+            import pdb;pdb.set_trace()
             action.execute()
 
             # Heuristic computation in the new state

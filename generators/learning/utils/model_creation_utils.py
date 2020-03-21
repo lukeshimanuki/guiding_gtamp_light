@@ -2,6 +2,8 @@ from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSEComb
 from generators.learning.PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 from generators.learning.PickPolicyIMLECombinationOfQg import PickPolicyIMLECombinationOfQg
+from generators.learning.AdversarialVOO import AdversarialVOO
+
 
 from data_processing_utils import state_data_mode
 from data_processing_utils import action_data_mode as default_action_data_mode
@@ -56,6 +58,10 @@ def create_policy(config, n_collisions, n_key_configs, given_action_data_mode=No
     elif config.algo == 'pick_mse_qg_combination':
         policy = PickPolicyMSECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision, dim_pose=dim_pose,
                                               save_folder=savedir, config=config)
+    elif config.algo == 'adversarial_voo':
+        policy = AdversarialVOO(dim_action=dim_action, dim_collision=dim_collision, dim_poses=dim_pose,
+                                save_folder=savedir, n_key_configs=n_key_configs, config=config)
+
     elif config.algo == 'imle_qg_combination':
         if config.atype == 'pick':
             policy = PickPolicyIMLECombinationOfQg(dim_action=dim_action, dim_collision=dim_collision,

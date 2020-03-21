@@ -123,7 +123,7 @@ class Policy:
         return train, test
 
     @staticmethod
-    def get_batch(cols, goal_flags, poses, rel_konfs, actions, sum_rewards, batch_size):
+    def get_batch(cols, goal_flags, poses, rel_konfs, actions, batch_size):
         n_data = len(cols)
         indices = np.random.permutation(range(n_data))[0:batch_size]
         cols_batch = np.array(cols[indices, :])  # collision vector
@@ -131,8 +131,7 @@ class Policy:
         a_batch = np.array(actions[indices, :])
         pose_batch = np.array(poses[indices, :])
         konf_batch = np.array(rel_konfs[indices, :])
-        sum_reward_batch = np.array(sum_rewards[indices, :])
-        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, sum_reward_batch
+        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch
 
     def create_conv_layers(self, input, n_filters=32, use_pooling=True, use_flatten=True):
         # a helper function for creating a NN that applies the same function for each key config

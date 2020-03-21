@@ -17,8 +17,8 @@ def parse_args():
     parser.add_argument('-algo', type=str, default='mse')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-tau', type=float, default=0.0)
-    parser.add_argument('-dtype', type=str, default='n_objs_pack_4')
-    parser.add_argument('-atype', type=str, default='pick')
+    parser.add_argument('-dtype', type=str, default='n_objs_pack_1')
+    parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-region', type=str, default='loading_region')
     parser.add_argument('-filtered', action='store_true')
     args = parser.parse_args()
@@ -203,14 +203,6 @@ def train(config):
     states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region,
                                                                config.filtered)
 
-    x = actions[:, -4]
-    y = actions[:, -3]
-    H, xedges, yedges = np.histogram2d(x, y, 10)
-
-    p_place = H / np.sum(H)
-    print "entropy", entropy(p_place.flatten())
-    print np.max(p_place)
-
     if config.atype == 'pick':
         actions = actions[:, :-4]
     elif config.atype == 'place':
@@ -246,7 +238,7 @@ def train(config):
     assert n_key_configs == n_collisions
     assert n_key_configs == 618
     policy = create_policy(config, n_collisions, n_key_configs)
-    policy.policy_model.summary()
+    #policy.policy_model.summary()
     policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
