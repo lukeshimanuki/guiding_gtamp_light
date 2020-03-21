@@ -55,6 +55,7 @@ def prepare_input_except_noise(smpler_state, delete=False, region=None, filter_k
     collisions = smpler_state.pick_collision_vector
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+    """
     key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
     if delete:
         indices_to_delete = get_indices_to_delete(region, key_configs)
@@ -64,12 +65,12 @@ def prepare_input_except_noise(smpler_state, delete=False, region=None, filter_k
 
     if filter_konfs:
         key_configs = data_processing_utils.filter_configs_that_are_too_close(key_configs)
+    """
 
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
-    inp = [goal_flags, key_configs, collisions, poses]
-    inp = {'goal_flags': goal_flags, 'key_configs': key_configs, 'collisions': collisions, 'poses': poses}
+    inp = {'goal_flags':goal_flags, 'key_configs':key_configs, 'collisions':collisions, 'poses':poses}
     return inp
 
 
@@ -133,6 +134,14 @@ def get_konf_obstacles_while_holding(pick_samples, sampler_state, problem_env):
         konf_obstacles_while_holding.append(sampler_state.place_collision_vector)
         utils.two_arm_place_object(pick_smpl)
     return np.array(konf_obstacles_while_holding).reshape((len(pick_samples), 291, 2, 1))
+
+
+def make_input_for_place(smpler_state, pick_base_pose):
+    inp = prepare_input_except_noise(smpler_state, delete=True, region='loading_region', filter_konfs=False)
+    poses = inp['poses']
+    poses[:, -4:] = utils.encode_pose_with_sin_and_cos_angle(pick_base_pose)
+    inp['poses'] = poses
+    return inp
 
 
 def generate_pick_and_place_batch(smpler_state, policy, noise_batch):

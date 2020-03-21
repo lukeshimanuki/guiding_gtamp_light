@@ -1,5 +1,10 @@
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from gtamp_utils import utils
+from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
+from generators.sampler import UniformSampler
+from gtamp_utils.utils import get_pick_domain, get_place_domain
+from generators.learning.utils.sampler_utils import make_input_for_place
+
 
 from gtamp_problem_environments.mover_env import Mover
 from planners.subplanners.motion_planner import BaseMotionPlanner
@@ -7,11 +12,15 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.pytorch_implementations.SuggestionNetwork import SuggestionNetwork
 from generators.feasibility_checkers import two_arm_pick_feasibility_checker
 from trajectory_representation.operator import Operator
+from generators.feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
+
+
+from generators.learning.train_sampler import parse_args
+from generators.learning.utils.model_creation_utils import create_policy
 
 import numpy as np
 import random
-import torch
-import socket
+from generators.learning.AdversarialVOO import AdversarialVOO
 
 
 def create_environment(problem_idx):
@@ -55,20 +64,41 @@ def get_feasible_pick(problem_env, target_obj):
 
 
 def generate_smpls(problem_env, sampler, target_obj_name):
-    # sample a feasible pick
+    # make a prediction
+    # Make a feasible pick sample for the target object
 
-    dim_noise = 3
-    noise_smpls = torch.randn(100, dim_noise, device=sampler.device)
+    SAMPLE_NEW_PICK = False
+    place_region = 'loading_region'
+    abstract_action = Operator('two_arm_pick_two_arm_place', {'object': target_obj_name, 'place_region': place_region})
+    if SAMPLE_NEW_PICK:
+        sampler = UniformSampler(problem_env.regions[place_region])
+        generator = TwoArmPaPGenerator(None, abstract_action, sampler,
+                                       n_parameters_to_try_motion_planning=10,
+                                       n_iter_limit=200, problem_env=problem_env,
+                                       reachability_clf=None)
+        samples = generator.sample_next_point()
+        pick_base_pose = samples['pick']['q_goal']
+    else:
+        pick_base_pose = np.array([1.38876479, -6.72431372, 2.13087774])
+        abstract_action.continuous_parameters = {'pick':{'q_goal':pick_base_pose}}
 
-    # todo
-    #   generate a feasible pick
-    #   generate places based on this
+    goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                     'rectangular_packing_box4', 'home_region']
+    sampler_state = ConcreteNodeState(problem_env, target_obj_name, place_region, goal_entities)
+    inp = make_input_for_place(sampler_state, pick_base_pose)
 
-    feasible_pick = get_feasible_pick(problem_env, target_obj)
+    samples = [sampler.sample_from_voo(inp['collisions'], inp['goal_flags'], inp['poses'], inp['key_configs'], voo_iter=10) for _ in range(100)]
+    values = [sampler.value_network.predict([s[None, :], inp['goal_flags'], inp['key_configs'], inp['collisions'], inp['poses']])[0,0] for s in samples]
+    # Why does it ignore weights on the actions?
 
-    # x_vals = [batch['goal_poses'],  batch['obj_pose'], batch['q0'], batch['collision']]
-    # pred = sampler(x_vals, chosen_noise_smpls)
-    # return samples
+    print values
+    import pdb;pdb.set_trace()
+
+    samples = [utils.decode_pose_with_sin_and_cos_angle(s) for s in samples]
+    utils.viewer()
+    utils.visualize_placements(samples, target_obj_name)
+    return samples
+
 
 
 def main():
@@ -77,14 +107,14 @@ def main():
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
 
-    if socket.gethostname() == 'lab':
-        device = torch.device("cpu")
-    else:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    net = SuggestionNetwork().to(device)
+    config = parse_args()
+    n_key_configs = 618
+    n_collisions = 618
+    sampler = create_policy(config, n_collisions, n_key_configs)
+    sampler.load_weights(additional_name='epoch_' + str(5))
 
-    obj_to_visualize = 'square_packing_box4'
-    smpls = generate_smpls()
+    obj_to_visualize = 'rectangular_packing_box1'
+    smpls = generate_smpls(problem_env, sampler, target_obj_name=obj_to_visualize)
     visualize_samples(smpls, problem_env, obj_to_visualize)
 
 

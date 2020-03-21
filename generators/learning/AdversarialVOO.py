@@ -225,24 +225,29 @@ class AdversarialVOO(PlacePolicy):
         concat_input = Concatenate(axis=2)([pose_input, action_input, collision_inp])
         n_dim = concat_input.shape[2]._value
         dense_num = 32
+        # todo tell me is there something wrong with the relu's?
+        # if some of the weights begin with negative values, then it will have no gradients
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, n_dim),
                    strides=(1, 1),
-                   activation='relu',
+                   activation='linear',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(concat_input)
+        H = LeakyReLU()(H)
         H = Conv2D(filters=dense_num,
                    kernel_size=(1, 1),
                    strides=(1, 1),
-                   activation='relu',
+                   activation='linear',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
+        H = LeakyReLU()(H)
         H = Conv2D(filters=1,
                    kernel_size=(1, 1),
                    strides=(1, 1),
-                   activation='relu',
+                   activation='linear',
                    kernel_initializer=self.kernel_initializer,
                    bias_initializer=self.bias_initializer)(H)
+        H = LeakyReLU()(H)
         H = Flatten()(H)
         H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
         H = Dense(1, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
