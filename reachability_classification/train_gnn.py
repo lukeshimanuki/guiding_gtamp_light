@@ -16,8 +16,7 @@ from classifiers.separate_q0_qg_qk_ck_gnn_multiple_passes import \
 
 from classifiers.relative_qgqk_gnn import \
     RelativeQgQkGNN as GNNReachabilityNet
-from classifiers.bigger_relative_qgqk_gnn import \
-    BiggerRelativeQgQkGNN as GNNReachabilityNet
+
 
 from classifiers.relative_qgqk import \
     RelativeQgQk as GNNReachabilityNet
@@ -65,7 +64,7 @@ def main():
 
     dataset = GNNReachabilityDataset(action_type)
 
-    n_train = int(len(dataset) * 0.8)
+    n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     print "N_train", len(trainset)
     net = GNNReachabilityNet(trainset[1]['edges'], n_key_configs=618, device=device, n_msg_passing=n_msg_passing)
