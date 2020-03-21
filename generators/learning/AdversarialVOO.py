@@ -7,8 +7,16 @@ from voo.voo import VOO
 import tensorflow as tf
 import sys
 import time
+import socket
+import os
 
 INFEASIBLE_SCORE = -sys.float_info.max
+
+if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
+    ROOTDIR = './'
+else:
+    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp_light/learned_weights/'
+
 
 
 def make_repeated_data_for_fake_and_real_samples(data):
@@ -82,6 +90,14 @@ class AdversarialVOO(PlacePolicy):
         model.compile(loss=admon_critic_loss, optimizer=self.opt_D)
         return model
 
+    def save_weights(self, additional_name=''):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + additional_name + '.h5'
+        if not os.path.isdir(fdir):
+            os.makedirs(fdir)
+        print "Saving weights", fdir + fname
+        self.value_network.save_weights(fdir + fname)
+
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
@@ -147,6 +163,7 @@ class AdversarialVOO(PlacePolicy):
                                        epochs=1, verbose=False)
                 print "Value network train time", time.time()-stime3
             print time.time()-stime
+            self.save_weights('epoch_' + str(epoch))
 
             """
             t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
