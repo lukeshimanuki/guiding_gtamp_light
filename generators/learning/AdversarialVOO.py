@@ -4,6 +4,7 @@ from keras.models import Model
 from PlacePolicy import PlacePolicy
 from voo.voo import VOO
 
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import sys
 import time
@@ -56,7 +57,7 @@ class AdversarialVOO(PlacePolicy):
     def construct_policy_output(self):
         pass
 
-    def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch):
+    def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch, voo_iter=30):
         # todo I need to run VOO for each col, goal, pose, and rel konf values
 
         # For 100 iterations of VOO,
@@ -73,11 +74,12 @@ class AdversarialVOO(PlacePolicy):
                 return self.value_network.predict(
                     [x, goal_flag[None, :], key_config[None, :], col[None, :], pose[None, :]])
 
-            for _ in range(30):
+            for _ in range(voo_iter):
                 x = self.voo_agent.sample_next_point(evaled_x, evaled_y)
                 evaled_x.append(x)
-                val = obj_fcn(np.array([x]))[0, 0,]
+                val = obj_fcn(np.array([x]))[0, 0]
                 evaled_y.append(val)
+
             x_vals_to_return.append(np.array([evaled_x[np.argmax(evaled_y)]]))
 
         return np.array(x_vals_to_return).squeeze()
@@ -97,6 +99,12 @@ class AdversarialVOO(PlacePolicy):
             os.makedirs(fdir)
         print "Saving weights", fdir + fname
         self.value_network.save_weights(fdir + fname)
+
+    def load_weights(self, additional_name=''):
+        fdir = ROOTDIR + '/' + self.save_folder + '/'
+        fname = self.weight_file_name + additional_name + '.h5'
+        print "Loading weights", fdir+fname
+        self.value_network.load_weights(fdir+fname)
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
@@ -160,7 +168,7 @@ class AdversarialVOO(PlacePolicy):
                                         make_repeated_data_for_fake_and_real_samples(pose_batch)],
                                        batch_scores,
                                        batch_size=64,
-                                       epochs=1, verbose=False)
+                                       epochs=32, verbose=False)
                 print "Value network train time", time.time()-stime3
             print time.time()-stime
             self.save_weights('epoch_' + str(epoch))
