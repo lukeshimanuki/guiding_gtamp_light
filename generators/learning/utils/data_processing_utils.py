@@ -179,7 +179,7 @@ def get_processed_poses_from_action(state, action, action_data_mode):
         raise NotImplementedError
 
     if 'PLACE_abs_base' in action_data_mode:
-        place_params = utils.encode_pose_with_sin_and_cos_angle(action['place_obj_abs_pose'])[None, :]
+        place_params = utils.encode_pose_with_sin_and_cos_angle(action['place_abs_base_pose'])[None, :]
     else:
         raise NotImplementedError
 
