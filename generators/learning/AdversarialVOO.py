@@ -57,7 +57,7 @@ class AdversarialVOO(PlacePolicy):
     def construct_policy_output(self):
         pass
 
-    def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch, voo_iter=30):
+    def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch, voo_iter=10):
         # todo I need to run VOO for each col, goal, pose, and rel konf values
 
         # For 100 iterations of VOO,
