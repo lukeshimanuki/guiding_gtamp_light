@@ -213,6 +213,13 @@ class AdversarialVOO(PlacePolicy):
             """
 
     def construct_eval_net(self):
+        dense_num = 64
+        collision_inp = Flatten()(self.collision_input)
+        concat_input = Concatenate(axis=-1)([collision_inp, self.pose_input, self.action_input])
+        H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(concat_input)
+        H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
+        H = Dense(1, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
+        """
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
 
@@ -251,4 +258,5 @@ class AdversarialVOO(PlacePolicy):
         H = Flatten()(H)
         H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
         H = Dense(1, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
+        """
         return H
