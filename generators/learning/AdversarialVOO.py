@@ -48,7 +48,7 @@ class AdversarialVOO(PlacePolicy):
         if config.region == 'loading_region':
             domain = np.array([[-0.44703855, -8.26104475, -1, -1], [4.05484256, -5.07272978, 1, 1]])
         else:
-            domain = np.array([[-1.75, -3.16, -1, -1], [5.25, 3.16, 1, 1]])
+            domain = np.array([[-1.28392928, -2.95494754, -0.99999998, -0.99999999], [5.01948716, 2.58819546, 1.        , 1.        ]])
         self.voo_agent = VOO(domain, 0.3, 'gaussian', None)
 
     def construct_policy_model(self):
