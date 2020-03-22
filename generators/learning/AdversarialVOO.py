@@ -42,7 +42,7 @@ def admon_critic_loss(score_data, D_pred):
 class AdversarialVOO(PlacePolicy):
     def __init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config):
         PlacePolicy.__init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config)
-        self.weight_file_name = '%s_adversarial_voo_%d' % (config.atype, config.seed)
+        self.weight_file_name = '%s_adversarial_voo_dense_%d' % (config.atype, config.seed)
         self.value_network_defn = self.construct_eval_net()
         self.value_network = self.construct_model(self.value_network_defn, 'val_network')
         if config.region == 'loading_region':
