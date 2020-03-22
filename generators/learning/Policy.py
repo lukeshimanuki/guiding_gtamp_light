@@ -131,7 +131,7 @@ class Policy:
         a_batch = np.array(actions[indices, :])
         pose_batch = np.array(poses[indices, :])
         konf_batch = np.array(rel_konfs[indices, :])
-        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch
+        return cols_batch, goal_flag_batch, pose_batch, konf_batch, a_batch, indices
 
     def create_conv_layers(self, input, n_filters=32, use_pooling=True, use_flatten=True):
         # a helper function for creating a NN that applies the same function for each key config

@@ -132,6 +132,7 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
             states.append(state_vec)
             poses.append(get_processed_poses_from_state(s, a))
             actions.append(get_processed_poses_from_action(s, a, action_data_mode))
+            import pdb;pdb.set_trace()
 
             place_relevance = None  # data_processing_utils.get_relevance_info(key_configs, binary_collision_vector, place_motion)
             konf_relevance.append(place_relevance)

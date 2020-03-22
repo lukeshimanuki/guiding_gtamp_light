@@ -3,6 +3,9 @@ from keras import backend as K
 from keras.models import Model
 from PlacePolicy import PlacePolicy
 from voo.voo import VOO
+import keras
+
+from gtamp_utils import utils
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -11,7 +14,9 @@ import time
 import socket
 import os
 
+FAKE_SCORE = sys.float_info.max
 INFEASIBLE_SCORE = -sys.float_info.max
+FEASIBLE_SCORE = 1
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
     ROOTDIR = './'
@@ -19,37 +24,41 @@ else:
     ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp_light/learned_weights/'
 
 
-
-def make_repeated_data_for_fake_and_real_samples(data):
-    return np.repeat(data, 2, axis=0)
+def make_repeated_data_for_fake_and_real_samples(data,n_repeats):
+    return np.repeat(data, n_repeats, axis=0)
 
 
 def admon_critic_loss(score_data, D_pred):
     # Determine which of Dpred correspond to fake val
-    neg_mask = tf.equal(score_data, INFEASIBLE_SCORE)
+    neg_mask = tf.equal(score_data, FAKE_SCORE)
     y_neg = tf.boolean_mask(D_pred, neg_mask)
 
     # Determine which of Dpred correspond to true fcn val
-    pos_mask = tf.not_equal(score_data, INFEASIBLE_SCORE)
+    pos_mask = tf.equal(score_data, FEASIBLE_SCORE)
     y_pos = tf.boolean_mask(D_pred, pos_mask)
-    #score_pos = tf.boolean_mask(score_data, pos_mask)
+
+    infeasible_mask = tf.equal(score_data, INFEASIBLE_SCORE)
+    y_infeasible = tf.boolean_mask(D_pred, infeasible_mask)
 
     # compute mse w.r.t true function values
-    #mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
-    return -K.mean(y_pos) + K.mean(y_neg)
+    # mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
+
+    infeasible_loss = 10*K.mean(K.maximum(1 - (y_pos - y_infeasible), 0.))
+    return K.mean(K.maximum(1 - (y_pos - y_neg), 0.)) + infeasible_loss
 
 
 class AdversarialVOO(PlacePolicy):
     def __init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config):
         PlacePolicy.__init__(self, dim_action, dim_collision, dim_poses, n_key_configs, save_folder, config)
-        self.weight_file_name = '%s_adversarial_voo_dense_%d' % (config.atype, config.seed)
+        self.weight_file_name = '%s_adversarial_voo_dense_hinge_%d' % (config.atype, config.seed)
         self.value_network_defn = self.construct_eval_net()
         self.value_network = self.construct_model(self.value_network_defn, 'val_network')
         if config.region == 'loading_region':
-            domain = np.array([[-0.44703855, -8.26104475, -1, -1], [4.05484256, -5.07272978, 1, 1]])
+            self.domain = np.array(
+                [[-0.34469225, -8.14641946, -1., -0.99999925], [3.92354742, -5.25567767, 1., 0.99999993]])
         else:
-            domain = np.array([[-1.75, -3.16, -1, -1], [5.25, 3.16, 1, 1]])
-        self.voo_agent = VOO(domain, 0.3, 'gaussian', None)
+            self.domain = np.array([[-1.75, -3.16, -1, -1], [5.25, 3.16, 1, 1]])
+        self.voo_agent = VOO(self.domain, 0.3, 'gaussian', None)
 
     def construct_policy_model(self):
         pass
@@ -57,7 +66,8 @@ class AdversarialVOO(PlacePolicy):
     def construct_policy_output(self):
         pass
 
-    def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch, voo_iter=10):
+    def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch, voo_iter=10,
+                        colliding_key_configs=None):
         # todo I need to run VOO for each col, goal, pose, and rel konf values
 
         # For 100 iterations of VOO,
@@ -66,27 +76,37 @@ class AdversarialVOO(PlacePolicy):
         # There are 218 batches; Each epoch takes 1482 seconds, which is 24 minutes
         # How can I accelerate this process?
         x_vals_to_return = []
+        n_data = len(goal_flag_batch)
+        iter = 0
         for goal_flag, key_config, col, pose in zip(goal_flag_batch, konf_batch, col_batch, pose_batch):
+            # print "Iter %d / %d" % (iter, n_data)
             evaled_x = []
             evaled_y = []
 
             def obj_fcn(x):
                 return self.value_network.predict(
-                    [x, goal_flag[None, :], key_config[None, :], col[None, :], pose[None, :]])
+                    [x, col[None, :], pose[None, :]])
 
             for _ in range(voo_iter):
                 x = self.voo_agent.sample_next_point(evaled_x, evaled_y)
                 evaled_x.append(x)
-                val = obj_fcn(np.array([x]))[0, 0]
+                if colliding_key_configs is None:
+                    val = obj_fcn(np.array([x]))[0, 0]
+                else:
+                    xy_of_sample = x[0:2]
+                    xys_of_cols = colliding_key_configs[:, 0:2]
+                    dists = np.linalg.norm(xy_of_sample - xys_of_cols, axis=-1)
+                    val = obj_fcn(np.array([x]))[0, 0] + 100 * max(0.1 - min(dists), 0)
+
                 evaled_y.append(val)
 
             x_vals_to_return.append(np.array([evaled_x[np.argmax(evaled_y)]]))
+            iter += 1
 
         return np.array(x_vals_to_return).squeeze()
 
     def construct_model(self, output, name):
-        model = Model(inputs=[self.action_input, self.goal_flag_input, self.key_config_input, self.collision_input,
-                              self.pose_input],
+        model = Model(inputs=[self.action_input, self.collision_input, self.pose_input],
                       outputs=output,
                       name='critic_output')
         model.compile(loss=admon_critic_loss, optimizer=self.opt_D)
@@ -103,14 +123,32 @@ class AdversarialVOO(PlacePolicy):
     def load_weights(self, additional_name=''):
         fdir = ROOTDIR + '/' + self.save_folder + '/'
         fname = self.weight_file_name + additional_name + '.h5'
-        print "Loading weights", fdir+fname
-        self.value_network.load_weights(fdir+fname)
+        print "Loading weights", fdir + fname
+        self.value_network.load_weights(fdir + fname)
+
+    def get_infeasible_samples(self, collisions, poses, key_config_idxs, key_configs):
+        # key_configs = key_configs[:, key_config_idxs, :].squeeze()[0]
+        collisions = collisions[:, key_config_idxs, :].squeeze()
+        key_configs = key_configs.squeeze()[:, key_config_idxs, :]
+        colliding_idxs = collisions[:, :, 1] == 0
+        infeasible_samples = {}
+        data_idx = 0
+        for idxs, konf in zip(colliding_idxs, key_configs):
+            colliding_key_configs = konf[idxs, :]
+            infeasible_samples[data_idx] = colliding_key_configs
+            data_idx += 1
+        return infeasible_samples
 
     def train_policy(self, states, poses, rel_konfs, goal_flags, actions, sum_rewards, epochs=500):
         train_idxs, test_idxs = self.get_train_and_test_indices(len(actions))
         train_data, test_data = self.get_train_and_test_data(states, poses, rel_konfs, goal_flags,
                                                              actions, sum_rewards,
                                                              train_idxs, test_idxs)
+        key_configs = rel_konfs.squeeze()[0]
+        bigger_than_min = np.all(key_configs[:, 0:2] >= self.domain[0, 0:2], axis=1)
+        smaller_than_max = np.all(key_configs[:, 0:2] <= self.domain[1, 0:2], axis=1)
+        key_config_idxs = bigger_than_min * smaller_than_max
+        key_configs = key_configs[key_config_idxs, :]
 
         # test data
         t_actions = test_data['actions']
@@ -139,86 +177,72 @@ class AdversarialVOO(PlacePolicy):
         d_lr = 1e-3
         self.set_learning_rates(d_lr, g_lr)
 
+        batch_idxs = range(0, actions.shape[0], batch_size)
+        infeasible = self.get_infeasible_samples(collisions, poses, key_config_idxs, rel_konfs)
+
+        callback = keras.callbacks.EarlyStopping(monitor='loss', min_delta=0, patience=10, verbose=0, mode='auto',
+                                                 baseline=None, restore_best_weights=True)
+
         for epoch in range(epochs):
-            print  "Epoch %d / %d" %(epoch, epochs)
-            batch_idxs = range(0, actions.shape[0], batch_size)
-            stime=time.time()
-            for batch_idx, _ in enumerate(batch_idxs):
-                print "Batch %d / %d" %(batch_idx, len(batch_idxs))
-                col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch = \
+            print  "Epoch %d / %d" % (epoch, epochs)
+            stime = time.time()
+            for idx, batch_idx in enumerate(batch_idxs):
+                #print "Batch %d / %d" % (idx, len(batch_idxs))
+                col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, data_idxs = \
                     self.get_batch(collisions, goal_flags, poses, rel_konfs, actions,
                                    batch_size=batch_size)
-                stime2=time.time()
-                fake = self.sample_from_voo(col_batch, goal_flag_batch, pose_batch, rel_konf_batch)
-                print "Fake sample generation time", time.time()-stime2
-                real = a_batch
+                stime2 = time.time()
+                fake_actions = self.sample_from_voo(col_batch, goal_flag_batch, pose_batch, rel_konf_batch)
+                #print "Fake sample generation time", time.time() - stime2
 
-                # make their scores
-                fake_action_q = np.ones((batch_size, 1)) * INFEASIBLE_SCORE  # marks fake data
-                real_action_q = np.ones((batch_size, 1))  # sum_reward_batch.reshape((batch_size, 1))
-                batch_a = np.vstack([fake, real])
-                batch_scores = np.vstack([fake_action_q, real_action_q])
+                stime4 = time.time()
+                infeasible_actions = []
+                for inf_cols, inf_poses, data_idx in zip(col_batch, pose_batch, data_idxs):
+                    infeasible_candidates = infeasible[data_idx]
+                    # todo get the best-valued candidate from the candidates for each scene
+                    inf_cols = np.repeat(inf_cols[None, :], len(infeasible_candidates), axis=0)
+                    inf_poses = np.repeat(inf_poses[None, :], len(infeasible_candidates), axis=0)
+                    inf_values = self.value_network.predict([infeasible_candidates, inf_cols, inf_poses])
+                    infeasible_actions.append(infeasible_candidates[np.argmax(inf_values)])
+                infeasible_actions = np.array(infeasible_actions)
+                #print "Infeasible sample generation time", time.time() - stime4
+
+                fake_action_q = np.ones((len(fake_actions), 1)) * FAKE_SCORE  # marks fake data
+                infeasible_action_q = np.ones((len(fake_actions), 1)) * INFEASIBLE_SCORE
+                real_action_q = np.ones((len(fake_actions), 1)) * FEASIBLE_SCORE # sum_reward_batch.reshape((batch_size, 1))
+
+                batch_a = np.vstack([fake_actions, infeasible_actions, a_batch])
+                batch_scores = np.vstack([fake_action_q, infeasible_action_q, real_action_q])
 
                 # train the critic
                 stime3 = time.time()
                 self.value_network.fit([batch_a,
-                                        make_repeated_data_for_fake_and_real_samples(goal_flag_batch),
-                                        make_repeated_data_for_fake_and_real_samples(rel_konf_batch),
-                                        make_repeated_data_for_fake_and_real_samples(col_batch),
-                                        make_repeated_data_for_fake_and_real_samples(pose_batch)],
+                                        make_repeated_data_for_fake_and_real_samples(col_batch, 3),
+                                        make_repeated_data_for_fake_and_real_samples(pose_batch, 3)],
                                        batch_scores,
-                                       batch_size=8,
-                                       epochs=10, verbose=False)
-                print "Value network train time", time.time()-stime3
-            print time.time()-stime
-            self.save_weights('epoch_' + str(epoch))
-
-            """
-            t_world_states = (t_goal_flags, t_rel_konfs, t_collisions, t_poses)
-            t_noise_smpls = gaussian_noise(z_size=(n_test_data, num_smpl_per_state, self.dim_noise))
-            t_generated_actions = self.generate_k_smples_for_multiple_states(t_world_states, t_noise_smpls)
-            t_chosen_noise_smpls = self.get_closest_noise_smpls_for_each_action(t_actions, t_generated_actions,
-                                                                                t_noise_smpls)
-            pred = self.policy_model.predict([t_goal_flags, t_rel_konfs, t_collisions, t_poses,
-                                              t_chosen_noise_smpls])
-            valid_err = np.mean(np.linalg.norm(pred - t_actions, axis=-1))
-            valid_errs.append(valid_err)
+                                       batch_size=96,
+                                       epochs=1000, verbose=False, callbacks=[callback])
+                #print "Value network train time", time.time() - stime3
+            print time.time() - stime
 
             self.save_weights('epoch_' + str(epoch))
 
-            if valid_err <= np.min(valid_errs):
-                self.save_weights(additional_name='best_val_err')
-                patience = 0
-            else:
-                patience += 1
+            fake_scores = self.value_network.predict([fake_actions, col_batch, pose_batch])
+            real_scores = self.value_network.predict([a_batch, col_batch, pose_batch])
 
-            print "Best Val error", np.min(valid_errs)
-            print "Val error %.2f patience %d" % (valid_err, patience)
-            real_score_values = np.mean(
-                (self.critic_model.predict([actions, goal_flags, rel_konfs, collisions, poses])))
-            noise_smpls = gaussian_noise(z_size=(n_train, self.dim_noise))
-            fake_score_values = np.mean(
-                (self.policy_loss_model.predict([goal_flags, rel_konfs, collisions, poses, noise_smpls]).squeeze()))
-            print "Real and fake scores %.5f, %.5f" % (real_score_values, fake_score_values)
+            print "Fake scores", fake_scores.mean()
+            print "Real scores", real_scores.mean()
 
-            # todo gradually reduce the learning rates based on the validation errs
-            if real_score_values <= fake_score_values:
-                g_lr = 1e-4
-                d_lr = 1e-3
-            else:
-                g_lr = 1e-3
-                d_lr = 1e-4
-
-            self.set_learning_rates(d_lr, g_lr)
-            """
 
     def construct_eval_net(self):
         dense_num = 64
         collision_inp = Flatten()(self.collision_input)
         concat_input = Concatenate(axis=-1)([collision_inp, self.pose_input, self.action_input])
-        H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(concat_input)
+        H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(
+            concat_input)
         H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
-        H = Dense(1, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
+        H = Dense(1, activation="linear", kernel_initializer=self.kernel_initializer,
+                  bias_initializer=self.bias_initializer)(H)
         """
         pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
         pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)

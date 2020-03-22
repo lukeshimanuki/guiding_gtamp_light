@@ -5,7 +5,6 @@ from generators.sampler import UniformSampler
 from gtamp_utils.utils import get_pick_domain, get_place_domain
 from generators.learning.utils.sampler_utils import make_input_for_place
 
-
 from gtamp_problem_environments.mover_env import Mover
 from planners.subplanners.motion_planner import BaseMotionPlanner
 
@@ -14,12 +13,12 @@ from generators.feasibility_checkers import two_arm_pick_feasibility_checker
 from trajectory_representation.operator import Operator
 from generators.feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
 
-
 from generators.learning.train_sampler import parse_args
 from generators.learning.utils.model_creation_utils import create_policy
 
 import numpy as np
 import random
+import pickle
 from generators.learning.AdversarialVOO import AdversarialVOO
 
 
@@ -71,34 +70,56 @@ def generate_smpls(problem_env, sampler, target_obj_name):
     place_region = 'loading_region'
     abstract_action = Operator('two_arm_pick_two_arm_place', {'object': target_obj_name, 'place_region': place_region})
     if SAMPLE_NEW_PICK:
-        sampler = UniformSampler(problem_env.regions[place_region])
-        generator = TwoArmPaPGenerator(None, abstract_action, sampler,
+        unifsampler = UniformSampler(problem_env.regions[place_region])
+        generator = TwoArmPaPGenerator(None, abstract_action, unifsampler,
                                        n_parameters_to_try_motion_planning=10,
                                        n_iter_limit=200, problem_env=problem_env,
                                        reachability_clf=None)
         samples = generator.sample_next_point()
         pick_base_pose = samples['pick']['q_goal']
+        abstract_action.continuous_parameters = {'pick': {'q_goal': pick_base_pose}}
     else:
-        pick_base_pose = np.array([1.38876479, -6.72431372, 2.13087774])
-        abstract_action.continuous_parameters = {'pick':{'q_goal':pick_base_pose}}
+        if target_obj_name == 'rectangular_packing_box1':
+            pick_base_pose = np.array([1.38876479, -6.72431372, 2.13087774])
+        elif target_obj_name == 'square_packing_box1':
+            pick_base_pose = np.array([[3.64012386, -6.57270149, 1.90057234]])
+        else:
+            raise NotImplementedError
+
+        abstract_action.continuous_parameters = {'pick': {'q_goal': pick_base_pose}}
+    abstract_action.execute_pick()
+    import pdb;pdb.set_trace()
 
     goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
     sampler_state = ConcreteNodeState(problem_env, target_obj_name, place_region, goal_entities)
     inp = make_input_for_place(sampler_state, pick_base_pose)
 
-    samples = [sampler.sample_from_voo(inp['collisions'], inp['goal_flags'], inp['poses'], inp['key_configs'], voo_iter=10) for _ in range(100)]
-    values = [sampler.value_network.predict([s[None, :], inp['goal_flags'], inp['key_configs'], inp['collisions'], inp['poses']])[0,0] for s in samples]
+    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
+
+    cols = inp['collisions'].squeeze()
+    colliding_idxs = np.where(cols[:, 1] == 0)[0]
+    colliding_key_configs = key_configs[colliding_idxs, :]
+
+    samples = [
+        sampler.sample_from_voo(inp['collisions'], inp['goal_flags'], inp['poses'], inp['key_configs'], voo_iter=30,
+                                colliding_key_configs=None) for
+        _ in range(20)]
+    values = [sampler.value_network.predict(
+        [s[None, :], inp['collisions'], inp['poses']])[0, 0] for s in samples]
     # Why does it ignore weights on the actions?
 
+    # samples = np.random.uniform([-0.34469225, -8.14641946, -1, -1], [3.92354742, -5.25567767, -1, -1], (500, 4))
+    # values = [sampler.value_network.predict([s[None, :], inp['goal_flags'], inp['key_configs'], inp['collisions'], inp['poses']])[0, 0] for s in samples]
+
     print values
-    import pdb;pdb.set_trace()
 
     samples = [utils.decode_pose_with_sin_and_cos_angle(s) for s in samples]
-    utils.viewer()
-    utils.visualize_placements(samples, target_obj_name)
-    return samples
+    utils.visualize_path(samples)
+    # visualize_samples(samples, problem_env, target_obj_name)
 
+    # visualize_samples([samples[np.argmax(values)]], problem_env, target_obj_name)
+    return samples
 
 
 def main():
@@ -111,11 +132,13 @@ def main():
     n_key_configs = 618
     n_collisions = 618
     sampler = create_policy(config, n_collisions, n_key_configs)
-    sampler.load_weights(additional_name='epoch_' + str(5))
+    sampler.load_weights(additional_name='epoch_' + str(61))
 
+    utils.viewer()
     obj_to_visualize = 'rectangular_packing_box1'
     smpls = generate_smpls(problem_env, sampler, target_obj_name=obj_to_visualize)
-    visualize_samples(smpls, problem_env, obj_to_visualize)
+    import pdb;
+    pdb.set_trace()
 
 
 if __name__ == '__main__':
