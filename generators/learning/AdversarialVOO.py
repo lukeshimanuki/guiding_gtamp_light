@@ -46,7 +46,7 @@ class AdversarialVOO(PlacePolicy):
         self.value_network_defn = self.construct_eval_net()
         self.value_network = self.construct_model(self.value_network_defn, 'val_network')
         if config.region == 'loading_region':
-            domain = np.array([[-0.7, -8.55, -1, -1], [4.3, -4.85, 1, 1]])
+            domain = np.array([[-0.44703855, -8.26104475, -1, -1], [4.05484256, -5.07272978, 1, 1]])
         else:
             domain = np.array([[-1.75, -3.16, -1, -1], [5.25, 3.16, 1, 1]])
         self.voo_agent = VOO(domain, 0.3, 'gaussian', None)
@@ -167,8 +167,8 @@ class AdversarialVOO(PlacePolicy):
                                         make_repeated_data_for_fake_and_real_samples(col_batch),
                                         make_repeated_data_for_fake_and_real_samples(pose_batch)],
                                        batch_scores,
-                                       batch_size=64,
-                                       epochs=32, verbose=False)
+                                       batch_size=8,
+                                       epochs=10, verbose=False)
                 print "Value network train time", time.time()-stime3
             print time.time()-stime
             self.save_weights('epoch_' + str(epoch))
