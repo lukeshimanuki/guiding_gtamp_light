@@ -82,13 +82,11 @@ def generate_smpls(problem_env, sampler, target_obj_name):
         if target_obj_name == 'rectangular_packing_box1':
             pick_base_pose = np.array([1.38876479, -6.72431372, 2.13087774])
         elif target_obj_name == 'square_packing_box1':
-            pick_base_pose = np.array([[3.64012386, -6.57270149, 1.90057234]])
+            pick_base_pose = np.array([ 2.78746403, -5.50781898,  0.14967688])
         else:
             raise NotImplementedError
-
         abstract_action.continuous_parameters = {'pick': {'q_goal': pick_base_pose}}
     abstract_action.execute_pick()
-    import pdb;pdb.set_trace()
 
     goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
@@ -101,21 +99,18 @@ def generate_smpls(problem_env, sampler, target_obj_name):
     colliding_idxs = np.where(cols[:, 1] == 0)[0]
     colliding_key_configs = key_configs[colliding_idxs, :]
 
-    samples = [
-        sampler.sample_from_voo(inp['collisions'], inp['goal_flags'], inp['poses'], inp['key_configs'], voo_iter=30,
-                                colliding_key_configs=None) for
-        _ in range(20)]
-    values = [sampler.value_network.predict(
-        [s[None, :], inp['collisions'], inp['poses']])[0, 0] for s in samples]
-    # Why does it ignore weights on the actions?
-
-    # samples = np.random.uniform([-0.34469225, -8.14641946, -1, -1], [3.92354742, -5.25567767, -1, -1], (500, 4))
-    # values = [sampler.value_network.predict([s[None, :], inp['goal_flags'], inp['key_configs'], inp['collisions'], inp['poses']])[0, 0] for s in samples]
-
-    print values
-
-    samples = [utils.decode_pose_with_sin_and_cos_angle(s) for s in samples]
+    samples = []
+    values = []
+    for _ in range(20):
+        sample = sampler.sample_from_voo(inp['collisions'], inp['poses'],
+                                         voo_iter=100,
+                                         colliding_key_configs=None,
+                                         tried_samples=np.array([]))
+        values.append(sampler.value_network.predict([sample[None,:], inp['collisions'], inp['poses']])[0,0])
+        sample = utils.decode_pose_with_sin_and_cos_angle(sample)
+        samples.append(sample)
     utils.visualize_path(samples)
+    print values
     # visualize_samples(samples, problem_env, target_obj_name)
 
     # visualize_samples([samples[np.argmax(values)]], problem_env, target_obj_name)
@@ -127,16 +122,21 @@ def main():
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
+    # load up the plan data
+
+    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' %problem_seed
+    plan_data = pickle.load(open(raw_dir+fname, 'r'))
+    plan = plan_data['plan']
 
     config = parse_args()
     n_key_configs = 618
     n_collisions = 618
     sampler = create_policy(config, n_collisions, n_key_configs)
-    sampler.load_weights(additional_name='epoch_' + str(61))
+    sampler.load_weights(additional_name='epoch_' + str(100))
 
     utils.viewer()
-    obj_to_visualize = 'rectangular_packing_box1'
-    smpls = generate_smpls(problem_env, sampler, target_obj_name=obj_to_visualize)
+    smpls = generate_smpls(problem_env, sampler, plan)
     import pdb;
     pdb.set_trace()
 
