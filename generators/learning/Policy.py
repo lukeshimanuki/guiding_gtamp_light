@@ -123,9 +123,10 @@ class Policy:
         return train, test
 
     @staticmethod
-    def get_batch(cols, goal_flags, poses, rel_konfs, actions, batch_size):
+    def get_batch(cols, goal_flags, poses, rel_konfs, actions, batch_size, batch_start_idx):
         n_data = len(cols)
-        indices = np.random.permutation(range(n_data))[0:batch_size]
+        #indices = np.random.permutation(range(n_data))[0:batch_size]
+        indices = range(n_data)[batch_start_idx:batch_start_idx+batch_size]
         cols_batch = np.array(cols[indices, :])  # collision vector
         goal_flag_batch = np.array(goal_flags[indices, :])  # collision vector
         a_batch = np.array(actions[indices, :])
