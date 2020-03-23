@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-region', type=str, default='loading_region')
     parser.add_argument('-filtered', action='store_true')
+    parser.add_argument('-debug', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -200,8 +201,14 @@ def get_data(datatype, action_type, region, filtered):
 
 
 def train(config):
-    states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region,
-                                                               config.filtered)
+    if config.debug:
+        states, poses, goal_flags, actions, sum_rewards = pickle.load(open('tmp_data_for_debug_train_sampler.pkl', 'r'))
+
+    else:
+        states, poses, goal_flags, actions, sum_rewards = get_data(config.dtype, config.atype, config.region,
+                                                                   config.filtered)
+        pickle.dump([states[0:256, :], poses[0:256, :], goal_flags[0:256, :], actions[0:256, :], sum_rewards[0:256, :]],
+                    open('tmp_data_for_debug_train_sampler.pkl', 'wb'))
 
     if config.atype == 'pick':
         actions = actions[:, :-4]
@@ -213,7 +220,6 @@ def train(config):
         actions = actions[:, -4:]
     else:
         raise NotImplementedError
-
 
     #### This perhaps needs to be refactored ####
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
@@ -239,7 +245,7 @@ def train(config):
     assert n_key_configs == n_collisions
     assert n_key_configs == 618
     policy = create_policy(config, n_collisions, n_key_configs)
-    #policy.policy_model.summary()
+    # policy.policy_model.summary()
     policy.train_policy(states, poses, key_configs, goal_flags, actions, sum_rewards)
 
 
