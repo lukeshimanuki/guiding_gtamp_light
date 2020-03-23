@@ -24,7 +24,7 @@ else:
     ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp_light/learned_weights/'
 
 
-def make_repeated_data_for_fake_and_real_samples(data,n_repeats):
+def make_repeated_data_for_fake_and_real_samples(data, n_repeats):
     return np.repeat(data, n_repeats, axis=0)
 
 
@@ -37,14 +37,14 @@ def admon_critic_loss(score_data, D_pred):
     pos_mask = tf.equal(score_data, FEASIBLE_SCORE)
     y_pos = tf.boolean_mask(D_pred, pos_mask)
 
-    infeasible_mask = tf.equal(score_data, INFEASIBLE_SCORE)
-    y_infeasible = tf.boolean_mask(D_pred, infeasible_mask)
+    # infeasible_mask = tf.equal(score_data, INFEASIBLE_SCORE)
+    # y_infeasible = tf.boolean_mask(D_pred, infeasible_mask)
 
     # compute mse w.r.t true function values
     # mse_on_true_data = K.mean((K.square(score_pos - y_pos)), axis=-1)
 
-    infeasible_loss = 10*K.mean(K.maximum(1 - (y_pos - y_infeasible), 0.))
-    return K.mean(K.maximum(1 - (y_pos - y_neg), 0.)) + infeasible_loss
+    # infeasible_loss = 10 * K.mean(K.maximum(1 - (y_pos - y_infeasible), 0.))
+    return K.mean(K.maximum(1 - (y_pos - y_neg), 0.))  # + infeasible_loss
 
 
 class AdversarialVOO(PlacePolicy):
@@ -57,7 +57,8 @@ class AdversarialVOO(PlacePolicy):
             self.domain = np.array(
                 [[-0.34469225, -8.14641946, -1., -0.99999925], [3.92354742, -5.25567767, 1., 0.99999993]])
         else:
-            self.domain = np.array([[-1.28392928, -2.95494754, -0.99999998, -0.99999999], [5.01948716, 2.58819546, 1.        , 1.        ]])
+            self.domain = np.array(
+                [[-1.28392928, -2.95494754, -0.99999998, -0.99999999], [5.01948716, 2.58819546, 1., 1.]])
         self.voo_agent = VOO(self.domain, 0.3, 'gaussian', None)
 
     def construct_policy_model(self):
@@ -67,7 +68,7 @@ class AdversarialVOO(PlacePolicy):
         pass
 
     def sample_from_voo(self, col_batch, goal_flag_batch, pose_batch, konf_batch, voo_iter=10,
-                        colliding_key_configs=None):
+                        colliding_key_configs=None, tried_samples=[]):
         # todo I need to run VOO for each col, goal, pose, and rel konf values
 
         # For 100 iterations of VOO,
@@ -90,8 +91,13 @@ class AdversarialVOO(PlacePolicy):
             for _ in range(voo_iter):
                 x = self.voo_agent.sample_next_point(evaled_x, evaled_y)
                 evaled_x.append(x)
-                if colliding_key_configs is None:
+                if colliding_key_configs is None and len(tried_samples) == 0:
                     val = obj_fcn(np.array([x]))[0, 0]
+                elif len(tried_samples) != 0 and colliding_key_configs is None:
+                    xy_of_sample = x[0:2]
+                    xys_of_cols = tried_samples[:, 0:2]
+                    dists = np.linalg.norm(xy_of_sample - xys_of_cols, axis=-1)
+                    val = obj_fcn(np.array([x]))[0, 0] + 100 * max(0.05 - min(dists), 0)
                 else:
                     xy_of_sample = x[0:2]
                     xys_of_cols = colliding_key_configs[:, 0:2]
@@ -183,18 +189,22 @@ class AdversarialVOO(PlacePolicy):
         callback = keras.callbacks.EarlyStopping(monitor='loss', min_delta=0, patience=10, verbose=0, mode='auto',
                                                  baseline=None, restore_best_weights=True)
 
+        fake_action_history = []
+        value_history = []
         for epoch in range(epochs):
             print  "Epoch %d / %d" % (epoch, epochs)
             stime = time.time()
             for idx, batch_idx in enumerate(batch_idxs):
-                #print "Batch %d / %d" % (idx, len(batch_idxs))
+                # print "Batch %d / %d" % (idx, len(batch_idxs))
+
                 col_batch, goal_flag_batch, pose_batch, rel_konf_batch, a_batch, data_idxs = \
                     self.get_batch(collisions, goal_flags, poses, rel_konfs, actions,
-                                   batch_size=batch_size)
+                                   batch_size=batch_size,
+                                   batch_start_idx=batch_idx)
                 stime2 = time.time()
                 fake_actions = self.sample_from_voo(col_batch, goal_flag_batch, pose_batch, rel_konf_batch)
-                #print "Fake sample generation time", time.time() - stime2
-
+                # print "Fake sample generation time", time.time() - stime2
+                """
                 stime4 = time.time()
                 infeasible_actions = []
                 for inf_cols, inf_poses, data_idx in zip(col_batch, pose_batch, data_idxs):
@@ -205,24 +215,37 @@ class AdversarialVOO(PlacePolicy):
                     inf_values = self.value_network.predict([infeasible_candidates, inf_cols, inf_poses])
                     infeasible_actions.append(infeasible_candidates[np.argmax(inf_values)])
                 infeasible_actions = np.array(infeasible_actions)
-                #print "Infeasible sample generation time", time.time() - stime4
+                # print "Infeasible sample generation time", time.time() - stime4
+                """
 
                 fake_action_q = np.ones((len(fake_actions), 1)) * FAKE_SCORE  # marks fake data
                 infeasible_action_q = np.ones((len(fake_actions), 1)) * INFEASIBLE_SCORE
-                real_action_q = np.ones((len(fake_actions), 1)) * FEASIBLE_SCORE # sum_reward_batch.reshape((batch_size, 1))
+                real_action_q = np.ones(
+                    (len(fake_actions), 1)) * FEASIBLE_SCORE  # sum_reward_batch.reshape((batch_size, 1))
 
-                batch_a = np.vstack([fake_actions, infeasible_actions, a_batch])
-                batch_scores = np.vstack([fake_action_q, infeasible_action_q, real_action_q])
+                # batch_a = np.vstack([fake_actions, infeasible_actions, a_batch])
+                batch_a = np.vstack([fake_actions, a_batch])
+                # batch_scores = np.vstack([fake_action_q, infeasible_action_q, real_action_q])
+                batch_scores = np.vstack([fake_action_q, real_action_q])
 
                 # train the critic
                 stime3 = time.time()
                 self.value_network.fit([batch_a,
-                                        make_repeated_data_for_fake_and_real_samples(col_batch, 3),
-                                        make_repeated_data_for_fake_and_real_samples(pose_batch, 3)],
+                                        make_repeated_data_for_fake_and_real_samples(col_batch, 2),
+                                        make_repeated_data_for_fake_and_real_samples(pose_batch, 2)],
                                        batch_scores,
-                                       batch_size=96,
+                                       batch_size=64,
                                        epochs=1000, verbose=False, callbacks=[callback])
-                #print "Value network train time", time.time() - stime3
+                if data_idxs[0] == 0:
+                    fake_action_history.append(fake_actions[0])
+                    fake_val = self.value_network.predict([fake_action_history[0][None, :], col_batch[0:1, :], pose_batch[0:1, :]])
+                    real_val = self.value_network.predict([a_batch[0:1, :], col_batch[0:1, :], pose_batch[0:1, :]])
+                    last_fake_val = self.value_network.predict([fake_action_history[-1][None, :], col_batch[0:1, :], pose_batch[0:1, :]])
+                    print last_fake_val, real_val
+                    value_history.append((fake_val[0,0], real_val[0,0]))
+                    print value_history
+
+                # print "Value network train time", time.time() - stime3
             print time.time() - stime
 
             self.save_weights('epoch_' + str(epoch))
@@ -234,8 +257,16 @@ class AdversarialVOO(PlacePolicy):
             print "Real scores", real_scores.mean()
 
     def construct_eval_net(self):
-        dense_num = 64
-        #collision_inp = Flatten()(self.collision_input)
+        dense_num = 32
+        collision_inp = Flatten()(self.collision_input)
+        concat_input = Concatenate(axis=-1)([self.pose_input, self.action_input, collision_inp])
+        H = Dense(dense_num, activation='relu',
+                  kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(concat_input)
+        H = Dense(dense_num, activation="relu", kernel_initializer=self.kernel_initializer,
+                  bias_initializer=self.bias_initializer)(H)
+        H = Dense(1, activation="linear", kernel_initializer=self.kernel_initializer,
+                  bias_initializer=self.bias_initializer)(H)
+        """
         concat_input = Concatenate(axis=-1)([self.pose_input, self.action_input])
         H = Dense(dense_num, activation='relu',
                   kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(
@@ -270,45 +301,6 @@ class AdversarialVOO(PlacePolicy):
         H = Flatten()(H)
         H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
         H = Dense(1, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
-
         """
-        pose_input = RepeatVector(self.n_key_confs)(self.pose_input)
-        pose_input = Reshape((self.n_key_confs, self.dim_poses, 1))(pose_input)
 
-        action_input = RepeatVector(self.n_key_confs)(self.action_input)
-        action_input = Reshape((self.n_key_confs, self.dim_action, 1))(action_input)
-
-        collision_inp = Flatten()(self.collision_input)
-        collision_inp = RepeatVector(self.n_key_confs)(collision_inp)
-        collision_inp = Reshape((self.n_key_confs, self.n_collisions * 2, 1))(collision_inp)
-        concat_input = Concatenate(axis=2)([pose_input, action_input, collision_inp])
-        n_dim = concat_input.shape[2]._value
-        dense_num = 32
-        # todo tell me is there something wrong with the relu's?
-        # if some of the weights begin with negative values, then it will have no gradients
-        H = Conv2D(filters=dense_num,
-                   kernel_size=(1, n_dim),
-                   strides=(1, 1),
-                   activation='linear',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(concat_input)
-        H = LeakyReLU()(H)
-        H = Conv2D(filters=dense_num,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   activation='linear',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(H)
-        H = LeakyReLU()(H)
-        H = Conv2D(filters=1,
-                   kernel_size=(1, 1),
-                   strides=(1, 1),
-                   activation='linear',
-                   kernel_initializer=self.kernel_initializer,
-                   bias_initializer=self.bias_initializer)(H)
-        H = LeakyReLU()(H)
-        H = Flatten()(H)
-        H = Dense(dense_num, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
-        H = Dense(1, kernel_initializer=self.kernel_initializer, bias_initializer=self.bias_initializer)(H)
-        """
         return H
