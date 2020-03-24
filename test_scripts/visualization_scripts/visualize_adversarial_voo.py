@@ -62,31 +62,28 @@ def get_feasible_pick(problem_env, target_obj):
             return op
 
 
-def generate_smpls(problem_env, sampler, target_obj_name):
+def generate_smpls(problem_env, sampler, plan):
     # make a prediction
     # Make a feasible pick sample for the target object
 
-    SAMPLE_NEW_PICK = False
+    idx = 0
+    plan_action = plan[0]
+    while True:
+        if plan_action.discrete_parameters['place_region'] == 'home_region':
+            utils.set_obj_xytheta(plan_action.continuous_parameters['place']['object_pose'], plan_action.discrete_parameters['object'])
+        else:
+            break
+        idx+=1
+        plan_action = plan[idx]
+
+    target_obj_name = plan_action.discrete_parameters['object']
     place_region = 'loading_region'
     abstract_action = Operator('two_arm_pick_two_arm_place', {'object': target_obj_name, 'place_region': place_region})
-    if SAMPLE_NEW_PICK:
-        unifsampler = UniformSampler(problem_env.regions[place_region])
-        generator = TwoArmPaPGenerator(None, abstract_action, unifsampler,
-                                       n_parameters_to_try_motion_planning=10,
-                                       n_iter_limit=200, problem_env=problem_env,
-                                       reachability_clf=None)
-        samples = generator.sample_next_point()
-        pick_base_pose = samples['pick']['q_goal']
-        abstract_action.continuous_parameters = {'pick': {'q_goal': pick_base_pose}}
-    else:
-        if target_obj_name == 'rectangular_packing_box1':
-            pick_base_pose = np.array([1.38876479, -6.72431372, 2.13087774])
-        elif target_obj_name == 'square_packing_box1':
-            pick_base_pose = np.array([ 2.78746403, -5.50781898,  0.14967688])
-        else:
-            raise NotImplementedError
-        abstract_action.continuous_parameters = {'pick': {'q_goal': pick_base_pose}}
+    abstract_action.continuous_parameters = plan_action.continuous_parameters
+    pick_base_pose = plan_action.continuous_parameters['pick']['q_goal']
     abstract_action.execute_pick()
+    utils.set_robot_config(plan_action.continuous_parameters['place']['q_goal'])
+    import pdb;pdb.set_trace()
 
     goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
@@ -103,7 +100,7 @@ def generate_smpls(problem_env, sampler, target_obj_name):
     values = []
     for _ in range(20):
         sample = sampler.sample_from_voo(inp['collisions'], inp['poses'],
-                                         voo_iter=100,
+                                         voo_iter=50,
                                          colliding_key_configs=None,
                                          tried_samples=np.array([]))
         values.append(sampler.value_network.predict([sample[None,:], inp['collisions'], inp['poses']])[0,0])
@@ -133,7 +130,7 @@ def main():
     n_key_configs = 618
     n_collisions = 618
     sampler = create_policy(config, n_collisions, n_key_configs)
-    sampler.load_weights(additional_name='epoch_' + str(100))
+    sampler.load_weights(additional_name='epoch_' + str(200))
 
     utils.viewer()
     smpls = generate_smpls(problem_env, sampler, plan)
