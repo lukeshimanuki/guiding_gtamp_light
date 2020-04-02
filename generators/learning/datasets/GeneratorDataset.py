@@ -1,105 +1,42 @@
-from torch.autograd import Variable
 from torch.utils.data import Dataset
 
-import os
 import pickle
 import numpy as np
-from gtamp_utils import utils
 import torch
+from generators.learning.data_load_utils import get_data
+from generators.learning.utils.data_processing_utils import action_data_mode
 
 
 class GeneratorDataset(Dataset):
     def __init__(self, action_type, desired_region, use_filter):
         self.use_filter = use_filter
         self.desired_region = desired_region
-        self.cols, self.q0s, self.actions, self.goal_obj_poses, self.manip_obj_poses = self.get_data(action_type)
+        self.konf_obsts, self.poses, self.actions = self.get_data(action_type)
 
     def get_data(self, action_type):
-        plan_exp_dir = './planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/' \
-                       'uses_rrt/sampler_trajectory_data/'
-        cache_file_name = plan_exp_dir + '/' + action_type + '_' + self.desired_region + '_cached_data.pkl'
-        if os.path.isfile(cache_file_name):
-            cols, q0s, actions, goal_obj_poses, manip_obj_poses = pickle.load(open(cache_file_name, 'r'))
-            return cols, q0s, actions, goal_obj_poses, manip_obj_poses
+        data_type = 'n_objs_pack_1'
+        atype = action_type
+        region = 'loading_region'
+        filtered = False
+        konf_obsts, poses, _, actions, _ = pickle.load(open('tmp_data_for_debug_train_sampler.pkl', 'r'))
 
-        plan_exp_files = os.listdir(plan_exp_dir)
-        np.random.shuffle(plan_exp_files)
+        #konf_obsts, poses, _, actions, _ = get_data(data_type, atype, region, filtered)
 
-        q0s = []
-        goal_obj_poses = []
-        cols = []
-        actions = []
-        manip_obj_poses = []
-        for idx, plan_exp_file in enumerate(plan_exp_files):
-            if 'pap_traj' not in plan_exp_file: continue
-            traj = pickle.load(open(plan_exp_dir + plan_exp_file, 'r'))
+        if atype == 'pick':
+            actions = actions[:, :-4]
+        elif atype == 'place':
+            must_get_q0_from_pick_abs_pose = action_data_mode == 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
+            assert must_get_q0_from_pick_abs_pose
+            pick_abs_poses = actions[:, 3:7]  # must swap out the q0 with the pick base pose
+            poses[:, -4:] = pick_abs_poses
+            actions = actions[:, -4:]
+        else:
+            raise NotImplementedError
 
-            print "%d / %d" % (float(idx), len(plan_exp_files))
-            try:
-                if len(traj.states) == 0:
-                    continue
-            except:
-                import pdb;
-                pdb.set_trace()
-
-            file_cols = []
-            file_q0s = []
-            file_actions = []
-            file_manip_obj_poses = []
-            file_goal_obj_poses = []
-            rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
-            for s, a, reward in zip(traj.states, traj.actions, rewards):
-                is_move_to_goal_region = s.region in s.goal_entities
-                if self.desired_region == 'home_region' and not is_move_to_goal_region and action_type=='place':
-                    continue
-                if self.desired_region == 'loading_region' and is_move_to_goal_region and action_type=='place':
-                    continue
-                if reward <= 0 and self.use_filter:
-                    continue
-
-                if action_type == 'pick':
-                    collisions = s.pick_collision_vector
-                    q0 = s.abs_robot_pose.squeeze()
-                elif action_type == 'place':
-                    collisions = s.place_collision_vector
-                    q0 = a['pick_abs_base_pose'].squeeze()
-                else:
-                    raise NotImplementedError
-
-                file_q0s.append(q0)
-                file_cols.append(collisions)
-                file_manip_obj_poses.append(s.abs_obj_pose.squeeze())
-                file_goal_obj_poses.append([p.squeeze() for p in s.abs_goal_obj_poses])
-
-                if action_type == 'pick':
-                    action = a['pick_action_parameters']
-                else:
-                    action = a['place_abs_base_pose']
-                file_actions.append(action)
-            if len(file_cols) > 0:
-                cols.append(file_cols)
-                q0s.append(file_q0s)
-                actions.append(file_actions)
-                goal_obj_poses.append(file_goal_obj_poses)
-                manip_obj_poses.append(file_manip_obj_poses)
-
-        cols = np.vstack(cols).squeeze()
-        q0s = np.vstack(q0s)
-        actions = np.vstack(actions)
-        goal_obj_poses = np.vstack(goal_obj_poses)
-        manip_obj_poses = np.vstack(manip_obj_poses)
-
-        cols = Variable(torch.from_numpy(cols))
-        q0s = Variable(torch.from_numpy(q0s))
-        actions = Variable(torch.from_numpy(actions))
-        goal_obj_poses = Variable(torch.from_numpy(goal_obj_poses))
-        manip_obj_poses = Variable(torch.from_numpy(manip_obj_poses))
-        pickle.dump((cols, q0s, actions, goal_obj_poses, manip_obj_poses), open(cache_file_name, 'wb'))
-
-        return cols, q0s, actions, goal_obj_poses, manip_obj_poses
+        return konf_obsts, poses, actions
 
     def __len__(self):
-        return len(self.q0s)
+        return len(self.konf_obsts)
 
     def __getitem__(self, idx):
         raise NotImplementedError
@@ -111,11 +48,9 @@ class StandardDataset(GeneratorDataset):
 
     def __getitem__(self, idx):
         data = {
-            'collision': self.cols[idx],
-            'q0': self.q0s[idx],
-            'action': self.actions[idx],
-            'goal_poses': self.goal_obj_poses[idx],
-            'obj_pose': self.manip_obj_poses[idx]
+            'konf_obsts': self.konf_obsts[idx],
+            'poses': self.poses[idx],
+            'actions': self.actions[idx],
         }
         return data
 
