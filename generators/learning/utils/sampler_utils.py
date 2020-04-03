@@ -1,5 +1,5 @@
 from generators.learning.utils import data_processing_utils
-from generators.learning.PlacePolicyIMLE import gaussian_noise
+from generators.learning.learning_algorithms.PlacePolicyIMLE import gaussian_noise
 from gtamp_utils import utils
 
 import pickle

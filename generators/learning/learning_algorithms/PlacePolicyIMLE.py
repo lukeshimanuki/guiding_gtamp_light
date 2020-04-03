@@ -3,7 +3,7 @@ from keras.layers import *
 from keras.models import Model
 from keras.callbacks import *
 
-from utils.data_processing_utils import action_data_mode
+from generators.learning.utils.data_processing_utils import action_data_mode
 import numpy as np
 import time
 import tensorflow as tf

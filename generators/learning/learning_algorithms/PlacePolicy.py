@@ -1,4 +1,4 @@
-from generators.learning.Policy import Policy
+from generators.learning.learning_algorithms.Policy import Policy
 from keras.layers import *
 from keras.callbacks import *
 from keras import Model
