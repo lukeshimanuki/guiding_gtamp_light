@@ -1,8 +1,7 @@
-from CMAESAdMonWithPose import CMAESAdversarialMonteCarloWithPose
+from generators.learning.learning_algorithms.CMAESAdMonWithPose import CMAESAdversarialMonteCarloWithPose
 from RelKonfAdMonWithPose import RelKonfMSEPose
 from policy_evaluator import get_pidxs_to_evaluate_policy, load_pose_file, get_smpler_state
-from data_processing.utils import state_data_mode, action_data_mode, convert_pose_rel_to_region_to_abs_pose, \
-    unnormalize_pose_wrt_region
+from data_processing.utils import state_data_mode, action_data_mode
 
 from gtamp_utils import utils
 from gtamp_utils.utils import *
