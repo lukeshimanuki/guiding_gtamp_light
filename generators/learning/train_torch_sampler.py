@@ -1,5 +1,6 @@
 import socket
 import torch
+import argparse
 
 from datasets.GeneratorDataset import StandardDataset
 from generators.learning.learning_algorithms.WGANGP import WGANgp
@@ -28,21 +29,18 @@ def get_data_generator(action_type, region):
 
 
 def main():
-    if socket.gethostname() == 'lab':
-        device = torch.device("cpu")
-    else:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    parser = argparse.ArgumentParser("Sampler training")
+    parser.add_argument('-seed', type=int, default=0)
+    parser.add_argument('-atype', type=str, default='place')
+    parser.add_argument('-region', type=str, default='home_region')
+    config = parser.parse_args()
 
-    print device
-    seed = 0
-    torch.cuda.manual_seed_all(seed)
-    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(config.seed)
+    torch.manual_seed(config.seed)
 
-    action_type = 'pick'
-    region = 'loading_region'
-    model = WGANgp(action_type, region)
+    model = WGANgp(config.atype, config.region)
 
-    trainloader, trainset, testset = get_data_generator(action_type, region)
+    trainloader, trainset, testset = get_data_generator(config.atype, config.region)
     n_train = len(trainset)
     model.train(trainloader, testset, n_train)
 
