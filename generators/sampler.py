@@ -58,24 +58,14 @@ class LearnedSampler(Sampler):
         smpls = generate_pick_and_place_batch(self.smpler_state, self.policy, z_smpls)
         self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
         self.policy_smpl_idx = 0
-        """
-        orig_color = utils.get_color_of(self.obj)
-        utils.set_color(self.obj, [0, 1, 0])
-        utils.visualize_placements(self.policy_smpl_batch[0:100, -3:], self.obj)
-        utils.set_color(self.obj, orig_color)
-        """
 
     def sample(self):
         smpl = self.policy_smpl_batch[self.policy_smpl_idx]
         self.policy_smpl_idx += 1
         if self.policy_smpl_idx >= len(self.policy_smpl_batch):
             z_smpls = noise(z_size=(100, 7))
-            stime = time.time()
             smpls = generate_pick_and_place_batch(self.smpler_state, self.policy, z_smpls)
             self.policy_smpl_batch = unprocess_pick_and_place_smpls(smpls)
-            # print "Prediction time for further sampling", time.time() - stime
             self.policy_smpl_idx = 0
         self.tried_smpls.append(smpl)
-        # parameters = self.sample_from_uniform()
-        # parameters[6:] = place_smpl
         return smpl
