@@ -160,12 +160,10 @@ class WGANgp:
             domain = utils.get_pick_domain()
         return domain
 
-    def generate(self, konf_obsts, poses, n_data):
-        noise = torch.randn(n_data, self.n_dim_actions)
+    def generate(self, konf_obsts, poses):
+        noise = torch.randn(len(konf_obsts), self.n_dim_actions)
         konf_obsts = torch.Tensor(konf_obsts)
         poses = torch.Tensor(poses)
-        konf_obsts = konf_obsts.repeat(n_data, 1, 1, 1)
-        poses = poses.repeat(n_data, 1)
         samples = self.generator(konf_obsts, poses, noise).cpu().data.numpy()
         return samples
 
