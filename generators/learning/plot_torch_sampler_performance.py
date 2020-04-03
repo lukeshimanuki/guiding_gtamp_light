@@ -1,4 +1,4 @@
-from generators.learning.PlaceWGANGP import PlaceWGANgp
+from generators.learning.learning_algorithms.WGANGP import WGANgp
 from matplotlib import pyplot as plt
 from train_torch_sampler import get_data_generator
 
@@ -7,17 +7,19 @@ import pickle
 import os
 
 
-def plot(x_data, y_data, title):
+def plot(x_data, y_data, title, file_dir):
     plt.figure()
     plt.plot(x_data, y_data)
     plt.title(title)
-    plt.savefig('./generators/learning/{}.png'.format(title))
+    if not os.path.isdir(file_dir):
+        os.makedirs(file_dir)
+    plt.savefig(file_dir + '{}.png'.format(title))
 
 
 def main():
     action_type = 'place'
     region = 'loading_region'
-    model = PlaceWGANgp(region)
+    model = WGANgp(action_type, region)
 
     trainloader, trainset, testset = get_data_generator(action_type, region)
     iterations = range(100, 94000, 100)
@@ -39,9 +41,9 @@ def main():
     print "KDE scores", iterations[np.argsort(results[:, 1])][::-1][0:50]
     print "Entropies", iterations[np.argsort(results[:, 2])][::-1][0:50]
 
-    plot(iterations, results[:, 0], 'Min MSEs')
-    plot(iterations, results[:, 1], 'KDE scores')
-    plot(iterations, results[:, 2], 'Entropies')
+    plot(iterations, results[:, 0], 'Min MSEs', model.weight_dir + '/result_summary/')
+    plot(iterations, results[:, 1], 'KDE scores', model.weight_dir + '/result_summary/')
+    plot(iterations, results[:, 2], 'Entropies', model.weight_dir + '/result_summary/')
 
 
 if __name__ == '__main__':
