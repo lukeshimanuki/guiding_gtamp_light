@@ -16,7 +16,7 @@ import numpy as np
 import os
 import random
 
-from data_load_utils import format_RL_data
+from generators.learning.data_load_utils import format_RL_data
 
 from openravepy import RaveDestroy
 

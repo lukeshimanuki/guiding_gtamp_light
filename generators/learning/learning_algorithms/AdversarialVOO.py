@@ -1,8 +1,8 @@
 from keras.layers import *
 from keras import backend as K
 from keras.models import Model
-from PlacePolicy import PlacePolicy
-from voo.voo import VOO
+from generators.learning.PlacePolicy import PlacePolicy
+from generators.learning.voo.voo import VOO
 import keras
 
 from gtamp_utils import utils

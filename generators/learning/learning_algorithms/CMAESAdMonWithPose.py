@@ -1,7 +1,7 @@
 from PlaceAdMonWithPose import PlaceAdmonWithPose
 from AdversarialPolicy import INFEASIBLE_SCORE
-from genetic_algorithm.voo import VOO
-from genetic_algorithm.cmaes import genetic_algorithm
+from generators.learning.genetic_algorithm.voo import VOO
+from generators.learning.genetic_algorithm.cmaes import genetic_algorithm
 
 import os
 import socket
