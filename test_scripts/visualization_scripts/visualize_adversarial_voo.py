@@ -1,17 +1,12 @@
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from gtamp_utils import utils
-from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
-from generators.sampler import UniformSampler
-from gtamp_utils.utils import get_pick_domain, get_place_domain
 from generators.learning.utils.sampler_utils import make_input_for_place
 
 from gtamp_problem_environments.mover_env import Mover
 from planners.subplanners.motion_planner import BaseMotionPlanner
 
-from generators.learning.pytorch_implementations.SuggestionNetwork import SuggestionNetwork
 from generators.feasibility_checkers import two_arm_pick_feasibility_checker
 from trajectory_representation.operator import Operator
-from generators.feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
 
 from generators.learning.train_sampler import parse_args
 from generators.learning.utils.model_creation_utils import create_policy
@@ -19,7 +14,7 @@ from generators.learning.utils.model_creation_utils import create_policy
 import numpy as np
 import random
 import pickle
-from generators.learning.AdversarialVOO import AdversarialVOO
+import sys
 
 
 def create_environment(problem_idx):
@@ -72,18 +67,23 @@ def generate_smpls(problem_env, sampler, plan):
         if plan_action.discrete_parameters['place_region'] == 'home_region':
             utils.set_obj_xytheta(plan_action.continuous_parameters['place']['object_pose'], plan_action.discrete_parameters['object'])
         else:
-            break
+            if plan_action.discrete_parameters['object'] == 'rectangular_packing_box2':
+                break
+            else:
+                utils.set_obj_xytheta(plan_action.continuous_parameters['place']['object_pose'],
+                                      plan_action.discrete_parameters['object'])
+
         idx+=1
         plan_action = plan[idx]
-
+    import pdb;pdb.set_trace()
     target_obj_name = plan_action.discrete_parameters['object']
     place_region = 'loading_region'
     abstract_action = Operator('two_arm_pick_two_arm_place', {'object': target_obj_name, 'place_region': place_region})
     abstract_action.continuous_parameters = plan_action.continuous_parameters
     pick_base_pose = plan_action.continuous_parameters['pick']['q_goal']
     abstract_action.execute_pick()
-    utils.set_robot_config(plan_action.continuous_parameters['place']['q_goal'])
     import pdb;pdb.set_trace()
+    utils.set_robot_config(plan_action.continuous_parameters['place']['q_goal'])
 
     goal_entities = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
                      'rectangular_packing_box4', 'home_region']
@@ -115,22 +115,24 @@ def generate_smpls(problem_env, sampler, plan):
 
 
 def main():
-    problem_seed = 0
+    problem_seed = 6
+    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' %problem_seed
+    plan_data = pickle.load(open(raw_dir+fname, 'r'))
+    plan = plan_data['plan']
+    if len(plan) == 4:
+        sys.exit(-1)
+
     np.random.seed(problem_seed)
     random.seed(problem_seed)
     problem_env, openrave_env = create_environment(problem_seed)
     # load up the plan data
 
-    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
-    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' %problem_seed
-    plan_data = pickle.load(open(raw_dir+fname, 'r'))
-    plan = plan_data['plan']
-
     config = parse_args()
     n_key_configs = 618
     n_collisions = 618
     sampler = create_policy(config, n_collisions, n_key_configs)
-    sampler.load_weights(additional_name='epoch_' + str(200))
+    sampler.load_weights(additional_name='epoch_' + str(600))
 
     utils.viewer()
     smpls = generate_smpls(problem_env, sampler, plan)
