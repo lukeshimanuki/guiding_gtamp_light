@@ -18,9 +18,8 @@ class GeneratorDataset(Dataset):
         atype = action_type
         region = 'loading_region'
         filtered = False
-        konf_obsts, poses, _, actions, _ = pickle.load(open('tmp_data_for_debug_train_sampler.pkl', 'r'))
-
-        #konf_obsts, poses, _, actions, _ = get_data(data_type, atype, region, filtered)
+        #konf_obsts, poses, _, actions, _ = pickle.load(open('tmp_data_for_debug_train_sampler.pkl', 'r'))
+        konf_obsts, poses, _, actions, _ = get_data(data_type, atype, region, filtered)
 
         if atype == 'pick':
             actions = actions[:, :-4]
