@@ -5,11 +5,9 @@ import tensorflow as tf
 import socket
 from problem_environments.conveyor_belt_rl_env import RLConveyorBelt
 from problem_environments.minimum_displacement_removal_rl import RLMinimumDisplacementRemoval
-from problem_instantiators.minimum_constraint_removal_instantiator import MinimumConstraintRemovalInstantiator
-from DDPG import DDPG
+from generators.learning.learning_algorithms.DDPG import DDPG
 from PPO import PPO
 import time
-import sys
 
 # from TRPO import TRPO
 

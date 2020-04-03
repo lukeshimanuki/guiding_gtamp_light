@@ -2,7 +2,7 @@ import socket
 import torch
 
 from datasets.GeneratorDataset import StandardDataset
-from generators.learning.PlaceWGANGP import PlaceWGANgp
+from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 if socket.gethostname() == 'lab' or socket.gethostname() == 'phaedra' or socket.gethostname() == 'dell-XPS-15-9560':
     ROOTDIR = './'
@@ -38,10 +38,11 @@ def main():
     torch.cuda.manual_seed_all(seed)
     torch.manual_seed(seed)
 
-    action_type = 'place'
+    action_type = 'pick'
     region = 'loading_region'
+    model = WGANgp(action_type, region)
+
     trainloader, trainset, testset = get_data_generator(action_type, region)
-    model = PlaceWGANgp(region)
     n_train = len(trainset)
     model.train(trainloader, testset, n_train)
 
