@@ -136,10 +136,11 @@ class PlaceWGANgp:
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
 
-    def generate(self, n_data):
+    def generate(self, konf_obsts, poses, n_data):
         noise = torch.randn(n_data, self.n_dim_actions)
-        noisev = autograd.Variable(noise, volatile=True)
-        samples = self.generator(noisev).cpu().data.numpy()
+        konf_obsts = torch.Tensor(konf_obsts)
+        poses = torch.Tensor(poses)
+        samples = self.generator(konf_obsts, poses, noise).cpu().data.numpy()
         return samples
 
     def load_weights(self, iteration, verbose=True):
@@ -201,7 +202,7 @@ class PlaceWGANgp:
                 prob = H / np.sum(H)
                 entropy = sp.stats.entropy(prob.flatten())
             entropies.append(entropy)
-        print "MSE {:.2f} KDE_score {:.2f} Entropy {}".format(np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies))
+        #print "MSE {:.2f} KDE_score {:.2f} Entropy {}".format(np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies))
         return np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies)
 
     def train(self, data_loader, test_set, n_train):
