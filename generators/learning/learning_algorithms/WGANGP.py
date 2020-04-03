@@ -121,7 +121,9 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 class WGANgp:
     def __init__(self, action_type, region_name):
-        self.n_dim_actions = 4
+
+        self.n_dim_actions = self.get_dim_action(action_type)
+
         self.discriminator = Discriminator(self.n_dim_actions)
         self.generator = Generator(self.n_dim_actions)
         self.region_name = region_name
@@ -131,7 +133,15 @@ class WGANgp:
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
 
-    def get_weight_dir(self, action_type, region_name):
+    @staticmethod
+    def get_dim_action(action_type):
+        if 'pick' in action_type:
+            return 7
+        else:
+            return 4
+
+    @staticmethod
+    def get_weight_dir(action_type, region_name):
         if 'place' in action_type:
             dir = './generators/learning/learned_weights/{}/{}/wgangp/'.format(action_type, region_name)
         else:
@@ -148,7 +158,6 @@ class WGANgp:
                     [[-1.28392928, -2.95494754, -0.99999998, -0.99999999], [5.01948716, 2.58819546, 1., 1.]])
         else:
             domain = utils.get_pick_domain()
-        import pdb;pdb.set_trace()
         return domain
 
     def generate(self, konf_obsts, poses, n_data):
@@ -228,10 +237,6 @@ class WGANgp:
         optimizerD = optim.Adam(self.discriminator.parameters(), lr=1e-4, betas=(0.5, 0.9))
         optimizerG = optim.Adam(self.generator.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
-        DIM = 512  # Model dimensionality
-        MODE = 'wgan-gp'  # wgan or wgan-gp
-        FIXED_GENERATOR = False  # whether to hold the generator fixed at real data plus
-        # Gaussian noise, as in the plots in the paper
         CRITIC_ITERS = 5  # How many critic iterations per generator iteration
         use_cuda = False
 
@@ -336,14 +341,3 @@ class WGANgp:
                 path = self.weight_dir + '/gen_iter_%d.pt' % iteration
                 torch.save(self.generator.state_dict(), path)
 
-                # self.evaluate_generator(test_set)
-
-                # How can I evaluate what's going on?
-                # Like, is mean MSE of 1.4818 good or bad?
-                # Also, how big is its entropy?
-                # One potential idea is to:
-                #   - Take test states
-                #   - Generate 100 samples each
-                #   - Fit the data using KDE
-                #   - Accuracy: measure the actual action's probability
-                #   - Diversity: measure the spread by binning the actions and looking at entropy
