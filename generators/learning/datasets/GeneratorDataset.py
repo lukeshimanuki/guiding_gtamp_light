@@ -11,12 +11,11 @@ class GeneratorDataset(Dataset):
     def __init__(self, action_type, desired_region, use_filter):
         self.use_filter = use_filter
         self.desired_region = desired_region
-        self.konf_obsts, self.poses, self.actions = self.get_data(action_type)
+        self.konf_obsts, self.poses, self.actions = self.get_data(action_type, desired_region)
 
-    def get_data(self, action_type):
+    def get_data(self, action_type, region):
         data_type = 'n_objs_pack_1'
         atype = action_type
-        region = 'loading_region'
         filtered = False
         #konf_obsts, poses, _, actions, _ = pickle.load(open('tmp_data_for_debug_train_sampler.pkl', 'r'))
         konf_obsts, poses, _, actions, _ = get_data(data_type, atype, region, filtered)
