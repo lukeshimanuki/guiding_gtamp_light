@@ -1,8 +1,7 @@
 from generators.learning.PlacePolicyMSECombinationOfQg import PlacePolicyMSECombinationOfQg
-from generators.learning.PlacePolicyMSEFeedForward import PlacePolicyMSEFeedForward
 from generators.learning.PlacePolicyIMLECombinationOfQg import PlacePolicyIMLECombinationOfQg
 from generators.learning.PickPolicyIMLECombinationOfQg import PickPolicyIMLECombinationOfQg
-from generators.learning.AdversarialVOO import AdversarialVOO
+from generators.learning.learning_algorithms.AdversarialVOO import AdversarialVOO
 
 
 from data_processing_utils import state_data_mode

@@ -70,7 +70,7 @@ def prepare_input_except_noise(smpler_state, delete=False, region=None, filter_k
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
-    inp = {'goal_flags':goal_flags, 'key_configs':key_configs, 'collisions':collisions, 'poses':poses}
+    inp = {'goal_flags': goal_flags, 'key_configs': key_configs, 'collisions': collisions, 'poses': poses}
     return inp
 
 
@@ -83,18 +83,6 @@ def prepare_input(smpler_state, noise_batch, delete=False, region=None, filter_k
     collisions = smpler_state.pick_collision_vector
 
     key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-    """
-    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
-    if delete:
-        indices_to_delete = get_indices_to_delete(region, key_configs)
-        key_configs = np.delete(key_configs, indices_to_delete, axis=0)
-        collisions = np.delete(collisions, indices_to_delete, axis=1)
-        goal_flags = np.delete(goal_flags, indices_to_delete, axis=1)
-
-    if filter_konfs:
-        key_configs = data_processing_utils.filter_configs_that_are_too_close(key_configs)
-    """
-
     key_configs = np.array([utils.encode_pose_with_sin_and_cos_angle(p) for p in key_configs])
     key_configs = key_configs.reshape((1, len(key_configs), 4, 1))
     key_configs = key_configs.repeat(len(poses), axis=0)
@@ -145,20 +133,11 @@ def make_input_for_place(smpler_state, pick_base_pose):
 
 
 def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
-    very_stime = time.time()
     pick_smpler = policy['pick']
-    stime = time.time()
     inp = prepare_input(smpler_state, noise_batch, delete=True, region='loading_region', filter_konfs=False)
-    #print "preparation_time_1", time.time() - stime
-
     pick_samples = pick_smpler.policy_model.predict(inp)
-
-    # preparation for place sampler
     pick_base_poses = []
-    stime = time.time()
 
-    # todo generate place for picks that are actually going to be used. This would almost half the prediction time.
-    #   In this scheme, what happens if we generate like 1 sample at a time?
     for p in pick_samples:
         ir_parameters = p[3:]
         portion = ir_parameters[0]
@@ -166,16 +145,11 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
         facing_angle_offset = ir_parameters[3]
         pick_param = np.hstack([p[:3], portion, base_angle, facing_angle_offset])
         _, pick_base_pose = utils.get_pick_base_pose_and_grasp_from_pick_parameters(smpler_state.obj, pick_param)
-        # pick_params.append({'q_goal': pick_base_pose})
         pick_base_pose = utils.encode_pose_with_sin_and_cos_angle(pick_base_pose)
         pick_base_poses.append(pick_base_pose)
     pick_base_poses = np.array(pick_base_poses)
-    #print "pick processing time", time.time() - stime
 
-    # making place samples based on pick base poses
-    stime = time.time()
     inp = prepare_input(smpler_state, noise_batch, delete=True, region=smpler_state.region, filter_konfs=False)
-    #print "preparation_time_2", time.time() - stime
 
     poses = inp[-2]
     poses[:, -4:] = pick_base_poses
@@ -184,11 +158,6 @@ def generate_pick_and_place_batch(smpler_state, policy, noise_batch):
     inp[-1] = z_smpls
     place_smpler = policy['place']
 
-    #stime = time.time()
     place_samples = place_smpler.policy_model.predict(inp)
-    #print "place_prediction_time", time.time() - stime
-    # place_sample_values = place_smpler.value_model.predict(inp)
-    # place_sample_values = [utils.decode_pose_with_sin_and_cos_angle(p) for p in place_sample_values[0]]
-    #print "Total predictio time taken", time.time() - very_stime
 
     return pick_samples, place_samples
