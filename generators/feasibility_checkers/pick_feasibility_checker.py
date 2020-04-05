@@ -3,20 +3,21 @@ import time
 
 
 class PickFeasibilityChecker(object):
-    def __init__(self, problem_env):
+    def __init__(self, problem_env, action_mode):
         self.problem_env = problem_env
         self.env = problem_env.env
         self.robot = self.env.GetRobots()[0]
         self.objects_to_check_collision = []
+        self.action_mode = action_mode
 
-    def check_feasibility(self, operator_skeleton, pick_parameters, swept_volume_to_avoid=None, parameter_mode='ir_params'):
+    def check_feasibility(self, operator_skeleton, pick_parameters, swept_volume_to_avoid=None):
         # This function checks if the base pose is not in collision and if there is a feasible pick
         obj = operator_skeleton.discrete_parameters['object']
         if type(obj) == str or type(obj) == unicode:
             obj = self.problem_env.env.GetKinBody(obj)
-        if parameter_mode == 'ir_params':
+        if self.action_mode == 'ir_params':
             grasp_params, pick_base_pose = get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters)
-        elif parameter_mode == 'absolute_pose':
+        elif self.action_mode == 'robot_base_pose':
             grasp_params = pick_parameters[0:3]
             pick_base_pose = pick_parameters[3:]
         else:

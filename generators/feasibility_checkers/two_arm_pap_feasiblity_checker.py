@@ -5,12 +5,13 @@ from mover_library import utils
 
 
 class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasibilityChecker):
-    def __init__(self, problem_env):
-        TwoArmPickFeasibilityChecker.__init__(self, problem_env)
-        TwoArmPlaceFeasibilityChecker.__init__(self, problem_env)
+    def __init__(self, problem_env, pick_action_mode, place_action_mode):
+        assert place_action_mode == 'obj_pose' or place_action_mode == 'robot_base_pose', 'Invalid place action mode'
+        TwoArmPickFeasibilityChecker.__init__(self, problem_env, action_mode=pick_action_mode)
+        TwoArmPlaceFeasibilityChecker.__init__(self, problem_env, action_mode=place_action_mode)
         self.feasible_pick = []
 
-    def check_place_feasible(self, pick_parameters, place_parameters, operator_skeleton, parameter_mode):
+    def check_place_feasible(self, pick_parameters, place_parameters, operator_skeleton):
         pick_op = Operator('two_arm_pick', operator_skeleton.discrete_parameters)
         pick_op.continuous_parameters = pick_parameters
 
@@ -22,8 +23,7 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
 
         place_cont_params, place_status = TwoArmPlaceFeasibilityChecker.check_feasibility(self,
                                                                                           place_op,
-                                                                                          place_parameters,
-                                                                                          parameter_mode=parameter_mode)
+                                                                                          place_parameters)
         utils.two_arm_place_object(pick_op.continuous_parameters)
         utils.set_robot_config(original_config)
 
@@ -35,7 +35,8 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
         params, status = TwoArmPickFeasibilityChecker.check_feasibility(self, pick_op, pick_parameters)
         return params, status
 
-    def check_feasibility(self, operator_skeleton, parameters, swept_volume_to_avoid=None, parameter_mode='obj_pose'):
+    def check_feasibility(self, operator_skeleton, parameters, swept_volume_to_avoid=None):
+        # todo make this parameter mode explicit in the constructor
         pick_parameters = parameters[:6]
         place_parameters = parameters[-3:]
 
@@ -56,8 +57,7 @@ class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasi
             return None, "PickFailed"
         """
 
-        place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton,
-                                                                   parameter_mode=parameter_mode)
+        place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton)
 
         if place_status != 'HasSolution':
             return None, "PlaceFailed"

@@ -4,23 +4,23 @@ from gtamp_utils import utils
 
 
 class TwoArmPlaceFeasibilityChecker:
-    def __init__(self, problem_env):
+    def __init__(self, problem_env, action_mode):
         self.problem_env = problem_env
         self.env = problem_env.env
         self.robot = self.env.GetRobots()[0]
         self.robot_region = self.problem_env.regions['entire_region']
         self.objects_to_check_collision = []
+        self.action_mode = action_mode
 
-    def check_feasibility(self, operator_skeleton, place_parameters, swept_volume_to_avoid=None,
-                          parameter_mode='obj_pose'):
+    def check_feasibility(self, operator_skeleton, place_parameters, swept_volume_to_avoid=None):
         # Note:
         #    this function checks if the target region contains the robot when we place object at place_parameters
         #    and whether the robot will be in collision
         obj_region = operator_skeleton.discrete_parameters['place_region']
-        assert parameter_mode == 'obj_pose'
-        if parameter_mode == 'obj_pose':
+        #assert parameter_mode == 'obj_pose'
+        if self.action_mode == 'obj_pose':
             return self.check_place_at_obj_pose_feasible(obj_region, place_parameters, swept_volume_to_avoid)
-        elif parameter_mode == 'robot_base_pose':
+        elif self.action_mode == 'robot_base_pose':
             return self.check_place_at_base_pose_feasible(obj_region, place_parameters, swept_volume_to_avoid)
         else:
             raise NotImplementedError

@@ -5,8 +5,8 @@ from generators.feasibility_checkers.pick_feasibility_checker import PickFeasibi
 
 
 class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
-    def __init__(self, problem_env):
-        PickFeasibilityChecker.__init__(self, problem_env)
+    def __init__(self, problem_env, action_mode):
+        PickFeasibilityChecker.__init__(self, problem_env, action_mode)
 
     def compute_grasp_config(self, obj, pick_base_pose, grasp_params):
         orig_config = get_robot_xytheta(self.robot)
