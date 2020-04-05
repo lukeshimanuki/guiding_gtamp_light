@@ -7,10 +7,10 @@ from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
-from generators.learning.WGANGP import WGANgp
+from generators.learning.learning_algorithms.WGANGP import WGANgp
 from gtamp_problem_environments.mover_env import Mover
 
-from generators.sampler import UniformSampler, TorchSampler
+from generators.sampler import UniformSampler, PlaceOnlyLearnedSampler
 from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.operator import Operator
@@ -78,7 +78,7 @@ def execute_plan_with_sampler(plan, sampler_model, problem_env, goal_entities):
     for action in plan:
         abstract_action = action
         if abstract_action.discrete_parameters['place_region'] == 'loading_region':
-            sampler = TorchSampler(sampler_model, abstract_state, abstract_action)
+            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, abstract_action)
             samples = sampler.samples
 
             generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
