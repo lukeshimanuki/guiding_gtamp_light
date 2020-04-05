@@ -121,7 +121,7 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 class WGANgp:
     def __init__(self, action_type, region_name):
-
+        self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
 
         self.discriminator = Discriminator(self.n_dim_actions)
@@ -158,6 +158,20 @@ class WGANgp:
                     [[-1.28392928, -2.95494754, -0.99999998, -0.99999999], [5.01948716, 2.58819546, 1., 1.]])
         else:
             domain = utils.get_pick_domain()
+            portion, base_angle, facing_angle_offset = domain[0, 3:]
+            grasp_params = domain[0, 0:3]
+            base_angle = utils.encode_angle_in_sin_and_cos(base_angle)
+            min_domain = np.hstack([grasp_params, portion, base_angle, facing_angle_offset])
+            min_domain[4:6] = np.array([-1, -1])
+
+            portion, base_angle, facing_angle_offset = domain[1, 3:]
+            grasp_params = domain[1, 0:3]
+            base_angle = utils.encode_angle_in_sin_and_cos(base_angle)
+            max_domain = np.hstack([grasp_params, portion, base_angle, facing_angle_offset])
+            max_domain[4:6] = np.array([1, 1])
+
+            domain = np.vstack([min_domain, max_domain])
+
         return domain
 
     def generate(self, konf_obsts, poses):
@@ -179,6 +193,7 @@ class WGANgp:
         is_load_weights = iteration is not None
         if is_load_weights:
             self.load_weights(iteration)
+
         test_data = test_data[:]
         poses = torch.from_numpy(test_data['poses']).float()
         konf_obsts = torch.from_numpy(test_data['konf_obsts']).float()
@@ -187,7 +202,7 @@ class WGANgp:
         n_smpls_per_state = 100
         smpls = []
         for _ in range(n_smpls_per_state):
-            noise = torch.randn(n_data, 4)
+            noise = torch.randn(n_data, self.n_dim_actions)
             new_smpls = self.generator(konf_obsts, poses, noise)
             smpls.append(new_smpls)
         smpls = torch.stack(smpls)
@@ -207,7 +222,7 @@ class WGANgp:
 
             # measure the MSE
             dists = ((real_action * real_std + real_mean) - (smpls_from_state * real_std + real_mean)) ** 2
-            dists = np.sqrt(np.sum(dists[:, 0:2], axis=-1))
+            dists = np.sqrt(np.sum(dists, axis=-1))
             min_mse = min(dists)
             min_mses.append(min_mse)
 
@@ -217,8 +232,13 @@ class WGANgp:
 
             # measure the entropy
             smpls_from_state = smpls_from_state * real_std + real_mean
-            H, _, _ = np.histogram2d(smpls_from_state[:, 0], smpls_from_state[:, 1], bins=10,
-                                     range=self.domain[:, 0:2].transpose())
+            if 'pick' in self.action_type:
+                base_angles = smpls_from_state[:, 4:6]
+                H, _, _ = np.histogram2d(base_angles[:, 0], base_angles[:, 1], bins=10,
+                                         range=self.domain[:, 4:6].transpose())
+            else:
+                place_x, place_y = smpls_from_state[:, 0], smpls_from_state[:, 1]
+                H, _, _ = np.histogram2d(place_x, place_y, bins=10, range=self.domain[:, 0:2].transpose())
             all_smpls_out_of_range = np.sum(H) == 0
             if all_smpls_out_of_range:
                 entropy = np.inf
@@ -226,7 +246,7 @@ class WGANgp:
                 prob = H / np.sum(H)
                 entropy = sp.stats.entropy(prob.flatten())
             entropies.append(entropy)
-        # print "MSE {:.2f} KDE_score {:.2f} Entropy {}".format(np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies))
+
         return np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies)
 
     def train(self, data_loader, test_set, n_train):
@@ -338,4 +358,3 @@ class WGANgp:
                 torch.save(self.discriminator.state_dict(), path)
                 path = self.weight_dir + '/gen_iter_%d.pt' % iteration
                 torch.save(self.generator.state_dict(), path)
-
