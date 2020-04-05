@@ -51,11 +51,6 @@ class LearnedSampler(Sampler):
                                               key_configs=self.key_configs)
         print "Concre node creation time", time.time() - stime
 
-        self.samples = self.sample_new_points(100)
-        utils.viewer()
-
-        self.curr_smpl_idx = 0
-
     def sample_new_points(self, n_smpls):
         # Here, it would be much more accurate if I use place collision vector, but at this point
         # I don't know if the pick is feasible. Presumably, we can check the feasbility based on pick first, and
@@ -66,37 +61,56 @@ class LearnedSampler(Sampler):
     def sample(self):
         # prepare input to the network
         if self.curr_smpl_idx >= len(self.samples):
-            self.samples = self.sample_new_points(100)
-
+            self.samples = self.sample_new_points(200)
+            self.curr_smpl_idx = 0
         new_sample = self.samples[self.curr_smpl_idx]
+        self.curr_smpl_idx += 1
         return new_sample
 
 
 class PlaceOnlyLearnedSampler(LearnedSampler):
-    def __init__(self, sampler, abstract_state, abstract_action):
+    def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
+        if pick_abs_base_pose is not None:
+            self.pick_abs_base_pose = pick_abs_base_pose.reshape((1, 3))
+        else:
+            self.pick_abs_base_pose = None
+        self.samples = self.sample_new_points(200)
+        self.curr_smpl_idx = 0
 
     def sample_picks(self, n_smpls):
         pick_min = get_pick_domain()[0]
         pick_max = get_pick_domain()[1]
         pick_samples = np.random.uniform(pick_min, pick_max, (n_smpls, 6)).squeeze()
-
-        must_get_q0_from_pick_abs_pose = action_data_mode == 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
-        assert must_get_q0_from_pick_abs_pose
-        pick_abs_poses = pick_samples[:, 3:7]
-        return pick_abs_poses
+        return pick_samples
 
     def sample_new_points(self, n_smpls):
+        # note: this function outputs absolute pick base pose and absolute place base pose
+        print "Generating new points"
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
 
         # sample picks
-        pick_abs_poses = self.sample_picks(n_smpls)
-        pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
-        poses = np.tile(poses, (n_smpls, 1))
-        poses[:, -4:] = pick_abs_poses
+        if self.pick_abs_base_pose is None:
+            pick_samples = self.sample_picks(n_smpls)
+            pick_abs_poses = np.array([utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
+            pick_samples[:, -3:] = pick_abs_poses
+            encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
+        else:
+            encoded_pick_abs_poses = np.array(utils.encode_pose_with_sin_and_cos_angle(self.pick_abs_base_pose))
+            encoded_pick_abs_poses = np.tile(encoded_pick_abs_poses, (n_smpls, 1))
+            # some dummy variable. if we use this case besides the visualization, then save the pick samples
+            pick_samples = self.sample_picks(n_smpls)
 
+        poses = np.tile(poses, (n_smpls, 1))
+        poses[:, -4:] = encoded_pick_abs_poses
+
+        # making predictions using the sampler
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-        samples = self.policy.generate(collisions, poses)
-        samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in samples])
+        place_samples = self.policy.generate(collisions, poses)
+
+        # This is in robot's pose. I need to convert it to object poses
+        place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
+
+        samples = np.hstack([pick_samples, place_samples])
         return samples
