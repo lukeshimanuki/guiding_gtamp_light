@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import random
 import pickle
+import time
 
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
@@ -18,34 +19,42 @@ from trajectory_representation.operator import Operator
 from gtamp_utils import utils
 
 
-def get_problem_env(config, goal_region, goal_objs):
-    problem_env = PaPMoverEnv(config.pidx)
-    goal = [goal_region] + goal_objs
-    [utils.set_color(o, [0, 0, 0.8]) for o in goal_objs]
-    problem_env.set_goal(goal)
-    return problem_env
-
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-pidx', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-epoch', type=int, default=10000)  # used for threaded runs
+    parser.add_argument('-epoch_home', type=int, default=None)  # used for threaded runs
+    parser.add_argument('-epoch_loading', type=int, default=None)  # used for threaded runs
     config = parser.parse_args()
     return config
 
 
 def create_environment(problem_idx):
-    problem_env = Mover(problem_idx)
+    problem_env = PaPMoverEnv(problem_idx)
     problem_env.set_motion_planner(BaseMotionPlanner(problem_env, 'prm'))
     return problem_env
 
 
-def get_learned_smpler(epoch):
-    action_type = 'place'
+def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None):
+    region = 'home_region'
+    if epoch_home is not None:
+        action_type = 'place'
+        home_place_model = WGANgp(action_type, region)
+        home_place_model.load_weights(epoch_home)
+    else:
+        region = problem_env.regions[region]
+        home_place_model = UniformSampler(region)
+
     region = 'loading_region'
-    model = WGANgp(action_type ,region)
-    model.load_weights(epoch)
+    if epoch_loading is not None:
+        action_type = 'place'
+        loading_place_model = WGANgp(action_type, region)
+        loading_place_model.load_weights(epoch_loading)
+    else:
+        region = problem_env.regions[region]
+        loading_place_model = UniformSampler(region)
+
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model}
     return model
 
 
@@ -72,22 +81,92 @@ class DummyAbstractState:
         self.goal_entities = goal_entities
 
 
-def execute_plan_with_sampler(plan, sampler_model, problem_env, goal_entities):
+def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entities):
     # abstract_state = ShortestPathPaPState(problem_env, goal_entities) # todo I actually don't need the whole thing
     abstract_state = DummyAbstractState(problem_env, goal_entities)
+    utils.viewer()
+
     for action in plan:
         abstract_action = action
-        if abstract_action.discrete_parameters['place_region'] == 'loading_region':
-            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, abstract_action)
-            samples = sampler.samples
-
-            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                           n_parameters_to_try_motion_planning=100,
-                                           n_iter_limit=200, problem_env=problem_env)
-            next_pt = generator.sample_next_point()
-            import pdb;pdb.set_trace()
+        if 'home' in action.discrete_parameters['place_region']:
+            chosen_sampler = sampler_model['place_home']
         else:
+            chosen_sampler = sampler_model['place_loading']
+        action.execute_pick()
+
+        is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
+        if is_uniform_sampler:
+            sampler = chosen_sampler
+            obj_placements = []
+            for s in sampler.samples:
+                s = s[-3:]
+                utils.set_robot_config(s)
+                obj_placements.append(utils.get_body_xytheta(sampler.obj))
+        else:
+            sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, abstract_action,
+                                              pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
+            obj_placements = [sampler.sample() for _ in range(100)]
+
+        utils.set_robot_config(abstract_action.continuous_parameters['pick']['q_goal'])
+        utils.visualize_placements(obj_placements, sampler.obj)
+        action.execute()
+
+
+def execute_policy(plan, sampler_model, problem_env, goal_entities):
+    abstract_state = DummyAbstractState(problem_env, goal_entities)
+    plan_idx = 0
+    # some evaluation metrics:
+    #   number of feasibility checks
+    #   number of action trials
+    #   number of nodes
+    #   time
+
+    total_ik_checks = 0
+    total_mp_checks = 0
+    total_infeasible_mp = 0
+    stime = time.time()
+    while plan_idx < len(plan):
+        if problem_env.is_goal_reached():
+            break
+
+        action = plan[plan_idx]
+        if 'home' in action.discrete_parameters['place_region']:
+            chosen_sampler = sampler_model['place_home']
+        else:
+            chosen_sampler = sampler_model['place_loading']
+
+        is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
+        if is_uniform_sampler:
+            print "Using uniform sampler"
+            sampler = chosen_sampler
+            generator = TwoArmPaPGenerator(abstract_state, action, sampler,
+                                           n_parameters_to_try_motion_planning=5,
+                                           n_iter_limit=200, problem_env=problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
+        else:
+            sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, action)
+            generator = TwoArmPaPGenerator(abstract_state, action, sampler,
+                                           n_parameters_to_try_motion_planning=5,
+                                           n_iter_limit=200, problem_env=problem_env,
+                                           pick_action_mode='robot_base_pose',
+                                           place_action_mode='robot_base_pose')
+        cont_smpl = generator.sample_next_point()
+        total_ik_checks += generator.n_ik_checks
+        total_mp_checks += generator.n_mp_checks
+        total_infeasible_mp += generator.n_mp_infeasible
+
+        if cont_smpl['is_feasible']:
+            action.continuous_parameters = cont_smpl
             action.execute()
+            plan_idx += 1
+        else:
+            problem_env.init_saver.Restore()
+            plan_idx = 0
+    print "Total time {:.2f}".format(time.time()-stime)
+    print "Total IK checks {} total MP checks {} total infeasible MP {}".format(total_ik_checks, total_mp_checks, total_infeasible_mp)
+    # Total IK checks 1495 total MP checks 8
+    # Total IK checks 3984 total MP checks 14
 
 
 def main():
@@ -100,14 +179,14 @@ def main():
     goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
     goal_region = 'home_region'
     plan, problem_env = load_planning_experience_data(config.pidx)
+    problem_env.set_goal(goal_objs, goal_region)
+    smpler = get_learned_smpler(problem_env, config.epoch_home, config.epoch_loading)
+
     if config.v:
         utils.viewer()
+        visualize_samplers_along_plan(plan, smpler, problem_env, goal_objs + [goal_region])
 
-    smpler = get_learned_smpler(config.epoch)
-    execute_plan_with_sampler(plan, smpler, problem_env, goal_objs + [goal_region])
-
-    import pdb;
-    pdb.set_trace()
+    execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
 
 
 if __name__ == '__main__':
