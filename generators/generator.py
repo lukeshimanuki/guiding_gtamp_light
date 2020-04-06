@@ -25,6 +25,12 @@ class Generator:
         #   -1 for pick_mp_infeasible, 0 for place_infeasible, 1 for place_feasible
         self.reachability_clf = reachability_clf
 
+        # below are used for evaluating different samplers
+        self.n_ik_checks = 0
+        self.n_mp_checks = 0
+        self.n_mp_infeasible = 0
+        self.n_ik_infeasible = 0
+
     def get_feasibility_checker(self):
         raise NotImplementedError
 
@@ -49,8 +55,8 @@ class Generator:
         feasible_op_parameters = []
         feasibility_check_time = 0
         stime = time.time()
-
-        for i in range(self.n_iter_limit):
+        while True:
+            self.n_ik_checks += 1
             sampled_op_parameters = self.sampler.sample()
 
             stime2 = time.time()
@@ -73,10 +79,8 @@ class Generator:
                     self.tried_sample_labels.append(-3)
                 elif status == 'PlaceFailed':
                     self.tried_sample_labels.append(-2)
-
         smpling_time = time.time() - stime
-        print "Sampling time", smpling_time
-        print "Feasibilty time", feasibility_check_time
+        print "IK time {:.5f}".format(smpling_time)
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
             status = "NoSolution"
@@ -102,6 +106,8 @@ class Generator:
         n_mp_tried = 0
 
         for op in candidate_parameters:
+            stime = time.time()
+            self.n_mp_checks += 1
             param = np.hstack([op['pick']['action_parameters'], op['place']['action_parameters']])
             idx = np.where([np.all(np.isclose(param, p)) for p in self.tried_samples])[0][0]
 
@@ -109,10 +115,12 @@ class Generator:
             print "n_mp_tried / n_feasible_params = %d / %d" % (n_mp_tried, n_feasible)
             chosen_pick_param = self.get_motion_plan([op['pick']])
             n_mp_tried += 1
+            print "Motion planning time {:.5f}".format(time.time()-stime)
 
             if not chosen_pick_param['is_feasible']:
                 print "Pick motion does not exist"
                 self.tried_sample_labels[idx] = -1
+                self.n_mp_infeasible += 1
                 continue
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
@@ -127,6 +135,7 @@ class Generator:
                 break
             else:
                 self.tried_sample_labels[idx] = 0
+                self.n_mp_infeasible += 1
                 print "Place motion does not exist"
 
         if not chosen_pick_param['is_feasible']:
