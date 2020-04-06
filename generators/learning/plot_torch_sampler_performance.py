@@ -74,7 +74,7 @@ def main():
 
             if iteration % 100 == 0:
                 plot_results(iterations, results, fdir)
-        pickle.dump(results, open(fname, 'wb'))
+                pickle.dump(results, open(fname, 'wb'))
 
     print "Min MSE", iterations[np.argsort(results[:, 0])][0:50]
     print "KDE scores", iterations[np.argsort(results[:, 1])][::-1][0:50]
