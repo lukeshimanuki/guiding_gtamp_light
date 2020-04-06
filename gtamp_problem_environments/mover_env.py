@@ -34,7 +34,6 @@ class Mover(ProblemEnvironment):
         self.placement_regions = {'home_region': self.problem_config['home_region'],
                                   'loading_region': self.problem_config['loading_region']}
 
-        #self.entity_names = self.object_names + ['home_region', 'loading_region','entire_region']
         self.entity_names = self.object_names + ['home_region', 'loading_region', 'entire_region']
         self.entity_idx = {name: idx for idx, name in enumerate(self.entity_names)}
 
@@ -49,6 +48,8 @@ class Mover(ProblemEnvironment):
         self.two_arm_place_continuous_constraint = None
         self.objects_to_check_collision = None
         self.goal = None
+        self.goal_objects = None
+        self.goal_region = None
 
     def get_n_collisions_with_objects_at_given_base_conf(self, conf):
         set_robot_config(conf)
@@ -62,12 +63,12 @@ class Mover(ProblemEnvironment):
         if problem_type == 'normal':
             pass
         elif problem_type == 'nonmonotonic':
-            #from manipulation.primitives.display import set_viewer_options
-            #self.env.SetViewer('qtcoin')
-            #set_viewer_options(self.env)
+            # from manipulation.primitives.display import set_viewer_options
+            # self.env.SetViewer('qtcoin')
+            # set_viewer_options(self.env)
 
-            set_color(self.objects[0], [1,1,1])
-            set_color(self.objects[4], [0,0,0])
+            set_color(self.objects[0], [1, 1, 1])
+            set_color(self.objects[4], [0, 0, 0])
 
             poses = [
                 [2.3, -6.4, 0],
@@ -87,7 +88,7 @@ class Mover(ProblemEnvironment):
             for obj, pose in zip(self.objects, poses):
                 set_obj_xytheta(pose, obj)
 
-            #import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
 
     def set_exception_objs_when_disabling_objects_in_region(self, p):
         self.objects_to_check_collision = p
@@ -271,7 +272,18 @@ class Mover(ProblemEnvironment):
         return region.contains(obj.ComputeAABB())
 
     def is_goal_reached(self):
-        return self.reward_function.is_goal_reached()
+        if type(self.goal_region) is str:
+            goal_region = self.placement_regions[self.goal_region]
+        else:
+            goal_region = self.goal_region
+
+        if type(self.goal_objects) is str:
+            goal_objects = [self.env.GetKinBody(o) for o in self.goal_objects]
+        else:
+            goal_objects = self.goal_objects
+
+        is_goal_achieved = np.all([goal_region.contains(self.env.GetKinBody(o).ComputeAABB()) for o in goal_objects])
+        return is_goal_achieved
 
     def check_holding_object_precondition(self):
         if len(self.robot.GetGrabbed()) == 0:
@@ -307,14 +319,15 @@ class PaPMoverEnv(Mover):
                 action = Operator('two_arm_pick_two_arm_place',
                                   {'object': o, 'place_region': r})
                 # following two lines are for legacy reasons, will fix later
-                #action.discrete_parameters['object'] = action.discrete_parameters['two_arm_place_object']
-                #action.discrete_parameters['region'] = action.discrete_parameters['two_arm_place_region']
+                # action.discrete_parameters['object'] = action.discrete_parameters['two_arm_place_object']
+                # action.discrete_parameters['region'] = action.discrete_parameters['two_arm_place_region']
 
                 actions.append(action)
         return actions
 
-    def set_goal(self, goal):
-        self.goal = goal
+    def set_goal(self, goal_objects, goal_region):
+        self.goal_objects = goal_objects
+        self.goal_region = goal_region
 
     def reset_to_init_state(self, node):
         saver = node.state_saver
