@@ -34,6 +34,7 @@ def main():
 
     pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
     seeds = range(5)
+    pidxs = pidxs[0:100]
 
     configs = []
     for seed in seeds:
