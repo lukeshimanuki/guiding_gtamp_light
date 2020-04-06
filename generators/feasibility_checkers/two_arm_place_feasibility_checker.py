@@ -18,7 +18,7 @@ class TwoArmPlaceFeasibilityChecker:
         #    and whether the robot will be in collision
         obj_region = operator_skeleton.discrete_parameters['place_region']
         #assert parameter_mode == 'obj_pose'
-        if self.action_mode == 'obj_pose':
+        if self.action_mode == 'object_pose':
             return self.check_place_at_obj_pose_feasible(obj_region, place_parameters, swept_volume_to_avoid)
         elif self.action_mode == 'robot_base_pose':
             return self.check_place_at_base_pose_feasible(obj_region, place_parameters, swept_volume_to_avoid)

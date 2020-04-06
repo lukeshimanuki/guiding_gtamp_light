@@ -15,7 +15,8 @@ class PickFeasibilityChecker(object):
         obj = operator_skeleton.discrete_parameters['object']
         if type(obj) == str or type(obj) == unicode:
             obj = self.problem_env.env.GetKinBody(obj)
-        if self.action_mode == 'ir_params':
+
+        if self.action_mode == 'ir_parameters':
             grasp_params, pick_base_pose = get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters)
         elif self.action_mode == 'robot_base_pose':
             grasp_params = pick_parameters[0:3]
