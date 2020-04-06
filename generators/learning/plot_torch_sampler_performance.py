@@ -56,6 +56,7 @@ def main():
 
     max_iter = get_max_iteration(model.weight_dir)
     trainloader, trainset, testset = get_data_generator(config.atype, config.region)
+    max_iter = min(250000, max_iter)
 
     iterations = range(100, max_iter, 100)
 
@@ -64,8 +65,8 @@ def main():
         os.makedirs(fdir)
 
     fname = 'results.pkl'
-    if os.path.isfile(fname):
-        results = pickle.load(open(fname, 'r'))
+    if os.path.isfile(fdir+fname):
+        results = pickle.load(open(fdir+fname, 'r'))
     else:
         results = []
         for iteration in iterations:
@@ -74,7 +75,7 @@ def main():
 
             if iteration % 100 == 0:
                 plot_results(iterations, results, fdir)
-                pickle.dump(results, open(fname, 'wb'))
+                pickle.dump(results, open(fdir+fname, 'wb'))
 
     print "Min MSE", iterations[np.argsort(results[:, 0])][0:50]
     print "KDE scores", iterations[np.argsort(results[:, 1])][::-1][0:50]
