@@ -3,18 +3,15 @@ import numpy as np
 import random
 import pickle
 import time
+import os
+import torch
 
-from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
-from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
-from gtamp_problem_environments.mover_env import Mover
 
 from generators.sampler import UniformSampler, PlaceOnlyLearnedSampler
 from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
-from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
-from trajectory_representation.operator import Operator
 
 from gtamp_utils import utils
 
@@ -25,6 +22,7 @@ def parse_arguments():
     parser.add_argument('-pidx', type=int, default=0)  # used for threaded runs
     parser.add_argument('-epoch_home', type=int, default=None)  # used for threaded runs
     parser.add_argument('-epoch_loading', type=int, default=None)  # used for threaded runs
+    parser.add_argument('-seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
     return config
 
@@ -114,16 +112,11 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
 
 def execute_policy(plan, sampler_model, problem_env, goal_entities):
     abstract_state = DummyAbstractState(problem_env, goal_entities)
-    plan_idx = 0
-    # some evaluation metrics:
-    #   number of feasibility checks
-    #   number of action trials
-    #   number of nodes
-    #   time
 
     total_ik_checks = 0
     total_mp_checks = 0
     total_infeasible_mp = 0
+    plan_idx = 0
     stime = time.time()
     while plan_idx < len(plan):
         if problem_env.is_goal_reached():
@@ -163,15 +156,11 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         else:
             problem_env.init_saver.Restore()
             plan_idx = 0
-    print "Total time {:.2f}".format(time.time()-stime)
-    print "Total IK checks {} total MP checks {} total infeasible MP {}".format(total_ik_checks, total_mp_checks, total_infeasible_mp)
-    # Total IK checks 1495 total MP checks 8
-    # Total IK checks 3984 total MP checks 14
+    print time.time() - stime
+    return total_ik_checks, total_mp_checks, total_infeasible_mp
 
 
 def main():
-    # Load the planning experience data, and see how long it takes to solve the problem using the learned sampler
-
     config = parse_arguments()
     np.random.seed(config.pidx)
     random.seed(config.pidx)
@@ -186,7 +175,26 @@ def main():
         utils.viewer()
         visualize_samplers_along_plan(plan, smpler, problem_env, goal_objs + [goal_region])
 
-    execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
+    np.random.seed(config.seed)
+    random.seed(config.seed)
+    torch.cuda.manual_seed_all(config.seed)
+    torch.manual_seed(config.seed)
+    total_ik_checks, total_mp_checks, total_infeasible_mp = \
+        execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
+
+    logfile_dir = 'generators/sampler_performances/'
+    if not os.path.isdir(logfile_dir):
+        os.makedirs(logfile_dir)
+
+    is_uniform = config.epoch_home is None and config.epoch_loading is None
+    if is_uniform:
+        logfile = open(logfile_dir + 'uniform.txt', 'a')
+    else:
+        logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
+                       'a')
+
+    result_log = "%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp)
+    logfile.write(result_log)
 
 
 if __name__ == '__main__':
