@@ -14,7 +14,7 @@ def worker_p(config):
         command += option
 
     print command
-    os.system(command)
+    #os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -32,12 +32,21 @@ def main():
     pidxs = pidxs[0:50]
 
     configs = []
+    uniform = False
     for seed in seeds:
         for pidx in pidxs:
-            config = {
-                'pidx': pidx,
-                'seed': seed,
-            }
+            if not uniform:
+                config = {
+                    'pidx': pidx,
+                    'seed': seed,
+                    'epoch_loading': 41900,
+                    'epoch_home': 98400
+                }
+            else:
+                config = {
+                    'pidx': pidx,
+                    'seed': seed,
+                }
             configs.append(config)
 
     n_workers = 20 #multiprocessing.cpu_count()
