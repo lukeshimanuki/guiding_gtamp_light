@@ -166,6 +166,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
             problem_env.init_saver.Restore()
             n_total_resets += 1
             plan_idx = 0
+        goal_reached = plan_idx == len(plan)
     print time.time() - stime
     return total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_resets, goal_reached
 
