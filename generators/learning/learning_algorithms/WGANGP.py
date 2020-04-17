@@ -187,7 +187,10 @@ class WGANgp:
             print "Loading weight file", weight_file
         self.generator.load_state_dict(torch.load(weight_file))
         weight_file = self.weight_dir + '/disc_iter_%d.pt' % iteration
-        self.discriminator.load_state_dict(torch.load(weight_file))
+        try:
+            self.discriminator.load_state_dict(torch.load(weight_file))
+        except IOError:
+            pass
 
     def evaluate_generator(self, test_data, iteration=None):
         is_load_weights = iteration is not None
