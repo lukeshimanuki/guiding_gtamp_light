@@ -80,7 +80,6 @@ class DummyAbstractState:
 
 
 def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entities):
-    # abstract_state = ShortestPathPaPState(problem_env, goal_entities) # todo I actually don't need the whole thing
     abstract_state = DummyAbstractState(problem_env, goal_entities)
     utils.viewer()
 
@@ -160,6 +159,27 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
     return total_ik_checks, total_mp_checks, total_infeasible_mp
 
 
+def set_seeds(seed):
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)
+
+
+def get_logfile_name(config):
+    logfile_dir = 'generators/sampler_performances/'
+    if not os.path.isdir(logfile_dir):
+        os.makedirs(logfile_dir)
+
+    is_uniform = config.epoch_home is None and config.epoch_loading is None
+    if is_uniform:
+        logfile = open(logfile_dir + 'uniform.txt', 'a')
+    else:
+        logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
+                       'a')
+    return logfile
+
+
 def main():
     config = parse_arguments()
     np.random.seed(config.pidx)
@@ -175,24 +195,12 @@ def main():
         utils.viewer()
         visualize_samplers_along_plan(plan, smpler, problem_env, goal_objs + [goal_region])
 
-    np.random.seed(config.seed)
-    random.seed(config.seed)
-    torch.cuda.manual_seed_all(config.seed)
-    torch.manual_seed(config.seed)
+    set_seeds(config.seed)
+
     total_ik_checks, total_mp_checks, total_infeasible_mp = \
         execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
 
-    logfile_dir = 'generators/sampler_performances/'
-    if not os.path.isdir(logfile_dir):
-        os.makedirs(logfile_dir)
-
-    is_uniform = config.epoch_home is None and config.epoch_loading is None
-    if is_uniform:
-        logfile = open(logfile_dir + 'uniform.txt', 'a')
-    else:
-        logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
-                       'a')
-
+    logfile = get_logfile_name(config)
     result_log = "%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp)
     logfile.write(result_log)
 
