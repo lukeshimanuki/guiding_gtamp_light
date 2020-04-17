@@ -1,6 +1,6 @@
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 from matplotlib import pyplot as plt
-from train_torch_sampler import get_data_generator
+from generators.learning.train_torch_sampler import get_data_generator
 
 import numpy as np
 import pickle
@@ -77,11 +77,20 @@ def main():
 
     results = np.array(results)
     iterations = np.array(iterations)
-    max_kde_idx = np.argsort(results[:, 1])[::-1][0]
+
+    # I need to select non-inf entropy
+    non_inf_idxs = np.where(results[:, 2] !=np.inf)[0]
+    iterations = iterations[non_inf_idxs]
+    results = results[non_inf_idxs, :]
+    max_kde_idx = np.argsort(results[:, 1])[::-1][0:100]
     print "Max KDE epoch", iterations[max_kde_idx]
     print "Max KDE", results[max_kde_idx, 1]
     print "Max KDE entropy", results[max_kde_idx, 2]
     print "Max KDE min MSE", results[max_kde_idx, 0]
+    iters = iterations[max_kde_idx]
+    entropies = results[max_kde_idx, 2]
+    for i,e in zip(iters, entropies):
+        print i,e
 
 
 if __name__ == '__main__':

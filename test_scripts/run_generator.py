@@ -10,7 +10,7 @@ from gtamp_problem_environments.mover_env import PaPMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
-from generators.sampler import UniformSampler, PlaceOnlyLearnedSampler
+from generators.sampler import UniformSampler, PlaceOnlyLearnedSampler, LearnedSampler, PickPlaceLearnedSampler
 from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
 from gtamp_utils import utils
@@ -22,8 +22,9 @@ def parse_arguments():
     parser.add_argument('-pidx', type=int, default=0)  # used for threaded runs
     parser.add_argument('-epoch_home', type=int, default=None)  # used for threaded runs
 
-    # epoch 41900 for loading region, 98400 for home region
+    # epoch 41900 for loading region, 98400 for home region, 43700 for pick
     parser.add_argument('-epoch_loading', type=int, default=None)  # used for threaded runs
+    parser.add_argument('-epoch_pick', type=int, default=None)  # used for threaded runs
     parser.add_argument('-seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
     return config
@@ -35,7 +36,7 @@ def create_environment(problem_idx):
     return problem_env
 
 
-def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None):
+def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None, epoch_pick=None):
     region = 'home_region'
     if epoch_home is not None:
         action_type = 'place'
@@ -54,7 +55,13 @@ def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None):
         region = problem_env.regions[region]
         loading_place_model = UniformSampler(region)
 
-    model = {'place_home': home_place_model, 'place_loading': loading_place_model}
+    pick_model = None
+    if epoch_pick is not None:
+        action_type = 'pick'
+        pick_model = WGANgp(action_type, region)
+        pick_model.load_weights(epoch_pick)
+
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
     return model
 
 
@@ -102,7 +109,7 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
                 utils.set_robot_config(s)
                 obj_placements.append(utils.get_body_xytheta(sampler.obj))
         else:
-            sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, abstract_action,
+            sampler = PickPlaceLearnedSampler(chosen_sampler, abstract_state, abstract_action,
                                               pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
             obj_placements = [sampler.sample() for _ in range(100)]
 
@@ -129,11 +136,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
             break
 
         action = plan[plan_idx]
-        if 'home' in action.discrete_parameters['place_region']:
-            chosen_sampler = sampler_model['place_home']
-        else:
-            chosen_sampler = sampler_model['place_loading']
-
+        chosen_sampler = sampler_model['place_loading']
         is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
         if is_uniform_sampler:
             print "Using uniform sampler"
@@ -145,7 +148,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
                                            place_action_mode='object_pose')
         else:
             print "Using learned sampler"
-            sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, action)
+            sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, action)
             generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                            n_parameters_to_try_motion_planning=5,
                                            n_iter_limit=200, problem_env=problem_env,
@@ -201,7 +204,7 @@ def main():
     goal_region = 'home_region'
     plan, problem_env = load_planning_experience_data(config.pidx)
     problem_env.set_goal(goal_objs, goal_region)
-    smpler = get_learned_smpler(problem_env, config.epoch_home, config.epoch_loading)
+    smpler = get_learned_smpler(problem_env, config.epoch_home, config.epoch_loading, config.epoch_pick)
 
     if config.v:
         utils.viewer()

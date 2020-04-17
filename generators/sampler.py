@@ -9,7 +9,7 @@ from generators.learning.utils import data_processing_utils
 
 class Sampler:
     def __init__(self, policy):
-        self.policy = policy
+        self.policies = policy
 
     def sample(self):
         raise NotImplementedError
@@ -64,6 +64,59 @@ class LearnedSampler(Sampler):
         return new_sample
 
 
+class PickPlaceLearnedSampler(LearnedSampler):
+    def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
+        LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
+        self.samples = self.sample_new_points(200)
+        self.curr_smpl_idx = 0
+
+    def sample_picks(self, poses, collisions, n_smpls):
+        poses = np.tile(poses, (n_smpls, 1))
+        chosen_sampler = self.policies['pick']
+        pick_samples = chosen_sampler.generate(collisions, poses)
+        # I need to encode it in the theta
+        base_angles = pick_samples[:, 4:6]
+        base_angles = [utils.decode_sin_and_cos_to_angle(base_angle) for base_angle in base_angles]
+        pick_samples[:, 4] = base_angles
+        pick_samples = np.delete(pick_samples, 5, 1)
+        return pick_samples
+
+    def sample_placements(self, poses, collisions, pick_samples, n_smpls):
+        pick_abs_poses = np.array(
+            [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
+        import pdb;pdb.set_trace()
+        pick_samples[:, -3:] = pick_abs_poses
+        encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
+
+        poses = np.tile(poses, (n_smpls, 1))
+        poses[:, -4:] = encoded_pick_abs_poses
+
+        if 'home' in self.region:
+            chosen_sampler = self.policies['place_home']
+        else:
+            chosen_sampler = self.policies['place_loading']
+
+        place_samples = chosen_sampler.generate(collisions, poses)
+        return place_samples
+
+    def sample_new_points(self, n_smpls):
+        # note: this function outputs absolute pick base pose and absolute place base pose
+        print "Generating new points"
+        poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
+        # making predictions using the sampler
+        collisions = self.smpler_state.pick_collision_vector
+        collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
+
+        pick_samples = self.sample_picks(poses, collisions, n_smpls)
+        place_samples = self.sample_placements(poses, collisions, pick_samples, n_smpls)
+
+        # This is in robot's pose. I need to convert it to object poses
+        place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
+
+        samples = np.hstack([pick_samples, place_samples])
+        return samples
+
+
 class PlaceOnlyLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
@@ -88,7 +141,8 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         # sample picks
         if self.pick_abs_base_pose is None:
             pick_samples = self.sample_picks(n_smpls)
-            pick_abs_poses = np.array([utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
+            pick_abs_poses = np.array(
+                [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
             pick_samples[:, -3:] = pick_abs_poses
             encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
         else:
@@ -103,7 +157,11 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         # making predictions using the sampler
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-        place_samples = self.policy.generate(collisions, poses)
+        if 'home' in self.region:
+            chosen_sampler = self.policies['place_home']
+        else:
+            chosen_sampler = self.policies['place_loading']
+        place_samples = chosen_sampler.generate(collisions, poses)
 
         # This is in robot's pose. I need to convert it to object poses
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
