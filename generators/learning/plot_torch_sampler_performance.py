@@ -54,20 +54,18 @@ def main():
     config = parser.parse_args()
     model = WGANgp(config.atype, config.region)
 
-    max_iter = get_max_iteration(model.weight_dir)
-    trainloader, trainset, testset = get_data_generator(config.atype, config.region)
-    max_iter = min(250000, max_iter)
-
-    iterations = range(100, max_iter, 100)
-
     fdir = model.weight_dir + '/result_summary/'
     if not os.path.isdir(fdir):
         os.makedirs(fdir)
 
     fname = 'results.pkl'
-    if os.path.isfile(fdir+fname):
-        results = pickle.load(open(fdir+fname, 'r'))
+    max_iter = get_max_iteration(model.weight_dir)
+    max_iter = min(250000, max_iter)
+    iterations = range(100, max_iter, 100)
+    if os.path.isfile(fdir + fname):
+        results = pickle.load(open(fdir + fname, 'r'))
     else:
+        trainloader, trainset, testset = get_data_generator(config.atype, config.region)
         results = []
         for iteration in iterations:
             result = model.evaluate_generator(testset, iteration=iteration)
@@ -75,11 +73,15 @@ def main():
 
             if iteration % 100 == 0:
                 plot_results(iterations, results, fdir)
-                pickle.dump(results, open(fdir+fname, 'wb'))
+                pickle.dump(results, open(fdir + fname, 'wb'))
 
-    print "Min MSE", iterations[np.argsort(results[:, 0])][0:50]
-    print "KDE scores", iterations[np.argsort(results[:, 1])][::-1][0:50]
-    print "Entropies", iterations[np.argsort(results[:, 2])][::-1][0:50]
+    results = np.array(results)
+    iterations = np.array(iterations)
+    max_kde_idx = np.argsort(results[:, 1])[::-1][0]
+    print "Max KDE epoch", iterations[max_kde_idx]
+    print "Max KDE", results[max_kde_idx, 1]
+    print "Max KDE entropy", results[max_kde_idx, 2]
+    print "Max KDE min MSE", results[max_kde_idx, 0]
 
 
 if __name__ == '__main__':
