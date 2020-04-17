@@ -22,11 +22,6 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def main():
-    #parser = argparse.ArgumentParser(description='Greedy Planner parameters')
-    #parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])
-    #parameters = parser.parse_args()
-
-    # todo go through the files in the directory
     raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/' \
               'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_' \
               'use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
@@ -34,7 +29,7 @@ def main():
 
     pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
     seeds = range(5)
-    pidxs = pidxs[0:100]
+    pidxs = pidxs[0:50]
 
     configs = []
     for seed in seeds:
