@@ -21,6 +21,8 @@ def parse_arguments():
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-pidx', type=int, default=0)  # used for threaded runs
     parser.add_argument('-epoch_home', type=int, default=None)  # used for threaded runs
+
+    # epoch 41900 for loading region, 98400 for home region
     parser.add_argument('-epoch_loading', type=int, default=None)  # used for threaded runs
     parser.add_argument('-seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
@@ -137,6 +139,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
         else:
+            print "Using learned sampler"
             sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, action)
             generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                            n_parameters_to_try_motion_planning=5,
@@ -149,10 +152,12 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         total_infeasible_mp += generator.n_mp_infeasible
 
         if cont_smpl['is_feasible']:
+            print "Action executed"
             action.continuous_parameters = cont_smpl
             action.execute()
             plan_idx += 1
         else:
+            print "No feasible action"
             problem_env.init_saver.Restore()
             plan_idx = 0
     print time.time() - stime
