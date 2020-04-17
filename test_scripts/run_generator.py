@@ -118,9 +118,14 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
     total_mp_checks = 0
     total_infeasible_mp = 0
     plan_idx = 0
+    n_total_resets = 0
+    goal_reached = False
     stime = time.time()
     while plan_idx < len(plan):
-        if problem_env.is_goal_reached():
+        goal_reached = problem_env.is_goal_reached()
+        if goal_reached:
+            break
+        if n_total_resets >= 500:
             break
 
         action = plan[plan_idx]
@@ -159,9 +164,10 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         else:
             print "No feasible action"
             problem_env.init_saver.Restore()
+            n_total_resets += 1
             plan_idx = 0
     print time.time() - stime
-    return total_ik_checks, total_mp_checks, total_infeasible_mp
+    return total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_resets, goal_reached
 
 
 def set_seeds(seed):
@@ -202,11 +208,11 @@ def main():
 
     set_seeds(config.seed)
 
-    total_ik_checks, total_mp_checks, total_infeasible_mp = \
+    total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_resets, goal_reached = \
         execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
 
     logfile = get_logfile_name(config)
-    result_log = "%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp)
+    result_log = "%d,%d,%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp, goal_reached, n_total_resets)
     logfile.write(result_log)
 
 
