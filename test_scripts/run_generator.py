@@ -96,7 +96,11 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
         abstract_action = action
         action.execute_pick()
 
-        is_uniform_sampler = "Uniform" in sampler_model['place_loading'].__class__.__name__
+        if 'loading' in action.discrete_parameters['place_region']:
+            chosen_sampler = sampler_model['place_loading']
+        else:
+            chosen_sampler = sampler_model['place_home']
+        is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
         if is_uniform_sampler:
             sampler = chosen_sampler
             obj_placements = []
@@ -121,14 +125,14 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
     total_mp_checks = 0
     total_infeasible_mp = 0
     plan_idx = 0
-    n_total_resets = 0
+    n_total_actions = 0
     goal_reached = False
     stime = time.time()
     while plan_idx < len(plan):
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
             break
-        if n_total_resets >= 100:
+        if n_total_actions >= 1000:
             break
 
         action = plan[plan_idx]
@@ -159,6 +163,8 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         total_mp_checks += generator.n_mp_checks
         total_infeasible_mp += generator.n_mp_infeasible
 
+        n_total_actions += 1
+
         if cont_smpl['is_feasible']:
             print "Action executed"
             action.continuous_parameters = cont_smpl
@@ -167,11 +173,10 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         else:
             print "No feasible action"
             problem_env.init_saver.Restore()
-            n_total_resets += 1
             plan_idx = 0
         goal_reached = plan_idx == len(plan)
     print time.time() - stime
-    return total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_resets, goal_reached
+    return total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
 
 
 def set_seeds(seed):
@@ -200,9 +205,9 @@ def main():
     np.random.seed(config.pidx)
     random.seed(config.pidx)
 
+    plan, problem_env = load_planning_experience_data(config.pidx)
     goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
     goal_region = 'home_region'
-    plan, problem_env = load_planning_experience_data(config.pidx)
     problem_env.set_goal(goal_objs, goal_region)
     smpler = get_learned_smpler(problem_env, config.epoch_home, config.epoch_loading, config.epoch_pick)
 
@@ -212,11 +217,11 @@ def main():
 
     set_seeds(config.seed)
 
-    total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_resets, goal_reached = \
+    total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
         execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
 
     logfile = get_logfile_name(config)
-    result_log = "%d,%d,%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp, goal_reached, n_total_resets)
+    result_log = "%d,%d,%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp, goal_reached, n_total_actions)
     logfile.write(result_log)
 
 
