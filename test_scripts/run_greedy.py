@@ -51,7 +51,7 @@ def get_solution_file_name(config):
         root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/raw/uses_rrt/use_reachability_clf_' + str(config.use_reachability_clf) + '/'
+        root_dir = root_dir + '/planning_experience/raw/uses_rrt/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
@@ -267,6 +267,7 @@ def main():
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
+            import pdb;pdb.set_trace()
             success = trajectory['success']
             tottime = trajectory['tottime']
             num_nodes = trajectory['num_nodes']
