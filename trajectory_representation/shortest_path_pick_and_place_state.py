@@ -102,8 +102,7 @@ class ShortestPathPaPState(PaPState):
 
         operator_skeleton = Operator('two_arm_pick', {'object': object})
         generator = UniformGenerator(operator_skeleton, self.problem_env, None)
-        # we should disable objects, because we are getting shortest path that ignores all collisions anyways
-        # 2020 January 10th: but I think we should keep the target object enabled?
+        # This is just generating pick poses. It does not check motion feasibility
         self.problem_env.disable_objects_in_region('entire_region')
         object.Enable(True)
 
