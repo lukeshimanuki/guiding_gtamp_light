@@ -94,13 +94,9 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
 
     for action in plan:
         abstract_action = action
-        if 'home' in action.discrete_parameters['place_region']:
-            chosen_sampler = sampler_model['place_home']
-        else:
-            chosen_sampler = sampler_model['place_loading']
         action.execute_pick()
 
-        is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
+        is_uniform_sampler = "Uniform" in sampler_model['place_loading'].__class__.__name__
         if is_uniform_sampler:
             sampler = chosen_sampler
             obj_placements = []
@@ -109,9 +105,9 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
                 utils.set_robot_config(s)
                 obj_placements.append(utils.get_body_xytheta(sampler.obj))
         else:
-            sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, abstract_action,
+            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, abstract_action,
                                               pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
-            obj_placements = [sampler.sample() for _ in range(100)]
+            obj_placements = [sampler.sample()[-3:] for _ in range(100)]
 
         utils.set_robot_config(abstract_action.continuous_parameters['pick']['q_goal'])
         utils.visualize_placements(obj_placements, sampler.obj)
@@ -136,7 +132,11 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
             break
 
         action = plan[plan_idx]
-        chosen_sampler = sampler_model['place_loading']
+        if 'loading' in action.discrete_parameters['place_region']:
+            chosen_sampler = sampler_model['place_loading']
+        else:
+            chosen_sampler = sampler_model['place_home']
+
         is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
         if is_uniform_sampler:
             print "Using uniform sampler"
