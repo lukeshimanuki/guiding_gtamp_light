@@ -66,9 +66,10 @@ def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None, epoch_p
 
 
 def load_planning_experience_data(problem_seed):
-    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/' \
-              'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_' \
-              'use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+    #raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/' \
+    #          'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_' \
+    #          'use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+    raw_dir = './planning_experience/for_testing_generators/'
     fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % problem_seed
 
     plan_data = pickle.load(open(raw_dir + fname, 'r'))
