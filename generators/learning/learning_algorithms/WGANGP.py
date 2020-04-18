@@ -190,6 +190,7 @@ class WGANgp:
         try:
             self.discriminator.load_state_dict(torch.load(weight_file))
         except IOError:
+            print "Could not load discriminator"
             pass
 
     def evaluate_generator(self, test_data, iteration=None):
