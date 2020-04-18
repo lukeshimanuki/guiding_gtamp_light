@@ -55,8 +55,7 @@ class Generator:
         feasible_op_parameters = []
         feasibility_check_time = 0
         stime = time.time()
-        #while True:
-        # There is no way out of this? Why did I introduce the inf loop?
+        # note that this assumes you are doing two arm pap
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
             sampled_op_parameters = self.sampler.sample()
@@ -157,7 +156,7 @@ class Generator:
         motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0],
                                                                          source='sampler',
                                                                          n_iterations=[20, 50, 100, 500, 1000])
-        self.problem_env.motion_planner.algorithm = 'prm'
+        self.problem_env.motion_planner.algorithm = 'prm' # why do I do this? I forgot
         found_feasible_motion_plan = status == "HasSolution"
 
         if found_feasible_motion_plan:
