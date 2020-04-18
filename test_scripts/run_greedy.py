@@ -14,19 +14,12 @@ from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
-from generators.learning.utils.model_creation_utils import create_policy
-from generators.reachability_predictor import ReachabilityPredictor
+#from generators.learning.utils.model_creation_utils import create_policy
 from gtamp_utils import utils
 
 #from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
-
-from test_reachability_clf import load_weights
-
-
-from reachability_classification.classifiers.relative_qgqk_gnn import \
-    RelativeQgQkGNN as GNNReachabilityNet
 
 
 def get_problem_env(config, goal_region, goal_objs):
@@ -34,14 +27,13 @@ def get_problem_env(config, goal_region, goal_objs):
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
         # goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
-        goal = [goal_region] + goal_objs
         #for obj in problem_env.objects[:n_objs_pack]:
         #    utils.set_color(obj, [0, 1, 0])
         [utils.set_color(o, [0, 0, 0.8]) for o in goal_objs]
 
         # goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
         #                 'rectangular_packing_box4']
-        problem_env.set_goal(goal)
+        problem_env.set_goal(goal_objs, goal_region)
     elif config.domain == 'one_arm_mover':
         problem_env = PaPOneArmMoverEnv(config.pidx)
         goal = ['rectangular_packing_box1_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
@@ -301,25 +293,15 @@ def main():
         pap_model = None
 
     if config.integrated or config.integrated_unregularized_sampler:
-        smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
+        raise NotImplementedError
+        #smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
     else:
         smpler = None
 
-    if config.use_reachability_clf:
-        device = torch.device("cpu")
-        edges = pickle.load(open('prm_edges_for_reachability_gnn.pkl', 'r'))
-        pick_net = GNNReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
-        place_net = GNNReachabilityNet(edges, n_key_configs=618, device=device, n_msg_passing=0)
-        load_weights(pick_net, 24, 'pick', 1, 0, device)
-        load_weights(place_net, 35, 'place', 1, 0, device)
-        reachability_predictor = ReachabilityPredictor(pick_net, place_net)
-    else:
-        reachability_predictor = None
-
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     t = time.time()
-    nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs, goal_region, smpler,
-                                                   reachability_predictor)
+    nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs,
+                                                   goal_region, smpler, None)
     tottime = time.time() - t
     success = plan is not None
     plan_length = len(plan) if success else 0
