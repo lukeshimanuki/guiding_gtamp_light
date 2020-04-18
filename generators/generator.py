@@ -22,7 +22,7 @@ class Generator:
         self.tried_sample_labels = []
         # Convention:
         #   -3 for pick_basic_infeasible, -2 for place_basic_infeasible,
-        #   -1 for pick_mp_infeasible, 0 for place_infeasible, 1 for place_feasible
+        #   -1 for pick_mp_infeasible, 0 for place_infeasible, 1 for place_feasible Why did I introduce the inf loop
         self.reachability_clf = reachability_clf
 
         # below are used for evaluating different samplers
@@ -55,7 +55,9 @@ class Generator:
         feasible_op_parameters = []
         feasibility_check_time = 0
         stime = time.time()
-        while True:
+        #while True:
+        # There is no way out of this? Why did I introduce the inf loop?
+        for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
             sampled_op_parameters = self.sampler.sample()
 
