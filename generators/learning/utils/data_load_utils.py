@@ -2,10 +2,8 @@ import os
 import numpy as np
 import pickle
 import os
-import sys
-from sklearn.preprocessing import StandardScaler
 
-from utils.data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
+from data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
     state_data_mode
 
 import socket
@@ -81,7 +79,7 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
                                                                                              desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
-        return pickle.load(open(traj_dir + cache_file_name, 'r'))
+        #return pickle.load(open(traj_dir + cache_file_name, 'r'))
 
     print 'caching file...%s' % cache_file_name
     all_states = []
@@ -89,10 +87,6 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
     all_sum_rewards = []
     all_poses = []
     all_konf_relevance = []
-    all_paths = []
-
-    key_configs = pickle.load(open('prm.pkl', 'r'))[0]
-    key_configs = np.delete(key_configs, [415, 586, 615, 618, 619], axis=0)
 
     for traj_file_idx, traj_file in enumerate(traj_files):
         if 'pidx' not in traj_file:
@@ -133,14 +127,15 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
             is_goal_region = utils.convert_binary_vec_to_one_hot(np.array([s.region in s.goal_entities]))
             is_goal_region = np.tile(is_goal_region, (n_key_configs, 1)).reshape((1, n_key_configs, 2, 1))
 
-            is_move_to_goal_region = s.region in s.goal_entities
-            if desired_region == 'home_region' and not is_move_to_goal_region:
-                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
-                continue
+            if 'pick' not in action_type:
+                is_move_to_goal_region = s.region in s.goal_entities
+                if desired_region == 'home_region' and not is_move_to_goal_region:
+                    # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+                    continue
 
-            if desired_region == 'loading_region' and is_move_to_goal_region:
-                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
-                continue
+                if desired_region == 'loading_region' and is_move_to_goal_region:
+                    # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
+                    continue
 
             if reward <= 0 and use_filter:
                 # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
