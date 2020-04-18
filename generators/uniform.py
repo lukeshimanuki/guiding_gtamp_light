@@ -16,7 +16,7 @@ import pickle
 import uuid
 
 
-class UniformGenerator:  # Only used in RSC
+class UniformGenerator:  # Used in RSC and to generate abstract state
     def __init__(self, operator_skeleton, problem_env, swept_volume_constraint=None):
         self.problem_env = problem_env
         self.env = problem_env.env
@@ -45,13 +45,15 @@ class UniformGenerator:  # Only used in RSC
 
         if operator_type == 'two_arm_pick':
             self.domain = get_pick_domain()
-            self.op_feasibility_checker = TwoArmPickFeasibilityChecker(problem_env)
+            self.op_feasibility_checker = TwoArmPickFeasibilityChecker(problem_env, 'ir_parameters')
         elif operator_type == 'one_arm_pick':
             self.domain = get_pick_domain()
             self.op_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
         elif operator_type == 'two_arm_place':
-            self.domain = get_place_domain(target_region)
-            self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env)
+            raise NotImplementedError
+            # This should not be used
+            #self.domain = get_place_domain(target_region)
+            #self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env)
         elif operator_type == 'one_arm_place':
             if target_region is None:
                 import pdb;
