@@ -132,7 +132,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
             break
-        if n_total_actions >= 1000:
+        if n_total_actions >= 100:
             break
 
         action = plan[plan_idx]
