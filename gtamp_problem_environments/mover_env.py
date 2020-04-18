@@ -328,6 +328,7 @@ class PaPMoverEnv(Mover):
     def set_goal(self, goal_objects, goal_region):
         self.goal_objects = goal_objects
         self.goal_region = goal_region
+        self.goal = self.goal_objects + [self.goal_region]
 
     def reset_to_init_state(self, node):
         saver = node.state_saver
