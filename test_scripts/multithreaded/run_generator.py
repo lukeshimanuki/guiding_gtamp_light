@@ -29,7 +29,7 @@ def main():
 
     pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
     seeds = range(5)
-    pidxs = pidxs[0:50]
+    pidxs = pidxs[0:20]
 
     configs = []
     uniform = False

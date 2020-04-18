@@ -109,7 +109,7 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
                 utils.set_robot_config(s)
                 obj_placements.append(utils.get_body_xytheta(sampler.obj))
         else:
-            sampler = PickPlaceLearnedSampler(chosen_sampler, abstract_state, abstract_action,
+            sampler = PlaceOnlyLearnedSampler(chosen_sampler, abstract_state, abstract_action,
                                               pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
             obj_placements = [sampler.sample() for _ in range(100)]
 
@@ -132,7 +132,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
             break
-        if n_total_resets >= 500:
+        if n_total_resets >= 100:
             break
 
         action = plan[plan_idx]
@@ -148,7 +148,7 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
                                            place_action_mode='object_pose')
         else:
             print "Using learned sampler"
-            sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, action)
+            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
             generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                            n_parameters_to_try_motion_planning=5,
                                            n_iter_limit=200, problem_env=problem_env,
