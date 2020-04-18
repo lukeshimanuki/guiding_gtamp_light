@@ -32,7 +32,7 @@ def main():
     pidxs = pidxs[0:20]
 
     configs = []
-    uniform = False
+    uniform = True
     for seed in seeds:
         for pidx in pidxs:
             if not uniform:
