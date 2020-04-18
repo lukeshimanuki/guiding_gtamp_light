@@ -84,7 +84,6 @@ class PickPlaceLearnedSampler(LearnedSampler):
     def sample_placements(self, poses, collisions, pick_samples, n_smpls):
         pick_abs_poses = np.array(
             [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
-        import pdb;pdb.set_trace()
         pick_samples[:, -3:] = pick_abs_poses
         encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
 
