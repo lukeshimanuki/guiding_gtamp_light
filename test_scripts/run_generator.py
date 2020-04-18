@@ -95,26 +95,18 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
 
     for action in plan:
         abstract_action = action
-        action.execute_pick()
+        sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, abstract_action,
+                                          pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
+        # getting the samples
+        samples = [sampler.sample() for _ in range(100)]
+        obj_placements = [smpl[-3:] for smpl in samples]
+        pick_samples = [smpl[:-3] for smpl in samples]
 
-        if 'loading' in action.discrete_parameters['place_region']:
-            chosen_sampler = sampler_model['place_loading']
-        else:
-            chosen_sampler = sampler_model['place_home']
-        is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
-        if is_uniform_sampler:
-            sampler = chosen_sampler
-            obj_placements = []
-            for s in sampler.samples:
-                s = s[-3:]
-                utils.set_robot_config(s)
-                obj_placements.append(utils.get_body_xytheta(sampler.obj))
-        else:
-            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, abstract_action,
-                                              pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
-            obj_placements = [sampler.sample()[-3:] for _ in range(100)]
+        pick_abs_poses = np.array(
+            [utils.get_pick_base_pose_and_grasp_from_pick_parameters(abstract_action.discrete_parameters['object'], s)[1] for s in pick_samples])
 
-        utils.set_robot_config(abstract_action.continuous_parameters['pick']['q_goal'])
+        #utils.set_robot_config(abstract_action.continuous_parameters['pick']['q_goal'])
+        utils.visualize_path(pick_abs_poses[0:20])
         utils.visualize_placements(obj_placements, sampler.obj)
         action.execute()
 
