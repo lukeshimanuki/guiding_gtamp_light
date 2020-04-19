@@ -267,7 +267,6 @@ def main():
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
-            import pdb;pdb.set_trace()
             success = trajectory['success']
             tottime = trajectory['tottime']
             num_nodes = trajectory['num_nodes']
