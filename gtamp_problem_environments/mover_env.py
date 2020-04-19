@@ -333,7 +333,7 @@ class PaPMoverEnv(Mover):
     def set_goal(self, goal_objects, goal_region):
         self.goal_objects = goal_objects
         [utils.set_color(o, [1, 0, 0]) for o in self.goal_objects]
-        if self.problem_idx >= 20000:
+        if self.problem_idx >= 0:
             entrance_region = AARegion('entrance', ((0.25, 1.33), (-6, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
             non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
                                            color=np.array((1, 1, 0, 0.25)))
