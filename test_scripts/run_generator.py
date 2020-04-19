@@ -91,10 +91,10 @@ class DummyAbstractState:
 
 def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entities):
     abstract_state = DummyAbstractState(problem_env, goal_entities)
-    utils.viewer()
 
     for action in plan:
         abstract_action = action
+        import pdb;pdb.set_trace()
         sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, abstract_action,
                                           pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
         # getting the samples
