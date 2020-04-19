@@ -44,7 +44,7 @@ class Mover(ProblemEnvironment):
 
         self.is_init_pick_node = True
         self.name = 'two_arm_mover'
-        self.init_saver = CustomStateSaver(self.env)
+        self.init_saver = None
         self.problem_config['env'] = self.env
         self.operator_names = ['two_arm_pick', 'two_arm_place']
         self.reward_function = None
@@ -354,6 +354,7 @@ class PaPMoverEnv(Mover):
 
         self.initial_robot_base_pose = get_body_xytheta(self.robot)
         self.object_init_poses = {o.GetName(): get_body_xytheta(o).squeeze() for o in self.objects}
+        self.init_saver = CustomStateSaver(self.env)
 
         self.goal_region = goal_region
         self.goal = self.goal_objects + [self.goal_region]
