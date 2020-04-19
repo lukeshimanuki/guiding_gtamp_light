@@ -94,7 +94,6 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
 
     for action in plan:
         abstract_action = action
-        import pdb;pdb.set_trace()
         sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, abstract_action,
                                           pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
         # getting the samples
@@ -106,8 +105,12 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
             [utils.get_pick_base_pose_and_grasp_from_pick_parameters(abstract_action.discrete_parameters['object'], s)[1] for s in pick_samples])
 
         #utils.set_robot_config(abstract_action.continuous_parameters['pick']['q_goal'])
-        utils.visualize_path(pick_abs_poses[0:20])
+        #utils.visualize_path(pick_abs_poses[0:20])
+        color = utils.get_color_of(sampler.obj)
+        utils.set_color(sampler.obj, [1,0,0])
         utils.visualize_placements(obj_placements, sampler.obj)
+        utils.set_color(sampler.obj, color)
+        import pdb;pdb.set_trace()
         action.execute()
 
 
