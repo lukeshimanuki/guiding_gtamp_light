@@ -43,8 +43,8 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
         if disc_param not in abstract_node.generators:
             sampler = UniformSampler(place_region)
             generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                           n_parameters_to_try_motion_planning=5,
-                                           n_iter_limit=200, problem_env=problem_env,
+                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
             abstract_node.generators[disc_param] = generator
