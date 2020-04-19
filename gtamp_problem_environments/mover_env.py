@@ -56,7 +56,6 @@ class Mover(ProblemEnvironment):
         self.goal_objects = None
         self.goal_region = None
 
-
     def get_n_collisions_with_objects_at_given_base_conf(self, conf):
         set_robot_config(conf)
         n_collisions = 0
@@ -333,13 +332,11 @@ class PaPMoverEnv(Mover):
 
     def set_goal(self, goal_objects, goal_region):
         self.goal_objects = goal_objects
-        [utils.set_color(o, [1,0,0]) for o in self.goal_objects]
+        [utils.set_color(o, [1, 0, 0]) for o in self.goal_objects]
         if self.problem_idx >= 20000:
-            x_extents = 3.5
-            y_extents = 3.16
-            utils.viewer()
             entrance_region = AARegion('entrance', ((0, 1.5), (-5.5, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
-            non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135, color=np.array((1, 1, 0, 0.25)))
+            non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
+                                           color=np.array((1, 1, 0, 0.25)))
 
             # move objects out of the entrance region
             utils.randomly_place_region(self.robot, non_entrance_region)
@@ -352,6 +349,7 @@ class PaPMoverEnv(Mover):
             # move the object to random places
             [utils.randomly_place_region(obj, self.regions['loading_region'])
              for obj in self.objects if obj not in objs_to_move_near_entrance]
+            utils.randomly_place_region(self.robot, self.regions['loading_region'])
 
         self.initial_robot_base_pose = get_body_xytheta(self.robot)
         self.object_init_poses = {o.GetName(): get_body_xytheta(o).squeeze() for o in self.objects}
