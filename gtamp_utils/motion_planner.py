@@ -389,11 +389,11 @@ def prm_connect(q1, q2, collision_checker, source=''):
         is_multiple_goals = isinstance(q2, list)  # and len(q2[0]) == len(q1)
 
     is_single_goal = not is_goal_region and not is_multiple_goals
-    collision_checker_is_set = isinstance(collision_checker, set)
 
     if prm_vertices is None or prm_edges is None:
         prm_vertices, prm_edges = pickle.load(open('./prm.pkl', 'rb'))
 
+    collision_checker_is_set = isinstance(collision_checker, set)
     no_collision_checking = collision_checker_is_set and len(collision_checker) == 0
 
     # todo I cannot read this code below and understand what happens when q2 is a region
@@ -405,9 +405,11 @@ def prm_connect(q1, q2, collision_checker, source=''):
         non_prm_config_collision_checker = collision_fn(env, robot)
 
         if non_prm_config_collision_checker(q1):
+            print "Collision at init config"
             return None
 
         if is_single_goal and non_prm_config_collision_checker(q2):
+            print "Collision at goal config"
             return None
 
         if is_multiple_goals:
@@ -426,6 +428,7 @@ def prm_connect(q1, q2, collision_checker, source=''):
                 return [q1, q_goal]
     ###
 
+    print "Passed base test"
     ## Defines a goal test function
     if is_multiple_goals:
         close_points = []
@@ -457,7 +460,8 @@ def prm_connect(q1, q2, collision_checker, source=''):
         return 0
 
     def is_collision(q):
-        return q in collision_checker if collision_checker_is_set else collision_checker(prm_vertices[q])
+        col = q in collision_checker if collision_checker_is_set else non_prm_config_collision_checker(prm_vertices[q])
+        return col
 
     ### making a set of qinit idxs
     start = set()
