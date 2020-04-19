@@ -334,7 +334,7 @@ class PaPMoverEnv(Mover):
         self.goal_objects = goal_objects
         [utils.set_color(o, [1, 0, 0]) for o in self.goal_objects]
         if self.problem_idx >= 20000:
-            entrance_region = AARegion('entrance', ((0, 1.5), (-5.5, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
+            entrance_region = AARegion('entrance', ((0, 1.5), (-6, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
             non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
                                            color=np.array((1, 1, 0, 0.25)))
 
@@ -345,7 +345,7 @@ class PaPMoverEnv(Mover):
             # try to put three objs near the entrance
             objs_to_move_near_entrance = [obj for obj in self.objects if obj.GetName() not in goal_objects][0:3]
             for obj in objs_to_move_near_entrance:
-                utils.randomly_place_region(obj, entrance_region, n_limit=100)  # TODO fix this to return xytheta
+                utils.randomly_place_region(obj, entrance_region, n_limit=100)
             # move the object to random places
             [utils.randomly_place_region(obj, self.regions['loading_region'])
              for obj in self.objects if obj not in objs_to_move_near_entrance]
