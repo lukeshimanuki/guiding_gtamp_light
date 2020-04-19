@@ -470,7 +470,7 @@ class MoverEnvironmentDefinition:
                                                       loading_region_xy[0] + loading_region_xy_extents[0]),
                                                      (loading_region_xy[1] - loading_region_xy_extents[1],
                                                       loading_region_xy[1] + loading_region_xy_extents[1])),
-                                  z=0.138, color=np.array((1, 1, 0, 0.25)))
+                                  z=0.135, color=np.array((1, 1, 0, 0.25)))
         bridge_region_name = 'bridge_region'
         bridge_region_xy = [0.7, -4.1]
         bridge_region_extents = [1, 1.0]
