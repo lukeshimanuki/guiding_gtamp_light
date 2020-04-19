@@ -116,7 +116,7 @@ class Generator:
             print "n_mp_tried / n_feasible_params = %d / %d" % (n_mp_tried, n_feasible)
             chosen_pick_param = self.get_motion_plan([op['pick']])
             n_mp_tried += 1
-            print "Motion planning time {:.5f}".format(time.time()-stime)
+            print "Pick motion planning time {:.5f}".format(time.time() - stime)
 
             if not chosen_pick_param['is_feasible']:
                 print "Pick motion does not exist"
@@ -126,10 +126,11 @@ class Generator:
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(self.abstract_action.discrete_parameters['object'], chosen_pick_param)
+            stime = time.time()
             chosen_place_param = self.get_motion_plan([op['place']])  # calls MP
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
-
+            print "Place motion planning time {:.5f}".format(time.time() - stime)
             if chosen_place_param['is_feasible']:
                 print 'Motion plan exists'
                 self.tried_sample_labels[idx] = 1
@@ -156,7 +157,7 @@ class Generator:
         motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0],
                                                                          source='sampler',
                                                                          n_iterations=[20, 50, 100, 500, 1000])
-        self.problem_env.motion_planner.algorithm = 'prm' # why do I do this? I forgot
+        self.problem_env.motion_planner.algorithm = 'prm'  # why do I do this? I forgot
         found_feasible_motion_plan = status == "HasSolution"
 
         if found_feasible_motion_plan:
