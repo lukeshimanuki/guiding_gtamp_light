@@ -871,10 +871,13 @@ def get_body_with_name(obj_name):
     return env.GetKinBody(obj_name)
 
 
-def randomly_place_region(body, region):
+def randomly_place_region(body, region, n_limit=None):
     env = openravepy.RaveGetEnvironments()[0]
     if env.GetKinBody(get_name(body)) is None:
         env.Add(body)
+    orig = get_body_xytheta(body)
+    #for _ in n_limit:
+    i = 0
     while True:
         set_quat(body, quat_from_z_rot(uniform(0, 2 * PI)))
         aabb = aabb_from_body(body)
@@ -884,6 +887,12 @@ def randomly_place_region(body, region):
             region.z + aabb.extents()[2] + BODY_PLACEMENT_Z_OFFSET]) - aabb.pos() + get_point(body))
         if not body_collision(env, body):
             return
+
+        if n_limit is not None:
+            i+=1
+            if i >=n_limit:
+                set_obj_xytheta(orig,body)
+                return
 
 
 class CustomStateSaver:
