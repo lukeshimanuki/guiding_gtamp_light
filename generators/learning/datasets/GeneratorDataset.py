@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 import pickle
 import numpy as np
 import torch
-from generators.learning.data_load_utils import get_data
+from generators.learning.utils.data_load_utils import get_data
 from generators.learning.utils.data_processing_utils import action_data_mode
 
 

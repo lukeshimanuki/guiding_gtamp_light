@@ -2,11 +2,9 @@ import os
 import pickle
 import numpy as np
 import random
-import socket
 import argparse
 
 from generators.learning.utils.model_creation_utils import create_policy
-from scipy.stats import entropy
 
 
 def parse_args():
@@ -33,7 +31,7 @@ os.environ['PYTHONHASHSEED'] = str(configs.seed)
 
 import tensorflow as tf
 from gtamp_utils import utils
-from data_load_utils import get_data
+from generators.learning.utils.data_load_utils import get_data
 from utils.data_processing_utils import action_data_mode
 tf.set_random_seed(configs.seed)
 
