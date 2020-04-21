@@ -60,7 +60,7 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             init_q_values = []
             for a in actions:
                 obj_name = a.discrete_parameters['object']
-                region_name = a.discrete_parameters['region']
+                region_name = a.discrete_parameters['place_region']
                 o_reachable = self.state.is_entity_reachable(obj_name)
                 o_r_manip_free = self.state.binary_edges[(obj_name, region_name)][-1]
                 o_needs_to_be_moved = obj_name in objects_to_move
@@ -74,11 +74,12 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
         action_ucb_values = []
 
         for action, value, learned_value in zip(actions, q_values, init_q_values):
+            # todo check if this is same as greedy.py
             q_bonus = np.exp(learned_value) / float(exp_sum)
             ucb_value = value + q_bonus + self.compute_ucb_value(action)
 
             obj_name = action.discrete_parameters['object']
-            region_name = action.discrete_parameters['region']
+            region_name = action.discrete_parameters['place_region']
             print "%30s %30s Reachable? %d  ManipFree? %d IsGoal? %d Q? %.5f QBonus? %.5f Q+UCB? %.5f" \
                   % (obj_name, region_name, self.state.is_entity_reachable(obj_name),
                      self.state.binary_edges[(obj_name, region_name)][-1],
