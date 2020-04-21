@@ -24,8 +24,8 @@ class ShapedRewardFunction(GenericRewardFunction):
                 potential_curr = self.potential_function(curr_state)
                 potential_next = self.potential_function(next_state)
 
-                print potential_curr, potential_next
-                shaping_val = (potential_next - potential_curr)
+                print "(Hcount,Hcount_prime) = %d,%d" % (potential_curr, potential_next)
+                shaping_val = potential_next - potential_curr
                 return true_reward + shaping_val
 
 
