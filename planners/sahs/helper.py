@@ -55,6 +55,18 @@ def get_state_class(domain):
     return statecls
 
 
+def compute_hcount_old_number_in_goal(state, action, problem_env):
+    target_o = action.discrete_parameters['object']
+    target_r = action.discrete_parameters['place_region']
+    region_is_goal = state.nodes[target_r][8]
+    goal_region = 'home_region'
+    hcount = compute_hcount(state, problem_env)
+    obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
+    number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
+    analytical_heuristic = -number_in_goal + obj_already_in_goal + hcount
+    return analytical_heuristic
+
+
 def compute_heuristic(state, action, pap_model, problem_env, config):
     is_two_arm_domain = 'two_arm_' in action.type
     if is_two_arm_domain:
@@ -93,15 +105,19 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal + obj_already_in_goal + hcount - config.mixrate * q_bonus
     elif h_option == 'qlearned_hcount_old_number_in_goal':
-        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
 
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
-
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
+
+        """
         hcount = compute_hcount(state, problem_env)
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
-        hval = -number_in_goal + obj_already_in_goal + hcount - config.mixrate * q_bonus
+        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
+        analytical_heuristic = -number_in_goal + obj_already_in_goal + hcount
+        """
+        analytical_heuristic = compute_hcount_old_number_in_goal(state, action, problem_env)
+        hval = analytical_heuristic - config.mixrate * q_bonus
     elif h_option == 'qlearned_old_number_in_goal':
         number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
@@ -125,6 +141,7 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
 
 
 def compute_number_in_goal(state, target_o, problem_env, region_is_goal):
+    # counts the number of objects in the goal region that is not target_o
     number_in_goal = 0
     for i in state.nodes:
         if i == target_o:
@@ -182,4 +199,3 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
         node.set_heuristic(discrete_params, hval)
         action_queue.put((hval, float('nan'), a, node))  # initial q
         print "%35s %35s  hval %.4f" % (a.discrete_parameters['object'], a.discrete_parameters['place_region'], hval)
-
