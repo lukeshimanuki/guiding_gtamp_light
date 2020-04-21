@@ -1,25 +1,8 @@
-from mcts_tree_continuous_node import ContinuousTreeNode
-from mcts_tree_discrete_node import DiscreteTreeNode
-from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
+
 from mcts import MCTS
 
-from generators.uniform import UniformPaPGenerator
-from generators.voo import PaPVOOGenerator
-
-from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
-from trajectory_representation.state import StateWithoutCspacePredicates
-from trajectory_representation.one_arm_pap_state import OneArmPaPState
-
-## openrave helper libraries
-from gtamp_utils import utils
-
-
-import numpy as np
 import sys
 import socket
-import pickle
-import time
-import os
 
 sys.setrecursionlimit(15000)
 DEBUG = False
@@ -79,6 +62,7 @@ class MCTSWithLeafStrategy(MCTS):
                 sum_rewards = reward + self.discount_rate * self.simulate(next_node, node_to_search_from, depth + 1,
                                                                           new_traj)
             else:
+                # Return to the initial state if this is out-of-tree continuous action
                 next_state_value = self.v_fcn(next_node.state)
                 print "Next state value", next_state_value
                 sum_rewards = reward + next_state_value
