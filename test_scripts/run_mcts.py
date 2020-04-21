@@ -99,7 +99,10 @@ def set_seed(seed):
 
 def load_learned_q(config, problem_env):
     mconfig_type = collections.namedtuple('mconfig_type',
-                                          'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes top_k optimizer lr use_mse batch_size seed num_train val_portion mse_weight diff_weight_msg_passing same_vertex_model weight_initializer loss use_region_agnostic')
+                                          'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes '
+                                          'top_k optimizer lr use_mse batch_size seed num_train val_portion '
+                                          'mse_weight diff_weight_msg_passing same_vertex_model '
+                                          'weight_initializer loss use_region_agnostic')
 
     pap_mconfig = mconfig_type(
         operator='two_arm_pick_two_arm_place',
@@ -116,17 +119,17 @@ def load_learned_q(config, problem_env):
 
         batch_size='32',
         seed=config.train_seed,
-        num_train=config.num_train,
+        num_train=5000,
         val_portion=.1,
-        mse_weight=0.0,
+        mse_weight=1.0,
         diff_weight_msg_passing=False,
         same_vertex_model=False,
         weight_initializer='glorot_uniform',
         loss=config.loss,
-        use_region_agnostic=False
+        use_region_agnostic=config.use_region_agnostic
     )
     if config.domain == 'two_arm_mover':
-        num_entities = 10
+        num_entities = 11
         n_regions = 2
     elif config.domain == 'one_arm_mover':
         num_entities = 12
@@ -152,17 +155,16 @@ def main():
     set_seed(parameters.pidx)
     problem_env = PaPMoverEnv(parameters.pidx)
 
-    goal_object_names = [obj.GetName() for obj in problem_env.objects[:parameters.n_objs_pack]]
-    goal_region_name = [problem_env.regions['home_region'].name]
-    goal = goal_region_name + goal_object_names
-    problem_env.set_goal(goal)
-
-    goal_entities = goal_object_names + goal_region_name
+    goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+    goal_region = 'home_region'
+    problem_env.set_goal(goal_objs, goal_region)
+    goal_entities = goal_objs + [goal_region]
     if parameters.use_shaped_reward:
-        reward_function = ShapedRewardFunction(problem_env, goal_object_names, goal_region_name[0],
+        # uses the reward shaping per Ng et al.
+        reward_function = ShapedRewardFunction(problem_env, goal_objs, goal_region,
                                                parameters.planning_horizon)
     else:
-        reward_function = GenericRewardFunction(problem_env, goal_object_names, goal_region_name[0],
+        reward_function = GenericRewardFunction(problem_env, goal_objs, goal_region,
                                                 parameters.planning_horizon)
 
     motion_planner = OperatorBaseMotionPlanner(problem_env, 'prm')
@@ -186,7 +188,8 @@ def main():
 
     set_seed(parameters.planner_seed)
     search_time_to_reward, plan = planner.search(max_time=parameters.timelimit)
-    pickle.dump({"search_time_to_reward": search_time_to_reward, 'plan': plan,
+    pickle.dump({"search_time_to_reward": search_time_to_reward,
+                 'plan': plan,
                  'n_nodes': len(planner.tree.get_discrete_nodes())}, open(save_dir+filename, 'wb'))
 
 
