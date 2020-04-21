@@ -5,6 +5,7 @@ from planners.heuristics import compute_hcount
 class ShapedRewardFunction(GenericRewardFunction):
     def __init__(self, problem_env, goal_objects, goal_region, planning_horizon):
         GenericRewardFunction.__init__(self, problem_env, goal_objects, goal_region, planning_horizon)
+        # todo use the same heuristic function as greedy for the potential function
         self.potential_function = lambda state: -compute_hcount(state, self.problem_env)
         # potential_function is minus of the number of objects to move (smaller the n_objs_to_move, the better)
 
@@ -13,6 +14,7 @@ class ShapedRewardFunction(GenericRewardFunction):
             return 0
         else:
             if self.is_goal_reached():
+                # todo determine the goal reward; are we solving the satisficing problem?
                 return 10
             elif next_state is None:
                 true_reward = GenericRewardFunction.__call__(self, curr_state, next_state, action, time_step)
