@@ -6,7 +6,7 @@ from node import Node
 from gtamp_utils import utils
 
 from generators.sampler import UniformSampler, LearnedSampler
-from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
+from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 
 from trajectory_representation.operator import Operator
