@@ -12,7 +12,7 @@ from learn.pap_gnn import PaPGNN
 from gtamp_problem_environments.mover_env import Mover, PaPMoverEnv
 from planners.subplanners.motion_planner import OperatorBaseMotionPlanner
 from gtamp_problem_environments.reward_functions.reward_function import GenericRewardFunction
-from gtamp_problem_environments.reward_functions.packing_problem.reward_function import ShapedRewardFunction
+from gtamp_problem_environments.reward_functions.shaped_reward_function import ShapedRewardFunction
 from planners.flat_mcts.mcts import MCTS
 from planners.flat_mcts.mcts_with_leaf_strategy import MCTSWithLeafStrategy
 from planners.heuristics import compute_hcount_with_action, get_objects_to_move
