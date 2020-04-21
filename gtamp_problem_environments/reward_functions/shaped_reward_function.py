@@ -14,8 +14,7 @@ class ShapedRewardFunction(GenericRewardFunction):
             return 0
         else:
             if self.is_goal_reached():
-                # todo determine the goal reward; are we solving the satisficing problem?
-                return 10
+                return 1
             elif next_state is None:
                 true_reward = GenericRewardFunction.__call__(self, curr_state, next_state, action, time_step)
                 return true_reward

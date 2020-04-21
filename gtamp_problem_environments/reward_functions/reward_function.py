@@ -4,8 +4,8 @@ class AbstractRewardFunction:
         self.robot = problem_env.robot
         self.goal_objects = goal_objects
         self.goal_region = goal_region
-        self.infeasible_reward = -9999
-        self.goal_reward = planning_horizon
+        self.infeasible_reward = -1
+        self.goal_reward = 1
         self.achieved = []
         self.planning_horizon = planning_horizon
 
@@ -25,12 +25,12 @@ class GenericRewardFunction(AbstractRewardFunction):
         if action.is_skeleton:
             return 0
         else:
+            # what do I want to induce here? I want to discourage exploring infeasible actions
             is_infeasible_action = next_state is None
-            remaining_steps = self.planning_horizon - time_step
             if self.is_goal_reached():
-                return self.goal_reward
+                return 1
             elif is_infeasible_action:
-                return -1*remaining_steps
+                return -1
             else:
                 return 0
 
