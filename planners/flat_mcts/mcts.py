@@ -1,11 +1,13 @@
 from mcts_tree_continuous_node import ContinuousTreeNode
-from discrete_node_with_psa import DiscreteTreeNodeWithPsa
-from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
+#from discrete_node_with_psa import DiscreteTreeNodeWithPsa
+#from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
 from discrete_node_with_prior_q import DiscreteTreeNodeWithPriorQ
 from mcts_tree import MCTSTree
+from generators.sampler import UniformSampler
+from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
-from generators.uniform import UniformPaPGenerator
-from generators.voo import PaPVOOGenerator
+#from generators.uniform import UniformPaPGenerator
+#from generators.voo import PaPVOOGenerator
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.state import StateWithoutCspacePredicates
@@ -108,24 +110,19 @@ class MCTS:
             dont_check_motion_existence = True
         else:
             dont_check_motion_existence = False
-        if self.sampling_strategy == 'uniform':
-            generator = UniformPaPGenerator(node, operator_skeleton, self.problem_env, None,
-                                            n_candidate_params_to_smpl=self.n_motion_plan_trials,
-                                            total_number_of_feasibility_checks=self.n_feasibility_checks,
-                                            dont_check_motion_existence=dont_check_motion_existence)
 
+        if self.sampling_strategy == 'uniform':
+            abstract_state = node.state
+            abstract_action = node.operator_skeleton
+            place_region = self.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+            sampler = UniformSampler(place_region)
+            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                           n_parameters_to_try_motion_planning=10,
+                                           n_iter_limit=200, problem_env=self.problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
-            return PaPVOOGenerator(node,
-                                   operator_skeleton,
-                                   self.problem_env,
-                                   None,
-                                   self.n_feasibility_checks,
-                                   self.n_motion_plan_trials,
-                                   dont_check_motion_existence,
-                                   explr_p=self.explr_p,
-                                   c1=1,
-                                   sampling_mode='gaussian',
-                                   counter_ratio=1)
+            raise NotImplementedError
         else:
             raise NotImplementedError
         return generator
@@ -359,10 +356,7 @@ class MCTS:
                 action = curr_node.A[-1]
             else:
                 print "Re-evaluation of actions"
-                if self.use_ucb:
-                    action = curr_node.perform_ucb_over_actions()
-                else:
-                    action = curr_node.choose_new_arm()
+                action = curr_node.choose_new_arm()
         return action
 
     @staticmethod
@@ -390,7 +384,6 @@ class MCTS:
             print "Is it time to pick?", self.problem_env.is_pick_time()
 
         action = self.choose_action(curr_node)
-
         is_action_feasible = self.apply_action(curr_node, action)
 
         if not curr_node.is_action_tried(action):
@@ -435,11 +428,11 @@ class MCTS:
     def apply_action(self, node, action):
         if node.is_operator_skeleton_node:
             print "Applying skeleton", action.type, action.discrete_parameters['object'], \
-                action.discrete_parameters['region']
+                action.discrete_parameters['place_region']
             is_feasible = self.problem_env.apply_operator_skeleton(node.state, action)
         else:
             print "Applying instance", action.type, action.discrete_parameters['object'], action.discrete_parameters[
-                'region']
+                'place_region']
             is_feasible = self.problem_env.apply_operator_instance(node.state, action, self.check_reachability)
 
         return is_feasible
@@ -448,11 +441,13 @@ class MCTS:
         if self.problem_env.name.find('one_arm') != -1:
             raise NotImplementedError
         else:
+            """
             if isinstance(node.state, StateWithoutCspacePredicates):
                 current_collides = None
             else:
                 current_collides = node.state.collisions_at_all_obj_pose_pairs
-
             smpled_param = node.sampling_agent.sample_next_point(cached_collisions=current_collides,
                                                                  cached_holding_collisions=None)
+            """
+            smpled_param = node.sampling_agent.sample_next_point()
         return smpled_param
