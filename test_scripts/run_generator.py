@@ -11,7 +11,7 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 from generators.sampler import UniformSampler, PlaceOnlyLearnedSampler, LearnedSampler, PickPlaceLearnedSampler
-from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
+from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 
 from gtamp_utils import utils
 
