@@ -1,8 +1,8 @@
 import numpy as np
 
+
 def upper_confidence_bound(n, n_sa):
     return np.sqrt(2 * np.log(n + 1) / float(n_sa + 1))
-
 
 
 class TreeNode:
@@ -117,11 +117,16 @@ class TreeNode:
 
         is_action_never_tried = self.N[action] == 0
         if is_action_never_tried:
+            # does this mean this is the next state is the leaf node? Yes
             self.reward_history[action] = [reward]
             self.Q[action] = sum_rewards
             self.N[action] += 1
+            print "New action Q %.5f" % (self.Q[action])
         else:
             self.reward_history[action].append(reward)
             self.N[action] += 1
-            if sum_rewards > self.Q[action]:
-                self.Q[action] = sum_rewards
+            children_action_values = [self.children[action].Q[child_action] for child_action in self.children[action].N if self.children[action].N[child_action]>0]
+            prev_value = self.Q[action]
+            self.Q[action] = reward + np.max(children_action_values)
+            print 'Rwd %.5f, max child val %.5f' % (reward, np.max(children_action_values))
+            print "Updated. Current Q %.5f Prev Q %.5f" % (self.Q[action], prev_value)
