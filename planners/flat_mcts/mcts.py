@@ -142,20 +142,26 @@ class MCTS:
                                        parent_action=parent_action,
                                        goal_entities=self.goal_entities)
             else:
-                if socket.gethostname() == 'dell-XPS-15-9560':
+                stime =time.time()
+                if False: #socket.gethostname() == 'dell-XPS-15-9560' or socket.gethostname() == 'lab':
+                    # debug purpose
                     if parent_node is None:
                         idx = -1
                     else:
                         idx = parent_node.idx
-                    fname = './tmp_%d.pkl' % idx
+                    fname = './planners/cached_states_mcts_debug/tmp_%d.pkl' % idx
                     if os.path.isfile(fname):
+                        print "Loading abstract state..."
                         state = pickle.load(open(fname, 'r'))
                         state.make_plannable(self.problem_env)
+                        print "State loading time %.2f" % (time.time() - stime)
                     else:
+                        print "Creating abstract state..."
                         state = ShortestPathPaPState(self.problem_env,  # what's this?
                                                      parent_state=parent_state,
                                                      parent_action=parent_action,
                                                      goal_entities=self.goal_entities, planner='mcts')
+                        print "State creation time %.2f" % (time.time() - stime)
                         state.make_pklable()
                         pickle.dump(state, open(fname, 'wb'))
                         state.make_plannable(self.problem_env)
@@ -258,7 +264,7 @@ class MCTS:
         self.best_leaf_node = best_node
 
     def is_optimal_solution_found(self):
-        best_traj_rwd, best_node, reward_list = self.tree.get_best_trajectory_sum_rewards_and_node(self.discount_rate)
+        #best_traj_rwd, best_node, reward_list = self.tree.get_best_trajectory_sum_rewards_and_node(self.discount_rate)
         if self.found_solution:
             return True
             # if self.problem_env.reward_function.is_optimal_plan_found(best_traj_rwd):
@@ -311,7 +317,7 @@ class MCTS:
                 self.log_current_tree_to_dot_file(iteration_for_tree_logging + iteration, node_to_search_from)
 
             self.log_performance(time_to_search, iteration)
-            print self.search_time_to_reward[iteration_for_tree_logging:]
+            #print self.search_time_to_reward[iteration_for_tree_logging:]
 
             # break if the solution is found
             if self.is_optimal_solution_found():
@@ -338,25 +344,54 @@ class MCTS:
         return trajectories[np.argmax(traj_rewards)], curr_node
 
     def choose_action(self, curr_node):
-        if curr_node.is_operator_skeleton_node:
-            print "Skeleton node"
-            # here, perform psa with the learned q
-            action = curr_node.perform_ucb_over_actions()
-        else:
-            print 'Instance node'
-            if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
-                curr_node.sampling_agent = self.create_sampling_agent(curr_node)
-            if not curr_node.is_reevaluation_step(self.widening_parameter,
-                                                  self.problem_env.reward_function.infeasible_reward,
-                                                  self.use_progressive_widening,
-                                                  self.use_ucb):
-                print "Sampling new action"
-                new_continuous_parameters = self.sample_continuous_parameters(curr_node)
-                curr_node.add_actions(new_continuous_parameters)
-                action = curr_node.A[-1]
+        if False: #socket.gethostname() == 'dell-XPS-15-9560' or socket.gethostname() == 'lab':
+            # debugging purpose. Delete later
+            # debug purpose
+            idx = curr_node.idx
+            fname = './planners/cached_actions_mcts_debug/tmp_%d_%d.pkl' % (idx, curr_node.Nvisited)
+            if curr_node.is_operator_skeleton_node:
+                print "Skeleton node"
+                # here, perform psa with the learned q
+                action = curr_node.perform_ucb_over_actions()
             else:
-                print "Re-evaluation of actions"
-                action = curr_node.choose_new_arm()
+                print 'Instance node'
+                if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
+                    curr_node.sampling_agent = self.create_sampling_agent(curr_node)
+                if not curr_node.is_reevaluation_step(self.widening_parameter,
+                                                      self.problem_env.reward_function.infeasible_reward,
+                                                      self.use_progressive_widening,
+                                                      self.use_ucb):
+                    print "Sampling new action"
+                    if os.path.isfile(fname):
+                        new_continuous_parameters = pickle.load(open(fname, 'r'))
+                    else:
+                        new_continuous_parameters = self.sample_continuous_parameters(curr_node)
+                        pickle.dump(new_continuous_parameters, open(fname, 'wb'))
+                    curr_node.add_actions(new_continuous_parameters)
+                    action = curr_node.A[-1]
+                else:
+                    print "Re-evaluation of actions"
+                    action = curr_node.choose_new_arm()
+        else:
+            if curr_node.is_operator_skeleton_node:
+                print "Skeleton node"
+                # here, perform psa with the learned q
+                action = curr_node.perform_ucb_over_actions()
+            else:
+                print 'Instance node'
+                if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
+                    curr_node.sampling_agent = self.create_sampling_agent(curr_node)
+                if not curr_node.is_reevaluation_step(self.widening_parameter,
+                                                      self.problem_env.reward_function.infeasible_reward,
+                                                      self.use_progressive_widening,
+                                                      self.use_ucb):
+                    print "Sampling new action"
+                    new_continuous_parameters = self.sample_continuous_parameters(curr_node)
+                    curr_node.add_actions(new_continuous_parameters)
+                    action = curr_node.A[-1]
+                else:
+                    print "Re-evaluation of actions"
+                    action = curr_node.choose_new_arm()
         return action
 
     @staticmethod
@@ -407,8 +442,8 @@ class MCTS:
             else:
                 sum_rewards = reward
         else:
-            sum_rewards = reward + self.discount_rate * self.simulate(next_node, node_to_search_from, depth + 1,
-                                                                      new_traj)
+            sum_rewards = reward + self.discount_rate * self.simulate(next_node, node_to_search_from,
+                                                                      depth + 1, new_traj)
 
         curr_node.update_node_statistics(action, sum_rewards, reward)
         if curr_node == node_to_search_from and curr_node.parent is not None:
@@ -421,7 +456,7 @@ class MCTS:
         if node is None:
             return
         parent_reward_to_node = node.reward_history[action][0]
-        parent_sum_rewards = parent_reward_to_node + self.discount_rate * child_sum_rewards
+        parent_sum_rewards = parent_reward_to_node + child_sum_rewards  # rwd up to parent + rwd from child to leaf
         node.update_node_statistics(action, parent_sum_rewards, parent_reward_to_node)
         self.update_ancestor_node_statistics(node.parent, node.parent_action, parent_sum_rewards)
 
