@@ -19,9 +19,12 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             for a in self.A:
                 self.Q[a] = 0
         else:
-            objs_to_move = get_objects_to_move(self.state, self.state.problem_env)
             for a in self.A:
-                self.Q[a] = -len(objs_to_move)
+                self.Q[a] = 0
+            #objs_to_move = get_objects_to_move(self.state, self.state.problem_env)
+            #for a in self.A:
+            #    self.Q[a] = -len(objs_to_move)
+            self.learned_q_values = [self.learned_q.predict(self.state, a) for a in actions]
 
     def perform_ucb_over_actions(self):
         # todo this function is to be deleted once everything has been implemented
@@ -53,11 +56,10 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
 
         if self.learned_q is not None:
             # todo make this more efficient by calling predict_with_raw_*
-            init_q_values = [self.learned_q.predict(self.state, a) for a in actions]
-            exp_sum = np.sum([np.exp(q) for q in init_q_values])
+            exp_sum = np.sum([np.exp(q) for q in self.learned_q_values])
         else:
             objects_to_move = get_objects_to_move(self.state, self.state.problem_env)
-            init_q_values = []
+            learned_q_values = []
             for a in actions:
                 obj_name = a.discrete_parameters['object']
                 region_name = a.discrete_parameters['place_region']
@@ -68,29 +70,30 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
                     val = 1
                 else:
                     val = 0
-                init_q_values.append(val)
-            exp_sum = np.sum([np.exp(q) for q in init_q_values])
+                learned_q_values.append(val)
+            exp_sum = np.sum([np.exp(q) for q in learned_q_values])
 
-        action_ucb_values = []
+        action_evaluation_values = []
 
-        for action, value, learned_value in zip(actions, q_values, init_q_values):
+        for action, value, learned_value in zip(actions, q_values, self.learned_q_values):
             # todo check if this is same as greedy.py
-            q_bonus = np.exp(learned_value) / float(exp_sum)
-            ucb_value = value + q_bonus + self.compute_ucb_value(action)
+            q_bonus = np.exp(learned_value) / float(exp_sum+1e-5)
+            ucb_value = self.compute_ucb_value(action)
+            action_evaluation = value + q_bonus * ucb_value
 
             obj_name = action.discrete_parameters['object']
             region_name = action.discrete_parameters['place_region']
-            print "%30s %30s Reachable? %d  ManipFree? %d IsGoal? %d Q? %.5f QBonus? %.5f Q+UCB? %.5f" \
+            print "%25s %15s Reachable? %d  ManipFree? %d IsGoal? %d Q? %.5f QBonus? %.5f UCB? %.5f Q+UCB? %.5f" \
                   % (obj_name, region_name, self.state.is_entity_reachable(obj_name),
                      self.state.binary_edges[(obj_name, region_name)][-1],
                      obj_name in self.state.goal_entities, self.Q[action], q_bonus,
-                     ucb_value)
+                     ucb_value, action_evaluation)
 
-            action_ucb_values.append(ucb_value)
-            if ucb_value > best_value:
-                best_value = ucb_value
+            action_evaluation_values.append(action_evaluation)
+            if action_evaluation > best_value:
+                best_value = action_evaluation
 
-        boolean_idxs_with_highest_ucb = (np.max(action_ucb_values) == action_ucb_values).squeeze()
+        boolean_idxs_with_highest_ucb = (np.max(action_evaluation_values) == action_evaluation_values).squeeze()
         best_action_idx = np.random.randint(np.sum(boolean_idxs_with_highest_ucb))
         best_action = np.array(actions)[boolean_idxs_with_highest_ucb][best_action_idx]
         return best_action
