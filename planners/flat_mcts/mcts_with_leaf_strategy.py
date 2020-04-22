@@ -4,6 +4,8 @@ from mcts import MCTS
 import sys
 import socket
 
+from gtamp_utils import utils
+
 sys.setrecursionlimit(15000)
 DEBUG = False
 
@@ -32,6 +34,7 @@ class MCTSWithLeafStrategy(MCTS):
             print "Depth limit reached"
             return 0
 
+        print "At depth ", depth
         if DEBUG:
             print "At depth ", depth
             print "Is it time to pick?", self.problem_env.is_pick_time()
@@ -46,12 +49,11 @@ class MCTSWithLeafStrategy(MCTS):
         else:
             next_node = self.create_node(action, depth + 1, curr_node, not is_action_feasible) # expansion
             self.tree.add_node(next_node, action, curr_node)
-            reward = self.problem_env.reward_function(curr_node.state, next_node.state, action, depth)
+            reward = self.problem_env.reward_function(curr_node, next_node, action, depth)
             next_node.parent_action_reward = reward
             next_node.sum_ancestor_action_rewards = next_node.parent.sum_ancestor_action_rewards + reward
 
         print "Reward", reward
-
         print "=============================================================================="
         if not is_action_feasible:
             # this (s,a) is a dead-end
@@ -59,15 +61,14 @@ class MCTSWithLeafStrategy(MCTS):
             sum_rewards = reward
         else:
             if is_tree_action or curr_node.is_operator_skeleton_node:
-                sum_rewards = reward + self.discount_rate * self.simulate(next_node, node_to_search_from, depth + 1,
-                                                                          new_traj)
+                sum_rewards = reward + self.simulate(next_node, node_to_search_from, depth + 1, new_traj)
             else:
-                # Return to the initial state if this is out-of-tree continuous action
-                next_state_value = self.v_fcn(next_node.state)
-                print "Next state value", next_state_value
-                sum_rewards = reward + next_state_value
-
+                #next_state_value = self.v_fcn(next_node.state)
+                #print "Next state value", next_state_value
+                sum_rewards = reward #+ next_state_value
+        print "Updating node stat at depth ", depth
         curr_node.update_node_statistics(action, sum_rewards, reward)
+
         if curr_node == node_to_search_from and curr_node.parent is not None:
             self.update_ancestor_node_statistics(curr_node.parent, curr_node.parent_action, sum_rewards)
 
