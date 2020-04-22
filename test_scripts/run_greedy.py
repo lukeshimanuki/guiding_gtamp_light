@@ -300,6 +300,8 @@ def main():
 
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     t = time.time()
+    np.random.seed(config.planner_seed)
+    random.seed(config.planner_seed)
     nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs,
                                                    goal_region, smpler, None)
     tottime = time.time() - t
