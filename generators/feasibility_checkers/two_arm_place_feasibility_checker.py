@@ -99,7 +99,7 @@ class TwoArmPlaceFeasibilityChecker:
 
         robot_xytheta = self.compute_robot_base_pose_given_object_pose(obj, self.robot, obj_pose, T_r_wrt_o)
         set_robot_config(robot_xytheta, self.robot)
-
+        # technically, I need to check the collision after folding the arm. Ignore this case.
 
         is_feasible = self.is_collision_and_region_constraints_satisfied(target_robot_region1, target_robot_region2,
                                                                          target_obj_region)
