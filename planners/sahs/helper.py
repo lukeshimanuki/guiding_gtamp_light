@@ -24,16 +24,16 @@ def compute_bonus_val(pap_model, nodes, edges, a_raw_form):
 def compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env):
     all_actions = get_actions(problem_env, None, None)
     entity_names = list(state.nodes.keys())[::-1]
-    q_vals = []
+    exp_q_vals = []
     for a in all_actions:
         a_raw_form = convert_action_to_predictable_form(a, entity_names)
         if np.all(a_raw_form == actions):
             continue
         bonus_val = compute_bonus_val(pap_model, nodes, edges, a_raw_form)
-        q_vals.append(bonus_val)
+        exp_q_vals.append(bonus_val)
 
     bonus_val_on_curr_a = compute_bonus_val(pap_model, nodes, edges, actions)
-    q_bonus = bonus_val_on_curr_a / (np.sum(q_vals) + bonus_val_on_curr_a)
+    q_bonus = bonus_val_on_curr_a / (np.sum(exp_q_vals) + 1e-5)
     return q_bonus
 
 
@@ -67,8 +67,13 @@ def compute_hcount_old_number_in_goal(state, action, problem_env):
     return analytical_heuristic
 
 
-def compute_heuristic(state, action, pap_model, problem_env, config):
+def compute_heuristic(state, action, pap_model, h_option, mixrate):
+    # parameters used for CoRL
+    assert h_option == 'qlearned_hcount_old_number_in_goal'
+    assert mixrate == 1
+
     is_two_arm_domain = 'two_arm_' in action.type
+    problem_env = state.problem_env
     if is_two_arm_domain:
         target_o = action.discrete_parameters['object']
         target_r = action.discrete_parameters['place_region']
@@ -88,8 +93,6 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
         goal_objs = [tmp_o for tmp_o in state.goal_entities if 'region' not in tmp_o]
         goal_region = 'rectangular_packing_box1_region'
 
-    h_option = config.h_option
-
     if h_option == 'hcount':
         hval = compute_hcount_with_action(state, action, problem_env)
     elif h_option == 'hcount_old_number_in_goal':
@@ -105,7 +108,6 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal + obj_already_in_goal + hcount - config.mixrate * q_bonus
     elif h_option == 'qlearned_hcount_old_number_in_goal':
-
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
@@ -117,20 +119,20 @@ def compute_heuristic(state, action, pap_model, problem_env, config):
         analytical_heuristic = -number_in_goal + obj_already_in_goal + hcount
         """
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action, problem_env)
-        hval = analytical_heuristic - config.mixrate * q_bonus
+        hval = analytical_heuristic - mixrate * q_bonus
     elif h_option == 'qlearned_old_number_in_goal':
         number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
                                                                   actions[None, ...])
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal - q_val_on_curr_a + obj_already_in_goal
-    elif h_option == 'config.qlearned_new_number_in_goal':
+    elif h_option == 'qlearned_new_number_in_goal':
         number_in_goal = compute_new_number_in_goal(state, goal_objs, goal_region)
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
                                                                   actions[None, ...])
         obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
         hval = -number_in_goal - q_val_on_curr_a + obj_already_in_goal
-    elif h_option == 'config.pure_learned_q':
+    elif h_option == 'pure_learned_q':
         q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
                                                                   actions[None, ...])
         hval = -q_val_on_curr_a
@@ -185,7 +187,7 @@ def count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region
 def update_search_queue(state, actions, node, action_queue, pap_model, mover, config):
     print "Enqueuing..."
     for a in actions:
-        hval = compute_heuristic(state, a, pap_model, mover, config)
+        hval = compute_heuristic(state, a, pap_model, config.h_option, config.mixrate)
         if config.gather_planning_exp:
             h_for_sampler_training = compute_hcount(state, mover)
             num_in_goal = compute_new_number_in_goal(state)
