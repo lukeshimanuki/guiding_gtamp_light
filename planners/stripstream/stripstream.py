@@ -213,8 +213,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         else:
             raise NotImplementedError
         print(actions)
-        return [], actions, 0, 0 # TODO: count num nodes
+        return [], actions, 0, []
     else:
         print("Plan not found")
-        return [], None, 0, 0
+        return [], None, 0, []
 
