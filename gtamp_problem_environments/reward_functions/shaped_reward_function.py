@@ -6,7 +6,7 @@ from planners.sahs.helper import compute_heuristic
 class ShapedRewardFunction(GenericRewardFunction):
     def __init__(self, problem_env, goal_objects, goal_region, planning_horizon):
         GenericRewardFunction.__init__(self, problem_env, goal_objects, goal_region, planning_horizon)
-        self.worst_potential_value = -2 # must move all objects
+        self.worst_potential_value = -8 # must move all objects
         # potential_function is minus of the number of objects to move (smaller the n_objs_to_move, the better)
 
     def potential_function(self, node):
