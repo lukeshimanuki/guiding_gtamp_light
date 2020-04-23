@@ -21,6 +21,7 @@ class ShapedRewardFunction(GenericRewardFunction):
             val = -compute_heuristic(discrete_node.state, a, discrete_node.learned_q,
                                     'qlearned_hcount_old_number_in_goal', mixrate=1.0)
             potential_vals.append(val)
+            print a.discrete_parameters, val
         return max(potential_vals)
 
     def __call__(self, curr_node, next_node, action, time_step):
@@ -34,9 +35,10 @@ class ShapedRewardFunction(GenericRewardFunction):
                 return self.worst_potential_value
             else:
                 assert curr_node.__class__.__name__ == 'ContinuousTreeNode'
+                print "Current node potential values"
                 potential_curr = self.potential_function(curr_node)
+                print "Next node potential values"
                 potential_next = self.potential_function(next_node)
-
                 curr_state = curr_node.state
                 true_reward = GenericRewardFunction.__call__(self, curr_state, next_state, action, time_step)
 
