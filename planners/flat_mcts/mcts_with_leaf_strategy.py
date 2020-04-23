@@ -22,12 +22,11 @@ class MCTSWithLeafStrategy(MCTS):
 
     def simulate(self, curr_node, node_to_search_from, depth, new_traj):
         if self.problem_env.reward_function.is_goal_reached():
-            if not curr_node.is_goal_and_already_visited:
-                self.found_solution = True
-                curr_node.is_goal_node = True
-                print "Solution found, returning the goal reward", self.problem_env.reward_function.goal_reward
-                self.update_goal_node_statistics(curr_node, self.problem_env.reward_function.goal_reward)
-            return self.problem_env.reward_function.goal_reward
+            self.found_solution = True
+            curr_node.is_goal_node = True
+            print "Solution found"
+            self.update_goal_node_statistics(curr_node, self.problem_env.reward_function.goal_reward)
+            return 0
 
         if depth == self.planning_horizon:
             # would it ever get here? why does it not satisfy the goal?
@@ -47,7 +46,7 @@ class MCTSWithLeafStrategy(MCTS):
             next_node = curr_node.children[action]
             reward = next_node.parent_action_reward
         else:
-            next_node = self.create_node(action, depth + 1, curr_node, not is_action_feasible) # expansion
+            next_node = self.create_node(action, depth + 1, curr_node, not is_action_feasible)  # expansion
             self.tree.add_node(next_node, action, curr_node)
             reward = self.problem_env.reward_function(curr_node, next_node, action, depth)
             next_node.parent_action_reward = reward
@@ -63,9 +62,8 @@ class MCTSWithLeafStrategy(MCTS):
             if is_tree_action or curr_node.is_operator_skeleton_node:
                 sum_rewards = reward + self.simulate(next_node, node_to_search_from, depth + 1, new_traj)
             else:
-                #next_state_value = self.v_fcn(next_node.state)
-                #print "Next state value", next_state_value
-                sum_rewards = reward #+ next_state_value
+                sum_rewards = reward
+                self.found_solution =  self.problem_env.reward_function.is_goal_reached()
         print "Updating node stat at depth ", depth
         curr_node.update_node_statistics(action, sum_rewards, reward)
 
