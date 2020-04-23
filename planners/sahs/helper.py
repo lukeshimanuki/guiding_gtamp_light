@@ -63,8 +63,9 @@ def compute_hcount_old_number_in_goal(state, action):
     goal_region = 'home_region'
     hcount = compute_hcount(state)
     given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
-    number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
+    number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
     analytical_heuristic = -number_in_goal + given_obj_already_in_goal + hcount
+    #print target_o, target_r
     #print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
     return analytical_heuristic
 
@@ -135,37 +136,6 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         raise NotImplementedError
 
     return hval
-
-
-def compute_number_in_goal(state, target_o, problem_env, region_is_goal):
-    # counts the number of objects in the goal region that is not target_o
-    number_in_goal = 0
-    for i in state.nodes:
-        if i == target_o:
-            continue
-        for tmpr in problem_env.regions:
-            if tmpr in state.nodes:
-                is_r_goal_region = state.nodes[tmpr][8]
-                if is_r_goal_region:
-                    is_i_in_r = state.binary_edges[(i, tmpr)][0]
-                    if is_r_goal_region:
-                        number_in_goal += is_i_in_r
-    number_in_goal += int(region_is_goal)  # encourage moving goal obj to goal region
-    return number_in_goal
-
-
-def compute_new_number_in_goal(state):
-    number_in_goal = 0
-    goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
-    for goal_obj in state.goal_entities:
-        is_obj_entity = 'region' not in goal_obj
-        if is_obj_entity:
-            goal_obj_body = state.problem_env.env.GetKinBody(goal_obj)
-            is_goal_region_contains_entity = state.problem_env.regions[goal_r].contains(goal_obj_body.ComputeAABB())
-            if is_goal_region_contains_entity:
-                number_in_goal += 1
-
-    return number_in_goal
 
 
 def count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region(state):
