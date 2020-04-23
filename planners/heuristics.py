@@ -1,7 +1,7 @@
 import Queue
 
 
-def get_goal_objs_not_in_goal_region(state, problem_env):
+def get_goal_objs_not_in_goal_region(state):
     not_in_goal = []
     goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
     goal_objs = [entity for entity in state.goal_entities if 'box' in entity]
@@ -21,7 +21,7 @@ def get_objects_to_move(state):
     potential_obj_to_move_queue = Queue.Queue()
 
     # Putting goal objects that are not in the goal region to objects_to_move set
-    goal_objs_not_in_goal_region = get_goal_objs_not_in_goal_region(state, problem_env)
+    goal_objs_not_in_goal_region = get_goal_objs_not_in_goal_region(state)
     for entity in goal_objs_not_in_goal_region:
         potential_obj_to_move_queue.put(entity)
 
