@@ -98,9 +98,9 @@ class MCTSTree:
     def get_node_hcount(self, node):
         is_infeasible_parent_action = node.state is None
         if is_infeasible_parent_action:
-            return len(get_objects_to_move(node.parent.state, node.parent.state.problem_env))
+            return len(get_objects_to_move(node.parent.state))
         else:
-            return len(get_objects_to_move(node.state, node.state.problem_env))
+            return len(get_objects_to_move(node.state))
 
     def compute_number_of_boxes_packed_in_mover_domain(self, leaf_nodes, sumR_list):
         best_leaf_node = leaf_nodes[np.argmax(sumR_list)]
