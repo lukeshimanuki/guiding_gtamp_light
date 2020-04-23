@@ -65,7 +65,7 @@ def compute_hcount_old_number_in_goal(state, action):
     given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
     number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
     analytical_heuristic = -number_in_goal + given_obj_already_in_goal + hcount
-    print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
+    #print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
     return analytical_heuristic
 
 
