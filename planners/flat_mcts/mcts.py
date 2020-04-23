@@ -257,8 +257,20 @@ class MCTS:
         if socket.gethostname() == 'dell-XPS-15-9560':
             write_dot_file(self.tree, iteration, '', node_to_search_from)
 
-    def log_performance(self, elapsed_time, history_n_objs_in_goal, iteration):
-        self.search_time_to_reward.append([elapsed_time, iteration, max(history_n_objs_in_goal)])
+    def log_performance(self, elapsed_time, history_n_objs_in_goal, n_feasibility_checks, iteration):
+        self.search_time_to_reward.append([elapsed_time, iteration,
+                                           n_feasibility_checks['ik'],
+                                           n_feasibility_checks['mp'],
+                                           max(history_n_objs_in_goal)])
+
+    def get_total_n_feasibility_checks(self):
+        total_ik_checks = 0
+        total_mp_checks = 0
+        for n in self.tree.nodes:
+            if n.sampling_agent is not None:
+                total_ik_checks += n.sampling_agent.n_ik_checks
+                total_mp_checks += n.sampling_agent.n_mp_checks
+        return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
     def search(self, n_iter=np.inf, iteration_for_tree_logging=0, node_to_search_from=None, max_time=np.inf):
         depth = 0
@@ -287,9 +299,13 @@ class MCTS:
             self.simulate(node_to_search_from, node_to_search_from, depth, new_traj)
             elapsed_time += time.time() - stime
 
+            n_feasibility_checks = self.get_total_n_feasibility_checks()
             n_objs_in_goal = len(self.problem_env.get_objs_in_region('home_region'))
             history_of_n_objs_in_goal.append(n_objs_in_goal)
-            print "Time {} Max progress {}".format(elapsed_time, max(history_of_n_objs_in_goal))
+            self.log_performance(elapsed_time, history_of_n_objs_in_goal, n_feasibility_checks, iteration)
+            print "Time {} n_feasible_checks {} max progress {}".format(elapsed_time,
+                                                                        n_feasibility_checks['ik'],
+                                                                        max(history_of_n_objs_in_goal))
 
             is_time_to_switch_node = iteration % self.switch_frequency == 0
             if is_time_to_switch_node:
@@ -299,8 +315,6 @@ class MCTS:
                     max_child = node_to_search_from.get_child_with_max_value()
                     if max_child.parent_action.continuous_parameters['is_feasible']:
                         node_to_search_from = node_to_search_from.get_child_with_max_value()
-
-            self.log_performance(elapsed_time, history_of_n_objs_in_goal, iteration)
 
             if self.found_solution:
                 print "Optimal score found"
