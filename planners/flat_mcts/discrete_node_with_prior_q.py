@@ -31,22 +31,6 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
         actions = self.A
         q_values = [self.Q[a] for a in self.A]
 
-        """
-        for a, q in zip(actions, q_values):
-            obj_name = a.discrete_parameters['object']
-            region_name = a.discrete_parameters['region']
-            o_reachable = self.state.is_entity_reachable(obj_name)
-            o_r_manip_free = self.state.binary_edges[(obj_name, region_name)][-1]
-            objects_to_move = get_objects_to_move(self.state, self.state.problem_env)
-            o_needs_to_be_moved = obj_name in objects_to_move
-            # and it is in M
-            psa = o_reachable and o_r_manip_free and o_needs_to_be_moved
-            print "%30s %30s Reachable? %d  ManipFree? %d IsGoal? %d Q? %.5f Q+UCB? %.5f" \
-                  % (obj_name, region_name, self.state.is_entity_reachable(obj_name),
-                     self.state.binary_edges[(obj_name, region_name)][-1],
-                     obj_name in self.state.goal_entities, self.Q[a],
-                     self.compute_ucb_value(self.Q[a], a, objects_to_move))
-        """
         best_action = self.get_action_with_highest_ucb_value(actions, q_values)
         return best_action
 
@@ -65,7 +49,7 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             # todo check if this is same as greedy.py
             q_bonus = np.exp(learned_value) / float(exp_sum+1e-5)
             ucb_value = self.compute_ucb_value(action)
-            action_evaluation = value + q_bonus * ucb_value
+            action_evaluation = value + ucb_value
 
             obj_name = action.discrete_parameters['object']
             region_name = action.discrete_parameters['place_region']
