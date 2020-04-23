@@ -1,5 +1,7 @@
 from mcts_tree_discrete_node import DiscreteTreeNode
 from planners.heuristics import get_objects_to_move
+from planners.sahs.helper import compute_heuristic
+
 
 import numpy as np
 
@@ -19,11 +21,8 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             for a in self.A:
                 self.Q[a] = 0
         else:
-            for a in self.A:
-                self.Q[a] = 0
-            #objs_to_move = get_objects_to_move(self.state, self.state.problem_env)
-            #for a in self.A:
-            #    self.Q[a] = -len(objs_to_move)
+            for a in actions:
+                self.Q[a] = -compute_heuristic(state, a, learned_q, 'qlearned_hcount_old_number_in_goal', mixrate=1.0)
             self.learned_q_values = [self.learned_q.predict(self.state, a) for a in actions]
 
     def perform_ucb_over_actions(self):
@@ -58,20 +57,7 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             # todo make this more efficient by calling predict_with_raw_*
             exp_sum = np.sum([np.exp(q) for q in self.learned_q_values])
         else:
-            objects_to_move = get_objects_to_move(self.state, self.state.problem_env)
-            learned_q_values = []
-            for a in actions:
-                obj_name = a.discrete_parameters['object']
-                region_name = a.discrete_parameters['place_region']
-                o_reachable = self.state.is_entity_reachable(obj_name)
-                o_r_manip_free = self.state.binary_edges[(obj_name, region_name)][-1]
-                o_needs_to_be_moved = obj_name in objects_to_move
-                if o_reachable and o_r_manip_free and o_needs_to_be_moved:
-                    val = 1
-                else:
-                    val = 0
-                learned_q_values.append(val)
-            exp_sum = np.sum([np.exp(q) for q in learned_q_values])
+            raise NotImplementedError
 
         action_evaluation_values = []
 
