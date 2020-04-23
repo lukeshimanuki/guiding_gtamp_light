@@ -1,25 +1,27 @@
 import Queue
 
 
-def get_goal_objs_not_in_goal_region(state, problem_env):
+def get_goal_objs_not_in_goal_region(state):
     not_in_goal = []
     goal_r = [entity for entity in state.goal_entities if 'region' in entity][0]
-    for entity in state.goal_entities:
-        is_obj_entity = 'region' not in entity
+    goal_objs = [entity for entity in state.goal_entities if 'box' in entity]
+    for goal_obj in goal_objs:
+        is_obj_entity = 'region' not in goal_obj
         if is_obj_entity:
-            goal_obj_body = problem_env.env.GetKinBody(entity)
-            is_goal_region_contains_entity = problem_env.regions[goal_r].contains(goal_obj_body.ComputeAABB())
-            if not is_goal_region_contains_entity:
-                not_in_goal.append(entity)
+            is_goal_obj_in_region = state.binary_edges[(goal_obj, goal_r)][0]
+            if not is_goal_obj_in_region:
+                not_in_goal.append(goal_obj)
+
     return not_in_goal
 
 
-def get_objects_to_move(state, problem_env):
+def get_objects_to_move(state):
+    problem_env = state.problem_env
     objects_to_move = set()
     potential_obj_to_move_queue = Queue.Queue()
 
     # Putting goal objects that are not in the goal region to objects_to_move set
-    goal_objs_not_in_goal_region = get_goal_objs_not_in_goal_region(state, problem_env)
+    goal_objs_not_in_goal_region = get_goal_objs_not_in_goal_region(state)
     for entity in goal_objs_not_in_goal_region:
         potential_obj_to_move_queue.put(entity)
 
@@ -64,13 +66,13 @@ def get_objects_to_move(state, problem_env):
     return objects_to_move
 
 
-def compute_hcount(state, problem_env):
-    objects_to_move = get_objects_to_move(state, problem_env)
+def compute_hcount(state):
+    objects_to_move = get_objects_to_move(state)
     return len(objects_to_move)
 
 
 def compute_hcount_with_action(state, action, problem_env):
-    objects_to_move = get_objects_to_move(state, problem_env)
+    objects_to_move = get_objects_to_move(state)
     n_objs_to_move = len(objects_to_move)
 
     if 'two_arm' in problem_env.name:

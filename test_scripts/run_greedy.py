@@ -14,10 +14,10 @@ from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
-#from generators.learning.utils.model_creation_utils import create_policy
+# from generators.learning.utils.model_creation_utils import create_policy
 from gtamp_utils import utils
 
-#from test_scripts.visualize_learned_sampler import create_policy
+# from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
 
@@ -27,7 +27,7 @@ def get_problem_env(config, goal_region, goal_objs):
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
         # goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
-        #for obj in problem_env.objects[:n_objs_pack]:
+        # for obj in problem_env.objects[:n_objs_pack]:
         #    utils.set_color(obj, [0, 1, 0])
         [utils.set_color(o, [0, 0, 0.8]) for o in goal_objs]
 
@@ -260,6 +260,16 @@ def make_node_pklable(node):
     node.generators = None
 
 
+def get_total_n_feasibility_checks(nodes):
+    total_ik_checks = 0
+    total_mp_checks = 0
+    for n in nodes:
+        for generator in n.generators.values():
+            total_ik_checks += generator.n_ik_checks
+            total_mp_checks += generator.n_mp_checks
+    return {'mp': total_mp_checks, 'ik': total_ik_checks}
+
+
 def main():
     config = parse_arguments()
     solution_file_name = get_solution_file_name(config)
@@ -301,15 +311,19 @@ def main():
 
     if config.integrated or config.integrated_unregularized_sampler:
         raise NotImplementedError
-        #smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
+        # smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
     else:
         smpler = None
 
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     t = time.time()
+    np.random.seed(config.planner_seed)
+    random.seed(config.planner_seed)
     nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs,
                                                    goal_region, smpler, None)
     tottime = time.time() - t
+    n_feasibility_checks = get_total_n_feasibility_checks(nodes)
+
     success = plan is not None
     plan_length = len(plan) if success else 0
     if success and config.domain == 'one_arm_mover':
@@ -334,7 +348,8 @@ def main():
         'num_nodes': num_nodes,
         'plan': plan,
         'nodes': nodes,
-        'hvalues': h_for_sampler_training
+        'hvalues': h_for_sampler_training,
+        'n_feasibility_checks': n_feasibility_checks
     }
     with open(solution_file_name, 'wb') as f:
         pickle.dump(data, f)

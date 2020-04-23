@@ -1,11 +1,13 @@
 from mcts_tree_continuous_node import ContinuousTreeNode
-from discrete_node_with_psa import DiscreteTreeNodeWithPsa
-from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
+#from discrete_node_with_psa import DiscreteTreeNodeWithPsa
+#from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
 from discrete_node_with_prior_q import DiscreteTreeNodeWithPriorQ
 from mcts_tree import MCTSTree
+from generators.sampler import UniformSampler
+from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
-from generators.uniform import UniformPaPGenerator
-from generators.voo import PaPVOOGenerator
+#from generators.uniform import UniformPaPGenerator
+#from generators.voo import PaPVOOGenerator
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.state import StateWithoutCspacePredicates
@@ -108,24 +110,19 @@ class MCTS:
             dont_check_motion_existence = True
         else:
             dont_check_motion_existence = False
-        if self.sampling_strategy == 'uniform':
-            generator = UniformPaPGenerator(node, operator_skeleton, self.problem_env, None,
-                                            n_candidate_params_to_smpl=self.n_motion_plan_trials,
-                                            total_number_of_feasibility_checks=self.n_feasibility_checks,
-                                            dont_check_motion_existence=dont_check_motion_existence)
 
+        if self.sampling_strategy == 'uniform':
+            abstract_state = node.state
+            abstract_action = node.operator_skeleton
+            place_region = self.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+            sampler = UniformSampler(place_region)
+            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                           n_parameters_to_try_motion_planning=10,
+                                           n_iter_limit=200, problem_env=self.problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
-            return PaPVOOGenerator(node,
-                                   operator_skeleton,
-                                   self.problem_env,
-                                   None,
-                                   self.n_feasibility_checks,
-                                   self.n_motion_plan_trials,
-                                   dont_check_motion_existence,
-                                   explr_p=self.explr_p,
-                                   c1=1,
-                                   sampling_mode='gaussian',
-                                   counter_ratio=1)
+            raise NotImplementedError
         else:
             raise NotImplementedError
         return generator
@@ -145,20 +142,26 @@ class MCTS:
                                        parent_action=parent_action,
                                        goal_entities=self.goal_entities)
             else:
-                if socket.gethostname() == 'dell-XPS-15-9560':
+                stime =time.time()
+                if False: #socket.gethostname() == 'dell-XPS-15-9560' or socket.gethostname() == 'lab':
+                    # debug purpose
                     if parent_node is None:
                         idx = -1
                     else:
                         idx = parent_node.idx
-                    fname = './tmp_%d.pkl' % idx
+                    fname = './planners/cached_states_mcts_debug/tmp_%d.pkl' % idx
                     if os.path.isfile(fname):
+                        print "Loading abstract state..."
                         state = pickle.load(open(fname, 'r'))
                         state.make_plannable(self.problem_env)
+                        print "State loading time %.2f" % (time.time() - stime)
                     else:
+                        print "Creating abstract state..."
                         state = ShortestPathPaPState(self.problem_env,  # what's this?
                                                      parent_state=parent_state,
                                                      parent_action=parent_action,
                                                      goal_entities=self.goal_entities, planner='mcts')
+                        print "State creation time %.2f" % (time.time() - stime)
                         state.make_pklable()
                         pickle.dump(state, open(fname, 'wb'))
                         state.make_plannable(self.problem_env)
@@ -254,27 +257,24 @@ class MCTS:
         if socket.gethostname() == 'dell-XPS-15-9560':
             write_dot_file(self.tree, iteration, '', node_to_search_from)
 
-    def log_performance(self, time_to_search, iteration):
-        best_traj_rwd, progress, best_node = self.tree.get_best_trajectory_sum_rewards_and_node(self.discount_rate)
-        self.search_time_to_reward.append([time_to_search, iteration, best_traj_rwd, progress, self.found_solution])
-        self.progress_list.append(progress)
-        self.best_leaf_node = best_node
+    def log_performance(self, elapsed_time, history_n_objs_in_goal, n_feasibility_checks, iteration):
+        self.search_time_to_reward.append([elapsed_time, iteration,
+                                           n_feasibility_checks['ik'],
+                                           n_feasibility_checks['mp'],
+                                           max(history_n_objs_in_goal)])
 
-    def is_optimal_solution_found(self):
-        best_traj_rwd, best_node, reward_list = self.tree.get_best_trajectory_sum_rewards_and_node(self.discount_rate)
-        if self.found_solution:
-            return True
-            # if self.problem_env.reward_function.is_optimal_plan_found(best_traj_rwd):
-            #    print "Optimal score found"
-            #    return True
-            # else:
-            #    return False
-        else:
-            return False
+    def get_total_n_feasibility_checks(self):
+        total_ik_checks = 0
+        total_mp_checks = 0
+        for n in self.tree.nodes:
+            if n.sampling_agent is not None:
+                total_ik_checks += n.sampling_agent.n_ik_checks
+                total_mp_checks += n.sampling_agent.n_mp_checks
+        return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
     def search(self, n_iter=np.inf, iteration_for_tree_logging=0, node_to_search_from=None, max_time=np.inf):
         depth = 0
-        time_to_search = 0
+        elapsed_time = 0
 
         if node_to_search_from is None:
             self.s0_node = self.create_node(None,
@@ -285,10 +285,12 @@ class MCTS:
             self.tree.set_root_node(self.s0_node)
             node_to_search_from = self.s0_node
 
-        new_trajs = []
-        plan = []
         if n_iter == np.inf:
             n_iter = 999999
+
+        new_trajs = []
+        plan = []
+        history_of_n_objs_in_goal = []
         for iteration in range(1, n_iter):
             print '*****SIMULATION ITERATION %d' % iteration
             self.problem_env.reset_to_init_state(node_to_search_from)
@@ -296,12 +298,17 @@ class MCTS:
             new_traj = []
             stime = time.time()
             self.simulate(node_to_search_from, node_to_search_from, depth, new_traj)
-            time_to_search += time.time() - stime
-            new_trajs.append(new_traj)
+            elapsed_time += time.time() - stime
 
-            # note that I need to evaluate all actions in a node to switch
-            is_time_to_switch_node = iteration % self.switch_frequency == 0  # and the node should be feasible
-            # I have to have a feasible action to switch if this is an instance node
+            n_feasibility_checks = self.get_total_n_feasibility_checks()
+            n_objs_in_goal = len(self.problem_env.get_objs_in_region('home_region'))
+            history_of_n_objs_in_goal.append(n_objs_in_goal)
+            self.log_performance(elapsed_time, history_of_n_objs_in_goal, n_feasibility_checks, iteration)
+            print "Time {} n_feasible_checks {} max progress {}".format(elapsed_time,
+                                                                        n_feasibility_checks['ik'],
+                                                                        max(history_of_n_objs_in_goal))
+
+            is_time_to_switch_node = iteration % self.switch_frequency == 0
             if is_time_to_switch_node:
                 if node_to_search_from.is_operator_skeleton_node:
                     node_to_search_from = node_to_search_from.get_child_with_max_value()
@@ -310,24 +317,17 @@ class MCTS:
                     if max_child.parent_action.continuous_parameters['is_feasible']:
                         node_to_search_from = node_to_search_from.get_child_with_max_value()
 
-            if iteration % 10 == 0:
-                self.log_current_tree_to_dot_file(iteration_for_tree_logging + iteration, node_to_search_from)
-
-            self.log_performance(time_to_search, iteration)
-            print self.search_time_to_reward[iteration_for_tree_logging:]
-
-            # break if the solution is found
-            if self.is_optimal_solution_found():
+            if self.found_solution:
                 print "Optimal score found"
                 plan, _ = self.retrace_best_plan()
                 break
 
-            if time_to_search > max_time:
+            if elapsed_time > max_time:
                 print "Time is up"
                 break
 
         self.problem_env.reset_to_init_state(node_to_search_from)
-        return self.search_time_to_reward, plan
+        return self.search_time_to_reward, n_feasibility_checks, plan
 
     def get_best_trajectory(self, node_to_search_from, trajectories):
         traj_rewards = []
@@ -341,27 +341,53 @@ class MCTS:
         return trajectories[np.argmax(traj_rewards)], curr_node
 
     def choose_action(self, curr_node):
-        if curr_node.is_operator_skeleton_node:
-            print "Skeleton node"
-            # here, perform psa with the learned q
-            action = curr_node.perform_ucb_over_actions()
-        else:
-            print 'Instance node'
-            if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
-                curr_node.sampling_agent = self.create_sampling_agent(curr_node)
-            if not curr_node.is_reevaluation_step(self.widening_parameter,
-                                                  self.problem_env.reward_function.infeasible_reward,
-                                                  self.use_progressive_widening,
-                                                  self.use_ucb):
-                print "Sampling new action"
-                new_continuous_parameters = self.sample_continuous_parameters(curr_node)
-                curr_node.add_actions(new_continuous_parameters)
-                action = curr_node.A[-1]
+        if False: #socket.gethostname() == 'dell-XPS-15-9560' or socket.gethostname() == 'lab':
+            # debugging purpose. Delete later
+            # debug purpose
+            idx = curr_node.idx
+            fname = './planners/cached_actions_mcts_debug/tmp_%d_%d.pkl' % (idx, curr_node.Nvisited)
+            if curr_node.is_operator_skeleton_node:
+                print "Skeleton node"
+                # here, perform psa with the learned q
+                action = curr_node.perform_ucb_over_actions()
             else:
-                print "Re-evaluation of actions"
-                if self.use_ucb:
-                    action = curr_node.perform_ucb_over_actions()
+                print 'Instance node'
+                if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
+                    curr_node.sampling_agent = self.create_sampling_agent(curr_node)
+                if not curr_node.is_reevaluation_step(self.widening_parameter,
+                                                      self.problem_env.reward_function.infeasible_reward,
+                                                      self.use_progressive_widening,
+                                                      self.use_ucb):
+                    print "Sampling new action"
+                    if os.path.isfile(fname):
+                        new_continuous_parameters = pickle.load(open(fname, 'r'))
+                    else:
+                        new_continuous_parameters = self.sample_continuous_parameters(curr_node)
+                        pickle.dump(new_continuous_parameters, open(fname, 'wb'))
+                    curr_node.add_actions(new_continuous_parameters)
+                    action = curr_node.A[-1]
                 else:
+                    print "Re-evaluation of actions"
+                    action = curr_node.choose_new_arm()
+        else:
+            if curr_node.is_operator_skeleton_node:
+                print "Skeleton node"
+                # here, perform psa with the learned q
+                action = curr_node.perform_ucb_over_actions()
+            else:
+                print 'Instance node'
+                if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
+                    curr_node.sampling_agent = self.create_sampling_agent(curr_node)
+                if not curr_node.is_reevaluation_step(self.widening_parameter,
+                                                      self.problem_env.reward_function.infeasible_reward,
+                                                      self.use_progressive_widening,
+                                                      self.use_ucb):
+                    print "Sampling new action"
+                    new_continuous_parameters = self.sample_continuous_parameters(curr_node)
+                    curr_node.add_actions(new_continuous_parameters)
+                    action = curr_node.A[-1]
+                else:
+                    print "Re-evaluation of actions"
                     action = curr_node.choose_new_arm()
         return action
 
@@ -390,7 +416,6 @@ class MCTS:
             print "Is it time to pick?", self.problem_env.is_pick_time()
 
         action = self.choose_action(curr_node)
-
         is_action_feasible = self.apply_action(curr_node, action)
 
         if not curr_node.is_action_tried(action):
@@ -414,8 +439,8 @@ class MCTS:
             else:
                 sum_rewards = reward
         else:
-            sum_rewards = reward + self.discount_rate * self.simulate(next_node, node_to_search_from, depth + 1,
-                                                                      new_traj)
+            sum_rewards = reward + self.discount_rate * self.simulate(next_node, node_to_search_from,
+                                                                      depth + 1, new_traj)
 
         curr_node.update_node_statistics(action, sum_rewards, reward)
         if curr_node == node_to_search_from and curr_node.parent is not None:
@@ -428,18 +453,18 @@ class MCTS:
         if node is None:
             return
         parent_reward_to_node = node.reward_history[action][0]
-        parent_sum_rewards = parent_reward_to_node + self.discount_rate * child_sum_rewards
+        parent_sum_rewards = parent_reward_to_node + child_sum_rewards  # rwd up to parent + rwd from child to leaf
         node.update_node_statistics(action, parent_sum_rewards, parent_reward_to_node)
         self.update_ancestor_node_statistics(node.parent, node.parent_action, parent_sum_rewards)
 
     def apply_action(self, node, action):
         if node.is_operator_skeleton_node:
             print "Applying skeleton", action.type, action.discrete_parameters['object'], \
-                action.discrete_parameters['region']
+                action.discrete_parameters['place_region']
             is_feasible = self.problem_env.apply_operator_skeleton(node.state, action)
         else:
             print "Applying instance", action.type, action.discrete_parameters['object'], action.discrete_parameters[
-                'region']
+                'place_region']
             is_feasible = self.problem_env.apply_operator_instance(node.state, action, self.check_reachability)
 
         return is_feasible
@@ -448,11 +473,13 @@ class MCTS:
         if self.problem_env.name.find('one_arm') != -1:
             raise NotImplementedError
         else:
+            """
             if isinstance(node.state, StateWithoutCspacePredicates):
                 current_collides = None
             else:
                 current_collides = node.state.collisions_at_all_obj_pose_pairs
-
             smpled_param = node.sampling_agent.sample_next_point(cached_collisions=current_collides,
                                                                  cached_holding_collisions=None)
+            """
+            smpled_param = node.sampling_agent.sample_next_point()
         return smpled_param

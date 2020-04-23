@@ -1,9 +1,4 @@
-import numpy as np
 from planners.flat_mcts.mcts_tree_node import TreeNode
-import openravepy
-from manipulation.bodies.bodies import set_color
-from gtamp_utils.utils import visualize_path
-from planners.heuristics import get_objects_to_move
 
 
 class DiscreteTreeNode(TreeNode):
@@ -17,21 +12,6 @@ class DiscreteTreeNode(TreeNode):
             for action in actions:
                 self.A.append(action)
                 self.N[action] = 0
-
-    def update_node_statistics(self, action, sum_rewards, reward):
-        self.Nvisited += 1
-
-        is_action_never_tried = self.N[action] == 0
-        if is_action_never_tried:
-            self.reward_history[action] = [reward]
-            self.Q[action] = sum_rewards
-            self.N[action] += 1
-        else:
-            # todo don't use averaging
-            self.reward_history[action].append(reward)
-            self.N[action] += 1
-            if sum_rewards > self.Q[action]:
-                self.Q[action] = sum_rewards
 
     def perform_ucb_over_actions(self):
         assert self.is_operator_skeleton_node

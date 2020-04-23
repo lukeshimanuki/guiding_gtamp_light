@@ -1,7 +1,8 @@
 import os
+import multiprocessing
 
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
-from test_scripts.run_greedy import parse_arguments
+import argparse
 
 
 def worker_p(config):
@@ -12,7 +13,7 @@ def worker_p(config):
             continue
         option = ' -' + str(key) + ' ' + str(value)
         command += option
-
+    command += ' -timelimit 9999'
     print command
     os.system(command)
 
@@ -22,28 +23,21 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def main():
-    # configs = get_sahs_configs()
-    params = parse_arguments()
+    parser = argparse.ArgumentParser(description='Greedy Planner parameters')
+    parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])
+    params = parser.parse_args()
     pidx_begin = params.pidxs[0]
     pidx_end = params.pidxs[1]
-    params = vars(params)
     configs = []
     for pidx in range(pidx_begin, pidx_end):
-        config = {}
-        print pidx
-        for key, value in zip(params.keys(), params.values()):
-            if key == 'pidxs':
-                continue
+        for planner_seed in range(5):
+            config = {
+                'pidx': pidx,
+                'planner_seed': planner_seed
+            }
+            configs.append(config)
 
-            if value is False:
-                continue
-            elif value is True:
-                config[key] = ""
-            else:
-                config[key] = value
-            config['pidx'] = pidx
-        configs.append(config)
-    n_workers = 1 #multiprocessing.cpu_count()
+    n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
 

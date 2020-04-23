@@ -428,7 +428,6 @@ def prm_connect(q1, q2, collision_checker, source=''):
                 return [q1, q_goal]
     ###
 
-    print "Passed base test"
     ## Defines a goal test function
     if is_multiple_goals:
         close_points = []

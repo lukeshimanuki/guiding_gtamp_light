@@ -48,6 +48,8 @@ class ShortestPathPaPState(PaPState):
             self.current_holding_collides = None
 
             # hold an object and check collisions
+            """
+            # what is this code snippet do?
             if planner == 'mcts':
                 self.holding_collides = None
                 self.current_holding_collides = None
@@ -61,6 +63,7 @@ class ShortestPathPaPState(PaPState):
                 # Check if, while holding, this config is in collision: np.array([ 1.13287863, -4.72498756, -2.53161845])
                 # target_q = np.array([1.13287863, -4.72498756, -2.53161845])
                 saver.Restore()
+            """
         else:
             self.holding_collides = None
             self.holding_current_collides = None
