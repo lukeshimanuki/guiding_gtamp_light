@@ -9,7 +9,7 @@ import time
 
 class OneArmPickFeasibilityChecker(PickFeasibilityChecker):
     def __init__(self, problem_env):
-        PickFeasibilityChecker.__init__(self, problem_env)
+        PickFeasibilityChecker.__init__(self, problem_env, 'ir_parameters')
 
     def check_feasibility(self, operator_skeleton, pick_parameters, swept_volume_to_avoid=None):
         # This function checks if the base pose is not in collision and if there is a feasible pick

@@ -45,10 +45,11 @@ def get_problem_env(config, goal_region, goal_objs):
 
 def get_solution_file_name(config):
     hostname = socket.gethostname()
-    if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
-        root_dir = './'
-    else:
-        root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
+    root_dir = './'
+    #if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
+    #    root_dir = './'
+    #else:
+    #    root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
 
     if config.gather_planning_exp:
         root_dir = root_dir + '/planning_experience/raw/uses_rrt/'
@@ -279,8 +280,14 @@ def main():
     np.random.seed(config.pidx)
     random.seed(config.pidx)
 
-    goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
-    goal_region = 'home_region'
+    if config.domain == 'two_arm_mover':
+        goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+        goal_region = 'home_region'
+    elif config.domain == 'one_arm_mover':
+        goal_objs = ['c_obst0', 'c_obst1', 'c_obst2', 'c_obst3']
+        goal_region = 'rectangular_packing_box1_region'
+    else:
+        raise NotImplementedError
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:
