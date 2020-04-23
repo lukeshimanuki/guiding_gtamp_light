@@ -7,6 +7,7 @@ import sys
 import collections
 import tensorflow as tf
 import pickle
+import time
 
 from learn.pap_gnn import PaPGNN
 from gtamp_problem_environments.mover_env import Mover, PaPMoverEnv
@@ -151,6 +152,16 @@ def main():
     parameters = parse_mover_problem_parameters()
     filename = 'pidx_%d_planner_seed_%d.pkl' % (parameters.pidx, parameters.planner_seed)
     save_dir = make_and_get_save_dir(parameters, filename)
+    solution_file_name = save_dir+filename
+    is_problem_solved_before = os.path.isfile(solution_file_name)
+
+    if is_problem_solved_before:
+        print "***************Already solved********************"
+        with open(solution_file_name, 'rb') as f:
+            trajectory = pickle.load(f)
+            tottime = trajectory['search_time_to_reward'][-1][0]
+            print 'Time: %.2f ' % tottime
+        sys.exit(-1)
 
     set_seed(parameters.pidx)
     problem_env = PaPMoverEnv(parameters.pidx)
@@ -187,7 +198,15 @@ def main():
         raise NotImplementedError
 
     set_seed(parameters.planner_seed)
+    stime = time.time()
     search_time_to_reward, plan = planner.search(max_time=parameters.timelimit)
+    tottime = time.time()-stime
+    print 'Time: %.2f ' % (tottime)
+
+    # todo
+    #   save the entire tree
+    #   compute the total number of feasibility checks
+
     pickle.dump({"search_time_to_reward": search_time_to_reward,
                  'plan': plan,
                  'n_nodes': len(planner.tree.get_discrete_nodes())}, open(save_dir+filename, 'wb'))
