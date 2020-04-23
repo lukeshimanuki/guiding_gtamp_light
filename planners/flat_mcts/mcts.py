@@ -257,27 +257,12 @@ class MCTS:
         if socket.gethostname() == 'dell-XPS-15-9560':
             write_dot_file(self.tree, iteration, '', node_to_search_from)
 
-    def log_performance(self, time_to_search, iteration):
-        best_traj_rwd, progress, best_node = self.tree.get_best_trajectory_sum_rewards_and_node(self.discount_rate)
-        self.search_time_to_reward.append([time_to_search, iteration, best_traj_rwd, progress, self.found_solution])
-        self.progress_list.append(progress)
-        self.best_leaf_node = best_node
-
-    def is_optimal_solution_found(self):
-        #best_traj_rwd, best_node, reward_list = self.tree.get_best_trajectory_sum_rewards_and_node(self.discount_rate)
-        if self.found_solution:
-            return True
-            # if self.problem_env.reward_function.is_optimal_plan_found(best_traj_rwd):
-            #    print "Optimal score found"
-            #    return True
-            # else:
-            #    return False
-        else:
-            return False
+    def log_performance(self, elapsed_time, history_n_objs_in_goal, iteration):
+        self.search_time_to_reward.append([elapsed_time, iteration, max(history_n_objs_in_goal)])
 
     def search(self, n_iter=np.inf, iteration_for_tree_logging=0, node_to_search_from=None, max_time=np.inf):
         depth = 0
-        time_to_search = 0
+        elapsed_time = 0
 
         if node_to_search_from is None:
             self.s0_node = self.create_node(None,
@@ -297,14 +282,16 @@ class MCTS:
             self.problem_env.reset_to_init_state(node_to_search_from)
 
             new_traj = []
+            history_of_n_objs_in_goal = []
             stime = time.time()
             self.simulate(node_to_search_from, node_to_search_from, depth, new_traj)
-            time_to_search += time.time() - stime
-            new_trajs.append(new_traj)
+            elapsed_time += time.time() - stime
 
-            # note that I need to evaluate all actions in a node to switch
-            is_time_to_switch_node = iteration % self.switch_frequency == 0  # and the node should be feasible
-            # I have to have a feasible action to switch if this is an instance node
+            n_objs_in_goal = len(self.problem_env.get_objs_in_region('home_region'))
+            history_of_n_objs_in_goal.append(n_objs_in_goal)
+            print "Time {} Max progress {}".format(elapsed_time, max(history_of_n_objs_in_goal))
+
+            is_time_to_switch_node = iteration % self.switch_frequency == 0
             if is_time_to_switch_node:
                 if node_to_search_from.is_operator_skeleton_node:
                     node_to_search_from = node_to_search_from.get_child_with_max_value()
@@ -313,19 +300,14 @@ class MCTS:
                     if max_child.parent_action.continuous_parameters['is_feasible']:
                         node_to_search_from = node_to_search_from.get_child_with_max_value()
 
-            if iteration % 10 == 0:
-                self.log_current_tree_to_dot_file(iteration_for_tree_logging + iteration, node_to_search_from)
+            self.log_performance(elapsed_time, history_of_n_objs_in_goal, iteration)
 
-            self.log_performance(time_to_search, iteration)
-            #print self.search_time_to_reward[iteration_for_tree_logging:]
-
-            # break if the solution is found
-            if self.is_optimal_solution_found():
+            if self.found_solution:
                 print "Optimal score found"
                 plan, _ = self.retrace_best_plan()
                 break
 
-            if time_to_search > max_time:
+            if elapsed_time > max_time:
                 print "Time is up"
                 break
 
