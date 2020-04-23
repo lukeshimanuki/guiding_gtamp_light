@@ -44,15 +44,24 @@ from collections import Counter
 from manipulation.primitives.display import set_viewer_options, draw_line, draw_point
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 
+from generators.sampler import UniformSampler, LearnedSampler
+from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
+from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
+
 PRM_VERTICES, PRM_EDGES = pickle.load(open('prm.pkl', 'rb'))
 PRM_VERTICES = list(PRM_VERTICES)  # TODO: needs to be a list rather than ndarray
 
 def gen_pap(problem, config):
+    # cache ik solutions
+    ikcachename = './ikcache.pkl'
+    iksolutions = {}
+    iksolutions = pickle.load(open(ikcachename, 'r'))
+
     def fcn(o, r, s):
         if problem.name == 'two_arm_mover':
             abstract_state = None # TODO: figure out what goes here
-            abstract_action = Operator('two_arm_pick_two_arm_place', {'object': problem.env.GetKinBody(o), 'region': problem.regions[r]})
-            sampler = UniformSampler(r)
+            abstract_action = Operator('two_arm_pick_two_arm_place', {'object': problem.env.GetKinBody(o), 'place_region': problem.regions[r]})
+            sampler = UniformSampler(problem.regions[r])
             generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
                                            n_parameters_to_try_motion_planning=config.n_mp_limit,
                                            n_iter_limit=config.n_iter_limit, problem_env=problem,
@@ -62,8 +71,8 @@ def gen_pap(problem, config):
                 s.Restore()
                 params = generator.sample_next_point()
                 if params['is_feasible']:
-                    action.continuous_parameters = params
-                    action.execute()
+                    abstract_action.continuous_parameters = params
+                    abstract_action.execute()
                     t = CustomStateSaver(problem.env)
                     yield params, t
                 else:
@@ -79,7 +88,7 @@ def gen_pap(problem, config):
         elif problem.name == 'one_arm_mover':
             while True:
                 s.Restore()
-                action = Operator('one_arm_pick_one_arm_place', {'object': problem.env.GetKinBody(o), 'region': problem.regions[r]})
+                action = Operator('one_arm_pick_one_arm_place', {'object': problem.env.GetKinBody(o), 'place_region': problem.regions[r]})
                 current_region = problem.get_region_containing(problem.env.GetKinBody(o)).name
                 sampler = OneArmPaPUniformGenerator(action, problem, cached_picks=(iksolutions[current_region], iksolutions[r]))
                 pick_params, place_params, status = sampler.sample_next_point(500)
@@ -112,18 +121,21 @@ def get_problem(mover, goal_objects, goal_region_name, config):
 
     initial_robot_conf = get_body_xytheta(mover.robot).squeeze()
 
-    init = [('Pickable', obj_name) for obj_name in obj_names]
-    init += [('InRegion', obj_name, mover.get_region_containing(mover.env.GetKinBody(obj_name)).name) for obj_name in obj_names]
-    init += [('Region', region) for region in mover.regions]
-
     if mover.name == 'two_arm_mover':
         goal_region = 'home_region'
         nongoal_regions = ['loading_region']
     elif mover.name == 'one_arm_mover':
         goal_region = mover.target_box_region.name
-        nongoal_regions = list(mover.shelf_regions)
+        nongoal_regions = ['center_shelf_region']#list(mover.shelf_regions)
     else:
         raise NotImplementedError
+
+    print(goal_region, nongoal_regions, mover.regions.keys())
+
+    init = [('Pickable', obj_name) for obj_name in obj_names]
+    init += [('InRegion', obj_name, mover.get_region_containing(mover.env.GetKinBody(obj_name)).name) for obj_name in obj_names]
+    init += [('Region', region) for region in nongoal_regions + [goal_region]]
+
     init += [('GoalObject', obj_name) for obj_name in goal_objects]
     init += [('NonGoalRegion', region) for region in nongoal_regions]
 
@@ -182,18 +194,27 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
     if plan is not None:
         print('Success')
 
-        trajectory = Trajectory(mover.seed, mover.seed)
-        trajectory.actions = [
-            Operator('two_arm_pick_two_arm_place', {
-                'two_arm_place_object': action.args[0],
-                'two_arm_place_region': action.args[1],
-            }, action.args[3])
-            for action in plan
-        ]
-        trajectory.seed = mover.seed
-        print(trajectory)
-        return 0, trajectory, 0, 0 # TODO: count num nodes
+        if config.domain == 'two_arm_mover':
+            actions = [
+                Operator('two_arm_pick_two_arm_place', {
+                    'object': str(action.args[0]),
+                    'place_region': str(action.args[1]),
+                }, action.args[3])
+                for action in plan
+            ]
+        elif config.domain == 'one_arm_mover':
+            actions = [
+                Operator('one_arm_pick_one_arm_place', {
+                    'object': str(action.args[0]),
+                    'place_region': str(action.args[1]),
+                }, action.args[3])
+                for action in plan
+            ]
+        else:
+            raise NotImplementedError
+        print(actions)
+        return [], actions, 0, []
     else:
         print("Plan not found")
-        return 0, None, 0, 0
+        return [], None, 0, []
 

@@ -18,7 +18,7 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from gtamp_utils import utils
 
 # from test_scripts.visualize_learned_sampler import create_policy
-from planners.sahs.greedy_new import search
+from planners.stripstream.stripstream import search
 from learn.pap_gnn import PaPGNN
 
 
