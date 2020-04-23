@@ -21,7 +21,6 @@ class ShapedRewardFunction(GenericRewardFunction):
             val = -compute_heuristic(discrete_node.state, a, discrete_node.learned_q,
                                     'qlearned_hcount_old_number_in_goal', mixrate=1.0)
             potential_vals.append(val)
-            print a.discrete_parameters, val
         return max(potential_vals)
 
     def __call__(self, curr_node, next_node, action, time_step):

@@ -285,16 +285,17 @@ class MCTS:
             self.tree.set_root_node(self.s0_node)
             node_to_search_from = self.s0_node
 
-        new_trajs = []
-        plan = []
         if n_iter == np.inf:
             n_iter = 999999
+
+        new_trajs = []
+        plan = []
+        history_of_n_objs_in_goal = []
         for iteration in range(1, n_iter):
             print '*****SIMULATION ITERATION %d' % iteration
             self.problem_env.reset_to_init_state(node_to_search_from)
 
             new_traj = []
-            history_of_n_objs_in_goal = []
             stime = time.time()
             self.simulate(node_to_search_from, node_to_search_from, depth, new_traj)
             elapsed_time += time.time() - stime
@@ -326,7 +327,7 @@ class MCTS:
                 break
 
         self.problem_env.reset_to_init_state(node_to_search_from)
-        return self.search_time_to_reward, plan
+        return self.search_time_to_reward, n_feasibility_checks, plan
 
     def get_best_trajectory(self, node_to_search_from, trajectories):
         traj_rewards = []
