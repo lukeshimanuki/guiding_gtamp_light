@@ -53,11 +53,11 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
 
             obj_name = action.discrete_parameters['object']
             region_name = action.discrete_parameters['place_region']
-            print "%25s %15s Reachable? %d  ManipFree? %d IsGoal? %d Q? %.5f QBonus? %.5f UCB? %.5f Q+UCB? %.5f" \
+            print "%25s %15s Reachable? %d  ManipFree? %d IsGoal? %d Q? %.5f QBonus? %.5f UCB? %.5f Q+UCB? %.5f Nsa %d" \
                   % (obj_name, region_name, self.state.is_entity_reachable(obj_name),
                      self.state.binary_edges[(obj_name, region_name)][-1],
                      obj_name in self.state.goal_entities, self.Q[action], q_bonus,
-                     ucb_value, action_evaluation)
+                     ucb_value, action_evaluation, self.N[action])
 
             action_evaluation_values.append(action_evaluation)
             if action_evaluation > best_value:
