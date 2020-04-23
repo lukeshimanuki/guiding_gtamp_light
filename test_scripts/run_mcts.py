@@ -44,10 +44,6 @@ def make_and_get_save_dir(parameters, filename):
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
 
-    if os.path.isfile(save_dir + '/' + filename):
-        print "Already done"
-        if not parameters.f:
-            sys.exit(-1)
     return save_dir
 
 
@@ -155,7 +151,7 @@ def main():
     solution_file_name = save_dir+filename
     is_problem_solved_before = os.path.isfile(solution_file_name)
 
-    if is_problem_solved_before:
+    if is_problem_solved_before and not parameters.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
@@ -199,16 +195,16 @@ def main():
 
     set_seed(parameters.planner_seed)
     stime = time.time()
-    search_time_to_reward, plan = planner.search(max_time=parameters.timelimit)
+    search_time_to_reward, n_feasibility_checks, plan = planner.search(max_time=parameters.timelimit)
     tottime = time.time()-stime
     print 'Time: %.2f ' % (tottime)
 
     # todo
     #   save the entire tree
-    #   compute the total number of feasibility checks
 
     pickle.dump({"search_time_to_reward": search_time_to_reward,
                  'plan': plan,
+                 'n_feasibility_checks': n_feasibility_checks,
                  'n_nodes': len(planner.tree.get_discrete_nodes())}, open(save_dir+filename, 'wb'))
 
 
