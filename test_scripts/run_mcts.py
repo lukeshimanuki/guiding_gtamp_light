@@ -37,7 +37,8 @@ def make_and_get_save_dir(parameters, filename):
                + 'switch_frequency_' + str(parameters.switch_frequency) + '/' \
                + 'reward_shaping_' + str(parameters.use_shaped_reward) + '/' \
                + 'learned_q_' + str(parameters.use_learned_q) + '/' \
-               + 'use_pw' + str(parameters.pw) + '/'
+               + 'use_pw_' + str(parameters.pw) + '/' \
+               + 'use_ucb_at_cont_nodes_' + str(parameters.use_ucb) + '/'
 
     if 'uniform' not in parameters.sampling_strategy:
         save_dir += 'explr_p_' + str(parameters.explr_p) + '/'
@@ -72,7 +73,7 @@ def parse_mover_problem_parameters():
     parser.add_argument('-use_region_agnostic', action='store_true', default=False)
 
     # MCTS parameters
-    parser.add_argument('-switch_frequency', type=int, default=50)
+    parser.add_argument('-switch_frequency', type=int, default=100)
     parser.add_argument('-ucb_parameter', type=float, default=0.1)
     parser.add_argument('-widening_parameter', type=float, default=10)  # number of re-evals
     parser.add_argument('-explr_p', type=float, default=0.3)  # number of re-evals
