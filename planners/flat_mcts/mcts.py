@@ -117,8 +117,8 @@ class MCTS:
             place_region = self.problem_env.regions[abstract_action.discrete_parameters['place_region']]
             sampler = UniformSampler(place_region)
             generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                           n_parameters_to_try_motion_planning=10,
-                                           n_iter_limit=200, problem_env=self.problem_env,
+                                           n_parameters_to_try_motion_planning=self.n_motion_plan_trials,
+                                           n_iter_limit=self.n_feasibility_checks, problem_env=self.problem_env,
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
@@ -142,34 +142,10 @@ class MCTS:
                                        parent_action=parent_action,
                                        goal_entities=self.goal_entities)
             else:
-                stime =time.time()
-                if False: #socket.gethostname() == 'dell-XPS-15-9560' or socket.gethostname() == 'lab':
-                    # debug purpose
-                    if parent_node is None:
-                        idx = -1
-                    else:
-                        idx = parent_node.idx
-                    fname = './planners/cached_states_mcts_debug/tmp_%d.pkl' % idx
-                    if os.path.isfile(fname):
-                        print "Loading abstract state..."
-                        state = pickle.load(open(fname, 'r'))
-                        state.make_plannable(self.problem_env)
-                        print "State loading time %.2f" % (time.time() - stime)
-                    else:
-                        print "Creating abstract state..."
-                        state = ShortestPathPaPState(self.problem_env,  # what's this?
-                                                     parent_state=parent_state,
-                                                     parent_action=parent_action,
-                                                     goal_entities=self.goal_entities, planner='mcts')
-                        print "State creation time %.2f" % (time.time() - stime)
-                        state.make_pklable()
-                        pickle.dump(state, open(fname, 'wb'))
-                        state.make_plannable(self.problem_env)
-                else:
-                    state = ShortestPathPaPState(self.problem_env,  # what's this?
-                                                 parent_state=parent_state,
-                                                 parent_action=parent_action,
-                                                 goal_entities=self.goal_entities, planner='mcts')
+                state = ShortestPathPaPState(self.problem_env,  # what's this?
+                                             parent_state=parent_state,
+                                             parent_action=parent_action,
+                                             goal_entities=self.goal_entities, planner='mcts')
         return state
 
     def get_current_state(self, parent_node, parent_action, is_parent_action_infeasible):
@@ -307,6 +283,8 @@ class MCTS:
             print "Time {} n_feasible_checks {} max progress {}".format(elapsed_time,
                                                                         n_feasibility_checks['ik'],
                                                                         max(history_of_n_objs_in_goal))
+            #if max(history_of_n_objs_in_goal) == 3:
+            #    import pdb;pdb.set_trace()
 
             is_time_to_switch_node = iteration % self.switch_frequency == 0
             if is_time_to_switch_node:
@@ -340,54 +318,35 @@ class MCTS:
             traj_rewards.append(traj_sum_reward)
         return trajectories[np.argmax(traj_rewards)], curr_node
 
-    def choose_action(self, curr_node):
-        if False: #socket.gethostname() == 'dell-XPS-15-9560' or socket.gethostname() == 'lab':
-            # debugging purpose. Delete later
-            # debug purpose
-            idx = curr_node.idx
-            fname = './planners/cached_actions_mcts_debug/tmp_%d_%d.pkl' % (idx, curr_node.Nvisited)
-            if curr_node.is_operator_skeleton_node:
-                print "Skeleton node"
-                # here, perform psa with the learned q
-                action = curr_node.perform_ucb_over_actions()
-            else:
-                print 'Instance node'
-                if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
-                    curr_node.sampling_agent = self.create_sampling_agent(curr_node)
-                if not curr_node.is_reevaluation_step(self.widening_parameter,
-                                                      self.problem_env.reward_function.infeasible_reward,
-                                                      self.use_progressive_widening,
-                                                      self.use_ucb):
-                    print "Sampling new action"
-                    if os.path.isfile(fname):
-                        new_continuous_parameters = pickle.load(open(fname, 'r'))
-                    else:
-                        new_continuous_parameters = self.sample_continuous_parameters(curr_node)
-                        pickle.dump(new_continuous_parameters, open(fname, 'wb'))
-                    curr_node.add_actions(new_continuous_parameters)
-                    action = curr_node.A[-1]
-                else:
-                    print "Re-evaluation of actions"
-                    action = curr_node.choose_new_arm()
+    def choose_action(self, curr_node, depth):
+        if curr_node.is_operator_skeleton_node:
+            print "Skeleton node"
+            # here, perform psa with the learned q
+            action = curr_node.perform_ucb_over_actions()
         else:
-            if curr_node.is_operator_skeleton_node:
-                print "Skeleton node"
-                # here, perform psa with the learned q
-                action = curr_node.perform_ucb_over_actions()
+            print 'Instance node'
+            if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
+                curr_node.sampling_agent = self.create_sampling_agent(curr_node)
+
+            assert depth % 2 == 1, "Continuous node must be at even depth"
+            if not self.use_progressive_widening:
+                w_param = self.widening_parameter
             else:
-                print 'Instance node'
-                if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
-                    curr_node.sampling_agent = self.create_sampling_agent(curr_node)
-                if not curr_node.is_reevaluation_step(self.widening_parameter,
-                                                      self.problem_env.reward_function.infeasible_reward,
-                                                      self.use_progressive_widening,
-                                                      self.use_ucb):
-                    print "Sampling new action"
-                    new_continuous_parameters = self.sample_continuous_parameters(curr_node)
-                    curr_node.add_actions(new_continuous_parameters)
-                    action = curr_node.A[-1]
+                w_param = self.widening_parameter * np.power(0.9, depth/2)
+            if not curr_node.is_reevaluation_step(w_param,
+                                                  self.problem_env.reward_function.infeasible_reward,
+                                                  self.use_progressive_widening,
+                                                  self.use_ucb):
+                print "Sampling new action"
+                new_continuous_parameters = self.sample_continuous_parameters(curr_node)
+                curr_node.add_actions(new_continuous_parameters)
+                action = curr_node.A[-1]
+            else:
+                print "Re-evaluation of actions"
+                # todo I want UCB here
+                if self.use_ucb:
+                    action = curr_node.perform_ucb_over_actions()
                 else:
-                    print "Re-evaluation of actions"
                     action = curr_node.choose_new_arm()
         return action
 
@@ -415,7 +374,7 @@ class MCTS:
             print "At depth ", depth
             print "Is it time to pick?", self.problem_env.is_pick_time()
 
-        action = self.choose_action(curr_node)
+        action = self.choose_action(curr_node, depth)
         is_action_feasible = self.apply_action(curr_node, action)
 
         if not curr_node.is_action_tried(action):

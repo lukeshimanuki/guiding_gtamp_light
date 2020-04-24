@@ -37,13 +37,23 @@ class TwoArmPlaceFeasibilityChecker:
         if not target_obj_region.contains(obj.ComputeAABB()):
             return False
 
-        is_base_pose_infeasible = self.env.CheckCollision(self.robot)
-        if is_base_pose_infeasible:
-            return False
-
         is_object_pose_infeasible = self.env.CheckCollision(obj)
         if is_object_pose_infeasible:
             return False
+
+        is_base_pose_infeasible = self.env.CheckCollision(self.robot)
+
+        if is_base_pose_infeasible:
+            return False
+        else:
+            dof_vals = self.robot.GetDOFValues()
+            utils.release_obj()
+            utils.fold_arms()
+            is_base_pose_infeasible = self.env.CheckCollision(self.robot)
+            self.robot.SetDOFValues(dof_vals)
+            utils.grab_obj(obj)
+            if is_base_pose_infeasible:
+                return False
 
         return True
 
