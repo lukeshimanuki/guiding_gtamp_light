@@ -56,7 +56,7 @@ def get_solution_file_name(config):
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/sahs_results/uses_rrt/uses_reachability_clf_%s/domain_%s/n_objs_pack_%d' \
+        solution_file_dir = root_dir + '/test_results/stripstream_results/uses_rrt/uses_reachability_clf_%s/domain_%s/n_objs_pack_%d' \
                             % (config.use_reachability_clf, config.domain, config.n_objs_pack)
     solution_file_dir += '/' + config.h_option + '/'
 
@@ -319,8 +319,9 @@ def main():
     t = time.time()
     np.random.seed(config.planner_seed)
     random.seed(config.planner_seed)
-    nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs,
+    nodes_to_goal, plan, (num_ik_checks, num_mp_checks), nodes = search(problem_env, config, pap_model, goal_objs,
                                                    goal_region, smpler, None)
+    num_nodes = 0
     tottime = time.time() - t
     n_feasibility_checks = get_total_n_feasibility_checks(nodes)
 
@@ -349,7 +350,7 @@ def main():
         'plan': plan,
         'nodes': nodes,
         'hvalues': h_for_sampler_training,
-        'n_feasibility_checks': n_feasibility_checks
+        'n_feasibility_checks': {'mp': num_mp_checks, 'ik': num_ik_checks}
     }
     with open(solution_file_name, 'wb') as f:
         pickle.dump(data, f)
