@@ -9,16 +9,16 @@ from threaded_test_utils import get_sahs_configs
 def worker_p(config):
     command = 'python ./test_scripts/run_mcts.py'
 
+    command += ' -use_shaped_reward'
+    command += ' -use_learned_q'
+
     for key, value in zip(config.keys(), config.values()):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     #command += ' -qlearned_hcount_old_number_in_goal'
-    command += ' -timelimit 9999'
-    command += ' -use_learned_q'
-    command += ' -use_shaped_reward'
-    command += ' -planner mcts_with_leaf_strategy'
-    command += ' -widening_parameter 5'
-    command += ' -switch_frequency 10'
+    command += ' -pw'
+    command += ' -use_ucb'
+    command += ' -widening_parameter 0.2'
 
     print command
     os.system(command)
@@ -41,7 +41,6 @@ def main():
         for planner_seed in range(5):
             config = {
                 'pidx': pidx,
-                'domain': parameters.domain,
                 'planner_seed': planner_seed
             }
             configs.append(config)

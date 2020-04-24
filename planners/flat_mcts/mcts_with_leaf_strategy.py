@@ -38,7 +38,7 @@ class MCTSWithLeafStrategy(MCTS):
             print "At depth ", depth
             print "Is it time to pick?", self.problem_env.is_pick_time()
 
-        action = self.choose_action(curr_node)
+        action = self.choose_action(curr_node, depth)
         is_action_feasible = self.apply_action(curr_node, action)
 
         is_tree_action = curr_node.is_action_tried(action)

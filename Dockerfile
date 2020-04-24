@@ -36,6 +36,8 @@ RUN cd pddlstream && git checkout d7645b96906e9c6167af631fb9dc16e4b784d61d && gi
 RUN apt-get -y install --no-install-recommends wget
 RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc && mv mc /usr/bin
 
+RUN pip install --upgrade --ignore-installed torch==0.4.0
+
 # copy qqq
 COPY . /guiding_gtamp_light
 

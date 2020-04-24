@@ -6,8 +6,6 @@ from planners.sahs.helper import compute_heuristic
 import numpy as np
 
 
-def alpha_zero_ucb(n, n_sa):
-    return np.sqrt(n + 1) / float(n_sa + 1)
 
 
 class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
@@ -68,5 +66,3 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
         best_action = np.array(actions)[boolean_idxs_with_highest_ucb][best_action_idx]
         return best_action
 
-    def compute_ucb_value(self, action):
-        return self.ucb_parameter * alpha_zero_ucb(self.Nvisited, self.N[action])
