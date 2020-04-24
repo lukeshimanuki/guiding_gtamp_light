@@ -64,7 +64,6 @@ class MCTSWithLeafStrategy(MCTS):
             else:
                 sum_rewards = reward
                 self.found_solution =  self.problem_env.reward_function.is_goal_reached()
-        print "Updating node stat at depth ", depth
         curr_node.update_node_statistics(action, sum_rewards, reward)
 
         if curr_node == node_to_search_from and curr_node.parent is not None:
