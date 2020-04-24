@@ -121,7 +121,7 @@ class TreeNode:
             self.reward_history[action] = [reward]
             self.Q[action] = sum_rewards
             self.N[action] += 1
-            print "New action Q %.5f" % (self.Q[action])
+            #print "New action Q %.5f" % (self.Q[action])
         elif self.children[action].is_goal_node:
             self.reward_history[action] = [reward]
             self.Q[action] = sum_rewards
@@ -129,9 +129,8 @@ class TreeNode:
         else:
             self.reward_history[action].append(reward)
             self.N[action] += 1
-            children_action_values = [self.children[action].Q[child_action] for child_action in self.children[action].N
-                                      if self.children[action].N[child_action] > 0]
+            children_action_values = [self.children[action].Q[child_action] for child_action in self.children[action].Q]
             prev_value = self.Q[action]
             self.Q[action] = reward + np.max(children_action_values)
-            print 'Rwd %.5f, max child val %.5f' % (reward, np.max(children_action_values))
-            print "Updated. Current Q %.5f Prev Q %.5f" % (self.Q[action], prev_value)
+            #print 'Rwd %.5f, max child val %.5f' % (reward, np.max(children_action_values))
+            #print "Updated. Current Q %.5f Prev Q %.5f" % (self.Q[action], prev_value)
