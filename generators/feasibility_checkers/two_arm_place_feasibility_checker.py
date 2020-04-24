@@ -47,7 +47,6 @@ class TwoArmPlaceFeasibilityChecker:
             return False
         else:
             dof_vals = self.robot.GetDOFValues()
-            import pdb;pdb.set_trace()
             utils.release_obj()
             utils.fold_arms()
             is_base_pose_infeasible = self.env.CheckCollision(self.robot)
