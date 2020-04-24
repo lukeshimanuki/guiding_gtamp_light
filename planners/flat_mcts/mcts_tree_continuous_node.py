@@ -41,7 +41,8 @@ class ContinuousTreeNode(TreeNode):
         if use_progressive_widening:
             n_actions = len(self.A)
             is_time_to_sample = n_actions <= widening_parameter * self.Nvisited
-            return is_time_to_sample
+            print "PW %d / %.2f" % (n_actions, widening_parameter*self.Nvisited)
+            return not is_time_to_sample
         else:
             if self.n_ucb_iterations < widening_parameter:
                 self.n_ucb_iterations += 1
@@ -60,23 +61,32 @@ class ContinuousTreeNode(TreeNode):
         else:
             return np.random.choice(no_evaled_feasible)
 
-    def perform_ucb_over_actions(self, qinit=None):
+    def get_action_with_highest_ucb_value(self, actions, q_values):
         best_value = -np.inf
-        never_executed_actions_exist = len(self.Q) != len(self.A)
-
-        if never_executed_actions_exist:
-            best_action = self.get_never_evaluated_action()
-        else:
-            best_action = self.Q.keys()[0]
-            for action, value in zip(self.Q.keys(), self.Q.values()):
-                if action.continuous_parameters['base_pose'] is None:
-                    continue
-
-                ucb_value = value + self.ucb_parameter * upper_confidence_bound(self.Nvisited, self.N[action])
-
-                # todo randomized tie-break
-                if ucb_value > best_value:
-                    best_action = action
-                    best_value = ucb_value
-
+        best_action = None
+        for action, value in zip(actions, q_values):
+            ucb_value = self.compute_ucb_value(action)
+            action_evaluation = value + ucb_value
+            if action_evaluation > best_value:
+                best_value = action_evaluation
+                best_action = action
+            #print "Placement {} Qval {}".format(action['place']['q_goal'], value)
+            if action.continuous_parameters['is_feasible']:
+                print action.continuous_parameters['place']['q_goal'], value
+            else:
+                print "infeasible action", value
+        # from gtamp_utils import utils
+        # utils.visualize_placements(np.array( [actions[0].continuous_parameters['place']['q_goal']]), 'square_packing_box1')
+        #import pdb;pdb.set_trace()
         return best_action
+
+    def perform_ucb_over_actions(self):
+        assert not self.is_operator_skeleton_node
+        actions = self.A
+        q_values = [self.Q[a] for a in self.A]
+        if len(q_values) == 1:
+            best_action = self.A[-1]
+        else:
+            best_action = self.get_action_with_highest_ucb_value(actions, q_values)
+        return best_action
+

@@ -36,7 +36,8 @@ def make_and_get_save_dir(parameters, filename):
                + 'uct_' + str(parameters.ucb_parameter) + '/' \
                + 'switch_frequency_' + str(parameters.switch_frequency) + '/' \
                + 'reward_shaping_' + str(parameters.use_shaped_reward) + '/' \
-               + 'learned_q_' + str(parameters.use_learned_q) + '/'
+               + 'learned_q_' + str(parameters.use_learned_q) + '/' \
+               + 'use_pw' + str(parameters.pw) + '/'
 
     if 'uniform' not in parameters.sampling_strategy:
         save_dir += 'explr_p_' + str(parameters.explr_p) + '/'
@@ -58,10 +59,10 @@ def parse_mover_problem_parameters():
     parser.add_argument('-planner_seed', type=int, default=0)
 
     # Planner-agnostic parameters
-    parser.add_argument('-timelimit', type=int, default=300)
+    parser.add_argument('-timelimit', type=int, default=np.inf)
     parser.add_argument('-dont_use_learned_q', action='store_false', default=True)
     parser.add_argument('-n_feasibility_checks', type=int, default=200)
-    parser.add_argument('-n_motion_plan_trials', type=int, default=3)
+    parser.add_argument('-n_motion_plan_trials', type=int, default=10)
     parser.add_argument('-planning_horizon', type=int, default=3 * 8)
 
     # Learning-related parameters
