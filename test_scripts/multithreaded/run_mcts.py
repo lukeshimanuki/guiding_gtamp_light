@@ -17,8 +17,10 @@ def worker_p(config):
     command += ' -use_learned_q'
     command += ' -use_shaped_reward'
     command += ' -planner mcts_with_leaf_strategy'
-    command += ' -widening_parameter 5'
-    command += ' -switch_frequency 10'
+    command += ' -widening_parameter 0.2'
+    command += ' -switch_frequency 100'
+    command += ' -pw'
+    command += ' -use_ucb'
 
     print command
     os.system(command)
