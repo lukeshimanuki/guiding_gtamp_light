@@ -39,7 +39,7 @@ class Generator:
         if target_obj in self.feasible_pick_params:
             self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
-        feasible_op_parameters, status = self.sample_feasible_op_parameters()
+        feasible_op_parameters, status = self.sample_ik_feasible_and_collision_free_op_parameters()
         if status == "NoSolution":
             return {'is_feasible': False}
 
@@ -47,10 +47,10 @@ class Generator:
         if dont_check_motion_existence:
             chosen_op_param = self.choose_one_of_params(feasible_op_parameters, status)
         else:
-            chosen_op_param = self.get_param_with_feasible_motion_plan(feasible_op_parameters)
+            chosen_op_param = self.check_existence_of_feasible_motion_plan(feasible_op_parameters)
         return chosen_op_param
 
-    def sample_feasible_op_parameters(self):
+    def sample_ik_feasible_and_collision_free_op_parameters(self):
         assert self.n_iter_limit > 0
         feasible_op_parameters = []
         feasibility_check_time = 0
@@ -102,7 +102,7 @@ class Generator:
 
         return chosen_op_param
 
-    def get_param_with_feasible_motion_plan(self, candidate_parameters):
+    def check_existence_of_feasible_motion_plan(self, candidate_parameters):
         n_feasible = len(candidate_parameters)
         n_mp_tried = 0
 
