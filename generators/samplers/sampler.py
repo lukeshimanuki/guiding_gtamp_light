@@ -4,20 +4,24 @@ import time
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils import data_processing_utils
-from gtamp_utils.utils import get_pick_domain
+from gtamp_utils.utils import get_pick_domain, get_place_domain
 
 
 class Sampler:
-    def __init__(self, policy):
+    def __init__(self, policy, target_region):
         self.policies = policy
-
-    def sample(self):
-        raise NotImplementedError
+        pick_min = get_pick_domain()[0]
+        pick_max = get_pick_domain()[1]
+        place_min = get_place_domain(target_region)[0]
+        place_max = get_place_domain(target_region)[1]
+        mins = np.hstack([pick_min, place_min])
+        maxes = np.hstack([pick_max, place_max])
+        self.domain = np.vstack([mins, maxes])
 
 
 class LearnedSampler(Sampler):
     def __init__(self, sampler, abstract_state, abstract_action):
-        Sampler.__init__(self, sampler)
+        Sampler.__init__(self, sampler, target)
         self.key_configs = abstract_state.prm_vertices
         self.abstract_state = abstract_state
         self.obj = abstract_action.discrete_parameters['object']
