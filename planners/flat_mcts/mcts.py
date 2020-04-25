@@ -286,7 +286,7 @@ class MCTS:
             #if max(history_of_n_objs_in_goal) == 3:
             #    import pdb;pdb.set_trace()
 
-            is_time_to_switch_node = iteration % self.switch_frequency == 0
+            is_time_to_switch_node = max(node_to_search_from.N.values()) >= self.switch_frequency #iteration % self.switch_frequency == 0
             if is_time_to_switch_node:
                 if node_to_search_from.is_operator_skeleton_node:
                     node_to_search_from = node_to_search_from.get_child_with_max_value()
