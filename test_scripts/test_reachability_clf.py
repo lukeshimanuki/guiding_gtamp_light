@@ -5,7 +5,7 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick
 from trajectory_representation.operator import Operator
 
-from generators.sampler import UniformSampler
+from generators.samplers.uniform_sampler import UniformSampler
 
 from reachability_classification.datasets.dataset import GNNReachabilityDataset
 from reachability_classification.classifiers.encoded_q_gnn import \

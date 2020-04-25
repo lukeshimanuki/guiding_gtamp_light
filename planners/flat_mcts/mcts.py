@@ -3,7 +3,7 @@ from mcts_tree_continuous_node import ContinuousTreeNode
 # from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
 from discrete_node_with_prior_q import DiscreteTreeNodeWithPriorQ
 from mcts_tree import MCTSTree
-from generators.sampler import UniformSampler
+from generators.samplers.uniform_sampler import UniformSampler
 from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
 # from generators.uniform import UniformPaPGenerator
