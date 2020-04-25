@@ -64,7 +64,7 @@ def parse_mover_problem_parameters():
     parser.add_argument('-dont_use_learned_q', action='store_false', default=True)
     parser.add_argument('-n_feasibility_checks', type=int, default=200)
     parser.add_argument('-n_motion_plan_trials', type=int, default=10)
-    parser.add_argument('-planning_horizon', type=int, default=3 * 8)
+    parser.add_argument('-planning_horizon', type=int, default=10000)
 
     # Learning-related parameters
     parser.add_argument('-train_seed', type=int, default=0)
