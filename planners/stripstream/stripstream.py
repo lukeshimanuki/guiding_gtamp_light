@@ -51,6 +51,9 @@ from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 PRM_VERTICES, PRM_EDGES = pickle.load(open('prm.pkl', 'rb'))
 PRM_VERTICES = list(PRM_VERTICES)  # TODO: needs to be a list rather than ndarray
 
+num_ik_checks = 0
+num_mp_checks = 0
+
 def gen_pap(problem, config):
     # cache ik solutions
     ikcachename = './ikcache.pkl'
@@ -58,6 +61,9 @@ def gen_pap(problem, config):
     iksolutions = pickle.load(open(ikcachename, 'r'))
 
     def fcn(o, r, s):
+        global num_ik_checks
+        global num_mp_checks
+
         if problem.name == 'two_arm_mover':
             abstract_state = None # TODO: figure out what goes here
             abstract_action = Operator('two_arm_pick_two_arm_place', {'object': problem.env.GetKinBody(o), 'place_region': problem.regions[r]})
@@ -68,23 +74,22 @@ def gen_pap(problem, config):
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
             while True:
+                prev_ik_checks = generator.n_ik_checks
+                prev_mp_checks = generator.n_mp_checks
                 s.Restore()
                 params = generator.sample_next_point()
                 if params['is_feasible']:
                     abstract_action.continuous_parameters = params
                     abstract_action.execute()
                     t = CustomStateSaver(problem.env)
+                    num_ik_checks += generator.n_ik_checks - prev_ik_checks
+                    num_mp_checks += generator.n_mp_checks - prev_mp_checks
                     yield params, t
                 else:
+                    num_ik_checks += generator.n_ik_checks - prev_ik_checks
+                    num_mp_checks += generator.n_mp_checks - prev_mp_checks
                     yield None
 
-                if params['is_feasible']:
-                    action.continuous_parameters = params
-                    action.execute()
-                    t = CustomStateSaver(problem.env)
-                    yield params, t
-                else:
-                    yield None
         elif problem.name == 'one_arm_mover':
             while True:
                 s.Restore()
@@ -213,8 +218,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         else:
             raise NotImplementedError
         print(actions)
-        return [], actions, 0, []
+        return [], actions, (num_ik_checks, num_mp_checks), []
     else:
         print("Plan not found")
-        return [], None, 0, []
+        return [], None, (0,0), []
 

@@ -4,7 +4,7 @@ from manipulation.bodies.bodies import set_color, get_color
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 
-from gtamp_problem_environments.reward_functions.packing_problem.reward_function import ShapedRewardFunction
+from gtamp_problem_environments.reward_functions.shaped_reward_function import ShapedRewardFunction
 
 from trajectory_representation.minimum_constraint_pick_and_place_state import MinimiumConstraintPaPState
 from gtamp_utils import utils
