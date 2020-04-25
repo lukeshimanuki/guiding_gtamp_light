@@ -554,7 +554,7 @@ def two_arm_pick_object(obj, pick_action):
 
 def viewer():
     env = openravepy.RaveGetEnvironments()[0]
-    env.SetViewer('qtcoin')
+    env.SetViewer('qtosg')
 
 
 def set_color(obj, color):
