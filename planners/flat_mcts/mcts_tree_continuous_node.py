@@ -72,7 +72,7 @@ class ContinuousTreeNode(TreeNode):
                 best_action = action
             #print "Placement {} Qval {}".format(action['place']['q_goal'], value)
             if action.continuous_parameters['is_feasible']:
-                print action.continuous_parameters['place']['q_goal'], value, ucb_value
+                print action.continuous_parameters['place']['q_goal'], value, ucb_value, self.N[action]
             else:
                 print "infeasible action", value
         # from gtamp_utils import utils
