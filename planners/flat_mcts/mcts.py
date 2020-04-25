@@ -1,13 +1,13 @@
 from mcts_tree_continuous_node import ContinuousTreeNode
-#from discrete_node_with_psa import DiscreteTreeNodeWithPsa
-#from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
+# from discrete_node_with_psa import DiscreteTreeNodeWithPsa
+# from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
 from discrete_node_with_prior_q import DiscreteTreeNodeWithPriorQ
 from mcts_tree import MCTSTree
 from generators.sampler import UniformSampler
 from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
 
-#from generators.uniform import UniformPaPGenerator
-#from generators.voo import PaPVOOGenerator
+# from generators.uniform import UniformPaPGenerator
+# from generators.voo import PaPVOOGenerator
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.state import StateWithoutCspacePredicates
@@ -15,7 +15,6 @@ from trajectory_representation.one_arm_pap_state import OneArmPaPState
 
 ## openrave helper libraries
 from gtamp_utils import utils
-
 
 import numpy as np
 import sys
@@ -248,6 +247,11 @@ class MCTS:
                 total_mp_checks += n.sampling_agent.n_mp_checks
         return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
+    def is_time_to_switch(self, root_node):
+        reached_frequency_limit = max(root_node.N.values()) >= self.switch_frequency
+        has_enough_actions = root_node.is_operator_skeleton_node or len(root_node.A) > 3
+        return reached_frequency_limit and has_enough_actions
+
     def search(self, n_iter=np.inf, iteration_for_tree_logging=0, node_to_search_from=None, max_time=np.inf):
         depth = 0
         elapsed_time = 0
@@ -283,11 +287,13 @@ class MCTS:
             print "Time {} n_feasible_checks {} max progress {}".format(elapsed_time,
                                                                         n_feasibility_checks['ik'],
                                                                         max(history_of_n_objs_in_goal))
-            #if max(history_of_n_objs_in_goal) == 3:
+            # if max(history_of_n_objs_in_goal) == 3:
             #    import pdb;pdb.set_trace()
 
-            is_time_to_switch_node = max(node_to_search_from.N.values()) >= self.switch_frequency #iteration % self.switch_frequency == 0
+            is_time_to_switch_node = self.is_time_to_switch(node_to_search_from)
             if is_time_to_switch_node:
+                print "Switching"
+                import pdb;pdb.set_trace()
                 if node_to_search_from.is_operator_skeleton_node:
                     node_to_search_from = node_to_search_from.get_child_with_max_value()
                 else:
@@ -332,7 +338,7 @@ class MCTS:
             if not self.use_progressive_widening:
                 w_param = self.widening_parameter
             else:
-                w_param = self.widening_parameter * np.power(0.9, depth/2)
+                w_param = self.widening_parameter * np.power(0.9, depth / 2)
             if not curr_node.is_reevaluation_step(w_param,
                                                   self.problem_env.reward_function.infeasible_reward,
                                                   self.use_progressive_widening,
