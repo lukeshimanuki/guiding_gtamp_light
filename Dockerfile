@@ -24,7 +24,7 @@ RUN git clone git://github.com/rdiankov/openrave.git
 RUN cd openrave && git checkout 9c79ea260e1c009b0a6f7c03ec34f59629ccbe2c && mkdir build && cd build && cmake .. -DOSG_DIR=/usr/local/lib64/ && make && make install
 
 # other ggl dependencies
-RUN apt-get update && apt-get -y install --no-install-recommends cmake g++ g++-multilib make python python-tk python-pip libcudnn7=7.0.5.15-1+cuda9.0
+RUN apt-get update && apt-get -y install --no-install-recommends cmake g++ g++-multilib make python python-tk python-pip libcudnn7=7.0.5.15-1+cuda9.0 libcuda1-440
 RUN pip install --upgrade pip==19.0.3 setuptools==39.1.0
 RUN pip install --upgrade --ignore-installed numpy==1.14.5 scipy==1.2.2 pybullet==2.4.1 sympy==0.7.1 tensorflow-gpu==1.10.0
 
