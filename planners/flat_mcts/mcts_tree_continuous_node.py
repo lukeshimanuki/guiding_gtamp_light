@@ -72,12 +72,11 @@ class ContinuousTreeNode(TreeNode):
                 best_action = action
             #print "Placement {} Qval {}".format(action['place']['q_goal'], value)
             if action.continuous_parameters['is_feasible']:
-                print action.continuous_parameters['place']['q_goal'], value
+                print action.continuous_parameters['place']['q_goal'], value, ucb_value
             else:
                 print "infeasible action", value
         # from gtamp_utils import utils
         # utils.visualize_placements(np.array( [actions[0].continuous_parameters['place']['q_goal']]), 'square_packing_box1')
-        #import pdb;pdb.set_trace()
         return best_action
 
     def perform_ucb_over_actions(self):
