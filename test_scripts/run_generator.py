@@ -10,7 +10,8 @@ from gtamp_problem_environments.mover_env import PaPMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
-from generators.sampler import UniformSampler, PlaceOnlyLearnedSampler, LearnedSampler, PickPlaceLearnedSampler
+from generators.samplers.uniform_sampler import UniformSampler
+from generators.samplers.sampler PlaceOnlyLearnedSampler, PickPlaceLearnedSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 
 from gtamp_utils import utils

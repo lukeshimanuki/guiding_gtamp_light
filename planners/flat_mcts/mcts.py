@@ -1,13 +1,13 @@
 from mcts_tree_continuous_node import ContinuousTreeNode
-#from discrete_node_with_psa import DiscreteTreeNodeWithPsa
-#from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
+# from discrete_node_with_psa import DiscreteTreeNodeWithPsa
+# from mcts_tree_discrete_pap_node import PaPDiscreteTreeNodeWithPriorQ
 from discrete_node_with_prior_q import DiscreteTreeNodeWithPriorQ
 from mcts_tree import MCTSTree
-from generators.sampler import UniformSampler
-from generators.TwoArmPaPGeneratory import TwoArmPaPGenerator
+from generators.samplers.uniform_sampler import UniformSampler
+from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 
-#from generators.uniform import UniformPaPGenerator
-#from generators.voo import PaPVOOGenerator
+# from generators.uniform import UniformPaPGenerator
+# from generators.voo import PaPVOOGenerator
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.state import StateWithoutCspacePredicates
@@ -15,7 +15,6 @@ from trajectory_representation.one_arm_pap_state import OneArmPaPState
 
 ## openrave helper libraries
 from gtamp_utils import utils
-
 
 import numpy as np
 import sys
@@ -248,6 +247,25 @@ class MCTS:
                 total_mp_checks += n.sampling_agent.n_mp_checks
         return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
+    def is_time_to_switch(self, root_node):
+        reached_frequency_limit = max(root_node.N.values()) >= self.switch_frequency
+        has_enough_actions = True #root_node.is_operator_skeleton_node #or len(root_node.A) > 3
+        return reached_frequency_limit and has_enough_actions
+
+    def get_node_to_switch_to(self, node_to_search_from):
+        is_time_to_switch_node = self.is_time_to_switch(node_to_search_from)
+        if not is_time_to_switch_node:
+            return node_to_search_from
+
+        if node_to_search_from.is_operator_skeleton_node:
+            node_to_search_from = node_to_search_from.get_child_with_max_value()
+        else:
+            max_child = node_to_search_from.get_child_with_max_value()
+            if max_child.parent_action.continuous_parameters['is_feasible']:
+                node_to_search_from = node_to_search_from.get_child_with_max_value()
+
+        return self.get_node_to_switch_to(node_to_search_from)
+
     def search(self, n_iter=np.inf, iteration_for_tree_logging=0, node_to_search_from=None, max_time=np.inf):
         depth = 0
         elapsed_time = 0
@@ -283,17 +301,11 @@ class MCTS:
             print "Time {} n_feasible_checks {} max progress {}".format(elapsed_time,
                                                                         n_feasibility_checks['ik'],
                                                                         max(history_of_n_objs_in_goal))
-            #if max(history_of_n_objs_in_goal) == 3:
-            #    import pdb;pdb.set_trace()
 
-            is_time_to_switch_node = max(node_to_search_from.N.values()) >= self.switch_frequency #iteration % self.switch_frequency == 0
+            is_time_to_switch_node = self.is_time_to_switch(node_to_search_from)
             if is_time_to_switch_node:
-                if node_to_search_from.is_operator_skeleton_node:
-                    node_to_search_from = node_to_search_from.get_child_with_max_value()
-                else:
-                    max_child = node_to_search_from.get_child_with_max_value()
-                    if max_child.parent_action.continuous_parameters['is_feasible']:
-                        node_to_search_from = node_to_search_from.get_child_with_max_value()
+                #import pdb;pdb.set_trace()
+                node_to_search_from = self.get_node_to_switch_to(node_to_search_from)
 
             if self.found_solution:
                 print "Optimal score found"
@@ -328,11 +340,11 @@ class MCTS:
             if curr_node.sampling_agent is None:  # this happens if the tree has been pickled
                 curr_node.sampling_agent = self.create_sampling_agent(curr_node)
 
-            assert depth % 2 == 1, "Continuous node must be at even depth"
             if not self.use_progressive_widening:
                 w_param = self.widening_parameter
             else:
-                w_param = self.widening_parameter * np.power(0.9, depth/2)
+                #assert depth % 2 == 1, "Continuous node must be at even depth"
+                w_param = self.widening_parameter * np.power(0.9, depth / 2)
             if not curr_node.is_reevaluation_step(w_param,
                                                   self.problem_env.reward_function.infeasible_reward,
                                                   self.use_progressive_widening,
@@ -422,9 +434,13 @@ class MCTS:
                 action.discrete_parameters['place_region']
             is_feasible = self.problem_env.apply_operator_skeleton(node.state, action)
         else:
-            print "Applying instance", action.type, action.discrete_parameters['object'], action.discrete_parameters[
-                'place_region']
             is_feasible = self.problem_env.apply_operator_instance(node.state, action, self.check_reachability)
+            if is_feasible:
+                print "Applying instance", action.discrete_parameters['object'], action.discrete_parameters[
+                    'place_region'], action.continuous_parameters['place']['q_goal']
+            else:
+                print "Applying infeasible instance", action.discrete_parameters['object'], action.discrete_parameters[
+                    'place_region']
 
         return is_feasible
 
@@ -432,13 +448,5 @@ class MCTS:
         if self.problem_env.name.find('one_arm') != -1:
             raise NotImplementedError
         else:
-            """
-            if isinstance(node.state, StateWithoutCspacePredicates):
-                current_collides = None
-            else:
-                current_collides = node.state.collisions_at_all_obj_pose_pairs
-            smpled_param = node.sampling_agent.sample_next_point(cached_collisions=current_collides,
-                                                                 cached_holding_collisions=None)
-            """
             smpled_param = node.sampling_agent.sample_next_point()
         return smpled_param
