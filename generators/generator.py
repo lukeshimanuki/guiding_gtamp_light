@@ -2,7 +2,7 @@ import time
 import numpy as np
 import pickle
 import uuid
-import torch
+#import torch
 
 from gtamp_utils import utils
 
