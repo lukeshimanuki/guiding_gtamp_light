@@ -157,7 +157,7 @@ def main():
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
-            tottime = trajectory['search_time_to_reward'][-1][0]
+            tottime = trajectory['search_time_to_reward'][-1][2]
             print 'Time: %.2f ' % tottime
         sys.exit(-1)
 
