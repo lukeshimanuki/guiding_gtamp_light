@@ -7,13 +7,13 @@ IK_FEASIBLE_AND_BASEPOSE_COLLISION_FREE = 0
 INFEASIBLE = -1
 
 
-class VOOGenerator(Generator):
+class TwoArmVOOGenerator(Generator):
     def __init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning, n_iter_limit,
                  problem_env, pick_action_mode, place_action_mode):
         self.pick_action_mode = pick_action_mode
         self.place_action_mode = place_action_mode
-        self.tried_samples = []
-        self.tried_sample_labels = []
+        self.basic_tested_samples = []
+        self.basic_tested_sample_values = []
 
         Generator.__init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning,
                            n_iter_limit, problem_env)
@@ -23,11 +23,12 @@ class VOOGenerator(Generator):
                                            place_action_mode=self.place_action_mode)
 
     def sample_next_point(self, actions, q_values, dont_check_motion_existence=False):
-        target_obj = self.abstract_action.discrete_parameters['object']
-        if target_obj in self.feasible_pick_params:
-            self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
+        #target_obj = self.abstract_action.discrete_parameters['object']
+        #if target_obj in self.feasible_pick_params:
+        #    self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         feasible_op_parameters, status = self.sample_ik_feasible_and_collision_free_op_parameters(actions, q_values)
+
         if status == "NoSolution":
             return {'is_feasible': False}
 
@@ -43,10 +44,11 @@ class VOOGenerator(Generator):
         feasible_op_parameters = []
         feasibility_check_time = 0
         stime = time.time()
-        # note that this assumes you are doing two arm pap
+        orig_ik_checks = self.n_ik_checks
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
-            sampled_op_parameters = self.sampler.sample(actions, q_values)
+            sampled_op_parameters = self.sampler.sample(actions+self.basic_tested_samples,
+                                                        q_values+self.basic_tested_sample_values)
 
             stime2 = time.time()
             op_parameters, status = self.feasibility_checker.check_feasibility(self.abstract_action,
@@ -54,19 +56,23 @@ class VOOGenerator(Generator):
             feasibility_check_time += time.time() - stime2
 
             if status == 'HasSolution':
-                self.tried_samples.append(np.hstack([op_parameters['pick']['action_parameters'],
-                                                     op_parameters['place']['action_parameters']]))
-                self.tried_sample_labels.append(IK_FEASIBLE_AND_BASEPOSE_COLLISION_FREE)
+                # I should keep these. But their value needs to be updated if we ever get to try them.
+                # Let's not do it for now
                 feasible_op_parameters.append(op_parameters)
-
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
                     break
             else:
-                self.tried_samples.append(sampled_op_parameters)
-                self.tried_sample_labels.append(INFEASIBLE)
+                # do this because we re-use picks that were feasible in feasibility checker
+                if status == 'PickFailed':
+                    self.basic_tested_samples.append(sampled_op_parameters)
+                    self.basic_tested_sample_values.append(self.sampler.infeasible_action_value)
+                elif status == 'PlaceFailed':
+                    sampled_op_parameters[0:6] = op_parameters['pick']['action_parameters']
+                    self.basic_tested_samples.append(sampled_op_parameters)
+                    self.basic_tested_sample_values.append(self.sampler.infeasible_action_value)
 
         smpling_time = time.time() - stime
-        print "IK time {:.5f}".format(smpling_time)
+        print "IK time {:.5f} Total IK checks {}".format(smpling_time, self.n_ik_checks-orig_ik_checks)
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
             status = "NoSolution"
