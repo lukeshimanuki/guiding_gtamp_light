@@ -4,7 +4,7 @@ from trajectory_representation.operator import Operator
 from mover_library import utils
 
 
-#class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasibilityChecker):
+# class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasibilityChecker):
 class TwoArmPaPFeasibilityChecker:
     def __init__(self, problem_env, pick_action_mode, place_action_mode):
         assert place_action_mode == 'object_pose' or place_action_mode == 'robot_base_pose', 'Invalid place action mode'
@@ -49,18 +49,19 @@ class TwoArmPaPFeasibilityChecker:
             pick_parameters, pick_status = self.check_pick_feasible(pick_parameters, operator_skeleton)
 
             if pick_status != 'HasSolution':
-                return None, "PickFailed"
+                return {'pick': None, 'place': None}, "PickFailed"
             else:
                 self.feasible_pick.append(pick_parameters)
 
         place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton)
 
         if place_status != 'HasSolution':
-            return None, "PlaceFailed"
+            return {'pick': pick_parameters, 'place': None}, "PlaceFailed"
 
         pap_continuous_parameters = {'pick': pick_parameters, 'place': place_parameters}
         self.feasible_pick = []
         return pap_continuous_parameters, 'HasSolution'
+
 
 class TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick(TwoArmPaPFeasibilityChecker):
     def __init__(self, problem_env):
