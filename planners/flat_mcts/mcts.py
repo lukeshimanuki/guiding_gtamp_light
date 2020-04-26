@@ -153,7 +153,7 @@ class MCTS:
                     self.parameters.pidx, self.parameters.planner_seed)
                 is_root_node = parent_state is None
                 cache_file_exists = os.path.isfile(cache_file_name_for_debugging)
-                if cache_file_exists and is_root_node:
+                if cache_file_exists and is_root_node and False:
                     state = pickle.load(open(cache_file_name_for_debugging, 'r'))
                     state.make_plannable(self.problem_env)
                 else:
@@ -161,7 +161,7 @@ class MCTS:
                                                  parent_state=parent_state,
                                                  parent_action=parent_action,
                                                  goal_entities=self.goal_entities, planner='mcts')
-                    if is_root_node:
+                    if is_root_node and False:
                         state.make_pklable()
                         pickle.dump(state, open(cache_file_name_for_debugging, 'wb'))
                         state.make_plannable(self.problem_env)
