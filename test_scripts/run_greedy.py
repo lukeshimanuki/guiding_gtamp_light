@@ -46,9 +46,9 @@ def get_problem_env(config, goal_region, goal_objs):
 def get_solution_file_name(config):
     hostname = socket.gethostname()
     root_dir = './'
-    #if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
+    # if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
     #    root_dir = './'
-    #else:
+    # else:
     #    root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
 
     if config.gather_planning_exp:
@@ -282,7 +282,8 @@ def main():
             tottime = trajectory['tottime']
             num_nodes = trajectory['num_nodes']
             plan_length = len(trajectory['plan']) if success else 0
-            print 'Time: %.2f Success: %d Plan length: %d Num nodes: %d' % (tottime, success, plan_length, num_nodes)
+            print 'Time: %.2f Success: %d Plan length: %d Num nodes: %d N_feasible: %d' % (
+            tottime, success, plan_length, num_nodes, trajectory['n_feasibility_checks']['ik'])
         sys.exit(-1)
 
     if config.gather_planning_exp:
@@ -291,7 +292,8 @@ def main():
     random.seed(config.pidx)
 
     if config.domain == 'two_arm_mover':
-        goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+        goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                     'rectangular_packing_box4']
         goal_region = 'home_region'
     elif config.domain == 'one_arm_mover':
         goal_objs = ['c_obst0', 'c_obst1', 'c_obst2', 'c_obst3']
