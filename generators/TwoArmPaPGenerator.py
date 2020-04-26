@@ -18,9 +18,9 @@ class TwoArmPaPGenerator(Generator):
                                            place_action_mode=self.place_action_mode)
 
     def sample_next_point(self, dont_check_motion_existence=False):
-        target_obj = self.abstract_action.discrete_parameters['object']
-        if target_obj in self.feasible_pick_params:
-            self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
+        #target_obj = self.abstract_action.discrete_parameters['object']
+        #if target_obj in self.feasible_pick_params:
+        #    self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         feasible_op_parameters, status = self.sample_ik_feasible_and_collision_free_op_parameters()
         if status == "NoSolution":
