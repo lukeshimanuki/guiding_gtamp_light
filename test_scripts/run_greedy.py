@@ -114,8 +114,8 @@ def parse_arguments():
     parser.add_argument('-num_train', type=int, default=5000)
     parser.add_argument('-timelimit', type=float, default=300)
     parser.add_argument('-mse_weight', type=float, default=1.0)
-    parser.add_argument('-n_mp_limit', type=int, default=10)
-    parser.add_argument('-n_iter_limit', type=int, default=200)
+    parser.add_argument('-n_mp_limit', type=int, default=5)
+    parser.add_argument('-n_iter_limit', type=int, default=2000)
 
     # abstract Q setup
     parser.add_argument('-dontsimulate', action='store_true', default=False)
