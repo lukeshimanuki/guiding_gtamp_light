@@ -4,7 +4,9 @@ from mcts_tree_continuous_node import ContinuousTreeNode
 from discrete_node_with_prior_q import DiscreteTreeNodeWithPriorQ
 from mcts_tree import MCTSTree
 from generators.samplers.uniform_sampler import UniformSampler
+from generators.samplers.voo_sampler import VOOSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
+from generators.voo import TwoArmVOOGenerator
 
 # from generators.uniform import UniformPaPGenerator
 # from generators.voo import PaPVOOGenerator
@@ -44,14 +46,15 @@ class MCTS:
         self.use_progressive_widening = parameters.pw
         self.n_feasibility_checks = parameters.n_feasibility_checks
         self.use_v_fcn = parameters.use_learned_q
-        self.v_fcn = v_fcn
-        self.learned_q = learned_q
         self.use_shaped_reward = parameters.use_shaped_reward
         self.planning_horizon = parameters.planning_horizon
         self.sampling_strategy = parameters.sampling_strategy
         self.explr_p = parameters.explr_p
         self.switch_frequency = parameters.switch_frequency
+        self.parameters = parameters
 
+        self.v_fcn = v_fcn
+        self.learned_q = learned_q
         # Hard-coded params
         self.check_reachability = True
         self.discount_rate = 1.0
@@ -110,10 +113,10 @@ class MCTS:
         else:
             dont_check_motion_existence = False
 
+        abstract_state = node.state
+        abstract_action = node.operator_skeleton
+        place_region = self.problem_env.regions[abstract_action.discrete_parameters['place_region']]
         if self.sampling_strategy == 'uniform':
-            abstract_state = node.state
-            abstract_action = node.operator_skeleton
-            place_region = self.problem_env.regions[abstract_action.discrete_parameters['place_region']]
             sampler = UniformSampler(place_region)
             generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
                                            n_parameters_to_try_motion_planning=self.n_motion_plan_trials,
@@ -121,7 +124,12 @@ class MCTS:
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
-            raise NotImplementedError
+            sampler = VOOSampler(place_region, self.explr_p, self.problem_env.reward_function.infeasible_reward)
+            generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
+                                           n_parameters_to_try_motion_planning=self.n_motion_plan_trials,
+                                           n_iter_limit=self.n_feasibility_checks, problem_env=self.problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
         else:
             raise NotImplementedError
         return generator
@@ -134,17 +142,29 @@ class MCTS:
                 parent_state = None
             else:
                 parent_state = parent_node.state
-            # where is the parent state?
+
             if self.problem_env.name.find('one_arm') != -1:
                 state = OneArmPaPState(self.problem_env,
                                        parent_state=parent_state,
                                        parent_action=parent_action,
                                        goal_entities=self.goal_entities)
             else:
-                state = ShortestPathPaPState(self.problem_env,  # what's this?
-                                             parent_state=parent_state,
-                                             parent_action=parent_action,
-                                             goal_entities=self.goal_entities, planner='mcts')
+                cache_file_name_for_debugging = './planners/mcts_cache_for_debug/pidx_{}_seed_{}.pkl'.format(
+                    self.parameters.pidx, self.parameters.planner_seed)
+                is_root_node = parent_state is None
+                cache_file_exists = os.path.isfile(cache_file_name_for_debugging)
+                if cache_file_exists and is_root_node:
+                    state = pickle.load(open(cache_file_name_for_debugging, 'r'))
+                    state.make_plannable(self.problem_env)
+                else:
+                    state = ShortestPathPaPState(self.problem_env,
+                                                 parent_state=parent_state,
+                                                 parent_action=parent_action,
+                                                 goal_entities=self.goal_entities, planner='mcts')
+                    if is_root_node:
+                        state.make_pklable()
+                        pickle.dump(state, open(cache_file_name_for_debugging, 'wb'))
+                        state.make_plannable(self.problem_env)
         return state
 
     def get_current_state(self, parent_node, parent_action, is_parent_action_infeasible):
@@ -304,7 +324,6 @@ class MCTS:
 
             is_time_to_switch_node = self.is_time_to_switch(node_to_search_from)
             if is_time_to_switch_node:
-                #import pdb;pdb.set_trace()
                 node_to_search_from = self.get_node_to_switch_to(node_to_search_from)
 
             if self.found_solution:
@@ -343,7 +362,6 @@ class MCTS:
             if not self.use_progressive_widening:
                 w_param = self.widening_parameter
             else:
-                #assert depth % 2 == 1, "Continuous node must be at even depth"
                 w_param = self.widening_parameter * np.power(0.9, depth / 2)
             if not curr_node.is_reevaluation_step(w_param,
                                                   self.problem_env.reward_function.infeasible_reward,
@@ -378,7 +396,6 @@ class MCTS:
             return self.problem_env.reward_function.goal_reward
 
         if depth == self.planning_horizon:
-            # would it ever get here? why does it not satisfy the goal?
             print "Depth limit reached"
             return 0
 
@@ -417,7 +434,6 @@ class MCTS:
         if curr_node == node_to_search_from and curr_node.parent is not None:
             self.update_ancestor_node_statistics(curr_node.parent, curr_node.parent_action, sum_rewards)
 
-        # todo return a plan
         return sum_rewards
 
     def update_ancestor_node_statistics(self, node, action, child_sum_rewards):
@@ -448,5 +464,12 @@ class MCTS:
         if self.problem_env.name.find('one_arm') != -1:
             raise NotImplementedError
         else:
-            smpled_param = node.sampling_agent.sample_next_point()
+            if self.sampling_strategy == 'voo':
+                action_parameters = [np.hstack([a.continuous_parameters['pick']['action_parameters'],
+                                                a.continuous_parameters['place']['action_parameters']])
+                                     for a in node.Q.keys()]
+                q_values = node.Q.values()
+                smpled_param = node.sampling_agent.sample_next_point(action_parameters, q_values)
+            else:
+                smpled_param = node.sampling_agent.sample_next_point()
         return smpled_param
