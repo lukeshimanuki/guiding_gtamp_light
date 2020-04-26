@@ -2,6 +2,7 @@ from generators.feasibility_checkers.two_arm_pick_feasibility_checker import Two
 from generators.feasibility_checkers.two_arm_place_feasibility_checker import TwoArmPlaceFeasibilityChecker
 from trajectory_representation.operator import Operator
 from mover_library import utils
+import time
 
 
 # class TwoArmPaPFeasibilityChecker(TwoArmPickFeasibilityChecker, TwoArmPlaceFeasibilityChecker):
@@ -59,28 +60,13 @@ class TwoArmPaPFeasibilityChecker:
             return {'pick': pick_parameters, 'place': None}, "PlaceFailed"
 
         pap_continuous_parameters = {'pick': pick_parameters, 'place': place_parameters}
-        self.feasible_pick = []
+        # self.feasible_pick = []
         return pap_continuous_parameters, 'HasSolution'
 
 
 class TwoArmPaPFeasibilityCheckerWithoutSavingFeasiblePick(TwoArmPaPFeasibilityChecker):
-    def __init__(self, problem_env):
-        TwoArmPaPFeasibilityChecker.__init__(self, problem_env)
+    def __init__(self, problem_env, pick_action_mode, place_action_mode):
+        TwoArmPaPFeasibilityChecker.__init__(self, problem_env, pick_action_mode, place_action_mode)
 
     def check_feasibility(self, operator_skeleton, parameters, swept_volume_to_avoid=None, parameter_mode='obj_pose'):
-        pick_parameters = parameters[:6]
-        place_parameters = parameters[-3:]
-
-        pick_parameters, pick_status = self.check_pick_feasible(pick_parameters, operator_skeleton)
-        if pick_status != 'HasSolution':
-            return None, "PickFailed"
-
-        place_parameters, place_status = self.check_place_feasible(pick_parameters, place_parameters, operator_skeleton,
-                                                                   parameter_mode=parameter_mode)
-
-        if place_status != 'HasSolution':
-            return None, "PlaceFailed"
-
-        pap_continuous_parameters = {'pick': pick_parameters, 'place': place_parameters}
-        self.feasible_pick = []
-        return pap_continuous_parameters, 'HasSolution'
+        raise NotImplementedError
