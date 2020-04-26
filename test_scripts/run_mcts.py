@@ -32,6 +32,7 @@ def make_and_get_save_dir(parameters, filename):
                + 'n_objs_pack_' + str(parameters.n_objs_pack) + '/' \
                + 'sampling_strategy_' + str(parameters.sampling_strategy) + '/' \
                + 'n_mp_trials_' + str(parameters.n_motion_plan_trials) + '/' \
+               + 'n_feasibility_checks_' + str(parameters.n_feasibility_checks) + '/' \
                + 'widening_' + str(parameters.widening_parameter) + '/' \
                + 'uct_' + str(parameters.ucb_parameter) + '/' \
                + 'switch_frequency_' + str(parameters.switch_frequency) + '/' \
@@ -152,7 +153,7 @@ def main():
     save_dir = make_and_get_save_dir(parameters, filename)
     solution_file_name = save_dir+filename
     is_problem_solved_before = os.path.isfile(solution_file_name)
-
+    print solution_file_name
     if is_problem_solved_before and not parameters.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
