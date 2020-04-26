@@ -2,7 +2,7 @@ from generator import Generator
 from feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityChecker
 import numpy as np
 import time
-
+from gtamp_utils import utils
 IK_FEASIBLE_AND_BASEPOSE_COLLISION_FREE = 0
 INFEASIBLE = -1
 
@@ -28,6 +28,9 @@ class TwoArmVOOGenerator(Generator):
         #    self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
 
         feasible_op_parameters, status = self.sample_ik_feasible_and_collision_free_op_parameters(actions, q_values)
+        #if len(q_values)>0 and max(q_values) > self.sampler.infeasible_action_value:
+        #    import pdb;
+        #    pdb.set_trace()
 
         if status == "NoSolution":
             return {'is_feasible': False}
@@ -45,6 +48,7 @@ class TwoArmVOOGenerator(Generator):
         feasibility_check_time = 0
         stime = time.time()
         orig_ik_checks = self.n_ik_checks
+        self.feasibility_checker.feasible_pick = []
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
             sampled_op_parameters = self.sampler.sample(actions+self.basic_tested_samples,
@@ -57,8 +61,10 @@ class TwoArmVOOGenerator(Generator):
 
             if status == 'HasSolution':
                 # I should keep these. But their value needs to be updated if we ever get to try them.
-                # Let's not do it for now
+                # Let's not do it for now.
+                # But if I do this, I believe I can improve the first-encountered states too
                 feasible_op_parameters.append(op_parameters)
+                self.feasibility_checker.feasible_pick = []
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
                     break
             else:

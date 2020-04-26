@@ -43,6 +43,7 @@ class TwoArmPaPFeasibilityChecker:
         place_parameters = parameters[-3:]
 
         # We are disabling this to make it easier to implement getting place-samples on-demand from learned sampler.
+        assert len(self.feasible_pick) <= 1, 'You must have at most 1 saved feasible pick by defn'
         we_already_have_feasible_pick = len(self.feasible_pick) > 0
         if we_already_have_feasible_pick:
             pick_parameters = self.feasible_pick[0]
