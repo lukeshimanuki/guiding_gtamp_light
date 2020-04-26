@@ -39,6 +39,7 @@ class TwoArmPaPGenerator(Generator):
         feasibility_check_time = 0
         stime = time.time()
         # note that this assumes you are doing two arm pap
+        orig_ik_checks = self.n_ik_checks
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
             sampled_op_parameters = self.sampler.sample()
@@ -53,7 +54,7 @@ class TwoArmPaPGenerator(Generator):
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
                     break
         smpling_time = time.time() - stime
-        print "IK time {:.5f}".format(smpling_time)
+        print "IK time {:.5f} Total IK checks {}".format(smpling_time, self.n_ik_checks-orig_ik_checks)
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
             status = "NoSolution"
