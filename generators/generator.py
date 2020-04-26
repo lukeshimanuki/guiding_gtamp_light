@@ -100,3 +100,18 @@ class Generator:
             chosen_op_param['is_feasible'] = False
 
         return chosen_op_param
+
+    def sample_next_point(self, actions=None, q_values=None, dont_check_motion_existence=False):
+        feasible_op_parameters, status = self.sample_ik_feasible_and_collision_free_op_parameters(actions, q_values)
+        if status == "NoSolution":
+            return {'is_feasible': False}
+
+        # We would have to move these to the loop in order to be fair
+        if dont_check_motion_existence:
+            chosen_op_param = self.choose_one_of_params(feasible_op_parameters, status)
+        else:
+            chosen_op_param = self.check_existence_of_feasible_motion_plan(feasible_op_parameters)
+        return chosen_op_param
+
+    def sample_ik_feasible_and_collision_free_op_parameters(self, actions=None, q_values=None):
+        raise NotImplementedError

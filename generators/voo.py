@@ -22,27 +22,7 @@ class TwoArmVOOGenerator(Generator):
         return TwoArmPaPFeasibilityChecker(self.problem_env, pick_action_mode=self.pick_action_mode,
                                            place_action_mode=self.place_action_mode)
 
-    def sample_next_point(self, actions, q_values, dont_check_motion_existence=False):
-        #target_obj = self.abstract_action.discrete_parameters['object']
-        #if target_obj in self.feasible_pick_params:
-        #    self.feasibility_checker.feasible_pick = self.feasible_pick_params[target_obj]
-
-        feasible_op_parameters, status = self.sample_ik_feasible_and_collision_free_op_parameters(actions, q_values)
-        #if len(q_values)>0 and max(q_values) > self.sampler.infeasible_action_value:
-        #    import pdb;
-        #    pdb.set_trace()
-
-        if status == "NoSolution":
-            return {'is_feasible': False}
-
-        # We would have to move these to the loop in order to be fair
-        if dont_check_motion_existence:
-            chosen_op_param = self.choose_one_of_params(feasible_op_parameters, status)
-        else:
-            chosen_op_param = self.check_existence_of_feasible_motion_plan(feasible_op_parameters)
-        return chosen_op_param
-
-    def sample_ik_feasible_and_collision_free_op_parameters(self, actions, q_values):
+    def sample_ik_feasible_and_collision_free_op_parameters(self, actions=None, q_values=None):
         assert self.n_iter_limit > 0
         feasible_op_parameters = []
         feasibility_check_time = 0
