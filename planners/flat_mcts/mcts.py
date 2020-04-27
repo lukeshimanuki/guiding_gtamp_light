@@ -124,7 +124,7 @@ class MCTS:
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
-            sampler = VOOSampler(place_region, self.explr_p, self.problem_env.reward_function.infeasible_reward)
+            sampler = VOOSampler(place_region, self.explr_p, self.problem_env.reward_function.worst_potential_value)
             generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
                                            n_parameters_to_try_motion_planning=self.n_motion_plan_trials,
                                            n_iter_limit=self.n_feasibility_checks, problem_env=self.problem_env,
