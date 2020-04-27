@@ -52,7 +52,7 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             ucb_value = self.compute_ucb_value(action)
             action_evaluation = value + ucb_value
             action_evaluation_values.append(action_evaluation)
-            #self.print_q_value(action)
+            self.print_q_value(action)
             if action_evaluation > best_value:
                 best_value = action_evaluation
 
