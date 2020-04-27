@@ -2,7 +2,6 @@ import numpy as np
 from trajectory_representation.operator import Operator
 from planners.flat_mcts.mcts_tree_node import TreeNode
 
-
 def upper_confidence_bound(n, n_sa):
     return 2 * np.sqrt(np.log(n) / float(n_sa))
 
@@ -13,6 +12,8 @@ class ContinuousTreeNode(TreeNode):
         TreeNode.__init__(self, state, ucb_parameter, depth, state_saver, is_operator_skeleton_node, is_init_node)
         self.operator_skeleton = operator_skeleton
         self.max_sum_rewards = {}
+
+
 
     def add_actions(self, action):
         new_action = Operator(operator_type=self.operator_skeleton.type,
@@ -32,11 +33,18 @@ class ContinuousTreeNode(TreeNode):
         if n_feasible_actions < 1:
             return False
 
-        there_is_new_action = np.any(np.array(self.N.values()) == 1)
-        q_value_improved = np.all(np.array(self.N.values()) > 1) and np.any(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)
+        there_is_new_action = np.any(np.array(self.N.values()) == 0)
+        parent_node_value = np.max(self.Q.values())
+        curr_node_value = np.max(self.Q.values())
+        q_value_improved = curr_node_value - parent_node_value == 0
         if there_is_new_action or q_value_improved:
+            if there_is_new_action:
+                print "There is new action. Re-evaluating"
+            else:
+                print "Q improved. Re-evaluating"
             return True
         else:
+            print "Q value decreased:", curr_node_value - parent_node_value
             return False
 
         if not use_ucb:
@@ -87,18 +95,23 @@ class ContinuousTreeNode(TreeNode):
         return best_action
 
     def perform_ucb_over_actions(self):
-        there_is_new_action = np.any(np.array(self.N.values()) == 1)
+        there_is_new_action = np.any(np.array(self.N.values()) == 0)
         if there_is_new_action:
-            for action in self.N: print action.continuous_parameters['place']['q_goal'], self.N[action]
             for action in self.N:
-                if self.N[action] == 1:
+                if action.continuous_parameters['is_feasible']:
+                    print action.continuous_parameters['place']['q_goal'], self.N[action]
+                else:
+                    print "infeasible action", self.N[action]
+            for action in self.N:
+                if self.N[action] == 0:
                     return action
         else:
-            q_value_improved = np.all(np.array(self.N.values()) > 1) and \
-                               np.any(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)
+            parent_node_value = np.max(self.Q.values())  # potential_function(self.parent)
+            curr_node_value = np.max(self.Q.values())
+            q_value_improved = curr_node_value - parent_node_value == 0
             assert q_value_improved
-            idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
-            return self.Q.keys()[idx]
+            #idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
+            return self.Q.keys()[np.argmax(self.Q.values())]
 
         """
         assert not self.is_operator_skeleton_node
