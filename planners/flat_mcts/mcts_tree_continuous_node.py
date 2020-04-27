@@ -32,6 +32,13 @@ class ContinuousTreeNode(TreeNode):
         if n_feasible_actions < 1:
             return False
 
+        there_is_new_action = np.any(np.array(self.N.values()) == 1)
+        q_value_improved = np.all(np.array(self.N.values()) > 1) and np.any(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)
+        if there_is_new_action or q_value_improved:
+            return True
+        else:
+            return False
+
         if not use_ucb:
             new_action = self.A[-1]
             is_new_action_infeasible = not new_action.continuous_parameters['is_feasible']
@@ -80,6 +87,20 @@ class ContinuousTreeNode(TreeNode):
         return best_action
 
     def perform_ucb_over_actions(self):
+        there_is_new_action = np.any(np.array(self.N.values()) == 1)
+        if there_is_new_action:
+            for action in self.N: print action.continuous_parameters['place']['q_goal'], self.N[action]
+            for action in self.N:
+                if self.N[action] == 1:
+                    return action
+        else:
+            q_value_improved = np.all(np.array(self.N.values()) > 1) and \
+                               np.any(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)
+            assert q_value_improved
+            idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
+            return self.Q.keys()[idx]
+
+        """
         assert not self.is_operator_skeleton_node
         actions = self.A
         q_values = [self.Q[a] for a in self.A]
@@ -88,4 +109,5 @@ class ContinuousTreeNode(TreeNode):
         else:
             best_action = self.get_action_with_highest_ucb_value(actions, q_values)
         return best_action
+        """
 
