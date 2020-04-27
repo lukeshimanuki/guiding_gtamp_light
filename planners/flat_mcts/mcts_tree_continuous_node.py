@@ -110,6 +110,7 @@ class ContinuousTreeNode(TreeNode):
             curr_node_value = np.max(self.Q.values())
             q_value_improved = curr_node_value - parent_node_value == 0
             assert q_value_improved
+            print 'Nsa', self.N[np.argmax(self.Q.values())]
             #idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
             return self.Q.keys()[np.argmax(self.Q.values())]
 
