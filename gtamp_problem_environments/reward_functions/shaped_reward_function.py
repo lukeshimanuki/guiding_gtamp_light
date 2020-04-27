@@ -43,6 +43,6 @@ class ShapedRewardFunction(GenericRewardFunction):
 
                 print "(Hcount,Hcount_prime) = %.5f, %.5f" % (potential_curr, potential_next)
                 shaping_val = potential_next - potential_curr
-                return true_reward + shaping_val
+                return true_reward #+ shaping_val
 
 
