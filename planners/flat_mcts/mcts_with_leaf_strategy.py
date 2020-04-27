@@ -62,8 +62,8 @@ class MCTSWithLeafStrategy(MCTS):
             if is_tree_action or curr_node.is_operator_skeleton_node:
                 sum_rewards = reward + self.simulate(next_node, node_to_search_from, depth + 1, new_traj)
             else:
-                sum_rewards = reward
-                self.found_solution =  self.problem_env.reward_function.is_goal_reached()
+                sum_rewards = reward + self.problem_env.reward_function.potential_function(next_node)
+                self.found_solution = self.problem_env.reward_function.is_goal_reached()
         curr_node.update_node_statistics(action, sum_rewards, reward)
 
         if curr_node == node_to_search_from and curr_node.parent is not None:
