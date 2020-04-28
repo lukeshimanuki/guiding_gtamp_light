@@ -103,7 +103,6 @@ class TreeNode:
 
         is_action_never_tried = self.N[action] == 0
         if is_action_never_tried:
-            # does this mean this is the next state is the leaf node? Yes
             self.reward_history[action] = [reward]
             self.Q[action] = sum_rewards
             self.N[action] += 1
