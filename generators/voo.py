@@ -43,6 +43,7 @@ class TwoArmVOOGenerator(Generator):
             import pdb;
             pdb.set_trace()
 
+        basic_feasible_sample_label = 0
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
             evaled_actions = actions + self.basic_tested_samples
@@ -61,10 +62,11 @@ class TwoArmVOOGenerator(Generator):
                 # What value should this take?
                 #   If there is no feasible action, it should have the highest value
                 #   If there are feasible actions, then don't do this. You can follow them.
-                if np.max(evaled_values) == self.sampler.infeasible_action_value:
+                if np.max(evaled_values) == self.sampler.infeasible_action_value\
+                        or np.max(evaled_values) == basic_feasible_sample_label:
                     sampled_op_parameters[0:6] = op_parameters['pick']['action_parameters']
                     self.basic_tested_samples.append(sampled_op_parameters)
-                    self.basic_tested_sample_values.append(0)
+                    self.basic_tested_sample_values.append(basic_feasible_sample_label)
 
                 feasible_op_parameters.append(op_parameters)
                 self.feasibility_checker.feasible_pick = []
@@ -82,13 +84,22 @@ class TwoArmVOOGenerator(Generator):
 
         smpling_time = time.time() - stime
         print "IK time {:.5f} Total IK checks {}".format(smpling_time, self.n_ik_checks - orig_ik_checks)
+        """
+        if len(feasible_op_parameters) > 0:
+            utils.viewer()
+            pick_configs = [op['pick']['q_goal'] for op in feasible_op_parameters]
+            place_configs = [op['place']['q_goal'] for op in feasible_op_parameters]
+            import pdb;pdb.set_trace()
+            utils.visualize_path(pick_configs)
+            utils.visualize_path(place_configs)
+            import pdb;pdb.set_trace()
+        """
 
         # Remove all the temporarily added ones
-        idxs_to_remove = np.where(self.basic_tested_sample_values == np.max(self.basic_tested_sample_values))[0]
+        idxs_to_remove = np.where(self.basic_tested_sample_values == basic_feasible_sample_label)[0]
         for i in idxs_to_remove:
             self.basic_tested_samples.pop(i)
             self.basic_tested_sample_values.pop(i)
-        import pdb; pdb.set_trace()
 
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
