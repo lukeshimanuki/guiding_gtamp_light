@@ -27,10 +27,11 @@ class ContinuousTreeNode(TreeNode):
         if n_arms < 1:
             return False
 
-        feasible_actions = [a for a in self.A if a.continuous_parameters['is_feasible']]
-        n_feasible_actions = len(feasible_actions)
+        #feasible_actions = [a for a in self.A if a.continuous_parameters['is_feasible']]
+        #n_feasible_actions = len(feasible_actions)
 
-        if n_feasible_actions < 1:
+        # last added action, which will be re-evaluated, is not feasible
+        if not self.A[-1].continuous_parameters['is_feasible']:
             return False
 
         there_is_new_action = self.N[self.A[-1]] == 1
