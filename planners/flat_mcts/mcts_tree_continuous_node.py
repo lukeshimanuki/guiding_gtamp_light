@@ -14,7 +14,6 @@ class ContinuousTreeNode(TreeNode):
         TreeNode.__init__(self, state, ucb_parameter, depth, state_saver, is_operator_skeleton_node, is_init_node)
         self.operator_skeleton = operator_skeleton
         self.max_sum_rewards = {}
-        self.improvement_counter = 0
 
     def add_actions(self, action):
         new_action = Operator(operator_type=self.operator_skeleton.type,
@@ -42,6 +41,8 @@ class ContinuousTreeNode(TreeNode):
 
         if there_is_new_action or q_value_improved:
             if there_is_new_action:
+                there_is_no_grand_child = len(self.children[self.A[-1]].children) == 0
+                assert there_is_no_grand_child
                 self.improvement_counter = 1
                 print "There is new action. Re-evaluating"
             else:
@@ -50,47 +51,22 @@ class ContinuousTreeNode(TreeNode):
                                                                                      self.prevQ[self.A[-1]])
                 print "Improvement counter", self.improvement_counter
                 self.improvement_counter += 1
-
-            return True
+                self.improvement_counter = max(self.improvement_counter, self.child_improvement_counter)
+            is_reevaluate = True
         else:
             past_node_value = self.prevQ[self.A[-1]]
             curr_node_value = self.Q[self.A[-1]]
-            print "Curr value {} Prev value {} Q improved. Re-evaluating".format(self.Q[self.A[-1]],
-                                                                                 self.prevQ[self.A[-1]])
+            print "Curr value {} Prev value {} Q".format(self.Q[self.A[-1]],
+                                                         self.prevQ[self.A[-1]])
             print "Q value decreased:", curr_node_value - past_node_value
-            # is this about the last action that was added?
-            # I think I am supposed to keep a counter of the individual action
-            # It should be the action that would be executed if we were to re-use.
-            # Option 1: last added action
-            # Option 2: UCT
-            # Option 3: last executed action
             self.improvement_counter -= 1
             print "Improvement counter", self.improvement_counter
-            import pdb; pdb.set_trace()
             if self.improvement_counter == -1:
-                return False
+                is_reevaluate = False
             else:
-                return True
+                is_reevaluate = True
 
-        if not use_ucb:
-            new_action = self.A[-1]
-            is_new_action_infeasible = not new_action.continuous_parameters['is_feasible']
-            if is_new_action_infeasible:
-                return False
-
-        if use_progressive_widening:
-            n_actions = len(self.A)
-            is_time_to_sample = n_actions <= widening_parameter * self.Nvisited
-            print "PW %d / %.2f" % (n_actions, widening_parameter * self.Nvisited)
-            return not is_time_to_sample
-        else:
-            if self.n_ucb_iterations < widening_parameter:
-                self.n_ucb_iterations += 1
-                print "Re-evaluation iter: %d / %d" % (self.n_ucb_iterations, widening_parameter)
-                return True
-            else:
-                self.n_ucb_iterations = 0
-                return False
+        return is_reevaluate
 
     def get_never_evaluated_action(self):
         # get list of actions that do not have an associated Q values
