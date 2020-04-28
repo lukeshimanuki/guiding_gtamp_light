@@ -124,7 +124,8 @@ class MCTS:
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
-            sampler = VOOSampler(place_region, self.explr_p, self.problem_env.reward_function.worst_potential_value)
+            target_obj = abstract_action.discrete_parameters['object']
+            sampler = VOOSampler(target_obj, place_region, self.explr_p, self.problem_env.reward_function.worst_potential_value)
             generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
                                            n_parameters_to_try_motion_planning=self.n_motion_plan_trials,
                                            n_iter_limit=self.n_feasibility_checks, problem_env=self.problem_env,
@@ -153,7 +154,8 @@ class MCTS:
                     self.parameters.pidx, self.parameters.planner_seed)
                 is_root_node = parent_state is None
                 cache_file_exists = os.path.isfile(cache_file_name_for_debugging)
-                if cache_file_exists and is_root_node and False:
+                is_beomjoon_local_machine = socket.gethostname() == 'lab'
+                if cache_file_exists and is_root_node and is_beomjoon_local_machine:
                     state = pickle.load(open(cache_file_name_for_debugging, 'r'))
                     state.make_plannable(self.problem_env)
                 else:
@@ -161,7 +163,7 @@ class MCTS:
                                                  parent_state=parent_state,
                                                  parent_action=parent_action,
                                                  goal_entities=self.goal_entities, planner='mcts')
-                    if is_root_node and False:
+                    if is_root_node and is_beomjoon_local_machine:
                         state.make_pklable()
                         pickle.dump(state, open(cache_file_name_for_debugging, 'wb'))
                         state.make_plannable(self.problem_env)
