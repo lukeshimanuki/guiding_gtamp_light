@@ -83,7 +83,7 @@ class VOOSampler(Sampler):
         other_points = self.get_other_points(evaled_x)
 
         curr_closest_dist = np.inf
-        for counter in range(10):
+        for counter in range(1, 11):
             new_x = self.sample_from_normal_centered_at_point(best_x, counter)
 
             dist_to_best_point = self.distance_fn(new_x, best_x)
