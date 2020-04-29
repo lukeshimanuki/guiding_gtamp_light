@@ -307,7 +307,6 @@ class MCTS:
         new_trajs = []
         plan = []
         history_of_n_objs_in_goal = []
-        #utils.viewer()
         for iteration in range(1, n_iter):
             print '*****SIMULATION ITERATION %d' % iteration
             self.problem_env.reset_to_init_state(node_to_search_from)
@@ -475,4 +474,5 @@ class MCTS:
                 smpled_param = node.sampling_agent.sample_next_point(action_parameters, q_values)
             else:
                 smpled_param = node.sampling_agent.sample_next_point()
+                node.needs_to_sample = False
         return smpled_param
