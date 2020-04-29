@@ -40,8 +40,6 @@ class TreeNode:
         self.n_ucb_iterations = 0
         self.idx = 1
         self.state = state
-        self.improvement_counter = None
-        self.child_improvement_counter = None
 
     def set_objects_in_collision(self, objects_in_collision):
         self.objects_in_collision = objects_in_collision
@@ -108,9 +106,6 @@ class TreeNode:
             self.reward_history[action] = [reward]
             self.Q[action] = sum_rewards
             self.N[action] += 1
-            self.improvement_counter = 1
-            if self.parent is not None:
-                self.parent.child_improvement_counter = self.improvement_counter
         elif self.children[action].is_goal_node:
             self.reward_history[action] = [reward]
             self.Q[action] = sum_rewards
@@ -123,5 +118,3 @@ class TreeNode:
             self.Q[action] = reward + np.max(children_action_values)
             print 'Rwd %.5f, max child val %.5f' % (reward, np.max(children_action_values))
             print "Updated. Current Q %.5f Prev Q %.5f" % (self.Q[action], self.prevQ[action])
-            if self.parent is not None:
-                self.parent.child_improvement_counter = self.improvement_counter
