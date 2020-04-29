@@ -154,7 +154,7 @@ class MCTS:
                     self.parameters.pidx, self.parameters.planner_seed)
                 is_root_node = parent_state is None
                 cache_file_exists = os.path.isfile(cache_file_name_for_debugging)
-                is_beomjoon_local_machine = socket.gethostname() == 'lab'
+                is_beomjoon_local_machine = False #socket.gethostname() == 'lab'
                 if cache_file_exists and is_root_node and is_beomjoon_local_machine:
                     state = pickle.load(open(cache_file_name_for_debugging, 'r'))
                     state.make_plannable(self.problem_env)
@@ -307,6 +307,7 @@ class MCTS:
         new_trajs = []
         plan = []
         history_of_n_objs_in_goal = []
+        #utils.viewer()
         for iteration in range(1, n_iter):
             print '*****SIMULATION ITERATION %d' % iteration
             self.problem_env.reset_to_init_state(node_to_search_from)

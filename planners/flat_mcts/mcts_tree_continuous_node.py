@@ -76,7 +76,9 @@ class ContinuousTreeNode(TreeNode):
         else:
             return np.random.choice(no_evaled_feasible)
 
-    def get_action_with_highest_ucb_value(self, actions, q_values):
+    def get_action_with_highest_ucb_value(self):
+        actions = self.A
+        q_values = self.Q.values()
         best_value = -np.inf
         best_action = None
         for action, value in zip(actions, q_values):
@@ -87,7 +89,8 @@ class ContinuousTreeNode(TreeNode):
                 best_action = action
             #print "Placement {} Qval {}".format(action['place']['q_goal'], value)
             if action.continuous_parameters['is_feasible']:
-                print action.continuous_parameters['place']['q_goal'], value, ucb_value, self.N[action]
+                print "{} Q {} UCB {} Nsa {}".format(
+                    action.continuous_parameters['place']['q_goal'], value, ucb_value, self.N[action])
             else:
                 print "infeasible action", value
         # from gtamp_utils import utils
@@ -112,7 +115,8 @@ class ContinuousTreeNode(TreeNode):
             assert q_value_improved
             print 'Nsa', self.N.values()[np.argmax(self.Q.values())]
             #idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
-            return self.Q.keys()[np.argmax(self.Q.values())]
+            #return self.Q.keys()[np.argmax(self.Q.values())]
+            return self.get_action_with_highest_ucb_value()
 
         """
         assert not self.is_operator_skeleton_node
