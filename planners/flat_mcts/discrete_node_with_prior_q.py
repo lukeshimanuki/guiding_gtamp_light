@@ -26,7 +26,7 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
         actions = self.A
         q_values = [self.Q[a] for a in self.A]
 
-        #best_action = self.get_action_with_highest_ucb_value(actions, q_values)
+        best_action = self.get_action_with_highest_ucb_value(actions, q_values)
         best_action = self.A[np.argmax(q_values)]
         return best_action
 
