@@ -52,7 +52,7 @@ class ContinuousTreeNode(TreeNode):
                                                                                      self.prevQ[self.A[-1]])
                 print "Improvement counter", self.improvement_counter
                 self.improvement_counter += 1
-                self.improvement_counter = max(self.improvement_counter, self.child_improvement_counter)
+                #self.improvement_counter = max(self.improvement_counter, self.child_improvement_counter)
             is_reevaluate = True
         else:
             past_node_value = self.prevQ[self.A[-1]]
