@@ -1,8 +1,6 @@
 import numpy as np
 from trajectory_representation.operator import Operator
 from planners.flat_mcts.mcts_tree_node import TreeNode
-from gtamp_utils import utils
-
 
 def upper_confidence_bound(n, n_sa):
     return 2 * np.sqrt(np.log(n) / float(n_sa))
@@ -14,6 +12,8 @@ class ContinuousTreeNode(TreeNode):
         TreeNode.__init__(self, state, ucb_parameter, depth, state_saver, is_operator_skeleton_node, is_init_node)
         self.operator_skeleton = operator_skeleton
         self.max_sum_rewards = {}
+
+
 
     def add_actions(self, action):
         new_action = Operator(operator_type=self.operator_skeleton.type,
@@ -27,47 +27,45 @@ class ContinuousTreeNode(TreeNode):
         if n_arms < 1:
             return False
 
-        #feasible_actions = [a for a in self.A if a.continuous_parameters['is_feasible']]
-        #n_feasible_actions = len(feasible_actions)
+        feasible_actions = [a for a in self.A if a.continuous_parameters['is_feasible']]
+        n_feasible_actions = len(feasible_actions)
 
-        # last added action, which will be re-evaluated, is not feasible
-        if not self.A[-1].continuous_parameters['is_feasible']:
+        if n_feasible_actions < 1:
             return False
 
-        there_is_new_action = self.N[self.A[-1]] == 1
-        if self.A[-1] in self.prevQ:
-            q_value_improved = self.prevQ[self.A[-1]] - self.Q[self.A[-1]] <= 0
-        else:
-            q_value_improved = True
-
+        there_is_new_action = np.any(np.array(self.N.values()) == 0)
+        parent_node_value = np.max(self.Q.values())
+        curr_node_value = np.max(self.Q.values())
+        q_value_improved = curr_node_value - parent_node_value == 0
         if there_is_new_action or q_value_improved:
             if there_is_new_action:
-                there_is_no_grand_child = len(self.children[self.A[-1]].children) == 0
-                assert there_is_no_grand_child
-                self.improvement_counter = 1
                 print "There is new action. Re-evaluating"
             else:
-                assert self.A[-1] in self.prevQ
-                print "Curr value {} Prev value {} Q improved. Re-evaluating".format(self.Q[self.A[-1]],
-                                                                                     self.prevQ[self.A[-1]])
-                print "Improvement counter", self.improvement_counter
-                self.improvement_counter += 1
-                #self.improvement_counter = max(self.improvement_counter, self.child_improvement_counter)
-            is_reevaluate = True
+                print "Curr node value {} Parent node value {} Q improved. Re-evaluating".format(curr_node_value, parent_node_value)
+            return True
         else:
-            past_node_value = self.prevQ[self.A[-1]]
-            curr_node_value = self.Q[self.A[-1]]
-            print "Curr value {} Prev value {} Q".format(self.Q[self.A[-1]],
-                                                         self.prevQ[self.A[-1]])
-            print "Q value decreased:", curr_node_value - past_node_value
-            self.improvement_counter -= 1
-            print "Improvement counter", self.improvement_counter
-            if self.improvement_counter == -1:
-                is_reevaluate = False
-            else:
-                is_reevaluate = True
+            print "Q value decreased:", curr_node_value - parent_node_value
+            return False
 
-        return is_reevaluate
+        if not use_ucb:
+            new_action = self.A[-1]
+            is_new_action_infeasible = not new_action.continuous_parameters['is_feasible']
+            if is_new_action_infeasible:
+                return False
+
+        if use_progressive_widening:
+            n_actions = len(self.A)
+            is_time_to_sample = n_actions <= widening_parameter * self.Nvisited
+            print "PW %d / %.2f" % (n_actions, widening_parameter*self.Nvisited)
+            return not is_time_to_sample
+        else:
+            if self.n_ucb_iterations < widening_parameter:
+                self.n_ucb_iterations += 1
+                print "Re-evaluation iter: %d / %d" % (self.n_ucb_iterations, widening_parameter)
+                return True
+            else:
+                self.n_ucb_iterations = 0
+                return False
 
     def get_never_evaluated_action(self):
         # get list of actions that do not have an associated Q values
@@ -87,7 +85,7 @@ class ContinuousTreeNode(TreeNode):
             if action_evaluation > best_value:
                 best_value = action_evaluation
                 best_action = action
-            # print "Placement {} Qval {}".format(action['place']['q_goal'], value)
+            #print "Placement {} Qval {}".format(action['place']['q_goal'], value)
             if action.continuous_parameters['is_feasible']:
                 print action.continuous_parameters['place']['q_goal'], value, ucb_value, self.N[action]
             else:
@@ -108,17 +106,13 @@ class ContinuousTreeNode(TreeNode):
                 if self.N[action] == 0:
                     return action
         else:
-            return self.A[-1]
-
-            """
             parent_node_value = np.max(self.Q.values())  # potential_function(self.parent)
             curr_node_value = np.max(self.Q.values())
             q_value_improved = curr_node_value - parent_node_value == 0
             assert q_value_improved
             print 'Nsa', self.N.values()[np.argmax(self.Q.values())]
-            # idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
+            #idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
             return self.Q.keys()[np.argmax(self.Q.values())]
-            """
 
         """
         assert not self.is_operator_skeleton_node
