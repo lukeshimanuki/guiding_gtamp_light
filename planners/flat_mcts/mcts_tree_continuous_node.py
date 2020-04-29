@@ -33,15 +33,22 @@ class ContinuousTreeNode(TreeNode):
         if n_feasible_actions < 1:
             return False
 
-        there_is_new_action = np.any(np.array(self.N.values()) == 0)
-        parent_node_value = np.max(self.Q.values())
-        curr_node_value = np.max(self.Q.values())
-        q_value_improved = curr_node_value - parent_node_value == 0
+        there_is_new_action = np.any(np.array(self.N.values()) == 1)
+        if not there_is_new_action and len(self.prevQ.values()) > 0:
+            parent_node_value = np.array(self.prevQ.values())
+            curr_node_value = np.array(self.Q.values())
+            q_value_improved = np.any(curr_node_value - parent_node_value >= 0)
+        else:
+            q_value_improved = True
+
         if there_is_new_action or q_value_improved:
             if there_is_new_action:
                 print "There is new action. Re-evaluating"
             else:
-                print "Curr node value {} Parent node value {} Q improved. Re-evaluating".format(curr_node_value, parent_node_value)
+                if len(self.prevQ.values()) > 0:
+                    print "Curr node value {} Parent node value {} Q improved. Re-evaluating".format(curr_node_value, parent_node_value)
+                else:
+                    print 'Action has been tried only once'
             return True
         else:
             print "Q value decreased:", curr_node_value - parent_node_value
@@ -81,6 +88,9 @@ class ContinuousTreeNode(TreeNode):
         q_values = self.Q.values()
         best_value = -np.inf
         best_action = None
+        if np.any(self.N.values() == 1): # we need to see if we can make improvement?
+            return self.A[np.argmin(self.N.values())]
+
         for action, value in zip(actions, q_values):
             ucb_value = self.compute_ucb_value(action)
             action_evaluation = value + ucb_value
@@ -109,10 +119,10 @@ class ContinuousTreeNode(TreeNode):
                 if self.N[action] == 0:
                     return action
         else:
-            parent_node_value = np.max(self.Q.values())  # potential_function(self.parent)
-            curr_node_value = np.max(self.Q.values())
-            q_value_improved = curr_node_value - parent_node_value == 0
-            assert q_value_improved
+            #parent_node_value = np.max(self.Q.values())  # potential_function(self.parent)
+            #curr_node_value = np.max(self.Q.values())
+            #q_value_improved = curr_node_value - parent_node_value == 0
+            #assert q_value_improved
             print 'Nsa', self.N.values()[np.argmax(self.Q.values())]
             #idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
             #return self.Q.keys()[np.argmax(self.Q.values())]
