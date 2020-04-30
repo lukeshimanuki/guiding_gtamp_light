@@ -6,6 +6,8 @@ def get_n_nodes(target_dir):
     test_files = os.listdir(target_dir)
     n_iks = [] 
     n_nodes = []
+    test_file_pidxs = [int(filename.split('_')[1]) for filename in test_files]
+    test_files = np.array(test_files)[np.argsort(test_file_pidxs)]
     for filename in test_files:
         pidx = int(filename.split('_')[1])
         if pidx > 9:
@@ -23,7 +25,7 @@ def get_n_nodes(target_dir):
             if True:
               where_is_three = np.where(np.array(fin['search_time_to_reward'])[:,-1] == 3)[0][0]
               n_steps_after_three = len(np.array(fin['search_time_to_reward'])[where_is_three:,-1])
-              #print filename, where_is_three, n_steps_after_three, n_ik
+              print filename, where_is_three, n_steps_after_three, n_ik
         n_iks.append(n_ik)
         n_nodes.append(n_node)
         #print filename, n_node
@@ -45,6 +47,8 @@ def main():
                  'switch_frequency_50/reward_shaping_True/learned_q_True/'
     target_dir = 'test_results/mcts_results_with_q_bonus/domain_two_arm_mover/n_objs_pack_1/sampling_strategy_uniform/n_mp_trials_10/widening_0.2/uct_0.1/switch_frequency_100/reward_shaping_True/learned_q_True/use_pwTrue/'
     target_dir = 'test_results/mcts_results_with_q_bonus/domain_two_arm_mover/n_objs_pack_1/sampling_strategy_uniform/n_mp_trials_10/widening_0.2/uct_0.1/switch_frequency_10/reward_shaping_True/learned_q_True/use_pw_True/use_ucb_at_cont_nodes_True/'
+    target_dir = 'test_results/mcts_results_with_q_bonus/domain_two_arm_mover/n_objs_pack_1/sampling_strategy_uniform/n_mp_trials_5/n_feasibility_checks_2000/widening_-1.0/uct_0.0/switch_frequency_50/reward_shaping_True/learned_q_True/use_pw_True/use_ucb_at_cont_nodes_True/'
+    target_dir = 'test_results/mcts_results_with_q_bonus/domain_two_arm_mover/n_objs_pack_1/sampling_strategy_uniform/n_mp_trials_5/n_feasibility_checks_2000/widening_-4.0/uct_0.0/switch_frequency_50/reward_shaping_True/learned_q_True/use_pw_True/use_ucb_at_cont_nodes_True/'
     n_nodes = get_n_nodes(target_dir)
 
 if __name__ == '__main__':
