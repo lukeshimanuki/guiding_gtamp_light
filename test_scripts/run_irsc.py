@@ -3,6 +3,8 @@ from planners.rsc.resolve_spatial_constraints import ResolveSpatialConstraints
 from planners.rsc.one_arm_resolve_spatial_constraints import OneArmResolveSpatialConstraints
 from planners.rsc.planner_without_reachability import PlannerWithoutReachability
 from planners.rsc.one_arm_planner_without_reachability import OneArmPlannerWithoutReachability
+from planners.subplanners.motion_planner import BaseMotionPlanner
+from mover_library.utils import get_body_xytheta
 from gtamp_problem_environments.one_arm_mover_env import OneArmMover
 from trajectory_representation.swept_volume import PickAndPlaceSweptVolume
 
@@ -17,11 +19,12 @@ import random
 import time
 import socket
 
-hostname = socket.gethostname()
-if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
+ROOTDIR = './'
+#hostname = socket.gethostname()
+#if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
+#    ROOTDIR = './'
+#else:
+#    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
 
 def make_and_get_save_dir(parameters):
@@ -51,7 +54,8 @@ def parse_parameters():
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-n_feasibility_checks', type=int, default=500)
     parser.add_argument('-n_parameters_to_test_each_sample_time', type=int, default=10)
-    parser.add_argument('-n_motion_plan_trials', type=int, default=10)
+    parser.add_argument('-n_mp_limit', type=int, default=10)
+    parser.add_argument('-n_iter_limit', type=int, default=200)
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
 
@@ -146,12 +150,12 @@ def save_plan(total_plan, total_n_nodes, n_remaining_objs, found_solution, file_
                 open(file_path, 'wb'))
 
 
-def find_plan_without_reachability(problem_env, goal_object_names):
+def find_plan_without_reachability(problem_env, goal_object_names, config):
     if problem_env.name.find('one_arm_mover') != -1:
         planner = OneArmPlannerWithoutReachability(problem_env, goal_object_names,
-                                                   goal_region='rectangular_packing_box1_region')
+                                                   goal_region='rectangular_packing_box1_region', config=config)
     else:
-        planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region')
+        planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region', config=config)
     goal_obj_order_plan, plan = planner.search()
 
     goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
@@ -176,6 +180,8 @@ def main():
         environment = OneArmMover(parameters.pidx)
         goal_region = ['rectangular_packing_box1_region']
 
+    environment.initial_robot_base_pose = get_body_xytheta(environment.robot)
+
     goal_object_names = [obj.GetName() for obj in environment.objects[:parameters.n_objs_pack]]
     goal_entities = goal_object_names + goal_region
 
@@ -186,11 +192,12 @@ def main():
     if parameters.v:
         environment.env.SetViewer('qtcoin')
 
+    environment.set_motion_planner(BaseMotionPlanner(environment, 'prm'))
     # from manipulation.bodies.bodies import set_color
     # set_color(environment.env.GetKinBody(goal_object_names[0]), [1, 0, 0])
     stime = time.time()
 
-    goal_object_names, high_level_plan = find_plan_without_reachability(environment, goal_object_names)  # finds the plan
+    goal_object_names, high_level_plan = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
 
     total_n_nodes = 0
     total_plan = []
@@ -215,7 +222,7 @@ def main():
             idx += 1
         else:
             # Note that HPN does not have any recourse if this happens. We re-plan at the higher level.
-            goal_object_names, plan = find_plan_without_reachability(environment, goal_object_names)  # finds the plan
+            goal_object_names, plan = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
             total_plan = []
             idx = 0
 
