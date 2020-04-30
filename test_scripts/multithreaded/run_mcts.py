@@ -15,10 +15,11 @@ def worker_p(config):
     for key, value in zip(config.keys(), config.values()):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
-    #command += ' -qlearned_hcount_old_number_in_goal'
     command += ' -pw'
     command += ' -use_ucb'
     command += ' -widening_parameter 0.2'
+    command += ' -sampling_strategy voo'
+    command += ' -switch_frequency 1000'
 
     print command
     os.system(command)

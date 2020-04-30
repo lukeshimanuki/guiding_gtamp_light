@@ -2,7 +2,6 @@ import numpy as np
 from trajectory_representation.operator import Operator
 from planners.flat_mcts.mcts_tree_node import TreeNode
 
-
 def upper_confidence_bound(n, n_sa):
     return 2 * np.sqrt(np.log(n) / float(n_sa))
 
@@ -13,6 +12,10 @@ class ContinuousTreeNode(TreeNode):
         TreeNode.__init__(self, state, ucb_parameter, depth, state_saver, is_operator_skeleton_node, is_init_node)
         self.operator_skeleton = operator_skeleton
         self.max_sum_rewards = {}
+        self.needs_to_sample=False
+        self.improvement_counter = 5
+
+
 
     def add_actions(self, action):
         new_action = Operator(operator_type=self.operator_skeleton.type,
@@ -28,29 +31,48 @@ class ContinuousTreeNode(TreeNode):
 
         feasible_actions = [a for a in self.A if a.continuous_parameters['is_feasible']]
         n_feasible_actions = len(feasible_actions)
-
         if n_feasible_actions < 1:
             return False
 
-        if not use_ucb:
-            new_action = self.A[-1]
-            is_new_action_infeasible = not new_action.continuous_parameters['is_feasible']
-            if is_new_action_infeasible:
-                return False
-
-        if use_progressive_widening:
-            n_actions = len(self.A)
-            is_time_to_sample = n_actions <= widening_parameter * self.Nvisited
-            print "PW %d / %.2f" % (n_actions, widening_parameter*self.Nvisited)
-            return not is_time_to_sample
+        there_is_new_action = np.any(np.array(self.N.values()) == 1)
+        if not there_is_new_action and len(self.prevQ.values()) > 0:
+            parent_node_value = np.array(self.prevQ.values())
+            curr_node_value = np.array(self.Q.values())
+            q_value_improved = np.any(curr_node_value - parent_node_value >= 0)
         else:
-            if self.n_ucb_iterations < widening_parameter:
-                self.n_ucb_iterations += 1
-                print "Re-evaluation iter: %d / %d" % (self.n_ucb_iterations, widening_parameter)
-                return True
+            q_value_improved = True
+
+        if there_is_new_action or q_value_improved:
+            if there_is_new_action:
+                print "There is new action. Re-evaluating"
             else:
-                self.n_ucb_iterations = 0
-                return False
+                if len(self.prevQ.values()) > 0:
+                    print "Curr node value {} Parent node value {} Q improved. Re-evaluating".format(curr_node_value, parent_node_value)
+                else:
+                    print 'Action has been tried only once'
+            is_reevaluation = True
+        else:
+            print "Q value decreased:", curr_node_value - parent_node_value
+            self.improvement_counter -= 1
+            if self.improvement_counter > 0:
+                print "Improvement counter", self.improvement_counter
+                is_reevaluation = True
+            else:
+                action_to_take = self.perform_ucb_over_actions()
+                chosen_child = self.children[action_to_take]
+
+                if max(chosen_child.Q.values()) > -8:
+                    values_of_action_taken = [chosen_child.Q[taken_action] for taken_action in chosen_child.children.keys()]
+                    grandchild_with_max_q = chosen_child.children.values()[np.argmax(values_of_action_taken)]
+                    if grandchild_with_max_q.needs_to_sample:
+                        is_reevaluation = True
+                    else:
+                        is_reevaluation = False
+                else:
+                    is_reevaluation = False
+                print "Is reevaluation?", is_reevaluation
+
+        return is_reevaluation
 
     def get_never_evaluated_action(self):
         # get list of actions that do not have an associated Q values
@@ -61,9 +83,14 @@ class ContinuousTreeNode(TreeNode):
         else:
             return np.random.choice(no_evaled_feasible)
 
-    def get_action_with_highest_ucb_value(self, actions, q_values):
+    def get_action_with_highest_ucb_value(self):
+        actions = self.A
+        q_values = self.Q.values()
         best_value = -np.inf
         best_action = None
+        if np.any(self.N.values() == 1): # we need to see if we can make improvement?
+            return self.A[np.argmin(self.N.values())]
+
         for action, value in zip(actions, q_values):
             ucb_value = self.compute_ucb_value(action)
             action_evaluation = value + ucb_value
@@ -72,21 +99,73 @@ class ContinuousTreeNode(TreeNode):
                 best_action = action
             #print "Placement {} Qval {}".format(action['place']['q_goal'], value)
             if action.continuous_parameters['is_feasible']:
-                print action.continuous_parameters['place']['q_goal'], value
+                print "{} Q {} UCB {} Nsa {}".format(
+                    action.continuous_parameters['place']['q_goal'], value, ucb_value, self.N[action])
             else:
                 print "infeasible action", value
         # from gtamp_utils import utils
         # utils.visualize_placements(np.array( [actions[0].continuous_parameters['place']['q_goal']]), 'square_packing_box1')
-        #import pdb;pdb.set_trace()
         return best_action
 
     def perform_ucb_over_actions(self):
-        assert not self.is_operator_skeleton_node
-        actions = self.A
-        q_values = [self.Q[a] for a in self.A]
-        if len(q_values) == 1:
-            best_action = self.A[-1]
+        for action in self.N:
+            if action.continuous_parameters['is_feasible']:
+                print action.continuous_parameters['place']['q_goal'], self.Q[action], self.N[action]
+            else:
+                print "infeasible action", self.N[action]
+
+        there_is_new_action = np.any(np.array(self.N.values()) == 1)
+        if there_is_new_action:
+            print "Choosing new action"
+            for a in self.N:
+                if self.N[a] == 1:
+                    action = a
+                    break
         else:
-            best_action = self.get_action_with_highest_ucb_value(actions, q_values)
-        return best_action
+            parent_node_value = np.array(self.prevQ.values())
+            curr_node_value = np.array(self.Q.values())
+            q_value_improved = np.any(curr_node_value - parent_node_value >= 0)
+            there_is_action_that_made_progress = q_value_improved
+
+            if there_is_action_that_made_progress:
+                print "Choosing action with highest improvement"
+                action = self.Q.keys()[np.argmax(curr_node_value-parent_node_value)]
+            else:
+                print "Choosing action with the highest value"
+                action = self.Q.keys()[np.argmax(self.Q.values())]
+        return action
+
+    def update_node_statistics(self, action, sum_rewards, reward):
+        self.Nvisited += 1
+
+        is_action_never_tried = self.N[action] == 0
+        if is_action_never_tried:
+            self.reward_history[action] = [reward]
+            self.Q[action] = sum_rewards
+            self.N[action] += 1
+        elif self.children[action].is_goal_node:
+            self.reward_history[action] = [reward]
+            self.Q[action] = sum_rewards
+            self.N[action] += 1
+        else:
+            self.reward_history[action].append(reward)
+            self.N[action] += 1
+            children_action_values = [self.children[action].Q[child_action] for child_action in self.children[action].Q]
+            self.prevQ[action] = self.Q[action]
+            self.Q[action] = reward + np.max(children_action_values)
+            print 'Rwd %.5f, max child val %.5f' % (reward, np.max(children_action_values))
+            print "Updated. Current Q %.5f Prev Q %.5f" % (self.Q[action], self.prevQ[action])
+
+            if len(self.prevQ.values()) == len(self.Q.values()):
+                parent_node_value = np.array(self.prevQ.values())
+                curr_node_value = np.array(self.Q.values())
+                q_value_improved = np.any(curr_node_value - parent_node_value >= 0)
+                if q_value_improved:
+                    self.needs_to_sample = False
+                    self.improvement_counter = 5
+                else:
+                    self.needs_to_sample = True
+            else:
+                self.needs_to_sample = False
+
 

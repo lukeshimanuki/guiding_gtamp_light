@@ -32,6 +32,7 @@ def make_and_get_save_dir(parameters, filename):
                + 'n_objs_pack_' + str(parameters.n_objs_pack) + '/' \
                + 'sampling_strategy_' + str(parameters.sampling_strategy) + '/' \
                + 'n_mp_trials_' + str(parameters.n_motion_plan_trials) + '/' \
+               + 'n_feasibility_checks_' + str(parameters.n_feasibility_checks) + '/' \
                + 'widening_' + str(parameters.widening_parameter) + '/' \
                + 'uct_' + str(parameters.ucb_parameter) + '/' \
                + 'switch_frequency_' + str(parameters.switch_frequency) + '/' \
@@ -62,9 +63,9 @@ def parse_mover_problem_parameters():
     # Planner-agnostic parameters
     parser.add_argument('-timelimit', type=int, default=np.inf)
     parser.add_argument('-dont_use_learned_q', action='store_false', default=True)
-    parser.add_argument('-n_feasibility_checks', type=int, default=200)
-    parser.add_argument('-n_motion_plan_trials', type=int, default=10)
-    parser.add_argument('-planning_horizon', type=int, default=3 * 8)
+    parser.add_argument('-n_feasibility_checks', type=int, default=2000)
+    parser.add_argument('-n_motion_plan_trials', type=int, default=5)
+    parser.add_argument('-planning_horizon', type=int, default=10000)
 
     # Learning-related parameters
     parser.add_argument('-train_seed', type=int, default=0)
@@ -76,7 +77,7 @@ def parse_mover_problem_parameters():
     parser.add_argument('-switch_frequency', type=int, default=100)
     parser.add_argument('-ucb_parameter', type=float, default=0.1)
     parser.add_argument('-widening_parameter', type=float, default=10)  # number of re-evals
-    parser.add_argument('-explr_p', type=float, default=0.3)  # number of re-evals
+    parser.add_argument('-explr_p', type=float, default=0.3)
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-debug', action='store_true', default=False)
     parser.add_argument('-mcts_iter', type=int, default=1000)
@@ -152,12 +153,12 @@ def main():
     save_dir = make_and_get_save_dir(parameters, filename)
     solution_file_name = save_dir+filename
     is_problem_solved_before = os.path.isfile(solution_file_name)
-
+    print solution_file_name
     if is_problem_solved_before and not parameters.f:
         print "***************Already solved********************"
         with open(solution_file_name, 'rb') as f:
             trajectory = pickle.load(f)
-            tottime = trajectory['search_time_to_reward'][-1][0]
+            tottime = trajectory['search_time_to_reward'][-1][2]
             print 'Time: %.2f ' % tottime
         sys.exit(-1)
 

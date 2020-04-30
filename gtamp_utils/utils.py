@@ -554,7 +554,7 @@ def two_arm_pick_object(obj, pick_action):
 
 def viewer():
     env = openravepy.RaveGetEnvironments()[0]
-    env.SetViewer('qtcoin')
+    env.SetViewer('qtosg')
 
 
 def set_color(obj, color):
@@ -841,11 +841,17 @@ def place_parameter_distance(param1, param2, c1=1):
 
 
 def get_place_domain(region):
-    box = np.array(region.box)
-    x_range = np.array([[box[0, 0]], [box[0, 1]]])
-    y_range = np.array([[box[1, 0]], [box[1, 1]]])
-    th_range = np.array([[0], [2 * np.pi]])
-    domain = np.hstack([x_range, y_range, th_range])
+    if type(region) is str:
+        if 'loading_region' == region:
+            domain = np.array([[-0.7, -8.55, 0.], [4.3, -4.85, 6.28318531]])
+        else:
+            raise NotImplementedError
+    else:
+        box = np.array(region.box)
+        x_range = np.array([[box[0, 0]], [box[0, 1]]])
+        y_range = np.array([[box[1, 0]], [box[1, 1]]])
+        th_range = np.array([[0], [2 * np.pi]])
+        domain = np.hstack([x_range, y_range, th_range])
     return domain
 
 

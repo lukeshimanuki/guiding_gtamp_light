@@ -5,13 +5,13 @@ import numpy as np
 from node import Node
 from gtamp_utils import utils
 
-from generators.sampler import UniformSampler, LearnedSampler
+from generators.samplers.uniform_sampler import UniformSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 
 from trajectory_representation.operator import Operator
 
-from helper import get_actions, compute_heuristic, get_state_class, update_search_queue
+from helper import get_actions, get_state_class, update_search_queue
 
 prm_vertices, prm_edges = pickle.load(open('prm.pkl', 'rb'))
 prm_vertices = list(prm_vertices)  # TODO: needs to be a list rather than ndarray

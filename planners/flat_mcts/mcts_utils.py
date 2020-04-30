@@ -1,5 +1,20 @@
 import numpy as np
+from planners.sahs.helper import compute_heuristic
 
+
+def potential_function(node):
+    # potential function?  Max of value of (s,a)
+    is_cont_node = node.__class__.__name__ == 'ContinuousTreeNode'
+    if is_cont_node:
+        discrete_node = node.parent
+    else:
+        discrete_node = node
+    potential_vals = []
+    for a in discrete_node.A:
+        val = -compute_heuristic(discrete_node.state, a, discrete_node.learned_q,
+                                 'qlearned_hcount_old_number_in_goal', mixrate=1.0)
+        potential_vals.append(val)
+    return max(potential_vals)
 
 def make_action_hashable(action):
     operator_name = action['operator_name']
