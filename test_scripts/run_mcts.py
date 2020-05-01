@@ -28,7 +28,7 @@ def make_and_get_save_dir(parameters, filename, commit_hash):
     else:
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/' + commit_hash
 
-    save_dir = root_dir + commit_hash + '/test_results/mcts_results_with_q_bonus/' \
+    save_dir = root_dir + '/test_results/'+commit_hash+ '/mcts_results_with_q_bonus/' \
                + 'domain_' + str(parameters.domain) + '/' \
                + 'n_objs_pack_' + str(parameters.n_objs_pack) + '/' \
                + 'sampling_strategy_' + str(parameters.sampling_strategy) + '/' \
@@ -47,6 +47,7 @@ def make_and_get_save_dir(parameters, filename, commit_hash):
 
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
+    import pdb;pdb.set_trace()
     return save_dir
 
 
