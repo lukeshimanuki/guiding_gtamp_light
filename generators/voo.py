@@ -30,6 +30,9 @@ class TwoArmVOOGenerator(Generator):
         stime = time.time()
         orig_ik_checks = self.n_ik_checks
         self.feasibility_checker.feasible_pick = []
+        if actions is None:
+            actions = []
+            q_values = []
         print 'n tried samples', len(q_values)
 
         evaled_values = q_values + self.basic_tested_sample_values
