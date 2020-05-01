@@ -99,6 +99,21 @@ class ShortestPathPaPState(PaPState):
             if a != moved_obj and b != moved_obj
         }
 
+    def sample_feasible_picks(self, n_iters, generator, operator_skeleton, given_pick_base_pose):
+        feasible_cont_params = []
+        for n_iter_to_try in n_iters:
+            op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
+                                                                        n_iter=n_iter_to_try,
+                                                                        n_parameters_to_try_motion_planning=1,
+                                                                        chosen_pick_base_pose=given_pick_base_pose)
+            # feasible_cont_params = [op for op in op_cont_params if op['q_goal'] is not None]
+            if op_cont_params[0]['q_goal'] is not None:
+                feasible_cont_params.append(op_cont_params[0])
+            if len(feasible_cont_params) > 2:
+                break
+
+        return feasible_cont_params
+
     def get_pick_poses(self, object, moved_obj, parent_state):
         if parent_state is not None and moved_obj != object.GetName():
             return parent_state.pick_used[object.GetName()]
@@ -110,26 +125,10 @@ class ShortestPathPaPState(PaPState):
         object.Enable(True)
 
         n_iters = range(10, 500, 10)
-        feasible_cont_params = []
-
-        # we just moved the object and this must be the feasible base pose. So just sample the grasp.
-        if parent_state is None:
-            chosen_pick_base_pose = None
-        else:
-            assert moved_obj == object.GetName()
-            chosen_pick_base_pose = utils.get_robot_xytheta()
-
-        feasible_cont_params = []
-        for n_iter_to_try in n_iters:
-            op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
-                                                                        n_iter=n_iter_to_try,
-                                                                        n_parameters_to_try_motion_planning=1,
-                                                                        chosen_pick_base_pose=chosen_pick_base_pose)
-            #feasible_cont_params = [op for op in op_cont_params if op['q_goal'] is not None]
-            if op_cont_params[0]['q_goal'] is not None:
-                feasible_cont_params.append(op_cont_params[0])
-            if len(feasible_cont_params) > 2:
-                break
+        feasible_cont_params = self.sample_feasible_picks(n_iters, generator, operator_skeleton, None)
+        if len(feasible_cont_params) == 0 and moved_obj == object.GetName():
+            given_base_pose = utils.get_robot_xytheta()
+            feasible_cont_params = self.sample_feasible_picks(n_iters, generator, operator_skeleton, given_base_pose)
 
         orig_xytheta = get_body_xytheta(self.problem_env.robot)
         self.problem_env.enable_objects_in_region('entire_region')
