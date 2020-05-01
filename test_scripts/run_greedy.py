@@ -24,6 +24,8 @@ from learn.pap_gnn import PaPGNN
 
 def get_problem_env(config, goal_region, goal_objs):
     n_objs_pack = config.n_objs_pack
+    np.random.seed(config.pidx)
+    random.seed(config.pidx)
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
         # goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
@@ -288,8 +290,7 @@ def main():
 
     if config.gather_planning_exp:
         config.timelimit = np.inf
-    np.random.seed(config.pidx)
-    random.seed(config.pidx)
+
 
     if config.domain == 'two_arm_mover':
         goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
