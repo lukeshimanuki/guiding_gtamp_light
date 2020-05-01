@@ -43,14 +43,14 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     # todo save the generator into the abstract node
     if learned_sampler is None:  # or 'loading' not in place_region:
         if disc_param not in abstract_node.generators:
-            if config.sampler == 'uniform':
+            if config.sampling_strategy == 'uniform':
                 sampler = UniformSampler(place_region)
                 generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
                                                n_parameters_to_try_motion_planning=config.n_mp_limit,
                                                n_iter_limit=config.n_iter_limit, problem_env=problem_env,
                                                pick_action_mode='ir_parameters',
                                                place_action_mode='object_pose')
-            elif config.sampler == 'voo':
+            elif config.sampling_strategy == 'voo':
                 target_obj = abstract_action.discrete_parameters['object']
                 sampler = VOOSampler(target_obj, place_region, config.explr_p, -9999)
                 generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
