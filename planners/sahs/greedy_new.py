@@ -10,6 +10,8 @@ from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 
 from trajectory_representation.operator import Operator
+from generators.samplers.voo_sampler import VOOSampler
+from generators.voo import TwoArmVOOGenerator
 
 from helper import get_actions, get_state_class, update_search_queue
 
@@ -41,12 +43,24 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     # todo save the generator into the abstract node
     if learned_sampler is None:  # or 'loading' not in place_region:
         if disc_param not in abstract_node.generators:
-            sampler = UniformSampler(place_region)
-            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
+            if config.sampler == 'uniform':
+                sampler = UniformSampler(place_region)
+                generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
+                                               n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                               n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                               pick_action_mode='ir_parameters',
+                                               place_action_mode='object_pose')
+            elif config.sampler == 'voo':
+                target_obj = abstract_action.discrete_parameters['object']
+                sampler = VOOSampler(target_obj, place_region, config.explr_p, -9999)
+                generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
+                                               n_parameters_to_try_motion_planning=config.n_motion_plan_trials,
+                                               n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                               pick_action_mode='ir_parameters',
+                                               place_action_mode='object_pose')
+            else:
+                raise NotImplementedError
+
             abstract_node.generators[disc_param] = generator
     else:
         """
