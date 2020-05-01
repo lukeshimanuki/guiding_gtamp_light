@@ -257,9 +257,11 @@ def make_node_pklable(node):
     node.state.make_pklable()
     node.tried_samples = {}
     node.tried_sample_feasibility_labels = {}
+    """
     for k in node.generators.keys():
         node.tried_samples[k] = node.generators[k].tried_samples
         node.tried_sample_feasibility_labels[k] = node.generators[k].tried_sample_labels
+    """
     node.generators = None
 
 
@@ -286,12 +288,11 @@ def main():
             num_nodes = trajectory['num_nodes']
             plan_length = len(trajectory['plan']) if success else 0
             print 'Time: %.2f Success: %d Plan length: %d Num nodes: %d N_feasible: %d' % (
-            tottime, success, plan_length, num_nodes, trajectory['n_feasibility_checks']['ik'])
+                tottime, success, plan_length, num_nodes, trajectory['n_feasibility_checks']['ik'])
         sys.exit(-1)
 
     if config.gather_planning_exp:
         config.timelimit = np.inf
-
 
     if config.domain == 'two_arm_mover':
         goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
