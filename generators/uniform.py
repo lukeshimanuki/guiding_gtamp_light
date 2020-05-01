@@ -45,10 +45,13 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
 
         if operator_type == 'two_arm_pick':
             self.domain = get_pick_domain()
-            self.op_feasibility_checker = TwoArmPickFeasibilityChecker(problem_env, 'ir_parameters')
+            self.op_feasibility_checker = TwoArmPickFeasibilityChecker(problem_env, 'robot_base_pose')
         elif operator_type == 'one_arm_pick':
             self.domain = get_pick_domain()
             self.op_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
+        else:
+            raise NotImplementedError
+        """
         elif operator_type == 'two_arm_place':
             raise NotImplementedError
             # This should not be used
@@ -81,8 +84,10 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
             self.place_domain = np.vstack([place_min, place_max])
         else:
             raise ValueError
+        """
 
-    def sample_feasible_op_parameters(self, operator_skeleton, n_iter, n_parameters_to_try_motion_planning):
+    def sample_feasible_op_parameters(self, operator_skeleton, n_iter, n_parameters_to_try_motion_planning,
+                                      chosen_pick_base_pose=None):
         assert n_iter > 0
         feasible_op_parameters = []
         feasibility_check_time = 0
@@ -91,6 +96,11 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
         for i in range(n_iter):
             # print 'Sampling attempts %d/%d' % (i, n_iter)
             op_parameters = self.sample_from_uniform()
+            if chosen_pick_base_pose is None:
+                self.op_feasibility_checker.action_mode = 'ir_parameters'
+            else:
+                op_parameters[3:] = utils.get_robot_xytheta()
+                self.op_feasibility_checker.action_mode = 'robot_base_pose'
 
             self.tried_smpls.append(op_parameters)
             stime2 = time.time()
@@ -105,9 +115,8 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
                     break
 
         smpling_time = time.time() - stime
-        if n_iter == 200:
-            print "Sampling time", smpling_time
-            print "Feasibilty time", feasibility_check_time
+        #print "Sampling time", smpling_time
+        #print "Feasibilty time", feasibility_check_time
 
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
