@@ -20,13 +20,13 @@ from planners.flat_mcts.mcts_with_leaf_strategy import MCTSWithLeafStrategy
 from planners.heuristics import compute_hcount_with_action, get_objects_to_move
 
 
-def make_and_get_save_dir(parameters, filename):
+def make_and_get_save_dir(parameters, filename, commit_hash):
     hostname = socket.gethostname()
     if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab' or \
             hostname == 'glaucus':
-        root_dir = './'
+        root_dir = './' + commit_hash
     else:
-        root_dir = '/data/public/rw/pass.port/guiding_gtamp/'
+        root_dir = '/data/public/rw/pass.port/guiding_gtamp/' + commit_hash
 
     save_dir = root_dir + '/test_results/mcts_results_with_q_bonus/' \
                + 'domain_' + str(parameters.domain) + '/' \
@@ -47,7 +47,6 @@ def make_and_get_save_dir(parameters, filename):
 
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
-
     return save_dir
 
 
@@ -158,7 +157,7 @@ def main():
     commit_hash = get_commit_hash()
     parameters = parse_mover_problem_parameters()
     filename = 'pidx_%d_planner_seed_%d.pkl' % (parameters.pidx, parameters.planner_seed)
-    save_dir = make_and_get_save_dir(parameters, filename)
+    save_dir = make_and_get_save_dir(parameters, filename, commit_hash)
     solution_file_name = save_dir + filename
     is_problem_solved_before = os.path.isfile(solution_file_name)
     print solution_file_name
