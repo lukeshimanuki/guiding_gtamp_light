@@ -111,11 +111,23 @@ class ShortestPathPaPState(PaPState):
 
         n_iters = range(10, 500, 10)
         feasible_cont_params = []
+
+        # we just moved the object and this must be the feasible base pose. So just sample the grasp.
+        if parent_state is None:
+            chosen_pick_base_pose = None
+        else:
+            assert moved_obj == object.GetName()
+            chosen_pick_base_pose = utils.get_robot_xytheta()
+
+        feasible_cont_params = []
         for n_iter_to_try in n_iters:
             op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
                                                                         n_iter=n_iter_to_try,
-                                                                        n_parameters_to_try_motion_planning=5)
-            feasible_cont_params = [op for op in op_cont_params if op['q_goal'] is not None]
+                                                                        n_parameters_to_try_motion_planning=1,
+                                                                        chosen_pick_base_pose=chosen_pick_base_pose)
+            #feasible_cont_params = [op for op in op_cont_params if op['q_goal'] is not None]
+            if op_cont_params[0]['q_goal'] is not None:
+                feasible_cont_params.append(op_cont_params[0])
             if len(feasible_cont_params) > 2:
                 break
 
@@ -134,6 +146,7 @@ class ShortestPathPaPState(PaPState):
         # assert len(motion_plan_goals) > 0 # if we can't find a pick pose then the object should be treated as unreachable
         operator_skeleton.continuous_parameters = chosen_pick_param
         operator_skeleton.continuous_parameters['q_goal'] = [chosen_pick_param['q_goal']]
+
         return operator_skeleton
 
     def set_cached_pick_paths(self, parent_state, moved_obj):
