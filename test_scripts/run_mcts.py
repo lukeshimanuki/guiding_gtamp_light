@@ -24,11 +24,11 @@ def make_and_get_save_dir(parameters, filename, commit_hash):
     hostname = socket.gethostname()
     if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab' or \
             hostname == 'glaucus':
-        root_dir = './' + commit_hash
+        root_dir = './'
     else:
         root_dir = '/data/public/rw/pass.port/guiding_gtamp/' + commit_hash
 
-    save_dir = root_dir + '/test_results/mcts_results_with_q_bonus/' \
+    save_dir = root_dir + commit_hash + '/test_results/mcts_results_with_q_bonus/' \
                + 'domain_' + str(parameters.domain) + '/' \
                + 'n_objs_pack_' + str(parameters.n_objs_pack) + '/' \
                + 'sampling_strategy_' + str(parameters.sampling_strategy) + '/' \
