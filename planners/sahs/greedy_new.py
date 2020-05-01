@@ -54,7 +54,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
                 target_obj = abstract_action.discrete_parameters['object']
                 sampler = VOOSampler(target_obj, place_region, config.explr_p, -9999)
                 generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
-                                               n_parameters_to_try_motion_planning=config.n_motion_plan_trials,
+                                               n_parameters_to_try_motion_planning=config.n_mp_limit,
                                                n_iter_limit=config.n_iter_limit, problem_env=problem_env,
                                                pick_action_mode='ir_parameters',
                                                place_action_mode='object_pose')
