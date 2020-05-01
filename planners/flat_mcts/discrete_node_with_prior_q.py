@@ -18,16 +18,28 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
         else:
             for a in actions:
                 self.Q[a] = -compute_heuristic(state, a, learned_q, 'qlearned_hcount_old_number_in_goal', mixrate=1.0)
+                self.prevQ[a] = self.Q[a]
+
             self.learned_q_values = {a: self.learned_q.predict(self.state, a) for a in actions}
 
     def perform_ucb_over_actions(self):
         # todo this function is to be deleted once everything has been implemented
         assert self.is_operator_skeleton_node
-        actions = self.A
-        q_values = [self.Q[a] for a in self.A]
+        q_values = np.array([self.Q[a] for a in self.A])
+        past_node_value = np.array([self.prevQ[a] for a in self.A])
+        q_value_improved = np.any(q_values - past_node_value > 0)
+        for a in self.A:
+            self.print_q_value(a)
 
-        best_action = self.get_action_with_highest_ucb_value(actions, q_values)
-        best_action = self.A[np.argmax(q_values)]
+        if q_value_improved:
+            print "Q improved at discrete node. Taking the improved action"
+            best_action = self.A[np.argmax(q_values - past_node_value)]
+            print best_action.discrete_parameters
+        else:
+            print "Q did not improve at discrete node. Using UCB"
+            best_action = self.get_action_with_highest_ucb_value(self.A, q_values)
+            print best_action.discrete_parameters
+
         return best_action
 
     def print_q_value(self, action):
@@ -53,7 +65,6 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             ucb_value = self.compute_ucb_value(action)
             action_evaluation = value + ucb_value
             action_evaluation_values.append(action_evaluation)
-            self.print_q_value(action)
             if action_evaluation > best_value:
                 best_value = action_evaluation
 
