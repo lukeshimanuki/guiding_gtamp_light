@@ -8,6 +8,7 @@ import collections
 import tensorflow as tf
 import pickle
 import time
+import subprocess
 
 from learn.pap_gnn import PaPGNN
 from gtamp_problem_environments.mover_env import Mover, PaPMoverEnv
@@ -147,11 +148,18 @@ def load_learned_q(config, problem_env):
     return pap_model
 
 
+def get_commit_hash():
+    syscmd = 'git ls-remote ./ refs/heads/master | cut -f 1'
+    hash = subprocess.check_output(['git', 'ls-remote', './', 'refs/heads/master']).split('\t')[0]
+    return hash
+
+
 def main():
+    commit_hash = get_commit_hash()
     parameters = parse_mover_problem_parameters()
     filename = 'pidx_%d_planner_seed_%d.pkl' % (parameters.pidx, parameters.planner_seed)
     save_dir = make_and_get_save_dir(parameters, filename)
-    solution_file_name = save_dir+filename
+    solution_file_name = save_dir + filename
     is_problem_solved_before = os.path.isfile(solution_file_name)
     print solution_file_name
     if is_problem_solved_before and not parameters.f:
@@ -199,7 +207,7 @@ def main():
     set_seed(parameters.planner_seed)
     stime = time.time()
     search_time_to_reward, n_feasibility_checks, plan = planner.search(max_time=parameters.timelimit)
-    tottime = time.time()-stime
+    tottime = time.time() - stime
     print 'Time: %.2f ' % (tottime)
 
     # todo
@@ -207,8 +215,9 @@ def main():
 
     pickle.dump({"search_time_to_reward": search_time_to_reward,
                  'plan': plan,
+                 'commit_hash': commit_hash,
                  'n_feasibility_checks': n_feasibility_checks,
-                 'n_nodes': len(planner.tree.get_discrete_nodes())}, open(save_dir+filename, 'wb'))
+                 'n_nodes': len(planner.tree.get_discrete_nodes())}, open(save_dir + filename, 'wb'))
 
 
 if __name__ == '__main__':
