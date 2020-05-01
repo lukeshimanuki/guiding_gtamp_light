@@ -33,24 +33,17 @@ def main():
     #pidxs = pidxs[0:10]
 
     configs = []
-    uniform = True
+    sampling_strategy = 'voo'
     for seed in seeds:
         for pidx in pidxs:
-            if not uniform:
-                config = {
-                    'pidx': pidx,
-                    'seed': seed,
-                    'epoch_loading': 41900,
-                    'epoch_home': 98400
-                }
-            else:
-                config = {
-                    'pidx': pidx,
-                    'seed': seed,
-                }
+            config = {
+                'pidx': pidx,
+                'seed': seed,
+                'sampling_strategy': sampling_strategy
+            }
             configs.append(config)
 
-    n_workers = 20 #multiprocessing.cpu_count()
+    n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
 
