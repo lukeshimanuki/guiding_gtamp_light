@@ -155,7 +155,8 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
         hval = compute_heuristic(state, a, pap_model, config.h_option, config.mixrate)
         if config.gather_planning_exp:
             h_for_sampler_training = compute_hcount(state)
-            num_in_goal = compute_new_number_in_goal(state)
+            num_in_goal = len(state.problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
+
             # hcount recursively counts the number of objects obstructing the way to the goal objs not in the goal reigon
             # This can potentially have error in estimating the cost-to-go, because even a single object not in a goal
             # can have all objects in its way, since our motion planner is not optimal in MCR sense.
