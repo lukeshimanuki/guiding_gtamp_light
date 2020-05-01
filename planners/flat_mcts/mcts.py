@@ -136,6 +136,7 @@ class MCTS:
         return generator
 
     def compute_state(self, parent_node, parent_action):
+        print "Computing state..."
         if self.problem_env.is_goal_reached():
             state = parent_node.state
         else:
