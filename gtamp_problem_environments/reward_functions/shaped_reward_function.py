@@ -1,12 +1,12 @@
 from gtamp_problem_environments.reward_functions.reward_function import GenericRewardFunction
 from planners.heuristics import compute_hcount
 from planners.sahs.helper import compute_heuristic
-
+import numpy as np
 
 class ShapedRewardFunction(GenericRewardFunction):
     def __init__(self, problem_env, goal_objects, goal_region, planning_horizon):
         GenericRewardFunction.__init__(self, problem_env, goal_objects, goal_region, planning_horizon)
-        self.worst_potential_value = -8 # must move all objects
+        self.worst_potential_value = -np.inf # must move all objects
         # potential_function is minus of the number of objects to move (smaller the n_objs_to_move, the better)
 
     def potential_function(self, node):
