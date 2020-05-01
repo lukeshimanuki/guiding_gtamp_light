@@ -21,7 +21,7 @@ class Sampler:
 
 class LearnedSampler(Sampler):
     def __init__(self, sampler, abstract_state, abstract_action):
-        Sampler.__init__(self, sampler, target)
+        Sampler.__init__(self, sampler, abstract_action.discrete_parameters['place_region'])
         self.key_configs = abstract_state.prm_vertices
         self.abstract_state = abstract_state
         self.obj = abstract_action.discrete_parameters['object']
