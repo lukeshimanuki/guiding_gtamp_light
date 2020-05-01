@@ -34,9 +34,10 @@ class ContinuousTreeNode(TreeNode):
             return False
 
         there_is_new_action = np.any(np.array(self.N.values()) == 0)
-        parent_node_value = np.max(self.Q.values())
+        parent_node_value = np.max(self.parent.Q.values())
         curr_node_value = np.max(self.Q.values())
         q_value_improved = curr_node_value - parent_node_value == 0
+        # if not, I am trying this action because of UCB parameter
         if there_is_new_action or q_value_improved:
             if there_is_new_action:
                 print "There is new action. Re-evaluating"
