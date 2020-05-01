@@ -91,7 +91,7 @@ class ResolveSpatialConstraints:
     def plan_place(self, target_region, swept_volumes):
         obj_holding = self.robot.GetGrabbed()[0]
         place_op = Operator(operator_type='two_arm_place', discrete_parameters={'object': obj_holding,
-                                                                                'region': target_region})
+                                                                                'place_region': target_region})
         stime = time.time()
         potential_motion_plan_goals = self.generate_motion_plan_goals(place_op,
                                                                       n_configs=5,
