@@ -134,6 +134,7 @@ def parse_arguments():
     parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
     parser.add_argument('-sampler_algo', type=str, default='imle_qg_combination')
     parser.add_argument('-sampler_epoch', type=int, default=500)
+    parser.add_argument('-sampling_strategy', type=str, default='uniform')
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-integrated', action='store_true', default=False)
