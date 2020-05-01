@@ -11,8 +11,10 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 from generators.samplers.uniform_sampler import UniformSampler
-from generators.samplers.sampler PlaceOnlyLearnedSampler, PickPlaceLearnedSampler
+from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
+from generators.samplers.voo_sampler import VOOSampler
+from generators.voo import TwoArmVOOGenerator
 
 from gtamp_utils import utils
 
@@ -27,6 +29,8 @@ def parse_arguments():
     parser.add_argument('-epoch_loading', type=int, default=None)  # used for threaded runs
     parser.add_argument('-epoch_pick', type=int, default=None)  # used for threaded runs
     parser.add_argument('-seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
+    parser.add_argument('-use_learning', type=bool, default=False)  # used for threaded runs
     config = parser.parse_args()
     return config
 
@@ -38,23 +42,19 @@ def create_environment(problem_idx):
 
 
 def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None, epoch_pick=None):
+    raise NotImplementedError
+    """
     region = 'home_region'
     if epoch_home is not None:
         action_type = 'place'
         home_place_model = WGANgp(action_type, region)
         home_place_model.load_weights(epoch_home)
-    else:
-        region = problem_env.regions[region]
-        home_place_model = UniformSampler(region)
 
     region = 'loading_region'
     if epoch_loading is not None:
         action_type = 'place'
         loading_place_model = WGANgp(action_type, region)
         loading_place_model.load_weights(epoch_loading)
-    else:
-        region = problem_env.regions[region]
-        loading_place_model = UniformSampler(region)
 
     pick_model = None
     if epoch_pick is not None:
@@ -64,6 +64,7 @@ def get_learned_smpler(problem_env, epoch_home=None, epoch_loading=None, epoch_p
 
     model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
     return model
+    """
 
 
 def load_planning_experience_data(problem_seed):
@@ -78,6 +79,7 @@ def load_planning_experience_data(problem_seed):
 
     np.random.seed(problem_seed)
     random.seed(problem_seed)
+
     problem_env = create_environment(problem_seed)
 
     return plan, problem_env
@@ -105,8 +107,6 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
         pick_abs_poses = np.array(
             [utils.get_pick_base_pose_and_grasp_from_pick_parameters(abstract_action.discrete_parameters['object'], s)[1] for s in pick_samples])
 
-        #utils.set_robot_config(abstract_action.continuous_parameters['pick']['q_goal'])
-        #utils.visualize_path(pick_abs_poses[0:20])
         color = utils.get_color_of(sampler.obj)
         utils.set_color(sampler.obj, [1,0,0])
         utils.visualize_placements(obj_placements, sampler.obj)
@@ -115,7 +115,7 @@ def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entitie
         action.execute()
 
 
-def execute_policy(plan, sampler_model, problem_env, goal_entities):
+def execute_policy(plan, problem_env, goal_entities, config):
     abstract_state = DummyAbstractState(problem_env, goal_entities)
 
     total_ik_checks = 0
@@ -133,29 +133,33 @@ def execute_policy(plan, sampler_model, problem_env, goal_entities):
             break
 
         action = plan[plan_idx]
-        if 'loading' in action.discrete_parameters['place_region']:
-            chosen_sampler = sampler_model['place_loading']
-        else:
-            chosen_sampler = sampler_model['place_home']
 
-        is_uniform_sampler = "Uniform" in chosen_sampler.__class__.__name__
-        if is_uniform_sampler:
-            print "Using uniform sampler"
-            sampler = chosen_sampler
-            generator = TwoArmPaPGenerator(abstract_state, action, sampler,
-                                           n_parameters_to_try_motion_planning=5,
-                                           n_iter_limit=200, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
+        if not config.use_learning:
+            print "Using manual sampler"
+            if config.sampling_strategy == 'unif':
+                sampler = UniformSampler(action.discrete_parameters['place_region'])
+                generator = TwoArmPaPGenerator(abstract_state, action, sampler,
+                                               n_parameters_to_try_motion_planning=5,
+                                               n_iter_limit=2000, problem_env=problem_env,
+                                               pick_action_mode='ir_parameters',
+                                               place_action_mode='object_pose')
+            else:
+                sampler = VOOSampler(action.discrete_parameters['object'],
+                                     action.discrete_parameters['place_region'], 0.3, -9999)
+                generator = TwoArmVOOGenerator(abstract_state, action, sampler,
+                                               n_parameters_to_try_motion_planning=5,
+                                               n_iter_limit=2000, problem_env=problem_env,
+                                               pick_action_mode='ir_parameters',
+                                               place_action_mode='object_pose')
         else:
             print "Using learned sampler"
             sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
             generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                            n_parameters_to_try_motion_planning=5,
-                                           n_iter_limit=200, problem_env=problem_env,
+                                           n_iter_limit=2000, problem_env=problem_env,
                                            pick_action_mode='robot_base_pose',
                                            place_action_mode='robot_base_pose')
-        cont_smpl = generator.sample_next_point()
+        cont_smpl = generator.sample_next_point([], [])
         total_ik_checks += generator.n_ik_checks
         total_mp_checks += generator.n_mp_checks
         total_infeasible_mp += generator.n_mp_infeasible
@@ -188,25 +192,21 @@ def get_logfile_name(config):
     if not os.path.isdir(logfile_dir):
         os.makedirs(logfile_dir)
 
-    is_uniform = config.epoch_home is None and config.epoch_loading is None
-    if is_uniform:
-        logfile = open(logfile_dir + 'uniform.txt', 'a')
-    else:
+    if config.use_learning:
         logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
                        'a')
+    else:
+        logfile = open(logfile_dir + config.sampling_strategy+'.txt', 'a')
     return logfile
 
 
 def main():
     config = parse_arguments()
-    np.random.seed(config.pidx)
-    random.seed(config.pidx)
 
     plan, problem_env = load_planning_experience_data(config.pidx)
     goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
     goal_region = 'home_region'
     problem_env.set_goal(goal_objs, goal_region)
-    smpler = get_learned_smpler(problem_env, config.epoch_home, config.epoch_loading, config.epoch_pick)
 
     if config.v:
         utils.viewer()
@@ -215,7 +215,7 @@ def main():
     set_seeds(config.seed)
 
     total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
-        execute_policy(plan, smpler, problem_env, goal_objs + [goal_region])
+        execute_policy(plan, problem_env, goal_objs + [goal_region], config)
 
     logfile = get_logfile_name(config)
     result_log = "%d,%d,%d,%d,%d,%d,%d\n" % (config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp, goal_reached, n_total_actions)
