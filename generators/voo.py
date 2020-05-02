@@ -43,8 +43,6 @@ class TwoArmVOOGenerator(Generator):
             n_smpls = 10 if len(distances) > 10 else len(distances)
             k_nearest_neighbor_to_best_point = evaled_x[np.argsort(distances)][1:n_smpls]
             self.sampler.k_nearest_neighbor_to_best_point = k_nearest_neighbor_to_best_point
-            import pdb;
-            pdb.set_trace()
 
         basic_feasible_sample_label = 0
         for _ in range(self.n_iter_limit):
