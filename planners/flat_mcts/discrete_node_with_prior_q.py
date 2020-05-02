@@ -30,7 +30,7 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
         q_value_improved = np.any(q_values - past_node_value > 0)
         for a in self.A:
             self.print_q_value(a)
-
+        """
         if q_value_improved:
             print "Q improved at discrete node. Taking the improved action"
             best_action = self.A[np.argmax(q_values - past_node_value)]
@@ -39,7 +39,8 @@ class DiscreteTreeNodeWithPriorQ(DiscreteTreeNode):
             print "Q did not improve at discrete node. Using UCB"
             best_action = self.get_action_with_highest_ucb_value(self.A, q_values)
             print best_action.discrete_parameters
-
+        """
+        best_action = self.get_action_with_highest_ucb_value(self.A, q_values)
         return best_action
 
     def print_q_value(self, action):
