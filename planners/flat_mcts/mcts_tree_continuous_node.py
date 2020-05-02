@@ -96,6 +96,16 @@ class ContinuousTreeNode(TreeNode):
         return best_action
 
     def perform_ucb_over_actions(self):
+        assert not self.is_operator_skeleton_node
+        actions = self.A
+        q_values = [self.Q[a] for a in self.A]
+        if len(q_values) == 1:
+            best_action = self.A[-1]
+        else:
+            best_action = self.get_action_with_highest_ucb_value(actions, q_values)
+        return best_action
+
+        """
         there_is_new_action = np.any(np.array(self.N.values()) == 0)
         if there_is_new_action:
             for action in self.N:
@@ -115,13 +125,4 @@ class ContinuousTreeNode(TreeNode):
             #idx = np.where(np.array(self.Q.values()) - np.array(self.prevQ.values()) > 0)[0][0]
             return self.Q.keys()[np.argmax(self.Q.values())]
 
-        """
-        assert not self.is_operator_skeleton_node
-        actions = self.A
-        q_values = [self.Q[a] for a in self.A]
-        if len(q_values) == 1:
-            best_action = self.A[-1]
-        else:
-            best_action = self.get_action_with_highest_ucb_value(actions, q_values)
-        return best_action
         """
