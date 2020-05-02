@@ -63,8 +63,9 @@ class TwoArmVOOGenerator(Generator):
                 # What value should this take?
                 #   If there is no feasible action, it should have the highest value
                 #   If there are feasible actions, then don't do this. You can follow them.
-                if np.max(evaled_values) == self.sampler.infeasible_action_value\
-                        or np.max(evaled_values) == basic_feasible_sample_label:
+                if len(evaled_values) == 0 or \
+                        np.max(evaled_values) == self.sampler.infeasible_action_value or \
+                        np.max(evaled_values) == basic_feasible_sample_label:
                     sampled_op_parameters[0:6] = op_parameters['pick']['action_parameters']
                     self.basic_tested_samples.append(sampled_op_parameters)
                     self.basic_tested_sample_values.append(basic_feasible_sample_label)
