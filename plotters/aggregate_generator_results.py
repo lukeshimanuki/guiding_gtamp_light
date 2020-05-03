@@ -6,8 +6,11 @@ import numpy as np
 
 fdir = './generators/sampler_performances/'
 
-learned_file = 'unif_unif_n_mp_limit_5.txt'
-uniform_file = 'voo_gauss_n_mp_limit_5.txt'
+learned_file = 'voo_log_n_mp_limit_5.txt'
+learned_file = 'voo_gauss_n_mp_limit_5.txt'
+learned_file = 'voo_sqrt_n_mp_limit_5.txt'
+#learned_file = 'epoch_home_98400_epoch_loading_41900.txt'
+uniform_file = 'unif_gauss_n_mp_limit_5.txt'
 
 learned = open(fdir + learned_file, 'r').read().splitlines()
 uniform = open(fdir + uniform_file, 'r').read().splitlines()
