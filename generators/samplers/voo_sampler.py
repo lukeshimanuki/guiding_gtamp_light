@@ -50,6 +50,8 @@ class VOOSampler(Sampler):
             possible_values = np.max(np.vstack([np.abs(possible_max), np.abs(possible_min)]), axis=0)
             new_x = np.random.normal(point, possible_values)
             counter2 += 1
+            if counter2 > 10:
+                break
         return new_x
 
     def get_best_x(self, evaled_x, evaled_y):
@@ -85,6 +87,7 @@ class VOOSampler(Sampler):
         curr_closest_dist = np.inf
         for counter in range(1, 11):
             new_x = self.sample_from_normal_centered_at_point(best_x, counter)
+            #new_x = self.sample_from_uniform()
 
             dist_to_best_point = self.distance_fn(new_x, best_x)
             dists_to_other_points = self.get_dist_to_other_points(new_x, best_x, other_points)
@@ -96,7 +99,7 @@ class VOOSampler(Sampler):
 
             if is_new_x_closest_to_the_best_x:
                 break
-
+        #print len(evaled_x), counter
         return curr_closest_pt
 
     def sample_from_uniform(self):
