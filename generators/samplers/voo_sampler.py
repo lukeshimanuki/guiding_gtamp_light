@@ -37,16 +37,16 @@ class VOOSampler(Sampler):
     def sample_from_normal_centered_at_point(self, point, counter):
         # There are multiple ways to improve the performance of this
         # variance = max - point
-        possible_max = (self.domain[1] - point) / counter
-        possible_min = (self.domain[0] - point) / counter
+        possible_max = (self.domain[1] - point) / np.sqrt(counter)
+        possible_min = (self.domain[0] - point) / np.sqrt(counter)
         possible_values = np.max(np.vstack([np.abs(possible_max), np.abs(possible_min)]), axis=0)
         new_x = np.random.normal(point, possible_values)
 
         # make sure it is within the boundary
         counter2 = counter
         while np.any(new_x > self.domain[1]) or np.any(new_x < self.domain[0]):
-            possible_max = (self.domain[1] - point) / counter2  # / np.exp(counter2)
-            possible_min = (self.domain[0] - point) / counter2  # / np.exp(counter2)
+            possible_max = (self.domain[1] - point) / np.sqrt(counter2)  # / np.exp(counter2)
+            possible_min = (self.domain[0] - point) / np.sqrt(counter2)  # / np.exp(counter2)
             possible_values = np.max(np.vstack([np.abs(possible_max), np.abs(possible_min)]), axis=0)
             new_x = np.random.normal(point, possible_values)
             counter2 += 1
