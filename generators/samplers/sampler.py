@@ -109,7 +109,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
             self.pick_abs_base_pose = pick_abs_base_pose.reshape((1, 3))
         else:
             self.pick_abs_base_pose = None
-        self.samples = self.sample_new_points(200)
+        self.samples = self.sample_new_points(2000)
         self.curr_smpl_idx = 0
 
     def sample_picks(self, n_smpls):
