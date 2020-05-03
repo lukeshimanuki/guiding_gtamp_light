@@ -12,7 +12,7 @@ def worker_p(config):
     for key, value in zip(config.keys(), config.values()):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
-
+    #command += ' -use_learning'
     print command
     os.system(command)
 
@@ -22,24 +22,22 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def main():
-    #raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/' \
-    #          'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_' \
-    #          'use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
     raw_dir = './planning_experience/for_testing_generators/'
     all_plan_exp_files = os.listdir(raw_dir)
 
     pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
-    seeds = range(5)
-    #pidxs = pidxs[0:10]
+    seeds = range(1, 5)
 
     configs = []
-    sampling_strategy = 'voo'
+    sampling_strategy = 'unif'
+    n_mp_limit = 5
     for seed in seeds:
         for pidx in pidxs:
             config = {
                 'pidx': pidx,
                 'seed': seed,
-                'sampling_strategy': sampling_strategy
+                'sampling_strategy': sampling_strategy,
+                'n_mp_limit': n_mp_limit
             }
             configs.append(config)
 
