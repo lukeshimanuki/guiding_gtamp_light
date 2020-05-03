@@ -6,8 +6,8 @@ import numpy as np
 
 fdir = './generators/sampler_performances/'
 
-learned_file = 'epoch_home_98400_epoch_loading_41900.txt'
-uniform_file = 'uniform.txt'
+learned_file = 'unif_unif_n_mp_limit_5.txt'
+uniform_file = 'voo_gauss_n_mp_limit_5.txt'
 
 learned = open(fdir + learned_file, 'r').read().splitlines()
 uniform = open(fdir + uniform_file, 'r').read().splitlines()
@@ -43,10 +43,6 @@ def main():
     learned_n_mp = []
     learned_n_infeasible_mp = []
     for l in learned:
-        pidx = int(l.split(',')[0])
-        #if pidx != target_pidx:
-        #    continue
-        #print l
         learned_total_iks.append(int(l.split(',')[2]))  # total n of infeasible mp calls
         learned_total_resets.append(int(l.split(',')[-1]))
         learned_n_mp.append(int(l.split(',')[3]))
@@ -56,27 +52,41 @@ def main():
     unif_total_resets = []
     unif_n_mp = []
     unif_n_infeasible_mp = []
-    print "****Uniform****"
     for l in uniform:
-        pidx = int(l.split(',')[0])
-        #if pidx != target_pidx:
-        #    continue
-        #print l
         unif_total_iks.append(int(l.split(',')[2]))
         unif_total_resets.append(int(l.split(',')[-1]))
         unif_n_mp.append(int(l.split(',')[3]))
         unif_n_infeasible_mp.append(int(l.split(',')[4]))
+
     print "****Summary****"
-    print len(learned_total_iks), len(unif_total_iks)
-    print np.mean(learned_total_iks), np.std(learned_total_iks) * 1.96 / np.sqrt(len(learned_total_iks))
-    print np.mean(unif_total_iks), np.std(unif_total_iks) * 1.96 / np.sqrt(len(unif_total_iks))
+    print 'ndata %25s %d %25s %d' % (learned_file, len(learned_total_iks), uniform_file, len(unif_total_iks))
+    print 'total iks %50s %.3f %.3f' % (
+        learned_file, np.mean(learned_total_iks), np.std(learned_total_iks) * 1.96 / np.sqrt(len(learned_total_iks)))
+    print 'total iks %50s %.3f %.3f' % (
+        uniform_file, np.mean(unif_total_iks), np.std(unif_total_iks) * 1.96 / np.sqrt(len(unif_total_iks)))
 
-    print np.mean(learned_total_resets), np.std(learned_total_resets) * 1.96 / np.sqrt(len(learned_total_resets))
-    print np.mean(unif_total_resets), np.std(unif_total_resets) * 1.96 / np.sqrt(len(unif_total_resets))
-    print len(unif_total_resets)
+    print 'total mps  %50s %.3f %.3f' % (learned_file, np.mean(learned_n_mp), np.std(learned_n_mp) * 1.96 / np.sqrt(
+        len(learned_n_mp)))
+    print 'total mps  %50s %.3f %.3f' % (uniform_file, np.mean(unif_n_mp), np.std(unif_n_mp) * 1.96 / np.sqrt(
+        len(unif_n_mp)))
 
-    #print float(np.sum(learned_n_infeasible_mp)) / np.sum(learned_n_mp)
-    #print float(np.sum(unif_n_infeasible_mp)) / np.sum(unif_n_mp)
+    print 'infeasible mps %50s %.3f %.3f' % (learned_file, np.mean(learned_n_infeasible_mp), np.std(
+        learned_n_infeasible_mp) * 1.96 / np.sqrt(
+        len(learned_n_infeasible_mp)))
+    print 'infeasible mps %50s %.3f %.3f' % (uniform_file, np.mean(unif_n_infeasible_mp), np.std(
+        unif_n_infeasible_mp) * 1.96 / np.sqrt(
+        len(unif_n_infeasible_mp)))
+
+    print 'total resets %50s %.3f %.3f' % (
+    learned_file, np.mean(learned_total_resets), np.std(learned_total_resets) * 1.96 / np.sqrt(
+        len(learned_total_resets)))
+    print 'total resets %50s %.3f %.3f' % (
+    uniform_file, np.mean(unif_total_resets), np.std(unif_total_resets) * 1.96 / np.sqrt(
+        len(unif_total_resets)))
+
+    # print float(np.sum(learned_n_infeasible_mp)) / np.sum(learned_n_mp)
+    # print float(np.sum(unif_n_infeasible_mp)) / np.sum(unif_n_mp)
+
 
 if __name__ == '__main__':
     main()
