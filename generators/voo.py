@@ -35,15 +35,6 @@ class TwoArmVOOGenerator(Generator):
             q_values = []
         print 'n tried samples', len(q_values)
 
-        evaled_values = q_values + self.basic_tested_sample_values
-        if len(evaled_values) > 0 and np.max(evaled_values) > self.sampler.infeasible_action_value:
-            evaled_x = actions + self.basic_tested_samples
-            best_evaled_x = evaled_x[np.argmax(evaled_values)]
-            distances = [self.sampler.distance_fn(best_evaled_x, x) for x in evaled_x]
-            n_smpls = 10 if len(distances) > 10 else len(distances)
-            k_nearest_neighbor_to_best_point = evaled_x[np.argsort(distances)][1:n_smpls]
-            self.sampler.k_nearest_neighbor_to_best_point = k_nearest_neighbor_to_best_point
-
         basic_feasible_sample_label = 0
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
@@ -63,12 +54,18 @@ class TwoArmVOOGenerator(Generator):
                 # What value should this take?
                 #   If there is no feasible action, it should have the highest value
                 #   If there are feasible actions, then don't do this. You can follow them.
-                if len(evaled_values) == 0 or \
-                        np.max(evaled_values) == self.sampler.infeasible_action_value or \
-                        np.max(evaled_values) == basic_feasible_sample_label:
-                    sampled_op_parameters[0:6] = op_parameters['pick']['action_parameters']
-                    self.basic_tested_samples.append(sampled_op_parameters)
-                    self.basic_tested_sample_values.append(basic_feasible_sample_label)
+                sampled_op_parameters[0:6] = op_parameters['pick']['action_parameters']
+                self.basic_tested_samples.append(sampled_op_parameters)
+                self.basic_tested_sample_values.append(basic_feasible_sample_label)
+                evaled_values = q_values + self.basic_tested_sample_values
+                evaled_x = actions + self.basic_tested_samples
+                if len(evaled_values) > 0 and np.max(evaled_values) > self.sampler.infeasible_action_value\
+                        and len(evaled_x) > 1:
+                    best_evaled_x = self.sampler.get_best_x(evaled_x, evaled_values)
+                    distances = [self.sampler.distance_fn(best_evaled_x, x) for x in evaled_x]
+                    n_smpls = 10 if len(distances) > 10 else len(distances)
+                    k_nearest_neighbor_to_best_point = np.array(evaled_x)[np.argsort(distances)][1:n_smpls]
+                    self.sampler.k_nearest_neighbor_to_best_point = k_nearest_neighbor_to_best_point
 
                 feasible_op_parameters.append(op_parameters)
                 self.feasibility_checker.feasible_pick = []
@@ -91,10 +88,9 @@ class TwoArmVOOGenerator(Generator):
             utils.viewer()
             pick_configs = [op['pick']['q_goal'] for op in feasible_op_parameters]
             place_configs = [op['place']['q_goal'] for op in feasible_op_parameters]
-            import pdb;pdb.set_trace()
+            print len(evaled_actions)
             utils.visualize_path(pick_configs)
             utils.visualize_path(place_configs)
-            import pdb;pdb.set_trace()
         """
 
         # Remove all the temporarily added ones
