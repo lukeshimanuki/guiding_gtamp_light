@@ -15,6 +15,8 @@ class TwoArmVOOGenerator(Generator):
         self.place_action_mode = place_action_mode
         self.basic_tested_samples = []
         self.basic_tested_sample_values = []
+        self.mp_infeasible_samples = []
+        self.mp_infeasible_labels = []
 
         Generator.__init__(self, abstract_state, abstract_action, sampler, n_parameters_to_try_motion_planning,
                            n_iter_limit, problem_env)
@@ -22,6 +24,11 @@ class TwoArmVOOGenerator(Generator):
     def get_feasibility_checker(self):
         return TwoArmPaPFeasibilityChecker(self.problem_env, pick_action_mode=self.pick_action_mode,
                                            place_action_mode=self.place_action_mode)
+
+    def update_mp_infeasible_samples(self, samples):
+        for s in samples:
+            self.mp_infeasible_samples.append(s)
+            self.mp_infeasible_labels.append(-np.inf)
 
     def sample_ik_feasible_and_collision_free_op_parameters(self, actions=None, q_values=None):
         assert self.n_iter_limit > 0
@@ -38,8 +45,8 @@ class TwoArmVOOGenerator(Generator):
         basic_feasible_sample_label = 0
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
-            evaled_actions = actions + self.basic_tested_samples
-            evaled_values = q_values + self.basic_tested_sample_values
+            evaled_actions = actions + self.basic_tested_samples + self.mp_infeasible_samples
+            evaled_values = q_values + self.basic_tested_sample_values + self.mp_infeasible_labels
             sampled_op_parameters = self.sampler.sample(evaled_actions, evaled_values)
 
             stime2 = time.time()
@@ -48,12 +55,6 @@ class TwoArmVOOGenerator(Generator):
             feasibility_check_time += time.time() - stime2
 
             if status == 'HasSolution':
-                # I should keep these. But their value needs to be updated if we ever get to try them.
-                # Let's not do it for now.
-                # But if I do this, I believe I can improve the first-encountered states too.
-                # What value should this take?
-                #   If there is no feasible action, it should have the highest value
-                #   If there are feasible actions, then don't do this. You can follow them.
                 sampled_op_parameters[0:6] = op_parameters['pick']['action_parameters']
                 self.basic_tested_samples.append(sampled_op_parameters)
                 self.basic_tested_sample_values.append(basic_feasible_sample_label)
