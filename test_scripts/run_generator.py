@@ -133,7 +133,7 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
         print "Using learned sampler"
         sampler_model = get_learned_smpler(epoch_home=config.epoch_home,
                                            epoch_loading=config.epoch_loading, epoch_pick=config.epoch_pick)
-        sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+        sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, action)
         sampler.infeasible_action_value = -9999
         generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                        n_parameters_to_try_motion_planning=n_mp_limit,
@@ -143,11 +143,17 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
     return generator
 
 
-def execute_policy(plan, problem_env, goal_entities, config, ):
+def execute_policy(plan, problem_env, goal_entities, config):
     abstract_state = DummyAbstractState(problem_env, goal_entities)
 
     total_ik_checks = 0
     total_mp_checks = 0
+    total_pick_mp_checks = 0
+    total_place_mp_checks = 0
+
+    total_pick_mp_infeasible = 0
+    total_place_mp_infeasible = 0
+
     total_infeasible_mp = 0
     plan_idx = 0
     n_total_actions = 0
@@ -174,6 +180,10 @@ def execute_policy(plan, problem_env, goal_entities, config, ):
         total_ik_checks += generator.n_ik_checks
         total_mp_checks += generator.n_mp_checks
         total_infeasible_mp += generator.n_mp_infeasible
+        total_pick_mp_checks += generator.n_pick_mp_checks
+        total_place_mp_checks += generator.n_place_mp_checks
+        total_pick_mp_infeasible += generator.n_pick_mp_infeasible
+        total_place_mp_infeasible += generator.n_place_mp_infeasible
 
         n_total_actions += 1
 
@@ -192,7 +202,8 @@ def execute_policy(plan, problem_env, goal_entities, config, ):
         goal_reached = plan_idx == len(plan)
 
     print time.time() - stime
-    return total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
+    return total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
+           total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
 
 
 def set_seeds(seed):
@@ -211,7 +222,7 @@ def get_logfile_name(config):
         logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
                        'a')
     else:
-        logfile = open(logfile_dir + config.sampling_strategy + '_gauss_n_mp_limit_%d.txt' % config.n_mp_limit, 'a')
+        logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit, 'a')
     return logfile
 
 
@@ -229,12 +240,16 @@ def main():
 
     set_seeds(config.seed)
 
-    total_ik_checks, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
+    total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
+    total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
         execute_policy(plan, problem_env, goal_objs + [goal_region], config)
 
     logfile = get_logfile_name(config)
-    result_log = "%d,%d,%d,%d,%d,%d,%d\n" % (
-    config.pidx, config.seed, total_ik_checks, total_mp_checks, total_infeasible_mp, goal_reached, n_total_actions)
+    result_log = "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
+        config.pidx, config.seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
+        total_place_mp_checks,
+        total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
+    )
     logfile.write(result_log)
 
 
