@@ -28,7 +28,7 @@ class TwoArmVOOGenerator(Generator):
     def update_mp_infeasible_samples(self, samples):
         for s in samples:
             self.mp_infeasible_samples.append(s)
-            self.mp_infeasible_labels.append(-np.inf)
+            self.mp_infeasible_labels.append(self.sampler.infeasible_action_value)
 
     def sample_ik_feasible_and_collision_free_op_parameters(self, actions=None, q_values=None):
         assert self.n_iter_limit > 0
@@ -47,6 +47,8 @@ class TwoArmVOOGenerator(Generator):
             self.n_ik_checks += 1
             evaled_actions = actions + self.basic_tested_samples + self.mp_infeasible_samples
             evaled_values = q_values + self.basic_tested_sample_values + self.mp_infeasible_labels
+            if len(evaled_values) > 0:
+                assert np.min(evaled_values) == self.sampler.infeasible_action_value
             sampled_op_parameters = self.sampler.sample(evaled_actions, evaled_values)
 
             stime2 = time.time()

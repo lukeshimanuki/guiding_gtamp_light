@@ -125,7 +125,8 @@ class MCTS:
                                            place_action_mode='object_pose')
         elif self.sampling_strategy == 'voo':
             target_obj = abstract_action.discrete_parameters['object']
-            sampler = VOOSampler(target_obj, place_region, self.explr_p, self.problem_env.reward_function.worst_potential_value)
+            sampler = VOOSampler(target_obj, place_region, self.explr_p,
+                                 self.problem_env.reward_function.worst_potential_value)
             generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
                                            n_parameters_to_try_motion_planning=self.n_motion_plan_trials,
                                            n_iter_limit=self.n_feasibility_checks, problem_env=self.problem_env,
@@ -325,9 +326,9 @@ class MCTS:
                                                                         n_feasibility_checks['ik'],
                                                                         max(history_of_n_objs_in_goal))
 
-            is_time_to_switch_node = self.is_time_to_switch(node_to_search_from)
-            if is_time_to_switch_node:
-                node_to_search_from = self.get_node_to_switch_to(node_to_search_from)
+            #is_time_to_switch_node = self.is_time_to_switch(node_to_search_from)
+            #if is_time_to_switch_node:
+            #    node_to_search_from = self.get_node_to_switch_to(node_to_search_from)
 
             if self.found_solution:
                 print "Optimal score found"
@@ -472,7 +473,11 @@ class MCTS:
                                                 a.continuous_parameters['place']['action_parameters']])
                                      for a in node.Q.keys()]
                 q_values = node.Q.values()
+                # todo
+                #   save all the mp values that did not work out
                 smpled_param = node.sampling_agent.sample_next_point(action_parameters, q_values)
+                if not smpled_param['is_feasible'] and self.sampling_strategy=='voo':
+                    node.sampling_agent.update_mp_infeasible_samples(smpled_param['samples'])
             else:
                 smpled_param = node.sampling_agent.sample_next_point()
                 node.needs_to_sample = False
