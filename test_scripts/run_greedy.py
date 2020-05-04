@@ -16,6 +16,7 @@ from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 # from generators.learning.utils.model_creation_utils import create_policy
 from gtamp_utils import utils
+from test_scripts.run_mcts import get_commit_hash
 
 # from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
@@ -46,20 +47,20 @@ def get_problem_env(config, goal_region, goal_objs):
 
 
 def get_solution_file_name(config):
-    hostname = socket.gethostname()
     root_dir = './'
     # if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
     #    root_dir = './'
     # else:
     #    root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
+    commit_hash = get_commit_hash()
 
     if config.gather_planning_exp:
         root_dir = root_dir + '/planning_experience/raw/uses_rrt/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/sahs_results/uses_rrt/uses_reachability_clf_%s/domain_%s/n_objs_pack_%d' \
-                            % (config.use_reachability_clf, config.domain, config.n_objs_pack)
+        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_rrt/uses_reachability_clf_%s/domain_%s/n_objs_pack_%d' \
+                            % (commit_hash, config.use_reachability_clf, config.domain, config.n_objs_pack)
     solution_file_dir += '/' + config.h_option + '/'
 
     q_config = '/q_config_num_train_' + str(config.num_train) + \
