@@ -20,6 +20,10 @@ class Generator:
         self.n_mp_checks = 0
         self.n_mp_infeasible = 0
         self.n_ik_infeasible = 0
+        self.n_pick_mp_checks = 0
+        self.n_place_mp_checks = 0
+        self.n_pick_mp_infeasible = 0
+        self.n_place_mp_infeasible = 0
 
     def get_feasibility_checker(self):
         raise NotImplementedError
@@ -49,17 +53,21 @@ class Generator:
             print "n_mp_tried / n_feasible_params = %d / %d" % (n_mp_tried, n_feasible)
             chosen_pick_param = self.get_motion_plan([op['pick']])
             n_mp_tried += 1
+            self.n_pick_mp_checks += 1
             print "Pick motion planning time {:.5f}".format(time.time() - stime)
 
             if not chosen_pick_param['is_feasible']:
                 print "Pick motion does not exist"
                 self.n_mp_infeasible += 1
+                self.n_pick_mp_infeasible += 1
                 continue
 
             original_config = utils.get_body_xytheta(self.problem_env.robot).squeeze()
             utils.two_arm_pick_object(self.abstract_action.discrete_parameters['object'], chosen_pick_param)
             stime = time.time()
             chosen_place_param = self.get_motion_plan([op['place']])  # calls MP
+            self.n_place_mp_checks += 1
+
             utils.two_arm_place_object(chosen_pick_param)
             utils.set_robot_config(original_config)
             print "Place motion planning time {:.5f}".format(time.time() - stime)
@@ -68,6 +76,7 @@ class Generator:
                 break
             else:
                 self.n_mp_infeasible += 1
+                self.n_place_mp_infeasible += 1
                 print "Place motion does not exist"
 
         if not chosen_pick_param['is_feasible']:
