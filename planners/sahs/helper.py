@@ -65,14 +65,15 @@ def compute_hcount_old_number_in_goal(state, action):
     given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
     number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
     analytical_heuristic = -number_in_goal + given_obj_already_in_goal + hcount
-    #print target_o, target_r
-    #print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
+    # print target_o, target_r
+    # print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
     return analytical_heuristic
 
 
 def compute_heuristic(state, action, pap_model, h_option, mixrate):
     # parameters used for CoRL
-    assert h_option == 'qlearned_hcount_old_number_in_goal'
+    assert h_option == 'qlearned_hcount_old_number_in_goal' or \
+           h_option == 'hcount_old_number_in_goal'
     assert mixrate == 1
 
     is_two_arm_domain = 'two_arm_' in action.type
@@ -96,44 +97,15 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         goal_objs = [tmp_o for tmp_o in state.goal_entities if 'region' not in tmp_o]
         goal_region = 'rectangular_packing_box1_region'
 
-    if h_option == 'hcount':
-        hval = compute_hcount_with_action(state, action, problem_env)
-    elif h_option == 'hcount_old_number_in_goal':
-        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
-        hcount = compute_hcount_with_action(state, action, problem_env)
-        hval = hcount - number_in_goal
-    elif h_option == 'state_hcount':
-        hval = compute_hcount(state, problem_env)
-    elif h_option == 'qlearned_hcount_new_number_in_goal':
-        number_in_goal = compute_new_number_in_goal(state, goal_objs, goal_region)
-        q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
-        hcount = compute_hcount(state, problem_env)
-        obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
-        hval = -number_in_goal + obj_already_in_goal + hcount - mixrate * q_bonus
-    elif h_option == 'qlearned_hcount_old_number_in_goal':
+    if h_option == 'qlearned_hcount_old_number_in_goal':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic - mixrate * q_bonus
-    elif h_option == 'qlearned_old_number_in_goal':
-        number_in_goal = compute_number_in_goal(state, target_o, problem_env, region_is_goal)
-        q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
-                                                                  actions[None, ...])
-        obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
-        hval = -number_in_goal - q_val_on_curr_a + obj_already_in_goal
-    elif h_option == 'qlearned_new_number_in_goal':
-        number_in_goal = compute_new_number_in_goal(state, goal_objs, goal_region)
-        q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
-                                                                  actions[None, ...])
-        obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]
-        hval = -number_in_goal - q_val_on_curr_a + obj_already_in_goal
-    elif h_option == 'pure_learned_q':
-        q_val_on_curr_a = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...],
-                                                                  actions[None, ...])
-        hval = -q_val_on_curr_a
-    else:
-        raise NotImplementedError
+    elif h_option == 'hcount_old_number_in_goal':
+        analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
+        hval = analytical_heuristic
 
     return hval
 
