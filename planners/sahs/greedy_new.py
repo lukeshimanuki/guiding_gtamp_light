@@ -41,46 +41,30 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
            or type(abstract_action.discrete_parameters['place_region']) == str
 
     # todo save the generator into the abstract node
-    if learned_sampler is None:  # or 'loading' not in place_region:
-        if disc_param not in abstract_node.generators:
-            if config.sampling_strategy == 'uniform':
-                sampler = UniformSampler(place_region)
-                generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                               n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                               n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                               pick_action_mode='ir_parameters',
-                                               place_action_mode='object_pose')
-            elif config.sampling_strategy == 'voo':
-                target_obj = abstract_action.discrete_parameters['object']
-                sampler = VOOSampler(target_obj, place_region, config.explr_p, -9999)
-                generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
-                                               n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                               n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                               pick_action_mode='ir_parameters',
-                                               place_action_mode='object_pose')
-            else:
-                raise NotImplementedError
-
-            abstract_node.generators[disc_param] = generator
-    else:
-        """
-        if disc_param not in abstract_node.generators:
-            if 'AARegion' in str(type(place_region)):
-                place_region = place_region.name
-            if 'home' in place_region:
-                learned_sampler['place'] = learned_sampler['place_home']
-            else:
-                learned_sampler['place'] = learned_sampler['place_loading']
-            sampler = LearnedSampler(learned_sampler, abstract_state, abstract_action)
+    we_dont_have_generator_for_this_discrete_action_yet = disc_param not in abstract_node.generators
+    if we_dont_have_generator_for_this_discrete_action_yet:
+        if config.sampling_strategy == 'uniform':
+            sampler = UniformSampler(place_region)
             generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
                                            n_parameters_to_try_motion_planning=config.n_mp_limit,
                                            n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                           reachability_clf=reachability_clf)
-            abstract_node.generator[disc_param] = generator # Bah! it has to be actions
-        """
-        raise NotImplementedError
-
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
+        elif config.sampling_strategy == 'voo':
+            target_obj = abstract_action.discrete_parameters['object']
+            sampler = VOOSampler(target_obj, place_region, config.explr_p, -np.inf)
+            generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
+                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
+        else:
+            raise NotImplementedError
+        abstract_node.generators[disc_param] = generator
     smpled_param = abstract_node.generators[disc_param].sample_next_point()
+
+    if config.sampling_strategy == 'voo' and not smpled_param['is_feasible']:
+        generator.update_mp_infeasible_samples(smpled_param['samples'])
     return smpled_param
 
 
