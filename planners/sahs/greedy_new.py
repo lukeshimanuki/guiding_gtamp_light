@@ -64,7 +64,7 @@ def sample_continuous_parameters(abstract_action, abstract_state, abstract_node,
     smpled_param = abstract_node.generators[disc_param].sample_next_point()
 
     if config.sampling_strategy == 'voo' and not smpled_param['is_feasible']:
-        generator.update_mp_infeasible_samples(smpled_param['samples'])
+        abstract_node.generators[disc_param].update_mp_infeasible_samples(smpled_param['samples'])
     return smpled_param
 
 
