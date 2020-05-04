@@ -4,6 +4,7 @@ import argparse
 
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 from threaded_test_utils import get_sahs_configs
+from test_scripts.run_generator import get_logfile_name, parse_arguments
 
 
 def worker_p(config):
@@ -14,7 +15,7 @@ def worker_p(config):
         command += option
     #command += ' -use_learning'
     print command
-    os.system(command)
+    #os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -26,18 +27,27 @@ def main():
     all_plan_exp_files = os.listdir(raw_dir)
 
     pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
-    seeds = range(1, 5)
+    seeds = range(0, 5)
+
+    setup = parse_arguments()
+    target_file = open(get_logfile_name(setup).name,'r')
+    existing_results = target_file.read().splitlines()
+    pidx_seed_already_exist = []
+    for l in existing_results:
+        pidx = int(l.split(',')[0])
+        seed = int(l.split(',')[1])
+        pidx_seed_already_exist.append((pidx,seed))
 
     configs = []
-    sampling_strategy = 'unif'
-    n_mp_limit = 5
     for seed in seeds:
         for pidx in pidxs:
+            if (pidx,seed) in pidx_seed_already_exist:
+                continue
             config = {
                 'pidx': pidx,
                 'seed': seed,
-                'sampling_strategy': sampling_strategy,
-                'n_mp_limit': n_mp_limit
+                'sampling_strategy': setup.sampling_strategy,
+                'n_mp_limit': setup.n_mp_limit
             }
             configs.append(config)
 
