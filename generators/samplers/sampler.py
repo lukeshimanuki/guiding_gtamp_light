@@ -53,7 +53,7 @@ class LearnedSampler(Sampler):
 class PickPlaceLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
-        self.samples = self.sample_new_points(200)
+        self.samples = self.sample_new_points(2000)
         self.curr_smpl_idx = 0
 
     def sample_picks(self, poses, collisions, n_smpls):
