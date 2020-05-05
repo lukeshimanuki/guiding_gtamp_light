@@ -111,8 +111,11 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
         rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         rewards = np.array(traj.hcounts)[:-1] - np.array(traj.hcounts[1:])
         rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
+
+        if use_filter:
+            rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) >= 0
+
         for s, a, reward in zip(traj.states, traj.actions, rewards):
-            # print s, a
             if action_type == 'pick':
                 state_vec = s.pick_collision_vector
             elif action_type == 'place':
@@ -130,19 +133,13 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
             if 'pick' not in action_type:
                 is_move_to_goal_region = s.region in s.goal_entities
                 if desired_region == 'home_region' and not is_move_to_goal_region:
-                    # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                     continue
 
                 if desired_region == 'loading_region' and is_move_to_goal_region:
-                    # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                     continue
 
             if reward <= 0 and use_filter:
-                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
-
-            # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
-            # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
 
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
@@ -192,7 +189,10 @@ def get_data(datatype, action_type, region, filtered):
     if datatype == 'n_objs_pack_4':
         data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/uses_rrt/sampler_trajectory_data/'
     else:
-        data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/'
+        if filtered:
+            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/includes_n_in_way/'
+        else:
+            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/'
 
     print "Loading data from", data_dir
     try:

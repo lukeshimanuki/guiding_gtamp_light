@@ -16,7 +16,7 @@ class GeneratorDataset(Dataset):
     def get_data(self, action_type, region):
         data_type = 'n_objs_pack_1'
         atype = action_type
-        filtered = False
+        filtered = True
         #konf_obsts, poses, _, actions, _ = pickle.load(open('tmp_data_for_debug_train_sampler.pkl', 'r'))
         konf_obsts, poses, _, actions, _ = get_data(data_type, atype, region, filtered)
 
