@@ -44,7 +44,7 @@ from collections import Counter
 from manipulation.primitives.display import set_viewer_options, draw_line, draw_point
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 
-from generators.samplers.uniform_sampler import UniformSampler, LearnedSampler
+from generators.samplers.uniform_sampler import UniformSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 
