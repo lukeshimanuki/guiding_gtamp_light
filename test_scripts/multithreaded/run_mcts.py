@@ -17,9 +17,10 @@ def worker_p(config):
         command += option
     command += ' -pw'
     command += ' -use_ucb'
-    command += ' -widening_parameter 0.2'
-    command += ' -sampling_strategy voo'
-    command += ' -switch_frequency 1000'
+    command += ' -switch_frequency 9999'
+    command += ' -ucb_parameter 0.0'
+    command += ' -widening_parameter -1.0' 
+    command += ' -sampling_strategy voo' 
 
     print command
     os.system(command)

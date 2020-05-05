@@ -13,7 +13,8 @@ def worker_p(config):
             continue
         option = ' -' + str(key) + ' ' + str(value)
         command += option
-    command += ' -timelimit 9999'
+    command += ' -timelimit 9999999'
+    command += ' -sampling_strategy voo'
     print command
     os.system(command)
 
