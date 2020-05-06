@@ -49,20 +49,23 @@ def plot_results(iterations, results, fdir):
 
 def main():
     parser = argparse.ArgumentParser('config')
-    parser.add_argument('-atype', type=str, default='pick')
-    parser.add_argument('-region', type=str, default='loading_region')
+    parser.add_argument('-atype', type=str, default='place')
+    parser.add_argument('-region', type=str, default='home_region')
     config = parser.parse_args()
     model = WGANgp(config.atype, config.region)
+
+    max_iter = get_max_iteration(model.weight_dir)
+    max_iter = min(250000, max_iter)
+    iterations = range(100, max_iter, 100)
 
     fdir = model.weight_dir + '/result_summary/'
     if not os.path.isdir(fdir):
         os.makedirs(fdir)
 
     fname = 'results.pkl'
-    max_iter = get_max_iteration(model.weight_dir)
-    max_iter = min(250000, max_iter)
-    iterations = range(100, max_iter, 100)
-    if os.path.isfile(fdir + fname):
+    summary_file_exists = os.path.isfile(fdir + fname)
+    summary_file_exists = False
+    if summary_file_exists:
         results = pickle.load(open(fdir + fname, 'r'))
     else:
         trainloader, trainset, testset = get_data_generator(config.atype, config.region)
@@ -79,7 +82,7 @@ def main():
     iterations = np.array(iterations)
 
     # I need to select non-inf entropy
-    non_inf_idxs = np.where(results[:, 2] !=np.inf)[0]
+    non_inf_idxs = np.where(results[:, 2] != np.inf)[0]
     iterations = iterations[non_inf_idxs]
     results = results[non_inf_idxs, :]
     max_kde_idx = np.argsort(results[:, 1])[::-1][0:100]
@@ -89,8 +92,8 @@ def main():
     print "Max KDE min MSE", results[max_kde_idx, 0]
     iters = iterations[max_kde_idx]
     entropies = results[max_kde_idx, 2]
-    for i,e in zip(iters, entropies):
-        print i,e
+    for i, e in zip(iters, entropies):
+        print i, e
 
 
 if __name__ == '__main__':
