@@ -52,6 +52,9 @@ class SamplerTrajectory:
         self.num_papable_to_goal = []
         self.prev_n_in_way = []
         self.state_prime = []
+        self.v_manip_goal = []
+        self.prev_v_manip_goal = []
+        self.goal_objs_not_in_goal = []
         self.seed = None  # this defines the initial state
         self.problem_env = None
         self.n_objs_pack = n_objs_pack
@@ -64,17 +67,13 @@ class SamplerTrajectory:
     def add_state_prime(self):
         self.state_prime = self.states[1:]
 
-    def add_sah_tuples(self, s, a, prev_n_in_way, n_in_way):
+    def add_sah_tuples(self, s, a, prev_n_in_way, n_in_way, prev_v_manip, v_manip):
         self.states.append(s)
         self.actions.append(a)
         self.prev_n_in_way.append(prev_n_in_way)
         self.n_in_way.append(n_in_way)
-        """
-        self.hvalues.append(hvalue)
-        self.hcounts.append(hcount)
-        self.num_in_goal.append(num_in_goal)
-        self.num_papable_to_goal.append(num_papable_to_goal)
-        """
+        self.prev_v_manip_goal.append(prev_v_manip)
+        self.v_manip_goal.append(v_manip)
 
     def create_environment(self):
         problem_env = Mover(self.problem_idx)
@@ -159,22 +158,22 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         target_region = action.discrete_parameters['place_region']
 
         goal_objs_not_in_goal = [goal_obj for goal_obj in goal_objs if
-                                 not abs_state.binary_edges[(goal_obj, 'home_region')][0]]
-        if target_region == 'home_region':
-            goal_objs_whose_pick_paths_blocked_by_object_moved = [goal_obj for goal_obj in goal_objs_not_in_goal
-                                                                  if
-                                                                  abs_state.binary_edges[(object_moved, goal_obj)][1]]
-            n_in_way = len(goal_objs_whose_pick_paths_blocked_by_object_moved)
-        else:
-            n_in_way = 0
-            for goal_obj in goal_objs_not_in_goal:
-                pick = abs_state.pick_used[goal_obj]
-                pick.execute()
-                place_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
-                objects_in_way = [o.GetName() for o in
-                                  self.problem_env.get_objs_in_collision(place_path, 'entire_region')]
-                n_in_way += object_moved in objects_in_way
-                utils.two_arm_place_object(pick.continuous_parameters)
+                                 not abs_state.binary_edges[(goal_obj, 'home_region')][0]
+                                 and goal_obj != object_moved]
+        n_in_way = 0
+        for goal_obj in goal_objs_not_in_goal:
+            Vpre = abs_state.cached_pick_paths[goal_obj]
+            objects_in_way = [o.GetName() for o in self.problem_env.get_objs_in_collision(Vpre, 'entire_region')]
+            n_in_way += object_moved in objects_in_way
+
+        for goal_obj in goal_objs_not_in_goal:
+            # Don't I include the pick path collisions?
+            pick = abs_state.pick_used[goal_obj]
+            pick.execute()
+            Vmanip = abs_state.cached_place_paths[(goal_obj, 'home_region')]
+            objects_in_way = [o.GetName() for o in self.problem_env.get_objs_in_collision(Vmanip, 'entire_region')]
+            n_in_way += object_moved in objects_in_way
+            utils.two_arm_place_object(pick.continuous_parameters)
         return n_in_way
 
     @staticmethod
@@ -203,6 +202,30 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         }
         return action_info
 
+    def compute_v_manip(self, abs_state, goal_objs):
+        goal_objs_not_in_goal = [goal_obj for goal_obj in goal_objs if
+                                 not abs_state.binary_edges[(goal_obj, 'home_region')][0]]
+        v_manip_values = []
+        v_manip = np.zeros((len(abs_state.prm_vertices), 1))
+        for goal_obj in goal_objs_not_in_goal:
+            prm_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
+            distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+            closest_prm_idx = np.argmin(distances)
+            prm_path.pop(0)
+            prm_path.insert(0, abs_state.prm_vertices[closest_prm_idx, :])
+
+            distances = [utils.base_pose_distance(prm_path[-1], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+            closest_prm_idx = np.argmin(distances)
+            prm_path[-1] = abs_state.prm_vertices[closest_prm_idx, :]
+
+            v_manip_values.append(prm_path)
+            for p in prm_path:
+                boolean_matching_prm_vertices = np.all(np.isclose(abs_state.prm_vertices[:, :2], p[:2]), axis=-1)
+                if np.any(boolean_matching_prm_vertices):
+                    idx = np.argmax(boolean_matching_prm_vertices)
+                    v_manip[idx] = 1
+        return v_manip
+
     def add_trajectory(self, plan, hvalues):
         print "Problem idx", self.problem_idx
         self.set_seed(self.problem_idx)
@@ -223,31 +246,24 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
                                        action.discrete_parameters['place_region'],
                                        goal_entities)
             action_info = self.get_action_info(action)
-            print "Computing state..."
-
             prev_n_in_way = self.compute_n_in_way(action, abs_state, goal_objs)
+            prev_v_manip = self.compute_v_manip(abs_state, goal_objs)
+
             action.execute_pick()
             state.place_collision_vector = state.get_collison_vector(None)
             action.execute()
-            abs_state = ShortestPathPaPState(self.problem_env, goal_entities,
-                                             parent_state=abs_state, parent_action=action)
+
+            print "Computing state..."
+            abs_state = ShortestPathPaPState(self.problem_env, goal_entities, parent_state=abs_state,
+                                             parent_action=action)
+            v_manip = self.compute_v_manip(abs_state, goal_objs)
             n_in_way = self.compute_n_in_way(action, abs_state, goal_objs)
 
             print action.discrete_parameters['object'], action.discrete_parameters['place_region']
             print 'Prev n in way {} curr n in way {}'.format(prev_n_in_way, n_in_way)
 
-            self.add_sah_tuples(state, action_info, prev_n_in_way, n_in_way)
+            self.add_sah_tuples(state, action_info, prev_n_in_way, n_in_way, prev_v_manip, v_manip)
 
         self.add_state_prime()
-        """
-        utils.viewer()
-        init_saver.Restore()
-        for prev_n_in_way, n_in_way, p in zip(self.prev_n_in_way, self.n_in_way, plan):
-            print 'Prev n in way {} curr n in way {}'.format(prev_n_in_way, n_in_way)
-            import pdb;pdb.set_trace()
-            p.execute()
-            import pdb;pdb.set_trace()
-        import pdb;pdb.set_trace()
-        """
         print "Done!"
         openrave_env.Destroy()
