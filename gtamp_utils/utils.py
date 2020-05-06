@@ -603,11 +603,11 @@ def base_conf_diff(x, y):
     if y[-1] < 0:
         y[-1] += 2 * np.pi
     try:
-        assert 0 <= x[-1] < 2*np.pi
-        assert 0 <= y[-1] < 2*np.pi
+        assert 0 <= x[-1] < 2 * np.pi
+        assert 0 <= y[-1] < 2 * np.pi
     except:
         raise AssertionError, 'Base conf needs to be between [0,2pi]'
-    base_diff[-1] = min(np.abs(th_diff), 2*np.pi - np.abs(th_diff))
+    base_diff[-1] = min(np.abs(th_diff), 2 * np.pi - np.abs(th_diff))
     return base_diff
 
 
@@ -617,6 +617,16 @@ def place_distance(a1, a2):
 
     base_a2 = np.array(a2['q_goal'])
     base_a2 = clean_pose_data(np.array(base_a2)).squeeze()
+
+    base_distance_max_diff = np.array([1. / 2.51, 1. / 2.51, 1 / np.pi])
+    base_distance = np.sum(np.dot(base_conf_diff(base_a1, base_a2), base_distance_max_diff))
+
+    return base_distance
+
+
+def base_pose_distance(a1, a2):
+    base_a1 = clean_pose_data(a1).squeeze()
+    base_a2 = clean_pose_data(np.array(a2)).squeeze()
 
     base_distance_max_diff = np.array([1. / 2.51, 1. / 2.51, 1 / np.pi])
     base_distance = np.sum(np.dot(base_conf_diff(base_a1, base_a2), base_distance_max_diff))
@@ -882,7 +892,7 @@ def randomly_place_region(body, region, n_limit=None):
     if env.GetKinBody(get_name(body)) is None:
         env.Add(body)
     orig = get_body_xytheta(body)
-    #for _ in n_limit:
+    # for _ in n_limit:
     i = 0
     while True:
         set_quat(body, quat_from_z_rot(uniform(0, 2 * PI)))
@@ -895,9 +905,9 @@ def randomly_place_region(body, region, n_limit=None):
             return
 
         if n_limit is not None:
-            i+=1
-            if i >=n_limit:
-                set_obj_xytheta(orig,body)
+            i += 1
+            if i >= n_limit:
+                set_obj_xytheta(orig, body)
                 return
 
 
