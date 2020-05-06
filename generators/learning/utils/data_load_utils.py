@@ -79,7 +79,9 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
                                                                                              desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
-        #return pickle.load(open(traj_dir + cache_file_name, 'r'))
+        d = pickle.load(open(traj_dir + cache_file_name, 'r'))
+        print "Cache data loaded"
+        return d
 
     print 'caching file...%s' % cache_file_name
     all_states = []
