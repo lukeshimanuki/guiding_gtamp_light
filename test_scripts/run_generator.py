@@ -25,9 +25,9 @@ def parse_arguments():
     parser.add_argument('-pidx', type=int, default=20000)  # used for threaded runs
 
     # epoch 41900 for loading region, 98400 for home region, 43700 for pick
-    parser.add_argument('-epoch_home', type=int, default=98400)
+    parser.add_argument('-epoch_home', type=int, default=111200)
     parser.add_argument('-epoch_loading', type=int, default=41900)
-    parser.add_argument('-epoch_pick', type=int, default=43700)
+    parser.add_argument('-epoch_pick', type=int, default=242000)
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
@@ -87,26 +87,31 @@ class DummyAbstractState:
         self.goal_entities = goal_entities
 
 
-def visualize_samplers_along_plan(plan, sampler_model, problem_env, goal_entities):
+def visualize_samplers_along_plan(plan, problem_env, goal_entities, config):
     abstract_state = DummyAbstractState(problem_env, goal_entities)
 
     for action in plan:
         abstract_action = action
-        sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, abstract_action,
-                                          pick_abs_base_pose=action.continuous_parameters['pick']['q_goal'])
+        generator = get_generator(config, abstract_state, action, 5, problem_env)
+        sampler = generator.sampler
+
         # getting the samples
         samples = [sampler.sample() for _ in range(100)]
-        obj_placements = [smpl[-3:] for smpl in samples]
-        pick_samples = [smpl[:-3] for smpl in samples]
+        place_poses = [smpl[-3:] for smpl in samples]
 
+        pick_samples = [smpl[:-3] for smpl in samples]
         pick_abs_poses = np.array(
             [utils.get_pick_base_pose_and_grasp_from_pick_parameters(abstract_action.discrete_parameters['object'], s)[
                  1] for s in pick_samples])
+        # utils.visualize_path(pick_abs_poses[0:50, :])
 
-        color = utils.get_color_of(sampler.obj)
-        utils.set_color(sampler.obj, [1, 0, 0])
-        utils.visualize_placements(obj_placements, sampler.obj)
-        utils.set_color(sampler.obj, color)
+        obj = action.discrete_parameters['object']
+        color = utils.get_color_of(obj)
+        utils.set_color(obj, [0, 0, 1])
+        # utils.visualize_path(place_poses)
+        utils.set_color(obj, color)
+        import pdb;
+        pdb.set_trace()
         action.execute()
 
 
@@ -133,14 +138,23 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
         print "Using learned sampler"
         sampler_model = get_learned_smpler(epoch_home=config.epoch_home,
                                            epoch_loading=config.epoch_loading, epoch_pick=config.epoch_pick)
-        sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, action)
+        sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
         sampler.infeasible_action_value = -9999
         generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                        n_parameters_to_try_motion_planning=n_mp_limit,
                                        n_iter_limit=2000, problem_env=problem_env,
-                                       pick_action_mode='robot_base_pose',
+                                       pick_action_mode='ir_parameters',
                                        place_action_mode='robot_base_pose')
     return generator
+
+
+def visualize_samples(action, sampler):
+    samples = [sampler.sample() for _ in range(30)]
+    place_poses = [smpl[-3:] for smpl in samples]
+    pick_samples = [smpl[:-3] for smpl in samples]
+    pick_abs_poses = np.array([utils.get_pick_base_pose_and_grasp_from_pick_parameters(action.discrete_parameters['object'], s)[1] for s in pick_samples])
+    #utils.visualize_path(pick_abs_poses)
+    utils.visualize_path(place_poses)
 
 
 def execute_policy(plan, problem_env, goal_entities, config):
@@ -200,6 +214,7 @@ def execute_policy(plan, problem_env, goal_entities, config):
                 samples_tried[plan_idx].append(s)
                 sample_values[plan_idx].append(generator.sampler.infeasible_action_value)
         goal_reached = plan_idx == len(plan)
+        print "Total IK checks {} Total actions {}".format(total_ik_checks, n_total_actions)
 
     print time.time() - stime
     return total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
@@ -222,7 +237,8 @@ def get_logfile_name(config):
         logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
                        'a')
     else:
-        logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit, 'a')
+        logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit,
+                       'a')
     return logfile
 
 
@@ -236,7 +252,7 @@ def main():
 
     if config.v:
         utils.viewer()
-        visualize_samplers_along_plan(plan, smpler, problem_env, goal_objs + [goal_region])
+        visualize_samplers_along_plan(plan, problem_env, goal_objs + [goal_region], config)
 
     set_seeds(config.seed)
 
