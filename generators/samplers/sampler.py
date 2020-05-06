@@ -58,8 +58,7 @@ class PickPlaceLearnedSampler(LearnedSampler):
 
     def sample_picks(self, poses, collisions, n_smpls):
         poses = np.tile(poses, (n_smpls, 1))
-        chosen_sampler = self.policies['pick']
-        pick_samples = chosen_sampler.generate(collisions, poses)
+        pick_samples = self.policies['pick'].generate(collisions, poses)
         # I need to encode it in the theta
         base_angles = pick_samples[:, 4:6]
         base_angles = [utils.decode_sin_and_cos_to_angle(base_angle) for base_angle in base_angles]
@@ -70,7 +69,6 @@ class PickPlaceLearnedSampler(LearnedSampler):
     def sample_placements(self, poses, collisions, pick_samples, n_smpls):
         pick_abs_poses = np.array(
             [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
-        pick_samples[:, -3:] = pick_abs_poses
         encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
 
         poses = np.tile(poses, (n_smpls, 1))
@@ -128,7 +126,6 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
             pick_samples = self.sample_picks(n_smpls)
             pick_abs_poses = np.array(
                 [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
-            pick_samples[:, -3:] = pick_abs_poses
             encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
         else:
             encoded_pick_abs_poses = np.array(utils.encode_pose_with_sin_and_cos_angle(self.pick_abs_base_pose))
