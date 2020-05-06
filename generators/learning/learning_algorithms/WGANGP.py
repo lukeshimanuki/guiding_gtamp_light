@@ -193,6 +193,22 @@ class WGANgp:
             print "Could not load discriminator"
             pass
 
+    @staticmethod
+    def normalize_data(data, data_mean=None, data_std=None):
+        if data_mean is None:
+            data_mean = data.mean(axis=0)
+            data_std = data.std(axis=0)
+
+        data = (data - data_mean) / data_std
+        return data, data_mean, data_std
+
+    @staticmethod
+    def measure_min_mse_between_samples_and_point(point, smpls):
+        dists = (point - smpls) ** 2
+        dists = np.sqrt(np.sum(dists, axis=-1))
+        min_mse = min(dists)
+        return min_mse
+
     def evaluate_generator(self, test_data, iteration=None):
         is_load_weights = iteration is not None
         if is_load_weights:
@@ -212,37 +228,42 @@ class WGANgp:
         smpls = torch.stack(smpls)
 
         real_actions = test_data['actions']
-        real_mean = real_actions.mean(axis=0)
-        real_std = real_actions.std(axis=0)
-        real_actions = (real_actions - real_mean) / real_std
+        real_actions, real_mean, real_std = self.normalize_data(real_actions)
+
         real_data_scores = []
         entropies = []
         min_mses = []
         for idx in range(n_data):
             smpls_from_state = smpls[:, idx, :]
             smpls_from_state = smpls_from_state.cpu().detach().numpy()
-            smpls_from_state = (smpls_from_state - real_mean) / real_std
+            smpls_from_state, _, _ = self.normalize_data(smpls_from_state, real_mean, real_std)
             real_action = real_actions[idx].reshape(-1, self.n_dim_actions)
 
-            # measure the MSE
-            dists = ((real_action * real_std + real_mean) - (smpls_from_state * real_std + real_mean)) ** 2
-            dists = np.sqrt(np.sum(dists, axis=-1))
-            min_mse = min(dists)
+            unnormalized_real_action = real_action * real_std + real_mean
+            unnormalized_smpls_from_state = smpls_from_state * real_std + real_mean
+            min_mse = self.measure_min_mse_between_samples_and_point(unnormalized_real_action,
+                                                                     unnormalized_smpls_from_state)
             min_mses.append(min_mse)
 
-            # fit the KDE
+            # fit the KDE - how likely is the real action come from the learend distribution of smpls_from_state
             generated_model = KernelDensity(kernel='gaussian', bandwidth=0.1).fit(smpls_from_state)
             real_data_scores.append(generated_model.score(real_action))
 
             # measure the entropy
-            smpls_from_state = smpls_from_state * real_std + real_mean
             if 'pick' in self.action_type:
-                base_angles = smpls_from_state[:, 4:6]
+                base_angles = unnormalized_smpls_from_state[:, 4:6]
                 H, _, _ = np.histogram2d(base_angles[:, 0], base_angles[:, 1], bins=10,
                                          range=self.domain[:, 4:6].transpose())
             else:
-                place_x, place_y = smpls_from_state[:, 0], smpls_from_state[:, 1]
+                place_x, place_y = unnormalized_smpls_from_state[:, 0], unnormalized_smpls_from_state[:, 1]
+                encoded_theta = unnormalized_smpls_from_state[:, 1:]
+                #H_theta, _, _ = np.histogram2d(encoded_theta[:, 0], encoded_theta[:, 1], bins=10, range=self.domain[:, 2:].transpose())
                 H, _, _ = np.histogram2d(place_x, place_y, bins=10, range=self.domain[:, 0:2].transpose())
+
+                # I think the angle entropy is more important
+                # For a given x,y, what is the entropy on the angles? I think entropy of angles
+                # has more to say, because this is what we should get accurately.
+
             all_smpls_out_of_range = np.sum(H) == 0
             if all_smpls_out_of_range:
                 entropy = np.inf
