@@ -1,14 +1,4 @@
-import os
 import numpy as np
-import pickle
-import os
-
-from data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
-    state_data_mode
-
-import socket
-from gtamp_utils import utils
-
 
 def one_hot_encode(vec):
     n_elements = len(np.unique(vec))
@@ -57,7 +47,7 @@ def convert_collision_vec_to_one_hot(c_data):
     onehot_cdata = np.array(onehot_cdata)
     return onehot_cdata
 
-
+"""
 def load_data(traj_dir, action_type, desired_region, use_filter):
     traj_files = os.listdir(traj_dir)
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
@@ -164,7 +154,6 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
         all_konf_relevance.append(konf_relevance)
-        # all_paths.append(place_paths)
 
         print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
 
@@ -204,14 +193,5 @@ def get_data(datatype, action_type, region, filtered):
 
     is_goal_flags = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
-
-    """
-    n_data = 5000
-    states = states[:5000, :]
-    poses = poses[:n_data, :]
-    actions = actions[:5000, :]
-    sum_rewards = sum_rewards[:5000]
-    is_goal_flags = is_goal_flag[:5000, :]
-    """
-
     return states, poses, is_goal_flags, actions, sum_rewards
+"""
