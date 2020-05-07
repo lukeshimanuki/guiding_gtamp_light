@@ -2,6 +2,8 @@ import torch
 import torch.autograd as autograd
 import torch.optim as optim
 import numpy as np
+import time
+
 from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
@@ -233,7 +235,7 @@ class WGANgp:
                     yield d
 
         data_gen = data_generator()
-
+        stime=time.time()
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -317,3 +319,5 @@ class WGANgp:
                 torch.save(self.discriminator.state_dict(), path)
                 path = self.weight_dir + '/gen_iter_%d.pt' % iteration
                 torch.save(self.generator.state_dict(), path)
+                print 'Time taken', time.time()-stime
+                stime = time.time()
