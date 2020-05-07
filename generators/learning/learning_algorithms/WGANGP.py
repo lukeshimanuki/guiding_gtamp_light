@@ -12,21 +12,23 @@ from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
 from gtamp_utils import utils
 
 
-def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size):
+def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size, use_cuda):
     lambda_val = .1  # Smaller lambda seems to help for toy tasks specifically
 
     alpha = torch.rand(len(actions_v), 1)
     alpha = alpha.expand(actions_v.size())
-    alpha = alpha
+    if use_cuda:
+        alpha = alpha.cuda()
 
     interpolates = alpha * actions_v + ((1 - alpha) * fake_data)
-
+    if use_cuda:
+        interpolates = interpolates.cuda()
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
     disc_interpolates = discriminator(interpolates, konf_obsts_v, poses_v)
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()),
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(disc_interpolates.size()),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_val
@@ -272,7 +274,7 @@ class WGANgp:
 
                 # train with gradient penalty
                 gradient_penalty = calc_gradient_penalty(self.discriminator, actions_v.data, konf_obsts_v, poses_v,
-                                                         fake.data, batch_size)
+                                                         fake.data, batch_size, use_cuda)
                 gradient_penalty.backward()
 
                 D_cost = D_fake - D_real + gradient_penalty
