@@ -40,6 +40,7 @@ class WGANgp:
         self.dim_konf = 4
         self.architecture = architecture
         self.region_name = region_name
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
@@ -59,6 +60,8 @@ class WGANgp:
             raise NotImplementedError
         else:
             raise NotImplementedError
+        discriminator.to(self.device)
+        generator.to(self.device)
         return discriminator, generator
 
 
@@ -210,7 +213,7 @@ class WGANgp:
         optimizerG = optim.Adam(self.generator.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
         CRITIC_ITERS = 5  # How many critic iterations per generator iteration
-        use_cuda = False
+        use_cuda = 'cuda' in self.device.type
 
         one = torch.FloatTensor([1])
         mone = one * -1
