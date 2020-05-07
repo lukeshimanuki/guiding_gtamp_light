@@ -134,7 +134,6 @@ class GeneratorDataset(Dataset):
 
         all_states = np.vstack(all_states).squeeze(axis=1)
         all_actions = np.vstack(all_actions).squeeze()
-        all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
         all_poses = np.vstack(all_poses).squeeze()
         pickle.dump((all_states, all_poses, all_actions), open(traj_dir + cache_file_name, 'wb'))
 

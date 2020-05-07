@@ -6,7 +6,9 @@ from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
 
-from torch_wgangp_models import Generator, Discriminator
+from torch_wgangp_models.fc_models import Generator, Discriminator
+from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
+
 from gtamp_utils import utils
 
 
@@ -32,19 +34,33 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 
 class WGANgp:
-    def __init__(self, action_type, region_name):
+    def __init__(self, action_type, region_name, architecture):
         self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
         self.dim_konf = 4
-
-        self.discriminator = Discriminator(self.dim_konf, self.n_dim_actions)
-        self.generator = Generator(self.dim_konf, self.n_dim_actions)
+        self.architecture = architecture
         self.region_name = region_name
+
+        self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
+
+    def create_models(self):
+        if self.architecture == 'fc':
+            discriminator = Discriminator(self.dim_konf, self.n_dim_actions)
+            generator = Generator(self.dim_konf, self.n_dim_actions)
+        elif self.architecture == 'cnn':
+            discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions)
+            generator = CNNGenerator(self.dim_konf, self.n_dim_actions)
+        elif self.architecture == 'gnn':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+        return discriminator, generator
+
 
     @staticmethod
     def get_dim_action(action_type):
@@ -53,12 +69,12 @@ class WGANgp:
         else:
             return 4
 
-    @staticmethod
-    def get_weight_dir(action_type, region_name):
+    def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/wgangp/'.format(action_type, region_name)
+            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/'.format(action_type, region_name,
+                                                                                 self.architecture)
         else:
-            dir = './generators/learning/learned_weights/{}/wgangp/'.format(action_type)
+            dir = './generators/learning/learned_weights/{}/wgangp/{}/'.format(action_type, self.architecture)
         return dir
 
     def get_domain(self, action_type, region_name):
@@ -170,7 +186,7 @@ class WGANgp:
             else:
                 place_x, place_y = unnormalized_smpls_from_state[:, 0], unnormalized_smpls_from_state[:, 1]
                 encoded_theta = unnormalized_smpls_from_state[:, 1:]
-                #H_theta, _, _ = np.histogram2d(encoded_theta[:, 0], encoded_theta[:, 1], bins=10, range=self.domain[:, 2:].transpose())
+                # H_theta, _, _ = np.histogram2d(encoded_theta[:, 0], encoded_theta[:, 1], bins=10, range=self.domain[:, 2:].transpose())
                 H, _, _ = np.histogram2d(place_x, place_y, bins=10, range=self.domain[:, 0:2].transpose())
 
                 # I think the angle entropy is more important

@@ -1,12 +1,12 @@
 import torch
 from torch import nn
+from models import BaseGenerator, BaseDiscriminator
 
 
-class Discriminator(nn.Module):
+class Discriminator(BaseDiscriminator):
     def __init__(self, dim_konf, dim_data):
-        nn.Module.__init__(self)
+        BaseDiscriminator.__init__(self, dim_konf)
         n_hidden = 32
-        self.dim_konf = dim_konf
         n_konfs = 618 * dim_konf
         self.konf_net = \
             nn.Sequential(
@@ -51,11 +51,10 @@ class Discriminator(nn.Module):
         return self.output(concat)
 
 
-class Generator(nn.Module):
+class Generator(BaseGenerator):
     def __init__(self, dim_konf, dim_data):
-        nn.Module.__init__(self)
+        BaseGenerator.__init__(self, dim_konf)
         n_hidden = 32
-        self.dim_konf = dim_konf
         n_konfs = 618 * dim_konf
         self.konf_net = \
             nn.Sequential(
