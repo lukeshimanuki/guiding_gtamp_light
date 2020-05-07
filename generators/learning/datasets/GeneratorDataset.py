@@ -6,6 +6,7 @@ import torch
 from generators.learning.utils.data_processing_utils import get_processed_poses_from_state, \
     get_processed_poses_from_action
 
+from gtamp_utils import utils
 import os
 
 
@@ -38,7 +39,7 @@ class GeneratorDataset(Dataset):
     def get_data_dir(filtered):
         if filtered:
             data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
-                       'sampler_trajectory_data/includes_n_in_way/'
+                       'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
         else:
             data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
                        'sampler_trajectory_data/'
@@ -94,16 +95,20 @@ class GeneratorDataset(Dataset):
             else:
                 rewards = 0
 
-            for s, a, reward in zip(traj.states, traj.actions, rewards):
+            for s, a, reward, v_manip_goal in zip(traj.states, traj.actions, rewards, traj.prev_v_manip_goal):
                 if self.we_should_skip_this_state_and_action(s, desired_region, reward, action_type, use_filter):
                     continue
 
                 if action_type == 'pick':
-                    state_vec = s.pick_collision_vector
+                    collision_vec = s.pick_collision_vector
                 elif action_type == 'place':
-                    state_vec = s.place_collision_vector
+                    collision_vec = s.place_collision_vector
                 else:
                     raise NotImplementedError
+
+                v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 618, 2, 1))
+                state_vec = np.concatenate([collision_vec,v_manip_vec],axis=2)
+
 
                 states.append(state_vec)
                 poses.append(get_processed_poses_from_state(s, 'absolute'))
@@ -131,10 +136,9 @@ class GeneratorDataset(Dataset):
         all_actions = np.vstack(all_actions).squeeze()
         all_sum_rewards = np.hstack(np.array(all_sum_rewards))[:, None]  # keras requires n_data x 1
         all_poses = np.vstack(all_poses).squeeze()
-        pickle.dump((all_states, all_poses, all_actions, all_sum_rewards),
-                    open(traj_dir + cache_file_name, 'wb'))
+        pickle.dump((all_states, all_poses, all_actions), open(traj_dir + cache_file_name, 'wb'))
 
-        return all_states, all_poses, all_actions, all_sum_rewards[:, None]
+        return all_states, all_poses, all_actions
 
     def get_data(self, action_type, region):
         atype = action_type
@@ -144,8 +148,7 @@ class GeneratorDataset(Dataset):
         else:
             action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
-        konf_obsts, poses, _, actions, _ = self.load_data_from_files(atype, region, filtered, action_data_mode)
-
+        states, poses, actions = self.load_data_from_files(atype, region, filtered, action_data_mode)
         if atype == 'pick':
             actions = actions[:, :-4]
         elif atype == 'place':
