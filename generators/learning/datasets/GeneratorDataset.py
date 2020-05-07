@@ -191,10 +191,18 @@ class GNNDataset(GeneratorDataset):
             n_edges = len(neighbors)
             edges[0] += [src_idx] * n_edges
             edges[1] += neighbors
-            # How to make sure it is bidrectional?
         self.edges = np.array(edges)
 
     def __getitem__(self, idx):
+        # return the data at idx
+        data = {
+            'konf_obsts': self.konf_obsts[idx],
+            'poses': self.poses[idx],
+            'actions': self.actions[idx],
+            'edges': self.edges
+        }
+
+        """
         if type(idx) is int:
             # where is the pick robot pose?
             prm_vertices = self.prm_vertices
@@ -207,47 +215,10 @@ class GNNDataset(GeneratorDataset):
             v = np.hstack([prm_vertices, repeat_q0, repeat_goal_obj_poses, self.cols[idx]])
         else:
             raise NotImplementedError
+        """
 
         v = torch.from_numpy(v)
 
         return {'vertex': v, 'edges': self.edges, 'actions': self.actions[idx]}
 
 
-"""
-class GNNRelativeReachabilityDataset(GNNReachabilityDataset):
-    def __init__(self, action_type):
-        super(GNNRelativeReachabilityDataset, self).__init__(action_type)
-
-    @staticmethod
-    def compute_relative_config(src_config, end_config):
-        src_config = np.array(src_config)
-        end_config = np.array(end_config)
-
-        assert len(src_config.shape) == 2, \
-            'Put configs in shapes (n_config,dim_config)'
-
-        rel_config = end_config - src_config
-        neg_idxs_to_fix = rel_config[:, -1] < -np.pi
-        pos_idxs_to_fix = rel_config[:, -1] > np.pi
-
-        # making unique rel angles; keep the range to [-pi,pi]
-        rel_config[neg_idxs_to_fix, -1] = rel_config[neg_idxs_to_fix, -1] + 2 * np.pi
-        rel_config[pos_idxs_to_fix, -1] = rel_config[pos_idxs_to_fix, -1] - 2 * np.pi
-
-        return rel_config
-
-    def __getitem__(self, idx):
-        if type(idx) is int:
-            dim_q = self.q0s.shape[-1]
-            q0 = np.array(self.q0s).reshape((len(self.q0s), dim_q))[idx][None, :]
-            qg = np.array(self.qgs).reshape((len(self.qgs), dim_q))[idx][None, :]
-
-            rel_qg = self.compute_relative_config(q0, qg)
-            rel_key_configs = self.compute_relative_config(q0, self.prm_vertices)
-            repeat_qg = np.repeat(rel_qg, 615, axis=0)
-            v = np.hstack([rel_key_configs, repeat_qg, self.collisions[idx]])
-        else:
-            raise NotImplementedError
-
-        return {'vertex': v, 'edges': self.edges, 'y': self.labels[idx]}
-"""
