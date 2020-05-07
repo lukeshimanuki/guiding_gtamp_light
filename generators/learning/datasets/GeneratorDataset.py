@@ -93,7 +93,7 @@ class GeneratorDataset(Dataset):
             if use_filter:
                 rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) >= 0
             else:
-                rewards = 0
+                rewards = 1
 
             for s, a, reward, v_manip_goal in zip(traj.states, traj.actions, rewards, traj.prev_v_manip_goal):
                 if self.we_should_skip_this_state_and_action(s, desired_region, reward, action_type, use_filter):
