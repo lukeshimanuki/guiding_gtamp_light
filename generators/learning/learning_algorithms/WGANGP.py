@@ -35,9 +35,10 @@ class WGANgp:
     def __init__(self, action_type, region_name):
         self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
+        self.dim_konf = 4
 
-        self.discriminator = Discriminator(self.n_dim_actions)
-        self.generator = Generator(self.n_dim_actions)
+        self.discriminator = Discriminator(self.dim_konf, self.n_dim_actions)
+        self.generator = Generator(self.dim_konf, self.n_dim_actions)
         self.region_name = region_name
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)

@@ -3,10 +3,11 @@ from torch import nn
 
 
 class Discriminator(nn.Module):
-    def __init__(self, dim_data):
+    def __init__(self, dim_konf, dim_data):
         nn.Module.__init__(self)
         n_hidden = 32
-        n_konfs = 618 * 2
+        self.dim_konf = dim_konf
+        n_konfs = 618 * dim_konf
         self.konf_net = \
             nn.Sequential(
                 torch.nn.Linear(n_konfs, n_hidden),
@@ -42,7 +43,7 @@ class Discriminator(nn.Module):
             )
 
     def forward(self, action, konf, pose):
-        konf = konf.view((-1, 618 * 2))
+        konf = konf.view((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
         pose_val = self.pose_net(pose)
         action_val = self.action_net(action)
@@ -51,10 +52,11 @@ class Discriminator(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, dim_data):
+    def __init__(self, dim_konf, dim_data):
         nn.Module.__init__(self)
         n_hidden = 32
-        n_konfs = 618 * 2
+        self.dim_konf = dim_konf
+        n_konfs = 618 * dim_konf
         self.konf_net = \
             nn.Sequential(
                 torch.nn.Linear(n_konfs, n_hidden),
@@ -82,7 +84,7 @@ class Generator(nn.Module):
             )
 
     def forward(self, konf, pose, noise):
-        konf = konf.view((-1, 618 * 2))
+        konf = konf.view((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
         pose_val = self.pose_net(pose)
         concat = torch.cat((konf_val, pose_val, noise), -1)

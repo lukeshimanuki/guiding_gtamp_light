@@ -158,7 +158,7 @@ class GeneratorDataset(Dataset):
         else:
             raise NotImplementedError
 
-        return konf_obsts, poses, actions
+        return states, poses, actions
 
     def __len__(self):
         return len(self.konf_obsts)
