@@ -192,7 +192,7 @@ def get_data(datatype, action_type, region, filtered):
         data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/uses_rrt/sampler_trajectory_data/'
     else:
         if filtered:
-            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/includes_n_in_way/'
+            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
         else:
             data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/'
 
