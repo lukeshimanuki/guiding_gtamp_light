@@ -10,9 +10,10 @@ import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
 from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
+from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
 
 from gtamp_utils import utils
-
+import socket
 
 def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size, use_cuda):
     lambda_val = .1  # Smaller lambda seems to help for toy tasks specifically
@@ -44,8 +45,10 @@ class WGANgp:
         self.dim_konf = 4
         self.architecture = architecture
         self.region_name = region_name
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+        if socket.gethostname() == 'lab':
+            self.device = torch.device('cpu') # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
+        else:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)
@@ -61,7 +64,8 @@ class WGANgp:
             discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions)
             generator = CNNGenerator(self.dim_konf, self.n_dim_actions)
         elif self.architecture == 'gnn':
-            raise NotImplementedError
+            discriminator = GNNDiscriminator(self.dim_konf, self.n_dim_actions, self.device)
+            generator = GNNGenerator(self.dim_konf, self.n_dim_actions, self.device)
         else:
             raise NotImplementedError
         discriminator.to(self.device)
