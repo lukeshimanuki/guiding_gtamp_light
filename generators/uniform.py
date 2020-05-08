@@ -26,7 +26,7 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
         self.objects_to_check_collision = None
         self.tried_smpls = []
         self.smpling_time = []
-        operator_type = operator_skeleton.type
+        self.operator_type = operator_type = operator_skeleton.type
 
         target_region = None
         """
@@ -49,42 +49,38 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
         elif operator_type == 'one_arm_pick':
             self.domain = get_pick_domain()
             self.op_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
-        else:
-            raise NotImplementedError
-        """
         elif operator_type == 'two_arm_place':
-            raise NotImplementedError
-            # This should not be used
-            #self.domain = get_place_domain(target_region)
-            #self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env)
+            #raise NotImplementedError
+            ## This should not be used
+            self.domain = get_place_domain(target_region)
+            self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env, 'object_pose')
         elif operator_type == 'one_arm_place':
-            if target_region is None:
-                import pdb;
-                pdb.set_trace()
+            #if target_region is None:
+            #    import pdb;
+            #    pdb.set_trace()
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
-        elif operator_type == 'two_arm_pick_two_arm_place':
-            # used by MCTS
-            pick_min = get_pick_domain()[0]
-            pick_max = get_pick_domain()[1]
-            place_min = get_place_domain(target_region)[0]
-            place_max = get_place_domain(target_region)[1]
-            mins = np.hstack([pick_min, place_min])
-            maxes = np.hstack([pick_max, place_max])
-            self.domain = np.vstack([mins, maxes])
-            self.op_feasibility_checker = TwoArmPaPFeasibilityChecker(problem_env)
-        elif operator_type == 'one_arm_pick_one_arm_place':
-            self.pick_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
-            self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
-            pick_min = get_pick_domain()[0]
-            pick_max = get_pick_domain()[1]
-            place_min = get_place_domain(target_region)[0]
-            place_max = get_place_domain(target_region)[1]
-            self.pick_domain = np.vstack([pick_min, pick_max])
-            self.place_domain = np.vstack([place_min, place_max])
+        #elif operator_type == 'two_arm_pick_two_arm_place':
+        #    # used by MCTS
+        #    pick_min = get_pick_domain()[0]
+        #    pick_max = get_pick_domain()[1]
+        #    place_min = get_place_domain(target_region)[0]
+        #    place_max = get_place_domain(target_region)[1]
+        #    mins = np.hstack([pick_min, place_min])
+        #    maxes = np.hstack([pick_max, place_max])
+        #    self.domain = np.vstack([mins, maxes])
+        #    self.op_feasibility_checker = TwoArmPaPFeasibilityChecker(problem_env)
+        #elif operator_type == 'one_arm_pick_one_arm_place':
+        #    self.pick_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
+        #    self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
+        #    pick_min = get_pick_domain()[0]
+        #    pick_max = get_pick_domain()[1]
+        #    place_min = get_place_domain(target_region)[0]
+        #    place_max = get_place_domain(target_region)[1]
+        #    self.pick_domain = np.vstack([pick_min, pick_max])
+        #    self.place_domain = np.vstack([place_min, place_max])
         else:
             raise ValueError
-        """
 
     def sample_feasible_op_parameters(self, operator_skeleton, n_iter, n_parameters_to_try_motion_planning,
                                       chosen_pick_base_pose=None):
@@ -96,11 +92,12 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
         for i in range(n_iter):
             # print 'Sampling attempts %d/%d' % (i, n_iter)
             op_parameters = self.sample_from_uniform()
-            if chosen_pick_base_pose is None:
-                self.op_feasibility_checker.action_mode = 'ir_parameters'
-            else:
-                op_parameters[3:] = utils.get_robot_xytheta()
-                self.op_feasibility_checker.action_mode = 'robot_base_pose'
+            if 'pick' in self.operator_type:
+                if chosen_pick_base_pose is None:
+                    self.op_feasibility_checker.action_mode = 'ir_parameters'
+                else:
+                    op_parameters[3:] = utils.get_robot_xytheta()
+                    self.op_feasibility_checker.action_mode = 'robot_base_pose'
 
             self.tried_smpls.append(op_parameters)
             stime2 = time.time()

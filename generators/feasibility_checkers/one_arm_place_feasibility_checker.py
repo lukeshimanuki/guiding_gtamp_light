@@ -42,7 +42,7 @@ class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibili
         robot_original_config = self.robot.GetDOFValues()
         grasp_params = operator_skeleton.continuous_parameters['grasp_params']
 
-        obj_region = operator_skeleton.discrete_parameters['region']
+        obj_region = operator_skeleton.discrete_parameters['place_region']
         if type(obj_region) == str:
             obj_region = self.problem_env.regions[obj_region]
         target_robot_region = self.problem_env.regions['home_region']
