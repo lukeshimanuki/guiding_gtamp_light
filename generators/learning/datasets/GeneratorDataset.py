@@ -74,8 +74,8 @@ class GeneratorDataset(Dataset):
                     f = pickle.load(open(testing_cached_file, 'r'))
                 else:
                     f = pickle.load(open(traj_dir + cache_file_name, 'r'))
-                    n_test_data = int(len(f[0])*0.1)
-                    new_f = (f[0][:n_test_data, :], f[1][:n_test_data, :], f[2][:n_test_data, :])
+                    new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_'+cache_file_name,'r'))
+                    new_f = (f[0][new_idxs, :], f[1][new_idxs, :], f[2][new_idxs, :])
                     f = pickle.dump(new_f, open(testing_cached_file, 'wb'))
                     f = new_f
             else:
