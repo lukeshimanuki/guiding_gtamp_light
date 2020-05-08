@@ -125,13 +125,10 @@ class WGANgp:
         weight_file = self.weight_dir + '/gen_iter_%d.pt' % iteration
         if verbose:
             print "Loading weight file", weight_file
-        self.generator.load_state_dict(torch.load(weight_file))
-        weight_file = self.weight_dir + '/disc_iter_%d.pt' % iteration
-        try:
-            self.discriminator.load_state_dict(torch.load(weight_file))
-        except IOError:
-            print "Could not load discriminator"
-            pass
+        if 'cpu' in self.device.type:
+            self.generator.load_state_dict(torch.load(weight_file, map_location=torch.device('cpu')))
+        else:
+            self.generator.load_state_dict(torch.load(weight_file))
 
     @staticmethod
     def normalize_data(data, data_mean=None, data_std=None):
