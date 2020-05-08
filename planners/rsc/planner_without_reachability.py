@@ -7,7 +7,7 @@ from gtamp_utils import utils
 
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
-from generators.sampler import UniformSampler, LearnedSampler
+from generators.samplers.uniform_sampler import UniformSampler
 
 import pickle
 import numpy as np
