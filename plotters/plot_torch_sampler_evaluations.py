@@ -18,7 +18,7 @@ def plot(x_data, y_data, title, file_dir):
     plt.savefig(file_dir + '{}.png'.format(title))
 
 
-def plot_results(iterations, results, fdir):
+def plot_results(iterations, results, result_dir):
     results = copy.deepcopy(np.array(results))
     iterations = copy.deepcopy(np.array(iterations)[:len(results)])
     in_bound_idxs = results[:, 2] != np.inf
@@ -27,9 +27,9 @@ def plot_results(iterations, results, fdir):
         return
     iterations = iterations[in_bound_idxs]
 
-    plot(iterations, results[:, 0], 'Min MSEs', fdir)
-    plot(iterations, results[:, 1], 'KDE scores', fdir)
-    plot(iterations, results[:, 2], 'Entropies', fdir)
+    plot(iterations, results[:, 0], 'Min MSEs', result_dir)
+    plot(iterations, results[:, 1], 'KDE scores', result_dir)
+    plot(iterations, results[:, 2], 'Entropies', result_dir)
 
 
 def print_results(results, iterations):
@@ -55,14 +55,14 @@ def main():
     parser.add_argument('-architecture', type=str, default='fc')
     config = parser.parse_args()
 
-    model = WGANgp(config.atype, config.region, config.architecture)
-    fdir = model.weight_dir + '/result_summary/'
-    result_files = os.listdir(fdir)
+    result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/'.format(config.atype, config.region,
+                                                                                 config.architecture)
+    result_files = result_dir + '/result_summary/'
     iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
     result_files_sorted = result_files[np.argsort(iters)]
-    results = [pickle.load(open(fdir + result_file, 'r')) for result_file in result_files_sorted]
+    results = [pickle.load(open(result_dir + result_file, 'r')) for result_file in result_files_sorted]
 
-    plot_dir = './plotters/generator_plots/' + fdir[38:]
+    plot_dir = './plotters/generator_plots/{}/{}/wgangp/{}/'.format(config.atype, config.region, config.architecture)
     if os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
 
