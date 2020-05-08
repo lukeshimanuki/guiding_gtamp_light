@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
-#from generators.learning.learning_algorithms.WGANGP import WGANgp
+# from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 import copy
 import os
@@ -37,7 +37,7 @@ def plot_results(iterations, results, result_dir):
     plot(iterations, results[:, 2], 'Entropies', result_dir)
 
 
-def print_results(results, iterations):
+def print_results(results, iterations, plot_dir):
     results = np.array(results)
     iterations = np.array(iterations)
 
@@ -46,11 +46,11 @@ def print_results(results, iterations):
         print i, kde, mse, entropy
 
     max_kde_idx = np.argsort(results[:, 1])[::-1][0:100]
-    print "Max KDE epoch", iterations[max_kde_idx][0]
-    print "Max KDE", results[max_kde_idx, 1][0]
-    print "Max KDE entropy", results[max_kde_idx, 2][0]
-    print "Max KDE min MSE", results[max_kde_idx, 0][0]
-
+    to_print = "Max KDE epoch {} \nMax KDE {} \nMax KDE entropy {} \nMax KDE min MSE {}".format(
+        iterations[max_kde_idx][0], results[max_kde_idx, 1][0], results[max_kde_idx, 2][0], results[max_kde_idx, 0][0])
+    print to_print
+    fin = open(plot_dir+'/results.txt', 'wb')
+    fin.write(to_print)
 
 def main():
     parser = argparse.ArgumentParser('config')
@@ -64,8 +64,8 @@ def main():
         result_dir = 'plotters/generator_plots/before_adding_vmanip/{}/{}/wgangp/result_summary'.format(
             config.atype, config.region,
             config.architecture)
-        results = pickle.load(open(result_dir+'/results.pkl', 'r'))
-        print_results(results, range(len(results)))
+        results = pickle.load(open(result_dir + '/results.pkl', 'r'))
+        print_results(results, range(len(results)), result_dir)
         return
 
     result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/result_summary/'.format(config.atype,
@@ -84,7 +84,8 @@ def main():
         os.makedirs(plot_dir)
 
     plot_results(iters, results, plot_dir)
-    print_results(results, iters)
+    print_results(results, iters, plot_dir)
+
 
 if __name__ == '__main__':
     main()
