@@ -33,12 +33,13 @@ def main():
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-region', type=str, default='home_region')
+    parser.add_argument('-architecture', type=str, default='fc')
     config = parser.parse_args()
 
     torch.cuda.manual_seed_all(config.seed)
     torch.manual_seed(config.seed)
 
-    model = WGANgp(config.atype, config.region)
+    model = WGANgp(config.atype, config.region, config.architecture)
 
     trainloader, trainset, testset = get_data_generator(config.atype, config.region)
     n_train = len(trainset)

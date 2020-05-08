@@ -27,6 +27,7 @@ def main():
     all_plan_exp_files = os.listdir(raw_dir)
 
     pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
+    pidxs = range(11)
     seeds = range(0, 5)
 
     setup = parse_arguments()
@@ -49,6 +50,9 @@ def main():
                 'sampling_strategy': setup.sampling_strategy,
                 'n_mp_limit': setup.n_mp_limit
             }
+            if setup.use_learning:
+                config['use_learning'] = ''
+
             configs.append(config)
 
     n_workers = multiprocessing.cpu_count()

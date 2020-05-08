@@ -39,7 +39,7 @@ class TwoArmPaPGenerator(Generator):
                 if len(feasible_op_parameters) >= self.n_parameters_to_try_motion_planning:
                     break
         smpling_time = time.time() - stime
-        print "IK time {:.5f} Total IK checks {}".format(smpling_time, self.n_ik_checks-orig_ik_checks)
+        print "IK time {:.5f} Total IK checks {} Status {}".format(smpling_time, self.n_ik_checks-orig_ik_checks, status)
         if len(feasible_op_parameters) == 0:
             feasible_op_parameters.append(op_parameters)  # place holder
             status = "NoSolution"

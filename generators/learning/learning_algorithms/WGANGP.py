@@ -2,117 +2,36 @@ import torch
 import torch.autograd as autograd
 import torch.optim as optim
 import numpy as np
+import time
+
 from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
 
-from torch import nn
+from torch_wgangp_models.fc_models import Generator, Discriminator
+from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
+from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
+
 from gtamp_utils import utils
+import socket
 
-
-class Discriminator(nn.Module):
-    def __init__(self, dim_data):
-        nn.Module.__init__(self)
-        n_hidden = 32
-        n_konfs = 618 * 2
-        self.konf_net = \
-            nn.Sequential(
-                torch.nn.Linear(n_konfs, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
-                nn.ReLU()
-            )
-
-        dim_poses = 24
-        self.pose_net = \
-            nn.Sequential(
-                torch.nn.Linear(dim_poses, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
-                nn.ReLU()
-            )
-
-        dim_actions = dim_data
-        self.action_net = \
-            nn.Sequential(
-                torch.nn.Linear(dim_actions, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
-                nn.ReLU()
-            )
-
-        dim_input = n_hidden * 3
-        self.output = \
-            nn.Sequential(
-                torch.nn.Linear(dim_input, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, 1)
-            )
-
-    def forward(self, action, konf, pose):
-        konf = konf.view((-1, 618 * 2))
-        konf_val = self.konf_net(konf)
-        pose_val = self.pose_net(pose)
-        action_val = self.action_net(action)
-        concat = torch.cat((konf_val, pose_val, action_val), -1)
-        return self.output(concat)
-
-
-class Generator(nn.Module):
-    def __init__(self, dim_data):
-        nn.Module.__init__(self)
-        n_hidden = 32
-        n_konfs = 618 * 2
-        self.konf_net = \
-            nn.Sequential(
-                torch.nn.Linear(n_konfs, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
-                nn.ReLU()
-            )
-
-        dim_poses = 24
-        self.pose_net = \
-            nn.Sequential(
-                torch.nn.Linear(dim_poses, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
-                nn.ReLU()
-            )
-
-        dim_actions = dim_data
-        dim_input = n_hidden * 2 + dim_actions
-        self.output = \
-            nn.Sequential(
-                torch.nn.Linear(dim_input, n_hidden),
-                nn.ReLU(),
-                torch.nn.Linear(n_hidden, dim_actions)
-            )
-
-    def forward(self, konf, pose, noise):
-        konf = konf.view((-1, 618 * 2))
-        konf_val = self.konf_net(konf)
-        pose_val = self.pose_net(pose)
-        concat = torch.cat((konf_val, pose_val, noise), -1)
-
-        return self.output(concat)
-
-
-def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size):
+def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size, use_cuda):
     lambda_val = .1  # Smaller lambda seems to help for toy tasks specifically
 
     alpha = torch.rand(len(actions_v), 1)
     alpha = alpha.expand(actions_v.size())
-    alpha = alpha
+    if use_cuda:
+        alpha = alpha.cuda()
 
     interpolates = alpha * actions_v + ((1 - alpha) * fake_data)
-
+    if use_cuda:
+        interpolates = interpolates.cuda()
     interpolates = autograd.Variable(interpolates, requires_grad=True)
 
     disc_interpolates = discriminator(interpolates, konf_obsts_v, poses_v)
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()),
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(disc_interpolates.size()),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_val
@@ -120,18 +39,39 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 
 class WGANgp:
-    def __init__(self, action_type, region_name):
+    def __init__(self, action_type, region_name, architecture):
         self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
-
-        self.discriminator = Discriminator(self.n_dim_actions)
-        self.generator = Generator(self.n_dim_actions)
+        self.dim_konf = 4
+        self.architecture = architecture
         self.region_name = region_name
+        if socket.gethostname() == 'lab':
+            self.device = torch.device('cpu') # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
+        else:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
+
+    def create_models(self):
+        if self.architecture == 'fc':
+            discriminator = Discriminator(self.dim_konf, self.n_dim_actions)
+            generator = Generator(self.dim_konf, self.n_dim_actions)
+        elif self.architecture == 'cnn':
+            discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions)
+            generator = CNNGenerator(self.dim_konf, self.n_dim_actions)
+        elif self.architecture == 'gnn':
+            discriminator = GNNDiscriminator(self.dim_konf, self.n_dim_actions, self.device)
+            generator = GNNGenerator(self.dim_konf, self.n_dim_actions, self.device)
+        else:
+            raise NotImplementedError
+        discriminator.to(self.device)
+        generator.to(self.device)
+        return discriminator, generator
+
 
     @staticmethod
     def get_dim_action(action_type):
@@ -140,12 +80,12 @@ class WGANgp:
         else:
             return 4
 
-    @staticmethod
-    def get_weight_dir(action_type, region_name):
+    def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/wgangp/'.format(action_type, region_name)
+            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/'.format(action_type, region_name,
+                                                                                 self.architecture)
         else:
-            dir = './generators/learning/learned_weights/{}/wgangp/'.format(action_type)
+            dir = './generators/learning/learned_weights/{}/wgangp/{}/'.format(action_type, self.architecture)
         return dir
 
     def get_domain(self, action_type, region_name):
@@ -193,6 +133,22 @@ class WGANgp:
             print "Could not load discriminator"
             pass
 
+    @staticmethod
+    def normalize_data(data, data_mean=None, data_std=None):
+        if data_mean is None:
+            data_mean = data.mean(axis=0)
+            data_std = data.std(axis=0)
+
+        data = (data - data_mean) / data_std
+        return data, data_mean, data_std
+
+    @staticmethod
+    def measure_min_mse_between_samples_and_point(point, smpls):
+        dists = (point - smpls) ** 2
+        dists = np.sqrt(np.sum(dists, axis=-1))
+        min_mse = min(dists)
+        return min_mse
+
     def evaluate_generator(self, test_data, iteration=None):
         is_load_weights = iteration is not None
         if is_load_weights:
@@ -212,37 +168,42 @@ class WGANgp:
         smpls = torch.stack(smpls)
 
         real_actions = test_data['actions']
-        real_mean = real_actions.mean(axis=0)
-        real_std = real_actions.std(axis=0)
-        real_actions = (real_actions - real_mean) / real_std
+        real_actions, real_mean, real_std = self.normalize_data(real_actions)
+
         real_data_scores = []
         entropies = []
         min_mses = []
         for idx in range(n_data):
             smpls_from_state = smpls[:, idx, :]
             smpls_from_state = smpls_from_state.cpu().detach().numpy()
-            smpls_from_state = (smpls_from_state - real_mean) / real_std
+            smpls_from_state, _, _ = self.normalize_data(smpls_from_state, real_mean, real_std)
             real_action = real_actions[idx].reshape(-1, self.n_dim_actions)
 
-            # measure the MSE
-            dists = ((real_action * real_std + real_mean) - (smpls_from_state * real_std + real_mean)) ** 2
-            dists = np.sqrt(np.sum(dists, axis=-1))
-            min_mse = min(dists)
+            unnormalized_real_action = real_action * real_std + real_mean
+            unnormalized_smpls_from_state = smpls_from_state * real_std + real_mean
+            min_mse = self.measure_min_mse_between_samples_and_point(unnormalized_real_action,
+                                                                     unnormalized_smpls_from_state)
             min_mses.append(min_mse)
 
-            # fit the KDE
+            # fit the KDE - how likely is the real action come from the learend distribution of smpls_from_state
             generated_model = KernelDensity(kernel='gaussian', bandwidth=0.1).fit(smpls_from_state)
             real_data_scores.append(generated_model.score(real_action))
 
             # measure the entropy
-            smpls_from_state = smpls_from_state * real_std + real_mean
             if 'pick' in self.action_type:
-                base_angles = smpls_from_state[:, 4:6]
+                base_angles = unnormalized_smpls_from_state[:, 4:6]
                 H, _, _ = np.histogram2d(base_angles[:, 0], base_angles[:, 1], bins=10,
                                          range=self.domain[:, 4:6].transpose())
             else:
-                place_x, place_y = smpls_from_state[:, 0], smpls_from_state[:, 1]
+                place_x, place_y = unnormalized_smpls_from_state[:, 0], unnormalized_smpls_from_state[:, 1]
+                encoded_theta = unnormalized_smpls_from_state[:, 1:]
+                # H_theta, _, _ = np.histogram2d(encoded_theta[:, 0], encoded_theta[:, 1], bins=10, range=self.domain[:, 2:].transpose())
                 H, _, _ = np.histogram2d(place_x, place_y, bins=10, range=self.domain[:, 0:2].transpose())
+
+                # I think the angle entropy is more important
+                # For a given x,y, what is the entropy on the angles? I think entropy of angles
+                # has more to say, because this is what we should get accurately.
+
             all_smpls_out_of_range = np.sum(H) == 0
             if all_smpls_out_of_range:
                 entropy = np.inf
@@ -260,7 +221,7 @@ class WGANgp:
         optimizerG = optim.Adam(self.generator.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
         CRITIC_ITERS = 5  # How many critic iterations per generator iteration
-        use_cuda = False
+        use_cuda = 'cuda' in self.device.type
 
         one = torch.FloatTensor([1])
         mone = one * -1
@@ -278,7 +239,7 @@ class WGANgp:
                     yield d
 
         data_gen = data_generator()
-
+        stime=time.time()
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -319,7 +280,7 @@ class WGANgp:
 
                 # train with gradient penalty
                 gradient_penalty = calc_gradient_penalty(self.discriminator, actions_v.data, konf_obsts_v, poses_v,
-                                                         fake.data, batch_size)
+                                                         fake.data, batch_size, use_cuda)
                 gradient_penalty.backward()
 
                 D_cost = D_fake - D_real + gradient_penalty
@@ -362,3 +323,5 @@ class WGANgp:
                 torch.save(self.discriminator.state_dict(), path)
                 path = self.weight_dir + '/gen_iter_%d.pt' % iteration
                 torch.save(self.generator.state_dict(), path)
+                print 'Time taken', time.time()-stime
+                stime = time.time()

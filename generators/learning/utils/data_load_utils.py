@@ -1,14 +1,4 @@
-import os
 import numpy as np
-import pickle
-import os
-
-from data_processing_utils import get_processed_poses_from_state, get_processed_poses_from_action, \
-    state_data_mode
-
-import socket
-from gtamp_utils import utils
-
 
 def one_hot_encode(vec):
     n_elements = len(np.unique(vec))
@@ -57,7 +47,7 @@ def convert_collision_vec_to_one_hot(c_data):
     onehot_cdata = np.array(onehot_cdata)
     return onehot_cdata
 
-
+"""
 def load_data(traj_dir, action_type, desired_region, use_filter):
     traj_files = os.listdir(traj_dir)
     # cache_file_name = 'no_collision_at_target_obj_poses_cache_state_data_mode_%s_action_data_mode_%s_loading_region_only.pkl' % (
@@ -79,7 +69,9 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
                                                                                              desired_region)
     if os.path.isfile(traj_dir + cache_file_name):
         print "Loading the cache file", traj_dir + cache_file_name
-        #return pickle.load(open(traj_dir + cache_file_name, 'r'))
+        d = pickle.load(open(traj_dir + cache_file_name, 'r'))
+        print "Cache data loaded"
+        return d
 
     print 'caching file...%s' % cache_file_name
     all_states = []
@@ -111,8 +103,11 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
         rewards = np.array(traj.num_papable_to_goal[1:]) - np.array(traj.num_papable_to_goal[:-1])
         rewards = np.array(traj.hcounts)[:-1] - np.array(traj.hcounts[1:])
         rewards = np.array(traj.hvalues)[:-1] - np.array(traj.hvalues[1:])
+
+        if use_filter:
+            rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) >= 0
+
         for s, a, reward in zip(traj.states, traj.actions, rewards):
-            # print s, a
             if action_type == 'pick':
                 state_vec = s.pick_collision_vector
             elif action_type == 'place':
@@ -130,19 +125,13 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
             if 'pick' not in action_type:
                 is_move_to_goal_region = s.region in s.goal_entities
                 if desired_region == 'home_region' and not is_move_to_goal_region:
-                    # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                     continue
 
                 if desired_region == 'loading_region' and is_move_to_goal_region:
-                    # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                     continue
 
             if reward <= 0 and use_filter:
-                # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
                 continue
-
-            # utils.visualize_placements(a['place_obj_abs_pose'], a['object_name'])
-            # utils.set_obj_xytheta(a['place_obj_abs_pose'], a['object_name'])
 
             state_vec = np.concatenate([state_vec, is_goal_obj, is_goal_region], axis=2)
             states.append(state_vec)
@@ -165,7 +154,6 @@ def load_data(traj_dir, action_type, desired_region, use_filter):
         all_actions.append(actions)
         all_sum_rewards.append(sum_rewards)
         all_konf_relevance.append(konf_relevance)
-        # all_paths.append(place_paths)
 
         print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
 
@@ -192,7 +180,10 @@ def get_data(datatype, action_type, region, filtered):
     if datatype == 'n_objs_pack_4':
         data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_4/sahs/uses_rrt/sampler_trajectory_data/'
     else:
-        data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/'
+        if filtered:
+            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+        else:
+            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/'
 
     print "Loading data from", data_dir
     try:
@@ -202,14 +193,5 @@ def get_data(datatype, action_type, region, filtered):
 
     is_goal_flags = states[:, :, 2:, :]
     states = states[:, :, :2, :]  # collision vector
-
-    """
-    n_data = 5000
-    states = states[:5000, :]
-    poses = poses[:n_data, :]
-    actions = actions[:5000, :]
-    sum_rewards = sum_rewards[:5000]
-    is_goal_flags = is_goal_flag[:5000, :]
-    """
-
     return states, poses, is_goal_flags, actions, sum_rewards
+"""

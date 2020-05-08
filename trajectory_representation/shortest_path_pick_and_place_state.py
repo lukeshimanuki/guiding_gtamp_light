@@ -167,11 +167,7 @@ class ShortestPathPaPState(PaPState):
                 if status == 'HasSolution':
                     break
             [t.Enable(True) for t in self.problem_env.objects]
-            try:
-                assert path is not None, 'Even RRT failed!'
-            except:
-                import pdb;
-                pdb.set_trace()
+            assert path is not None, 'Even RRT failed!'
 
             self.cached_pick_paths[obj] = path
             op_instance.low_level_motion = path
@@ -189,25 +185,29 @@ class ShortestPathPaPState(PaPState):
                                                not (obj, region_name) in parent_state.reachable_regions_while_holding
 
                 saver = CustomStateSaver(self.problem_env.env)
-                # todo use the pick that has the least number of collisions
                 pick_used = self.pick_used[obj]
                 pick_used.execute()
                 if region.contains(self.problem_env.env.GetKinBody(obj).ComputeAABB()):
                     path = [get_body_xytheta(self.problem_env.robot).squeeze()]
                     self.reachable_regions_while_holding.append((obj, region_name))
                 else:
+                    if region.name == 'home_region':
+                        # a location right at the entrance of home
+                        goal = [np.array([0.73064842, -2.85306871,  4.87927762])]
+                    else:
+                        goal = region
                     if self.holding_collides is not None:
-                        path, status = motion_planner.get_motion_plan(region, cached_collisions=self.holding_collides)
+                        path, status = motion_planner.get_motion_plan(goal, cached_collisions=self.holding_collides)
                     else:
                         # note: self.collides is computed without holding the object.
-                        path, status = motion_planner.get_motion_plan(region, cached_collisions=self.collides)
+                        path, status = motion_planner.get_motion_plan(goal, cached_collisions=self.collides)
                     if status == 'HasSolution':
                         self.reachable_regions_while_holding.append((obj, region_name))
                     else:
                         if parent_state_has_cached_path_for_obj and cached_path_is_shortest_path:
                             path = parent_state.cached_place_paths[(obj, region_name)]
                         else:
-                            path, _ = motion_planner.get_motion_plan(region, cached_collisions={})
+                            path, _ = motion_planner.get_motion_plan(goal, cached_collisions={})
                 saver.Restore()
                 # assert path is not None
                 self.cached_place_paths[(obj, region_name)] = path
