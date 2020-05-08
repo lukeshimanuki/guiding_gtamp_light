@@ -159,14 +159,14 @@ class WGANgp:
         n_data = len(poses)
         n_smpls_per_state = 100
         smpls = []
-      
+        print "Making samples..."
         stime = time.time()
         for _ in range(n_smpls_per_state):
             noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
             new_smpls = self.generator(konf_obsts, poses, noise)
-            smpls.append(new_smpls)
-        print time.time()-stime
-        smpls = torch.stack(smpls)
+            smpls.append(new_smpls.cpu().detach().numpy())
+        print "Sample making time", time.time()-stime
+        smpls = np.stack(smpls)
 
         real_actions = test_data['actions']
         real_actions, real_mean, real_std = self.normalize_data(real_actions)
@@ -176,7 +176,6 @@ class WGANgp:
         min_mses = []
         for idx in range(n_data):
             smpls_from_state = smpls[:, idx, :]
-            smpls_from_state = smpls_from_state.cpu().detach().numpy()
             smpls_from_state, _, _ = self.normalize_data(smpls_from_state, real_mean, real_std)
             real_action = real_actions[idx].reshape(-1, self.n_dim_actions)
 
