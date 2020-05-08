@@ -57,12 +57,18 @@ def main():
 
     model = WGANgp(config.atype, config.region, config.architecture)
     fdir = model.weight_dir + '/result_summary/'
-
     result_files = os.listdir(fdir)
     iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
     result_files_sorted = result_files[np.argsort(iters)]
-
     results = [pickle.load(open(fdir + result_file, 'r')) for result_file in result_files_sorted]
-    plot_results(iters, results, fdir)
 
+    plot_dir = './plotters/generator_plots/' + fdir[38:]
+    if os.path.isdir(plot_dir):
+        os.makedirs(plot_dir)
+
+    plot_results(iters, results, plot_dir)
     print_results(results, iters)
+
+
+if __name__ == '__main__':
+    main()
