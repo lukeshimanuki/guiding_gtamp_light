@@ -10,7 +10,7 @@ import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
 from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
-from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
+#from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
 
 from gtamp_utils import utils
 import socket
@@ -129,6 +129,7 @@ class WGANgp:
             self.generator.load_state_dict(torch.load(weight_file, map_location=torch.device('cpu')))
         else:
             self.generator.load_state_dict(torch.load(weight_file))
+        print "Weight loaded"
 
     @staticmethod
     def normalize_data(data, data_mean=None, data_std=None):
@@ -152,16 +153,19 @@ class WGANgp:
             self.load_weights(iteration)
 
         test_data = test_data[:]
-        poses = torch.from_numpy(test_data['poses']).float()
-        konf_obsts = torch.from_numpy(test_data['konf_obsts']).float()
+        poses = torch.from_numpy(test_data['poses']).float().to(self.device)
+        konf_obsts = torch.from_numpy(test_data['konf_obsts']).float().to(self.device)
 
         n_data = len(poses)
         n_smpls_per_state = 100
         smpls = []
+      
+        stime = time.time()
         for _ in range(n_smpls_per_state):
-            noise = torch.randn(n_data, self.n_dim_actions)
+            noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
             new_smpls = self.generator(konf_obsts, poses, noise)
             smpls.append(new_smpls)
+        print time.time()-stime
         smpls = torch.stack(smpls)
 
         real_actions = test_data['actions']
