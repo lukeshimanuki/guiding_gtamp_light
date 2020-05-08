@@ -25,6 +25,8 @@ class PlannerWithoutReachability:
         ikcachename = './ikcache.pkl'
         self.iksolutions = pickle.load(open(ikcachename, 'r'))
 
+        self.n_mp = 0
+        self.n_ik = 0
 
     def sample_cont_params(self, operator_skeleton, n_iter):
         target_object = operator_skeleton.discrete_parameters['object']
@@ -50,6 +52,7 @@ class PlannerWithoutReachability:
             current_region = problem.get_region_containing(problem.env.GetKinBody(o)).name
             sampler = OneArmPaPUniformGenerator(action, problem, cached_picks=(iksolutions[current_region], self.iksolutions[self.goal_region.name]))
             pick_params, place_params, status = sampler.sample_next_point(self.config.n_iter_limit)
+            self.n_ik += generator.n_ik_checks
             if status == 'HasSolution':
                 params = {'pick': pick_params, 'place': place_params}
             else:
@@ -66,6 +69,8 @@ class PlannerWithoutReachability:
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
             params = generator.sample_next_point()
+            self.n_mp += generator.n_mp_checks
+            self.n_ik += generator.n_ik_checks
         # it must be because sampling a feasible pick can be done by trying as many as possible,
         # but placements cannot be made feasible  by sampling more
         # also, it takes longer to check feasibility on place?

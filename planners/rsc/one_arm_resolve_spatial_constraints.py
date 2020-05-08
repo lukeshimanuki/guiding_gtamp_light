@@ -79,6 +79,9 @@ class OneArmResolveSpatialConstraints:
         self.collision_place_op = {}
         # self.determine_collision_and_collision_free_places()
 
+        self.n_mp = 0
+        self.n_ik = 0
+
     def get_num_nodes(self):
         return self.number_of_nodes
 

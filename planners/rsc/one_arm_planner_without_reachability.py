@@ -14,6 +14,9 @@ class OneArmPlannerWithoutReachability:
         self.goal_region = self.problem_env.regions[goal_region]
         self.config = config
 
+        self.n_mp = 0
+        self.n_ik = 0
+
     def sample_op_instance(self, curr_obj, n_iter):
         op = Operator(operator_type='one_arm_pick_one_arm_place',
                       discrete_parameters={'object': curr_obj, 'place_region': self.goal_region})
@@ -21,6 +24,7 @@ class OneArmPlannerWithoutReachability:
         generator = OneArmPaPUniformGenerator(op, self.problem_env, None)
         print "Sampling paps for ", target_object
         pick_cont_param, place_cont_param, status = generator.sample_next_point(max_ik_attempts=n_iter)
+        self.n_ik += generator.n_ik_checks
         op.continuous_parameters = {'pick': pick_cont_param, 'place': place_cont_param}
         return op, status
 

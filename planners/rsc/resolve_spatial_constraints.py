@@ -31,6 +31,9 @@ class ResolveSpatialConstraints:
         self.number_of_places = 0
         self.number_of_nodes = 0
 
+        self.n_mp = 0
+        self.n_ik = 0
+
     def get_num_nodes(self):
         return self.number_of_nodes
 

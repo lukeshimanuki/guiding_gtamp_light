@@ -28,6 +28,11 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
         self.smpling_time = []
         self.operator_type = operator_type = operator_skeleton.type
 
+        self.n_ik_checks = 0
+        self.n_mp_checks = 0
+        self.n_ik_infeasible = 0
+        self.n_mp_infeasible = 0
+
         target_region = None
         """
         if 'region' in operator_skeleton.discrete_parameters:
@@ -105,6 +110,21 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
                                                                                   op_parameters,
                                                                                   self.swept_volume_constraint)
             feasibility_check_time += time.time()-stime2
+
+            if self.op_feasibility_checker.action_mode == 'ir_parameters':
+                self.n_ik_checks += 1
+                if status != 'HasSolution':
+                    self.n_ik_infeasible += 1
+            elif self.op_feasibility_checker.action_mode == 'robot_base_pose':
+                self.n_mp_checks += 1
+                if status != 'HasSolution':
+                    self.n_mp_infeasible += 1
+            elif self.op_feasibility_checker.action_mode == 'object_pose':
+                self.n_mp_checks += 1
+                if status != 'HasSolution':
+                    self.n_mp_infeasible += 1
+            else:
+                raise NotImplementedError
 
             if status == 'HasSolution':
                 feasible_op_parameters.append(op_parameters)

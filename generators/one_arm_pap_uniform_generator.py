@@ -18,6 +18,7 @@ class OneArmPaPUniformGenerator:
         self.problem_env = problem_env
         self.cached_picks = cached_picks
         target_region = None
+        self.n_ik_checks = 0
 
         is_place_in_operator = 'place' in operator_skeleton.type
         if is_place_in_operator:
@@ -57,9 +58,12 @@ class OneArmPaPUniformGenerator:
                 if n_ik_attempts == max_ik_attempts:
                     break
             elif status == 'InfeasibleBase':
+                self.n_ik_checks += n_ik_attempts
                 return None, None, "NoSolution"
             elif status == 'HasSolution':
+                self.n_ik_checks += n_ik_attempts
                 return pick_cont_params, place_cont_params, 'HasSolution'
+        self.n_ik_checks += n_ik_attempts
         return None, None, 'NoSolution'
 
     def is_base_feasible(self, base_pose):
