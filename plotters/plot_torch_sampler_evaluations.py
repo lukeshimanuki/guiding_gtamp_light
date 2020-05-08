@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 from matplotlib import pyplot as plt
-from generators.learning.learning_algorithms.WGANGP import WGANgp
+#from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 import copy
 import os
@@ -31,9 +31,9 @@ def plot_results(iterations, results, result_dir):
         return
     iterations = iterations[in_bound_idxs]
 
-    #plot(iterations, results[:, 0], 'Min MSEs', result_dir)
-    plot(iterations, results[:, 1], 'KDE scores', result_dir)
-    #plot(iterations, results[:, 2], 'Entropies', result_dir)
+    plot(iterations, results[:, 0], 'Min MSEs', result_dir)
+    plot(iterations, results[:, 1], 'kernel_density_estimates', result_dir)
+    plot(iterations, results[:, 2], 'Entropies', result_dir)
 
 
 def print_results(results, iterations):
