@@ -74,20 +74,18 @@ def gen_pap(problem, config):
                                            pick_action_mode='ir_parameters',
                                            place_action_mode='object_pose')
             while True:
+                s.Restore()
                 prev_ik_checks = generator.n_ik_checks
                 prev_mp_checks = generator.n_mp_checks
-                s.Restore()
                 params = generator.sample_next_point()
+                num_ik_checks += generator.n_ik_checks - prev_ik_checks
+                num_mp_checks += generator.n_mp_checks - prev_mp_checks
                 if params['is_feasible']:
                     abstract_action.continuous_parameters = params
                     abstract_action.execute()
                     t = CustomStateSaver(problem.env)
-                    num_ik_checks += generator.n_ik_checks - prev_ik_checks
-                    num_mp_checks += generator.n_mp_checks - prev_mp_checks
                     yield params, t
                 else:
-                    num_ik_checks += generator.n_ik_checks - prev_ik_checks
-                    num_mp_checks += generator.n_mp_checks - prev_mp_checks
                     yield None
 
         elif problem.name == 'one_arm_mover':
@@ -221,5 +219,5 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
         return [], actions, (num_ik_checks, num_mp_checks), []
     else:
         print("Plan not found")
-        return [], None, (0,0), []
+        return [], None, (num_ik_checks, num_mp_checks), []
 

@@ -231,7 +231,9 @@ def main():
             idx += 1
         else:
             # Note that HPN does not have any recourse if this happens. We re-plan at the higher level.
-            goal_object_names, plan = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
+            goal_object_names, plan, (mp,ik) = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
+            n_mp += mp
+            n_ik += ik
             total_plan = []
             idx = 0
 
