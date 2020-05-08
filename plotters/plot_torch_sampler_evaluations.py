@@ -18,6 +18,7 @@ def plot(x_data, y_data, title, file_dir):
     plt.title(title)
     if not os.path.isdir(file_dir):
         os.makedirs(file_dir)
+    print "Saving figure...", file_dir+'{}.png'.format(title)
     plt.savefig(file_dir + '{}.png'.format(title))
 
 
@@ -30,9 +31,9 @@ def plot_results(iterations, results, result_dir):
         return
     iterations = iterations[in_bound_idxs]
 
-    plot(iterations, results[:, 0], 'Min MSEs', result_dir)
+    #plot(iterations, results[:, 0], 'Min MSEs', result_dir)
     plot(iterations, results[:, 1], 'KDE scores', result_dir)
-    plot(iterations, results[:, 2], 'Entropies', result_dir)
+    #plot(iterations, results[:, 2], 'Entropies', result_dir)
 
 
 def print_results(results, iterations):

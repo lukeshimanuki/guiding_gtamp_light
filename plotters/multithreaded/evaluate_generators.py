@@ -15,7 +15,7 @@ def worker_p(config):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     print command
-    #os.system(command)
+    os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -41,20 +41,19 @@ def main():
     parser.add_argument('-region', type=str, default='home_region')
     parser.add_argument('-architecture', type=str, default='fc')
 
-    config = parser.parse_args()
-    model = WGANgp(config.atype, config.region, config.architecture)
+    parameters = parser.parse_args()
+    model = WGANgp(parameters.atype, parameters.region, parameters.architecture)
 
     max_iter = get_max_iteration(model.weight_dir)
     max_iter = min(250000, max_iter)
     iterations = range(100, max_iter, 100)
     configs = []
-    iterations  = [100]
-    for iter in iterations:
+    for iteration in iterations:
         config = {
-            'iteration': iter,
-            'atype': config.atype,
-            'region': config.region,
-            'architecture': config.architecture
+            'iteration': iteration,
+            'atype': parameters.atype,
+            'region': parameters.region,
+            'architecture': parameters.architecture
         }
 
         configs.append(config)
