@@ -192,14 +192,14 @@ class PickAndPlaceSweptVolume:
             raise NotImplementedError
 
         target_obj = pap_instance.discrete_parameters['object']
-        target_region = pap_instance.discrete_parameters['region']
+        target_region = pap_instance.discrete_parameters['place_region']
 
         dummy_pick = Operator(operator_type='one_arm_pick',
                               discrete_parameters={'object': target_obj},
                               continuous_parameters=pap_instance.continuous_parameters['pick'])
         dummy_pick.low_level_motion = [pap_instance.low_level_motion['pick']]
         dummy_place = Operator(operator_type='one_arm_place',
-                               discrete_parameters={'object': target_obj, 'region': target_region},
+                               discrete_parameters={'object': target_obj, 'place_region': target_region},
                                continuous_parameters=pap_instance.continuous_parameters['place'])
         dummy_place.low_level_motion = [pap_instance.low_level_motion['place']]
 

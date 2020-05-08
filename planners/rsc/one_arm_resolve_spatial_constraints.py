@@ -84,7 +84,7 @@ class OneArmResolveSpatialConstraints:
 
     def sample_op_instance(self, curr_obj, region, swept_volume, n_iter):
         op = Operator(operator_type='one_arm_pick_one_arm_place',
-                      discrete_parameters={'object': curr_obj, 'region': region})
+                      discrete_parameters={'object': curr_obj, 'place_region': region})
 
         # use the following:
         # papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
@@ -224,7 +224,7 @@ class OneArmResolveSpatialConstraints:
         pick_op = Operator(operator_type='one_arm_pick', discrete_parameters={'object': obj})
 
         place_op = Operator(operator_type='one_arm_place', discrete_parameters={'object': obj,
-                                                                                'region':
+                                                                                'place_region':
                                                                                  self.problem_env.regions[r]})
         obj_kinbody = self.problem_env.env.GetKinBody(obj)
         if len(self.pap_params[(obj, r)]) > 0:
@@ -236,7 +236,7 @@ class OneArmResolveSpatialConstraints:
 
         op_skel = Operator(operator_type='one_arm_pick_one_arm_place',
                            discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
-                                                'region': self.problem_env.regions[r]})
+                                                'place_region': self.problem_env.regions[r]})
 
         papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
                                          cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))

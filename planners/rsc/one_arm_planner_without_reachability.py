@@ -7,15 +7,16 @@ import time
 
 
 class OneArmPlannerWithoutReachability:
-    def __init__(self, problem_env, goal_object_names, goal_region):
+    def __init__(self, problem_env, goal_object_names, goal_region, config):
         self.problem_env = problem_env
         self.goal_objects = [problem_env.env.GetKinBody(o) for o in goal_object_names]
 
         self.goal_region = self.problem_env.regions[goal_region]
+        self.config = config
 
     def sample_op_instance(self, curr_obj, n_iter):
         op = Operator(operator_type='one_arm_pick_one_arm_place',
-                      discrete_parameters={'object': curr_obj, 'region': self.goal_region})
+                      discrete_parameters={'object': curr_obj, 'place_region': self.goal_region})
         target_object = op.discrete_parameters['object']
         generator = OneArmPaPUniformGenerator(op, self.problem_env, None)
         print "Sampling paps for ", target_object
