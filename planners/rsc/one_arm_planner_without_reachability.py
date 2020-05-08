@@ -14,6 +14,9 @@ class OneArmPlannerWithoutReachability:
         self.goal_region = self.problem_env.regions[goal_region]
         self.config = config
 
+        self.n_mp = 0
+        self.n_ik = 0
+
     def sample_op_instance(self, curr_obj, n_iter):
         op = Operator(operator_type='one_arm_pick_one_arm_place',
                       discrete_parameters={'object': curr_obj, 'place_region': self.goal_region})

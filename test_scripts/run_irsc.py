@@ -83,7 +83,7 @@ def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit):
         obstacles_to_remove = swept_volumes.get_objects_in_collision()
         print len(obstacles_to_remove)
         if len(obstacles_to_remove) == 0:
-            return [target_op_inst], 1, "HasSolution"
+            return [target_op_inst], 1, "HasSolution", (0, 0)
         rsc = OneArmResolveSpatialConstraints(problem_env=environment,
                                               goal_object_name=obj_name,
                                               goal_region_name='rectangular_packing_box1_region')
@@ -129,9 +129,9 @@ def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit):
                     break
             print "Restarting..."
     if plan_found:
-        return plan, rsc.get_num_nodes(), status
+        return plan, rsc.get_num_nodes(), status, (rsc.n_mp, rsc.n_ik)
     else:
-        return [], rsc.get_num_nodes(), status
+        return [], rsc.get_num_nodes(), status, (rsc.n_mp, rsc.n_ik)
 
 
 def execute_plan(plan):
@@ -139,15 +139,20 @@ def execute_plan(plan):
         p.execute()
 
 
-def save_plan(total_plan, total_n_nodes, n_remaining_objs, found_solution, file_path, goal_entities, time_taken):
+def save_plan(total_plan, total_n_nodes, n_remaining_objs, found_solution, file_path, goal_entities, time_taken, n_feasibility_checks, config):
     [p.make_pklable() for p in total_plan]
     pickle.dump({"plan": total_plan,
-                 'n_nodes': total_n_nodes,
+                 'num_nodes': total_n_nodes,
                  'n_remaining_objs': n_remaining_objs,
+                 'n_objs_pack': config.n_objs_pack,
+                 'plan_length': len(total_plan),
+                 'n_feasibility_checks': n_feasibility_checks,
+                 'nodes': [], # TODO: do we need to track these
+                 'hvalues': [],
                  'goal_entities': goal_entities,
-                 'time_taken': time_taken,
-                 'found_solution': found_solution},
-                open(file_path, 'wb'))
+                 'tottime': time_taken,
+                 'success': found_solution,
+    }, open(file_path, 'wb'))
 
 
 def find_plan_without_reachability(problem_env, goal_object_names, config):
@@ -159,7 +164,7 @@ def find_plan_without_reachability(problem_env, goal_object_names, config):
     goal_obj_order_plan, plan = planner.search()
 
     goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
-    return goal_obj_order_plan, plan
+    return goal_obj_order_plan, plan, (planner.n_mp, planner.n_ik)
 
 
 def main():
@@ -197,7 +202,11 @@ def main():
     # set_color(environment.env.GetKinBody(goal_object_names[0]), [1, 0, 0])
     stime = time.time()
 
-    goal_object_names, high_level_plan = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
+    n_mp = n_ik = 0
+
+    goal_object_names, high_level_plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
+    n_mp += mp
+    n_ik += ik
 
     total_n_nodes = 0
     total_plan = []
@@ -208,7 +217,7 @@ def main():
     timelimit = np.inf
     while total_n_nodes < 1000 and total_time_taken < timelimit:
         goal_obj_name = goal_object_names[idx]
-        plan, n_nodes, status = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime, timelimit)
+        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime, timelimit)
         total_n_nodes += n_nodes
         total_time_taken = time.time() - stime
         print goal_obj_name, goal_object_names, total_n_nodes
@@ -218,7 +227,7 @@ def main():
             environment.initial_robot_base_pose = utils.get_body_xytheta(environment.robot)
             total_plan += plan
             save_plan(total_plan, total_n_nodes, len(goal_object_names) - idx, found_solution, file_path, goal_entities,
-                      total_time_taken)
+                      total_time_taken, {'mp': n_mp, 'ik': n_ik}, parameters)
             idx += 1
         else:
             # Note that HPN does not have any recourse if this happens. We re-plan at the higher level.
@@ -233,7 +242,7 @@ def main():
             idx %= len(goal_object_names)
 
     save_plan(total_plan, total_n_nodes, len(goal_object_names) - idx, found_solution, file_path, goal_entities,
-              total_time_taken)
+              total_time_taken, {'mp': n_mp, 'ik': n_ik}, parameters)
     print 'plan saved'
 
 

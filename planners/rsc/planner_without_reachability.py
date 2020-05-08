@@ -25,6 +25,8 @@ class PlannerWithoutReachability:
         ikcachename = './ikcache.pkl'
         self.iksolutions = pickle.load(open(ikcachename, 'r'))
 
+        self.n_mp = 0
+        self.n_ik = 0
 
     def sample_cont_params(self, operator_skeleton, n_iter):
         target_object = operator_skeleton.discrete_parameters['object']
