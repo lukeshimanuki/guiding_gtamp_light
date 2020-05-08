@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from matplotlib import pyplot as plt
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
@@ -59,11 +62,13 @@ def main():
     fdir = model.weight_dir + '/result_summary/'
     result_files = os.listdir(fdir)
     iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
-    result_files_sorted = result_files[np.argsort(iters)]
+    result_files_sorted = np.array(result_files)[np.argsort(iters)]
+    iters = np.sort(iters)
+    result_files_sorted.tolist()
     results = [pickle.load(open(fdir + result_file, 'r')) for result_file in result_files_sorted]
 
     plot_dir = './plotters/generator_plots/' + fdir[38:]
-    if os.path.isdir(plot_dir):
+    if not os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
 
     plot_results(iters, results, plot_dir)
