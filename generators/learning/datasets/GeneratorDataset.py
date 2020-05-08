@@ -11,10 +11,10 @@ import os
 
 
 class GeneratorDataset(Dataset):
-    def __init__(self, action_type, desired_region, use_filter):
+    def __init__(self, action_type, desired_region, use_filter, is_testing):
         self.use_filter = use_filter
         self.desired_region = desired_region
-        self.konf_obsts, self.poses, self.actions = self.get_data(action_type, desired_region)
+        self.konf_obsts, self.poses, self.actions = self.get_data(action_type, desired_region, is_testing)
 
     @staticmethod
     def get_cache_file_name(action_data_mode, action_type, desired_region, use_filter):
@@ -60,14 +60,26 @@ class GeneratorDataset(Dataset):
 
         return False
 
-    def load_data_from_files(self, action_type, desired_region, use_filter, action_data_mode):
+    def load_data_from_files(self, action_type, desired_region, use_filter, action_data_mode, is_testing):
         traj_dir = self.get_data_dir(use_filter)
         print "Loading data from", traj_dir
         traj_files = os.listdir(traj_dir)
         cache_file_name = self.get_cache_file_name(action_data_mode, action_type, desired_region, use_filter)
         if os.path.isfile(traj_dir + cache_file_name):
             print "Loading the cache file", traj_dir + cache_file_name
-            f = pickle.load(open(traj_dir + cache_file_name, 'r'))
+            
+            if is_testing:
+                testing_cached_file = traj_dir + 'for_testing_' + cache_file_name
+                if os.path.isfile(testing_cached_file):
+                    f = pickle.load(open(testing_cached_file, 'r'))
+                else:
+                    f = pickle.load(open(traj_dir + cache_file_name, 'r'))
+                    n_test_data = int(len(f[0])*0.1)
+                    new_f = (f[0][:n_test_data, :], f[1][:n_test_data, :], f[2][:n_test_data, :])
+                    f = pickle.dump(new_f, open(testing_cached_file, 'wb'))
+                    f = new_f
+            else:
+                f = pickle.load(open(traj_dir + cache_file_name, 'r'))
             print "Cache data loaded"
             return f
 
@@ -139,7 +151,7 @@ class GeneratorDataset(Dataset):
 
         return all_states, all_poses, all_actions
 
-    def get_data(self, action_type, region):
+    def get_data(self, action_type, region, is_testing):
         atype = action_type
         filtered = True
         if atype == 'pick':
@@ -147,7 +159,7 @@ class GeneratorDataset(Dataset):
         else:
             action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
-        states, poses, actions = self.load_data_from_files(atype, region, filtered, action_data_mode)
+        states, poses, actions = self.load_data_from_files(atype, region, filtered, action_data_mode, is_testing)
         if atype == 'pick':
             actions = actions[:, :-4]
         elif atype == 'place':
@@ -167,8 +179,8 @@ class GeneratorDataset(Dataset):
 
 
 class StandardDataset(GeneratorDataset):
-    def __init__(self, action_type, desired_region, use_filter):
-        super(StandardDataset, self).__init__(action_type, desired_region, use_filter)
+    def __init__(self, action_type, desired_region, use_filter, is_testing=False):
+        super(StandardDataset, self).__init__(action_type, desired_region, use_filter, is_testing)
 
     def __getitem__(self, idx):
         data = {
