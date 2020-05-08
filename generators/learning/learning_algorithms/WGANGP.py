@@ -10,7 +10,7 @@ import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
 from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
-#from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
+from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
 
 from gtamp_utils import utils
 import socket
@@ -161,9 +161,15 @@ class WGANgp:
         smpls = []
         print "Making samples..."
         stime = time.time()
-        for _ in range(n_smpls_per_state):
-            noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
-            new_smpls = self.generator(konf_obsts, poses, noise)
+        for i in range(n_smpls_per_state):
+            if self.architecture == 'gnn':
+                noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
+                new_smpls1 = self.generator(konf_obsts[:500], poses[:500], noise[:500])
+                new_smpls2 = self.generator(konf_obsts[500:], poses[500:], noise[500:])
+                new_smpls = torch.cat([new_smpls1,new_smpls2],dim=0)
+            else:
+                noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
+                new_smpls = self.generator(konf_obsts, poses, noise)
             smpls.append(new_smpls.cpu().detach().numpy())
         print "Sample making time", time.time()-stime
         smpls = np.stack(smpls)
