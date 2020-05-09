@@ -100,6 +100,31 @@ class PickPlaceLearnedSampler(LearnedSampler):
         return samples
 
 
+def compute_v_manip(abs_state, goal_objs):
+    goal_objs_not_in_goal = [goal_obj for goal_obj in goal_objs if
+                             not abs_state.binary_edges[(goal_obj, 'home_region')][0]]
+    v_manip_values = []
+    v_manip = np.zeros((len(abs_state.prm_vertices), 1))
+    for goal_obj in goal_objs_not_in_goal:
+        prm_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
+        distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+        closest_prm_idx = np.argmin(distances)
+        prm_path.pop(0)
+        prm_path.insert(0, abs_state.prm_vertices[closest_prm_idx, :])
+
+        distances = [utils.base_pose_distance(prm_path[-1], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+        closest_prm_idx = np.argmin(distances)
+        prm_path[-1] = abs_state.prm_vertices[closest_prm_idx, :]
+
+        v_manip_values.append(prm_path)
+        for p in prm_path:
+            boolean_matching_prm_vertices = np.all(np.isclose(abs_state.prm_vertices[:, :2], p[:2]), axis=-1)
+            if np.any(boolean_matching_prm_vertices):
+                idx = np.argmax(boolean_matching_prm_vertices)
+                v_manip[idx] = 1
+    return v_manip
+
+
 class PlaceOnlyLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
@@ -139,11 +164,16 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         # making predictions using the sampler
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
+        v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
+        v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
+        v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
+        state_vec = np.concatenate([collisions, v_manip], axis=2)
+
         if 'home' in self.region:
             chosen_sampler = self.policies['place_home']
         else:
             chosen_sampler = self.policies['place_loading']
-        place_samples = chosen_sampler.generate(collisions, poses)
+        place_samples = chosen_sampler.generate(state_vec, poses)
 
         # This is in robot's pose. I need to convert it to object poses
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
