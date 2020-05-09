@@ -46,7 +46,12 @@ def main():
 
     max_iter = get_max_iteration(model.weight_dir)
     max_iter = min(250000, max_iter)
-    iterations = range(100, max_iter, 100)
+    already_done = os.listdir(model.weight_dir+'result_summary')
+    if len(already_done) == 0:
+        next_iter_to_begin_from = 0
+    else:
+        next_iter_to_begin_from = max([int(f.split('_')[-1].split('.')[0]) for f in already_done])+100
+    iterations = range(next_iter_to_begin_from, max_iter, 100)
     configs = []
     for iteration in iterations:
         config = {
