@@ -1,6 +1,7 @@
 import os
 import multiprocessing
 import argparse
+import socket
 
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 from threaded_test_utils import get_sahs_configs
@@ -26,8 +27,7 @@ def main():
     raw_dir = './planning_experience/for_testing_generators/'
     all_plan_exp_files = os.listdir(raw_dir)
 
-    pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
-    pidxs = range(11)
+    pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files if '.pkl' in f]
     seeds = range(0, 5)
 
     setup = parse_arguments()

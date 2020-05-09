@@ -5,6 +5,7 @@ import pickle
 import time
 import os
 import torch
+import socket
 
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
@@ -229,7 +230,7 @@ def set_seeds(seed):
 
 
 def get_logfile_name(config):
-    logfile_dir = 'generators/sampler_performances/'
+    logfile_dir = 'generators/sampler_performances/{}/'.format(socket.gethostname())
     if not os.path.isdir(logfile_dir):
         os.makedirs(logfile_dir)
 
