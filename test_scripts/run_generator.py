@@ -16,6 +16,8 @@ from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.samplers.voo_sampler import VOOSampler
 from generators.voo import TwoArmVOOGenerator
 
+from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
+
 from gtamp_utils import utils
 
 
@@ -24,10 +26,14 @@ def parse_arguments():
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-pidx', type=int, default=20000)  # used for threaded runs
 
-    # epoch 41900 for loading region, 98400 for home region, 43700 for pick
-    parser.add_argument('-epoch_home', type=int, default=111200)
-    parser.add_argument('-epoch_loading', type=int, default=41900)
-    parser.add_argument('-epoch_pick', type=int, default=242000)
+    # epoch 18700 for loading region, 86400 for home region, 43700 for pick
+    # home 96000 for fc
+    # home 98100 for cnn
+    # loading 34500 for cnn
+    # loading 9700 for fc
+    parser.add_argument('-epoch_home', type=int, default=98100)
+    parser.add_argument('-epoch_loading', type=int, default=34500)
+    parser.add_argument('-epoch_pick', type=int, default=100700)
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
@@ -46,20 +52,20 @@ def get_learned_smpler(epoch_home=None, epoch_loading=None, epoch_pick=None):
     region = 'home_region'
     if epoch_home is not None:
         action_type = 'place'
-        home_place_model = WGANgp(action_type, region)
+        home_place_model = WGANgp(action_type, region, architecture='cnn')
         home_place_model.load_weights(epoch_home)
 
     region = 'loading_region'
     if epoch_loading is not None:
         action_type = 'place'
-        loading_place_model = WGANgp(action_type, region)
+        loading_place_model = WGANgp(action_type, region, architecture='cnn')
         loading_place_model.load_weights(epoch_loading)
 
     pick_model = None
     if epoch_pick is not None:
         action_type = 'pick'
-        pick_model = WGANgp(action_type, region)
-        pick_model.load_weights(epoch_pick)
+        pick_model = None  # WGANgp(action_type, region)
+        # pick_model.load_weights(epoch_pick)
 
     model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
     return model
@@ -88,7 +94,10 @@ class DummyAbstractState:
 
 
 def visualize_samplers_along_plan(plan, problem_env, goal_entities, config):
-    abstract_state = DummyAbstractState(problem_env, goal_entities)
+    #    abstract_state = DummyAbstractState(problem_env, goal_entities)
+    #abstract_state = pickle.load(open('temp.pkl', 'r'))
+    abstract_state = ShortestPathPaPState(problem_env, goal_entities)
+    abstract_state.make_plannable(problem_env)
 
     for action in plan:
         abstract_action = action
@@ -108,11 +117,14 @@ def visualize_samplers_along_plan(plan, problem_env, goal_entities, config):
         obj = action.discrete_parameters['object']
         color = utils.get_color_of(obj)
         utils.set_color(obj, [0, 0, 1])
-        # utils.visualize_path(place_poses)
+        utils.visualize_path(place_poses[0:20])
         utils.set_color(obj, color)
+        print action.discrete_parameters
         import pdb;
         pdb.set_trace()
         action.execute()
+        abstract_state = ShortestPathPaPState(problem_env, goal_entities,
+                                              parent_state=abstract_state, parent_action=action)
 
 
 def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
@@ -152,13 +164,20 @@ def visualize_samples(action, sampler):
     samples = [sampler.sample() for _ in range(30)]
     place_poses = [smpl[-3:] for smpl in samples]
     pick_samples = [smpl[:-3] for smpl in samples]
-    pick_abs_poses = np.array([utils.get_pick_base_pose_and_grasp_from_pick_parameters(action.discrete_parameters['object'], s)[1] for s in pick_samples])
-    #utils.visualize_path(pick_abs_poses)
+    pick_abs_poses = np.array(
+        [utils.get_pick_base_pose_and_grasp_from_pick_parameters(action.discrete_parameters['object'], s)[1] for s in
+         pick_samples])
+    # utils.visualize_path(pick_abs_poses)
     utils.visualize_path(place_poses)
 
 
 def execute_policy(plan, problem_env, goal_entities, config):
-    abstract_state = DummyAbstractState(problem_env, goal_entities)
+    #init_abstract_state = DummyAbstractState(problem_env, goal_entities)
+    #init_abstract_state = pickle.load(open('temp.pkl', 'r'))
+    init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
+    abstract_state = init_abstract_state
+    abstract_state.make_plannable(problem_env)
+    goal_objs = goal_entities[:-1]
 
     total_ik_checks = 0
     total_mp_checks = 0
@@ -187,7 +206,6 @@ def execute_policy(plan, problem_env, goal_entities, config):
 
         generator = get_generator(config, abstract_state, action, n_mp_limit, problem_env)
 
-        print plan_idx, len(samples_tried[plan_idx])
         stime = time.time()
         cont_smpl = generator.sample_next_point(samples_tried[plan_idx], sample_values[plan_idx])
         print time.time() - stime
@@ -206,6 +224,8 @@ def execute_policy(plan, problem_env, goal_entities, config):
             action.continuous_parameters = cont_smpl
             action.execute()
             plan_idx += 1
+            abstract_state = ShortestPathPaPState(problem_env, goal_entities,
+                                                  parent_state=abstract_state, parent_action=action)
         else:
             print "No feasible action"
             problem_env.init_saver.Restore()
@@ -213,6 +233,7 @@ def execute_policy(plan, problem_env, goal_entities, config):
             for s in cont_smpl['samples']:
                 samples_tried[plan_idx].append(s)
                 sample_values[plan_idx].append(generator.sampler.infeasible_action_value)
+            abstract_state = init_abstract_state
         goal_reached = plan_idx == len(plan)
         print "Total IK checks {} Total actions {}".format(total_ik_checks, n_total_actions)
 
