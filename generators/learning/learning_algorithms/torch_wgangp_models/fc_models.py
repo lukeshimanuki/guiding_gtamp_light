@@ -4,8 +4,8 @@ from models import BaseGenerator, BaseDiscriminator
 
 
 class Discriminator(BaseDiscriminator):
-    def __init__(self, dim_konf, dim_data):
-        BaseDiscriminator.__init__(self, dim_konf)
+    def __init__(self, dim_konf, dim_data, atype):
+        BaseDiscriminator.__init__(self, dim_konf, atype)
         n_hidden = 32
         n_konfs = 618 * dim_konf
         self.konf_net = \
@@ -16,10 +16,13 @@ class Discriminator(BaseDiscriminator):
                 nn.ReLU()
             )
 
-        dim_poses = 24
+        if self.atype == 'pick':
+            dim_pose_ids = 24 + 2
+        else:
+            dim_pose_ids = 2
         self.pose_net = \
             nn.Sequential(
-                torch.nn.Linear(dim_poses, n_hidden),
+                torch.nn.Linear(dim_pose_ids, n_hidden),
                 nn.ReLU(),
                 torch.nn.Linear(n_hidden, n_hidden),
                 nn.ReLU()
@@ -42,18 +45,27 @@ class Discriminator(BaseDiscriminator):
                 torch.nn.Linear(n_hidden, 1)
             )
 
-    def forward(self, action, konf, pose):
+    def forward(self, action, konf, pose_ids):
         konf = konf.view((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
-        pose_val = self.pose_net(pose)
+
+        target_obj_pose = pose_ids[:, 0:4]
+        robot_curr_pose_and_id = pose_ids[:, -4:]
+        pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
+
+        if self.atype == 'pick':
+            pose_val = self.pose_net(pose_ids)
+        else:
+            pose_val = self.pose_net(pose_ids[:, 24])
+
         action_val = self.action_net(action)
         concat = torch.cat((konf_val, pose_val, action_val), -1)
         return self.output(concat)
 
 
 class Generator(BaseGenerator):
-    def __init__(self, dim_konf, dim_data):
-        BaseGenerator.__init__(self, dim_konf)
+    def __init__(self, dim_konf, dim_data, atype):
+        BaseGenerator.__init__(self, dim_konf, atype)
         n_hidden = 32
         n_konfs = 618 * dim_konf
         self.konf_net = \
@@ -64,10 +76,13 @@ class Generator(BaseGenerator):
                 nn.ReLU()
             )
 
-        dim_poses = 24
+        if self.atype == 'pick':
+            dim_pose_ids = 24 + 2
+        else:
+            dim_pose_ids = 24
         self.pose_net = \
             nn.Sequential(
-                torch.nn.Linear(dim_poses, n_hidden),
+                torch.nn.Linear(dim_pose_ids, n_hidden),
                 nn.ReLU(),
                 torch.nn.Linear(n_hidden, n_hidden),
                 nn.ReLU()
@@ -82,10 +97,18 @@ class Generator(BaseGenerator):
                 torch.nn.Linear(n_hidden, dim_actions)
             )
 
-    def forward(self, konf, pose, noise):
+    def forward(self, konf, pose_ids, noise):
         konf = konf.view((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
-        pose_val = self.pose_net(pose)
+
+        target_obj_pose = pose_ids[:, 0:4]
+        robot_curr_pose_and_id = pose_ids[:, -4:]
+        pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
+
+        if self.atype == 'pick':
+            pose_val = self.pose_net(pose_ids)
+        else:
+            pose_val = self.pose_net(pose_ids[:, 24])
         concat = torch.cat((konf_val, pose_val, noise), -1)
 
         return self.output(concat)

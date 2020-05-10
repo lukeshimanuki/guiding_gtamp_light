@@ -71,14 +71,11 @@ class WGANgp:
 
     def create_models(self):
         if self.architecture == 'fc':
-            discriminator = Discriminator(self.dim_konf, self.n_dim_actions)
-            generator = Generator(self.dim_konf, self.n_dim_actions)
+            discriminator = Discriminator(self.dim_konf, self.n_dim_actions, self.action_type)
+            generator = Generator(self.dim_konf, self.n_dim_actions, self.action_type)
         elif self.architecture == 'cnn':
-            discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions)
-            generator = CNNGenerator(self.dim_konf, self.n_dim_actions)
-        elif self.architecture == 'gnn':
-            discriminator = GNNDiscriminator(self.dim_konf, self.n_dim_actions, self.device)
-            generator = GNNGenerator(self.dim_konf, self.n_dim_actions, self.device)
+            discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions, self.action_type)
+            generator = CNNGenerator(self.dim_konf, self.n_dim_actions, self.action_type)
         else:
             raise NotImplementedError
         discriminator.to(self.device)

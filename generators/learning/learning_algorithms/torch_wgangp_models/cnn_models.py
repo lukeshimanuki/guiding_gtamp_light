@@ -3,8 +3,8 @@ from models import BaseGenerator, BaseDiscriminator
 
 
 class CNNDiscriminator(BaseDiscriminator):
-    def __init__(self, dim_konf, dim_actions):
-        BaseDiscriminator.__init__(self, dim_konf)
+    def __init__(self, dim_konf, dim_actions, atype):
+        BaseDiscriminator.__init__(self, dim_konf, atype)
         n_hidden = 32
         self.features = \
             torch.nn.Sequential(
@@ -42,8 +42,8 @@ class CNNDiscriminator(BaseDiscriminator):
 
 
 class CNNGenerator(BaseGenerator):
-    def __init__(self, dim_konf, dim_data):
-        BaseGenerator.__init__(self, dim_konf)
+    def __init__(self, dim_konf, dim_data, atype):
+        BaseGenerator.__init__(self, dim_konf, atype)
         n_hidden = 32
 
         self.features = \

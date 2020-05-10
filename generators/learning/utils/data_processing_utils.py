@@ -1,6 +1,7 @@
 from gtamp_utils import utils
 import numpy as np
 
+
 def c_outside_threshold(c, configs, xy_threshold, th_threshold):
     min_dist = np.inf
     c = np.array(c)
@@ -16,7 +17,7 @@ def c_outside_threshold(c, configs, xy_threshold, th_threshold):
     return True
 
 
-def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20*np.pi/180):
+def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20 * np.pi / 180):
     configs = []
     for c in path:
         print len(configs)
@@ -28,6 +29,7 @@ def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20*np
             configs.append(c)
 
     return configs
+
 
 def make_konfs_relative_to_pose(obj_pose, key_configs):
     rel_konfs = []
