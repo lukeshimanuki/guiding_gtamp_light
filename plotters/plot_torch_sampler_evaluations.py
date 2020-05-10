@@ -37,7 +37,7 @@ def plot_results(iterations, results, result_dir):
     plot(iterations, results[:, 2], 'Entropies', result_dir)
 
 
-def print_results(results, iterations, plot_dir):
+def print_results(results, iterations, plot_dir, result_dir):
     results = np.array(results)
     iterations = np.array(iterations)
 
@@ -45,10 +45,20 @@ def print_results(results, iterations, plot_dir):
     for i, kde, mse, entropy in zip(iterations, results[:, 1], results[:, 0], results[:, 2]):
         print i, kde, mse, entropy
 
-    max_kde_idx = np.argsort(results[:, 1])[::-1][0:100]
+    max_kde_idx = np.argsort(results[:, 1])[::-1]
     to_print = "Max KDE epoch {} \nMax KDE {} \nMax KDE entropy {} \nMax KDE min MSE {}".format(
         iterations[max_kde_idx][0], results[max_kde_idx, 1][0], results[max_kde_idx, 2][0], results[max_kde_idx, 0][0])
     print to_print
+
+    best_iter = iterations[max_kde_idx][0]
+    weight_dir = result_dir[:-15]
+    for fin in os.listdir(weight_dir):
+        if 'gen' not in fin:
+            continue
+        iteration = int(fin.split('_')[-1].split('.')[0])
+        if iteration == best_iter:
+            break
+    print weight_dir + fin
     fin = open(plot_dir+'/results.txt', 'wb')
     fin.write(to_print)
 
@@ -84,7 +94,7 @@ def main():
         os.makedirs(plot_dir)
 
     plot_results(iters, results, plot_dir)
-    print_results(results, iters, plot_dir)
+    print_results(results, iters, plot_dir, result_dir)
 
 
 if __name__ == '__main__':
