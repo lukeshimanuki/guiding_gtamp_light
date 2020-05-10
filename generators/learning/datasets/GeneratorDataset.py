@@ -55,8 +55,8 @@ class GeneratorDataset(Dataset):
             if desired_region == 'loading_region' and is_move_to_goal_region:
                 return True
 
-        if reward <= 0 and use_filter:
-            return True
+            if reward <= 0 and use_filter:
+                return True
 
         return False
 
@@ -74,8 +74,10 @@ class GeneratorDataset(Dataset):
                     f = pickle.load(open(testing_cached_file, 'r'))
                 else:
                     f = pickle.load(open(traj_dir + cache_file_name, 'r'))
-                    new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_' + cache_file_name, 'r'))
-                    new_f = (f[0][new_idxs, :], f[1][new_idxs, :], f[2][new_idxs, :])
+                    #new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_' + cache_file_name, 'r'))
+                    testset_index_file =  './generators/datasets/testset_cache_file_idxs/seed_{}_atype_{}_region_{}.pkl'.format(self.seed, action_type, desired_region)
+                    test_set_indices = os.pickle.load(open(testset_index_file,'r'))
+                    new_f = (f[0][testset_indices, :], f[1][testset_indices, :], f[2][testset_indices, :])
                     f = pickle.dump(new_f, open(testing_cached_file, 'wb'))
                     f = new_f
             else:
@@ -87,7 +89,7 @@ class GeneratorDataset(Dataset):
         all_states = []
         all_actions = []
         all_sum_rewards = []
-        all_poses = []
+        all_poses_ids = []
         all_konf_relevance = []
 
         for traj_file_idx, traj_file in enumerate(traj_files):
@@ -98,7 +100,7 @@ class GeneratorDataset(Dataset):
                 continue
 
             states = []
-            poses = []
+            poses_ids = []
             actions = []
             konf_relevance = []
 
@@ -122,18 +124,24 @@ class GeneratorDataset(Dataset):
                 state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
 
                 states.append(state_vec)
-                poses.append(get_processed_poses_from_state(s, 'absolute'))
+                if 'rectangular' in  a['object_name']:
+                    object_id = [1, 0]
+                else:
+                    object_id = [0 ,1]
+                poses_from_state = get_processed_poses_from_state(s, 'absolute')
+                poses_from_state_and_id = np.hstack([poses_from_state, object_id])
+                poses_ids.append(poses_from_state_and_id)
                 actions.append(get_processed_poses_from_action(s, a, action_data_mode))
 
             states = np.array(states)
-            poses = np.array(poses)
+            poses_ids = np.array(poses_ids)
             actions = np.array(actions)
 
             rewards = traj.rewards
             sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
             if len(states) == 0:
                 continue
-            all_poses.append(poses)
+            all_poses_ids.append(poses_ids)
             all_states.append(states)
             all_actions.append(actions)
             all_sum_rewards.append(sum_rewards)
@@ -145,10 +153,10 @@ class GeneratorDataset(Dataset):
 
         all_states = np.vstack(all_states).squeeze(axis=1)
         all_actions = np.vstack(all_actions).squeeze()
-        all_poses = np.vstack(all_poses).squeeze()
-        pickle.dump((all_states, all_poses, all_actions), open(traj_dir + cache_file_name, 'wb'))
+        all_poses_ids = np.vstack(all_poses_ids).squeeze()
+        pickle.dump((all_states, all_poses_ids, all_actions), open(traj_dir + cache_file_name, 'wb'))
 
-        return all_states, all_poses, all_actions
+        return all_states, all_poses_ids, all_actions
 
     def get_data(self, action_type, region, is_testing):
         atype = action_type
@@ -178,8 +186,9 @@ class GeneratorDataset(Dataset):
 
 
 class StandardDataset(GeneratorDataset):
-    def __init__(self, action_type, desired_region, use_filter, is_testing=False):
+    def __init__(self, action_type, desired_region, use_filter, is_testing=False, seed=0):
         super(StandardDataset, self).__init__(action_type, desired_region, use_filter, is_testing)
+        self.seed = seed
 
     def __getitem__(self, idx):
         data = {
