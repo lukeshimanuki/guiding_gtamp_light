@@ -50,11 +50,7 @@ class Discriminator(BaseDiscriminator):
         robot_curr_pose_and_id = pose_ids[:, -6:]
         pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
 
-        if self.atype == 'pick':
-            pose_val = self.pose_net(pose_ids)
-        else:
-            pose_val = self.pose_net(pose_ids[:, 24])
-
+        pose_val = self.pose_net(pose_ids)
         action_val = self.action_net(action)
         concat = torch.cat((konf_val, pose_val, action_val), -1)
         return self.output(concat)
@@ -101,5 +97,4 @@ class Generator(BaseGenerator):
 
         pose_val = self.pose_net(pose_ids)
         concat = torch.cat((konf_val, pose_val, noise), -1)
-
         return self.output(concat)
