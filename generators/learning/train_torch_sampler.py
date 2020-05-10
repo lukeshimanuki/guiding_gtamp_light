@@ -1,6 +1,8 @@
 import socket
 import torch
 import argparse
+import os
+import pickle
 
 from datasets.GeneratorDataset import StandardDataset
 from generators.learning.learning_algorithms.WGANGP import WGANgp
@@ -18,13 +20,18 @@ def save_weights(net, epoch, action_type, seed, region):
     torch.save(net.state_dict(), PATH)
 
 
-def get_data_generator(action_type, region):
-    dataset = StandardDataset(action_type, region, True)
+def get_data_generator(action_type, region, seed):
+    dataset = StandardDataset(action_type, region, True, seed)
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     batch_size = 32
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=20,
                                               pin_memory=True)
+    test_idx_dir = './generators/datasets/testset_cache_file_idxs/'
+    if not os.path.isdir(test_idx_dir):
+        os.makedirs(test_idx_dir) 
+    test_idx_file = 'seed_{}_atype_{}_region_{}.pkl'.format(seed, action_type, region)
+    pickle.dump(testset.indices, open(test_idx_dir+test_idx_file,'wb'))
     return trainloader, trainset, testset
 
 
@@ -41,7 +48,7 @@ def main():
 
     model = WGANgp(config.atype, config.region, config.architecture)
 
-    trainloader, trainset, testset = get_data_generator(config.atype, config.region)
+    trainloader, trainset, testset = get_data_generator(config.atype, config.region, config.seed)
     n_train = len(trainset)
     model.train(trainloader, testset, n_train)
 
