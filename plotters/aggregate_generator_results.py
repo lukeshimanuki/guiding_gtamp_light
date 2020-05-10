@@ -9,7 +9,7 @@ fdir = './generators/sampler_performances/'
 
 learned_file = 'voo_log_n_mp_limit_5.txt'
 learned_file = 'voo_gauss_n_mp_limit_5.txt'
-learned_file = 'epoch_home_111200_epoch_loading_41900.txt'
+learned_file = 'epoch_home_98100_epoch_loading_41900.txt'
 
 
 
@@ -29,15 +29,15 @@ def get_results(fin):
 
     for l in data:
         pidx = int(l.split(',')[0])
-        if pidx > 9:
-            continue
+        #if pidx > 9:
+        #    continue
         print l
         #plan_exp_file = all_plan_exp_files[np.where(pidx == pidxs)]
         #plan = pickle.load(open(raw_dir + plan_exp_file[0], 'r'))['plan']
         #if len(plan) <= 4:
         #    continue
-        if int(l.split(',')[-1]) != 1:
-            continue
+        #if int(l.split(',')[-1]) != 1:
+        #    continue
 
         result['iks'].append(int(l.split(',')[2]))
         result['mps'].append(int(l.split(',')[3]))
@@ -73,7 +73,7 @@ def main():
     # pidx, seed, total_ik_checks, total_mp_checks, total_infeasible_mp, goal_reached, n_total_actions
 
     file1 = 'voo_sqrt_pap_mps_n_mp_limit_5.txt'
-    file1 = 'epoch_home_111200_epoch_loading_41900.txt'
+    file1 = 'lab/epoch_home_98100_epoch_loading_9700.txt'
     results1 = get_results(file1)
     file2 = 'unif_sqrt_pap_mps_n_mp_limit_5.txt'
     results2 = get_results(file2)
