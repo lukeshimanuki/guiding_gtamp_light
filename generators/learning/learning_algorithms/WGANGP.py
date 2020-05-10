@@ -3,6 +3,7 @@ import torch.autograd as autograd
 import torch.optim as optim
 import numpy as np
 import time
+import pickle
 
 from sklearn.neighbors import KernelDensity
 import os
@@ -52,9 +53,22 @@ class WGANgp:
         self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)
+        self.best_weight_iter = None
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
+
+    def load_best_weights(self):
+        result_dir = self.weight_dir + '/result_summary/'
+        assert os.path.isdir(result_dir), "Did you run plotters/evaluate_generators.py?"
+        result_files = os.listdir(result_dir)
+        assert len(result_files) > 0, "Did you run plotters/evaluate_generators.py?"
+        iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
+        results = np.array([pickle.load(open(result_dir + result_file, 'r')) for result_file in result_files])
+
+        max_kde_idx = np.argsort(results[:, 1])[::-1][0]
+        max_kde_iteration = iters[max_kde_idx]
+        self.load_weights(max_kde_iteration)
 
     def create_models(self):
         if self.architecture == 'fc':

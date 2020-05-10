@@ -32,9 +32,15 @@ def parse_arguments():
     # home 98100 for cnn
     # loading 34500 for cnn
     # loading 9700 for fc
-    parser.add_argument('-epoch_home', type=int, default=98100)
-    parser.add_argument('-epoch_loading', type=int, default=9700)
-    parser.add_argument('-epoch_pick', type=int, default=100700)
+    #     result_dir = weight dir + /results_summary
+    #     result_files = os.listdir(result_dir + '/')
+    #  for i, kde, mse, entropy in zip(iterations, results[:, 1], results[:, 0], results[:, 2]):
+    #     print i, kde, mse, entropy
+    # parser.add_argument('-epoch_home', type=int, default=98100)
+    # parser.add_argument('-epoch_loading', type=int, default=9700)
+    # parser.add_argument('-epoch_pick', type=int, default=100700)
+    parser.add_argument('-pick_architecture', type=str, default='fc')
+    parser.add_argument('-place_architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
@@ -49,26 +55,26 @@ def create_environment(problem_idx):
     return problem_env
 
 
-def get_learned_smpler(epoch_home=None, epoch_loading=None, epoch_pick=None):
+def get_learned_smpler(config):
     region = 'home_region'
-    if epoch_home is not None:
-        action_type = 'place'
-        home_place_model = WGANgp(action_type, region, architecture='cnn')
-        home_place_model.load_weights(epoch_home)
+    action_type = 'place'
+    home_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
+    home_place_model.load_best_weights()
 
     region = 'loading_region'
-    if epoch_loading is not None:
-        action_type = 'place'
-        loading_place_model = WGANgp(action_type, region, architecture='fc')
-        loading_place_model.load_weights(epoch_loading)
+    action_type = 'place'
+    loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
+    loading_place_model.load_best_weights()
 
+    """
     pick_model = None
     if epoch_pick is not None:
         action_type = 'pick'
         pick_model = None  # WGANgp(action_type, region)
         # pick_model.load_weights(epoch_pick)
+    """
 
-    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': None}
     return model
 
 
@@ -96,7 +102,7 @@ class DummyAbstractState:
 
 def visualize_samplers_along_plan(plan, problem_env, goal_entities, config):
     #    abstract_state = DummyAbstractState(problem_env, goal_entities)
-    #abstract_state = pickle.load(open('temp.pkl', 'r'))
+    # abstract_state = pickle.load(open('temp.pkl', 'r'))
     abstract_state = ShortestPathPaPState(problem_env, goal_entities)
     abstract_state.make_plannable(problem_env)
 
@@ -149,8 +155,7 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
                                            place_action_mode='object_pose')
     else:
         print "Using learned sampler"
-        sampler_model = get_learned_smpler(epoch_home=config.epoch_home,
-                                           epoch_loading=config.epoch_loading, epoch_pick=config.epoch_pick)
+        sampler_model = get_learned_smpler(config)
         sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
         sampler.infeasible_action_value = -9999
         generator = TwoArmPaPGenerator(abstract_state, action, sampler,
@@ -173,8 +178,8 @@ def visualize_samples(action, sampler):
 
 
 def execute_policy(plan, problem_env, goal_entities, config):
-    #init_abstract_state = DummyAbstractState(problem_env, goal_entities)
-    #init_abstract_state = pickle.load(open('temp.pkl', 'r'))
+    # init_abstract_state = DummyAbstractState(problem_env, goal_entities)
+    # init_abstract_state = pickle.load(open('temp.pkl', 'r'))
     init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
     abstract_state = init_abstract_state
     abstract_state.make_plannable(problem_env)
