@@ -10,7 +10,7 @@ import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
 from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
-from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
+#from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
 
 from gtamp_utils import utils
 import socket
