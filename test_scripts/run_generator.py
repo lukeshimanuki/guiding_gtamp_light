@@ -33,7 +33,7 @@ def parse_arguments():
     # loading 34500 for cnn
     # loading 9700 for fc
     parser.add_argument('-epoch_home', type=int, default=98100)
-    parser.add_argument('-epoch_loading', type=int, default=34500)
+    parser.add_argument('-epoch_loading', type=int, default=9700)
     parser.add_argument('-epoch_pick', type=int, default=100700)
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
@@ -59,7 +59,7 @@ def get_learned_smpler(epoch_home=None, epoch_loading=None, epoch_pick=None):
     region = 'loading_region'
     if epoch_loading is not None:
         action_type = 'place'
-        loading_place_model = WGANgp(action_type, region, architecture='cnn')
+        loading_place_model = WGANgp(action_type, region, architecture='fc')
         loading_place_model.load_weights(epoch_loading)
 
     pick_model = None
