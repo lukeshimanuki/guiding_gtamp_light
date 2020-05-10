@@ -103,7 +103,7 @@ class GeneratorDataset(Dataset):
             konf_relevance = []
 
             if use_filter:
-                rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) >= 0
+                rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) > 0
             else:
                 rewards = 1
 

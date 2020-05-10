@@ -25,9 +25,7 @@ def worker_wrapper_multi_input(multi_args):
 def main():
     raw_dir = './planning_experience/for_testing_generators/'
     all_plan_exp_files = os.listdir(raw_dir)
-
-    pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files]
-    pidxs = range(11)
+    pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files if '.pkl' in f]
     seeds = range(0, 5)
 
     setup = parse_arguments()
@@ -38,7 +36,6 @@ def main():
         pidx = int(l.split(',')[0])
         seed = int(l.split(',')[1])
         pidx_seed_already_exist.append((pidx,seed))
-
     configs = []
     for seed in seeds:
         for pidx in pidxs:
