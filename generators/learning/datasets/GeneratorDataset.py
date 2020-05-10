@@ -67,14 +67,14 @@ class GeneratorDataset(Dataset):
         cache_file_name = self.get_cache_file_name(action_data_mode, action_type, desired_region, use_filter)
         if os.path.isfile(traj_dir + cache_file_name):
             print "Loading the cache file", traj_dir + cache_file_name
-            
+
             if is_testing:
                 testing_cached_file = traj_dir + 'for_testing_' + cache_file_name
                 if os.path.isfile(testing_cached_file):
                     f = pickle.load(open(testing_cached_file, 'r'))
                 else:
                     f = pickle.load(open(traj_dir + cache_file_name, 'r'))
-                    new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_'+cache_file_name,'r'))
+                    new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_' + cache_file_name, 'r'))
                     new_f = (f[0][new_idxs, :], f[1][new_idxs, :], f[2][new_idxs, :])
                     f = pickle.dump(new_f, open(testing_cached_file, 'wb'))
                     f = new_f
@@ -119,8 +119,7 @@ class GeneratorDataset(Dataset):
                     raise NotImplementedError
 
                 v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 618, 2, 1))
-                state_vec = np.concatenate([collision_vec,v_manip_vec],axis=2)
-
+                state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
 
                 states.append(state_vec)
                 poses.append(get_processed_poses_from_state(s, 'absolute'))
@@ -232,5 +231,3 @@ class GNNDataset(GeneratorDataset):
         v = torch.from_numpy(v)
 
         return {'vertex': v, 'edges': self.edges, 'actions': self.actions[idx]}
-
-
