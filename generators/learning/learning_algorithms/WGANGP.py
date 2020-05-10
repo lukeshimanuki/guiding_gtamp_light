@@ -53,7 +53,6 @@ class WGANgp:
         self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)
-        self.best_weight_iter = None
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)

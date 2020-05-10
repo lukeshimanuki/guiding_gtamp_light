@@ -261,7 +261,7 @@ def get_logfile_name(config):
         os.makedirs(logfile_dir)
 
     if config.use_learning:
-        logfile = open(logfile_dir + 'epoch_home_%d_epoch_loading_%d.txt' % (config.epoch_home, config.epoch_loading),
+        logfile = open(logfile_dir + 'place_%s.txt' % (config.place_architecture),
                        'a')
     else:
         logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit,
