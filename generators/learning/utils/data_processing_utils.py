@@ -41,10 +41,10 @@ def make_konfs_relative_to_pose(obj_pose, key_configs):
 
 
 def get_processed_poses_from_state(state, state_data_mode):
-    if state_data_mode == 'absolute':
-        obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
-        curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
-        goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
+    obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
+    curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
+    goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
+    """
     elif state_data_mode == 'robot_rel_to_obj':
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
         robot_pose = utils.get_relative_robot_pose_wrt_body_pose(state.abs_robot_pose, state.abs_obj_pose)
@@ -55,6 +55,7 @@ def get_processed_poses_from_state(state, state_data_mode):
         goal_obj_poses = np.hstack(goal_obj_poses)
     else:
         raise not NotImplementedError
+    """
     pose = np.hstack([obj_pose, goal_obj_poses, curr_robot_pose])
     return pose
 
