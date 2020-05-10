@@ -171,7 +171,7 @@ class GeneratorDataset(Dataset):
             actions = actions[:, :-4]
         elif atype == 'place':
             pick_abs_poses = actions[:, 3:7]  # must swap out the q0 with the pick base pose
-            poses[:, -4:] = pick_abs_poses
+            poses[:, -6:-2] = pick_abs_poses
             actions = actions[:, -4:]
         else:
             raise NotImplementedError

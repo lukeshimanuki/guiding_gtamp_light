@@ -16,10 +16,7 @@ class Discriminator(BaseDiscriminator):
                 nn.ReLU()
             )
 
-        if self.atype == 'pick':
-            dim_pose_ids = 24 + 2
-        else:
-            dim_pose_ids = 2
+        dim_pose_ids = 2*4 + 2
         self.pose_net = \
             nn.Sequential(
                 torch.nn.Linear(dim_pose_ids, n_hidden),
@@ -50,7 +47,7 @@ class Discriminator(BaseDiscriminator):
         konf_val = self.konf_net(konf)
 
         target_obj_pose = pose_ids[:, 0:4]
-        robot_curr_pose_and_id = pose_ids[:, -4:]
+        robot_curr_pose_and_id = pose_ids[:, -6:]
         pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
 
         if self.atype == 'pick':
@@ -76,10 +73,7 @@ class Generator(BaseGenerator):
                 nn.ReLU()
             )
 
-        if self.atype == 'pick':
-            dim_pose_ids = 24 + 2
-        else:
-            dim_pose_ids = 24
+        dim_pose_ids = 2*4 + 2
         self.pose_net = \
             nn.Sequential(
                 torch.nn.Linear(dim_pose_ids, n_hidden),
@@ -102,13 +96,10 @@ class Generator(BaseGenerator):
         konf_val = self.konf_net(konf)
 
         target_obj_pose = pose_ids[:, 0:4]
-        robot_curr_pose_and_id = pose_ids[:, -4:]
+        robot_curr_pose_and_id = pose_ids[:, -6:]
         pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
 
-        if self.atype == 'pick':
-            pose_val = self.pose_net(pose_ids)
-        else:
-            pose_val = self.pose_net(pose_ids[:, 24])
+        pose_val = self.pose_net(pose_ids)
         concat = torch.cat((konf_val, pose_val, noise), -1)
 
         return self.output(concat)

@@ -22,11 +22,12 @@ def get_results(fin):
         # if pidx > 9:
         #    continue
         print l
-        result['iks'].append(int(l.split(',')[2]))
-        result['mps'].append(int(l.split(',')[3]))
-        result['infeasible_mps'].append(int(l.split(',')[4]) + int(l.split(',')[6]))
-        result['actions'].append(int(l.split(',')[9]))
-        result['success'].append(int(l.split(',')[-1]))
+        if True: #int(l.split(',')[-1]) == 1:
+            result['iks'].append(int(l.split(',')[2]))
+            result['mps'].append(int(l.split(',')[3]))
+            result['infeasible_mps'].append(int(l.split(',')[4]) + int(l.split(',')[6]))
+            result['actions'].append(int(l.split(',')[9]))
+            result['success'].append(int(l.split(',')[-1]))
 
     return result
 
@@ -49,13 +50,14 @@ def print_results(results, result_file):
 
 
 def main():
-    file1 = '{}/epoch_home_98100_epoch_loading_9700.txt'.format(socket.gethostname())
-    results1 = get_results(file1)
     file2 = '{}/unif_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
     results2 = get_results(file2)
-
-    print_results(results1, file1)
     print_results(results2, file2)
+
+    print '============================================================'
+    file1 = '{}/place_fc.txt'.format(socket.gethostname())
+    results1 = get_results(file1)
+    print_results(results1, file1)
 
 
 if __name__ == '__main__':
