@@ -55,7 +55,6 @@ class Discriminator(BaseDiscriminator):
             pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
             konf = konf[:, :, 0:2, :]
         konf = konf.reshape((-1, 618 * self.dim_konf))
-        import pdb;pdb.set_trace()
         konf_val = self.konf_net(konf)
 
         pose_val = self.pose_net(pose_ids)
