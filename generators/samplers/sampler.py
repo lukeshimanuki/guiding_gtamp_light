@@ -160,6 +160,12 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 
         poses = np.tile(poses, (n_smpls, 1))
         poses[:, -4:] = encoded_pick_abs_poses
+        if 'rectangular' in self.obj:
+            object_id = [1, 0]
+        else:
+            object_id = [0, 1]
+        poses = np.hstack([poses, object_id])
+
 
         # making predictions using the sampler
         collisions = self.smpler_state.pick_collision_vector
