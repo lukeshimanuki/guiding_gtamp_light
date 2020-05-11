@@ -8,7 +8,7 @@ class CNNDiscriminator(BaseDiscriminator):
         n_hidden = 32
         self.features = \
             torch.nn.Sequential(
-                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 8)),
+                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4+4+4+2)),
                 torch.nn.LeakyReLU(),
                 torch.nn.Conv2d(n_hidden, n_hidden, kernel_size=(1, 1)),
                 torch.nn.LeakyReLU(),
@@ -28,10 +28,13 @@ class CNNDiscriminator(BaseDiscriminator):
                 torch.nn.Linear(32, 1)
             )
 
-    def forward(self, action, konf, pose):
+    def forward(self, action, konf, pose_ids):
+
+        target_obj_pose = pose_ids[:, 0:4]
+        robot_curr_pose_and_id = pose_ids[:, -6:]
+        pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
+        robot_curr_pose_expanded = pose_ids.unsqueeze(1).repeat((1, 618, 1)).unsqueeze(-1)
         action_expanded = action.unsqueeze(1).repeat((1, 618, 1)).unsqueeze(-1)
-        robot_curr_pose = pose[:, -4:]
-        robot_curr_pose_expanded = robot_curr_pose.unsqueeze(1).repeat((1, 618, 1)).unsqueeze(-1)
         concat = torch.cat([action_expanded, robot_curr_pose_expanded, konf], dim=2)
         concat = concat.reshape((concat.shape[0], concat.shape[-1], concat.shape[1], concat.shape[2]))
 
