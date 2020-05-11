@@ -51,6 +51,7 @@ def main():
             next_iter_to_begin_from = 0
         else:
             next_iter_to_begin_from = max([int(f.split('_')[-1].split('.')[0]) for f in already_done])+100
+        print next_iter_to_begin_from,max_iter
         iterations = range(next_iter_to_begin_from, max_iter, 100)
         print "Eval on", iterations
         if len(iterations) > 0:
@@ -68,7 +69,7 @@ def main():
             n_workers = 1 if parameters.architecture != 'fc' else multiprocessing.cpu_count()
             pool = ThreadPool(n_workers)
             results = pool.map(worker_wrapper_multi_input, configs)
-            pool.join()
+            pool.terminate()
 
 
 if __name__ == '__main__':
