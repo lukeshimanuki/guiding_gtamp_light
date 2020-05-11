@@ -78,9 +78,13 @@ def main():
         print_results(results, range(len(results)), result_dir)
         return
 
-    result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/result_summary/'.format(config.atype,
-                                                                                                config.region,
-                                                                                                config.architecture)
+    if config.atype == 'pick':
+        result_dir = './generators/learning/learned_weights/{}/wgangp/{}/result_summary/'.format(config.atype,
+                                                                                                    config.architecture)
+    else:
+        result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/result_summary/'.format(config.atype,
+                                                                                                    config.region,
+                                                                                                    config.architecture)
     result_files = os.listdir(result_dir + '/')
     iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
     result_files_sorted = np.array(result_files)[np.argsort(iters)]
