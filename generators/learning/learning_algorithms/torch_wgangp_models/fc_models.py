@@ -46,9 +46,9 @@ class Discriminator(BaseDiscriminator):
         konf = konf.view((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
 
-        target_obj_pose = pose_ids[:, 0:4]
-        robot_curr_pose_and_id = pose_ids[:, -6:]
-        pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
+        #target_obj_pose = pose_ids[:, 0:4]
+        #robot_curr_pose_and_id = pose_ids[:, -6:]
+        #pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
 
         pose_val = self.pose_net(pose_ids)
         action_val = self.action_net(action)
@@ -91,9 +91,9 @@ class Generator(BaseGenerator):
         konf = konf.view((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
 
-        target_obj_pose = pose_ids[:, 0:4]
-        robot_curr_pose_and_id = pose_ids[:, -6:]
-        pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
+        #target_obj_pose = pose_ids[:, 0:4]
+        #robot_curr_pose_and_id = pose_ids[:, -6:]
+        #pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
 
         pose_val = self.pose_net(pose_ids)
         concat = torch.cat((konf_val, pose_val, noise), -1)
