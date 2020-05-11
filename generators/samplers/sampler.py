@@ -164,6 +164,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
             object_id = [1, 0]
         else:
             object_id = [0, 1]
+        object_id =  np.tile(np.array(object_id)[None, :], (n_smpls,1))
         poses = np.hstack([poses, object_id])
 
 
