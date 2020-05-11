@@ -43,31 +43,30 @@ def main():
 
     parameters = parser.parse_args()
     model = WGANgp(parameters.atype, parameters.region, parameters.architecture)
-    
+    while True:
+        max_iter = get_max_iteration(model.weight_dir)
+        max_iter = min(250000, max_iter)
+        already_done = os.listdir(model.weight_dir+'result_summary')
+        if len(already_done) == 0:
+            next_iter_to_begin_from = 0
+        else:
+            next_iter_to_begin_from = max([int(f.split('_')[-1].split('.')[0]) for f in already_done])+100
+        iterations = range(next_iter_to_begin_from, max_iter, 100)
+        print "Eval on", iterations
+        configs = []
+        for iteration in iterations:
+            config = {
+                'iteration': iteration,
+                'atype': parameters.atype,
+                'region': parameters.region,
+                'architecture': parameters.architecture
+            }
 
-    max_iter = get_max_iteration(model.weight_dir)
-    max_iter = min(250000, max_iter)
-    already_done = os.listdir(model.weight_dir+'result_summary')
-    if len(already_done) == 0:
-        next_iter_to_begin_from = 0
-    else:
-        next_iter_to_begin_from = max([int(f.split('_')[-1].split('.')[0]) for f in already_done])+100
-    iterations = range(next_iter_to_begin_from, max_iter, 100)
-    iterations = range(0, max_iter, 100)
-    configs = []
-    for iteration in iterations:
-        config = {
-            'iteration': iteration,
-            'atype': parameters.atype,
-            'region': parameters.region,
-            'architecture': parameters.architecture
-        }
+            configs.append(config)
 
-        configs.append(config)
-
-    n_workers = 1 if parameters.architecture != 'fc' else multiprocessing.cpu_count()
-    pool = ThreadPool(n_workers)
-    results = pool.map(worker_wrapper_multi_input, configs)
+        n_workers = 1 if parameters.architecture != 'fc' else multiprocessing.cpu_count()
+        pool = ThreadPool(n_workers)
+        results = pool.map(worker_wrapper_multi_input, configs)
 
 
 if __name__ == '__main__':
