@@ -32,8 +32,8 @@ def plot_results(iterations, results, result_dir):
         return
     #iterations = iterations[in_bound_idxs]
 
-    plot(iterations, results[:, 0], 'Min MSEs', result_dir)
-    plot(iterations, results[:, 1], 'kernel_density_estimates', result_dir)
+    plot(iterations[1:], results[1:, 0], 'Min MSEs', result_dir)
+    plot(iterations[1:], results[1:, 1], 'kernel_density_estimates', result_dir)
     plot(iterations[in_bound_idxs], results[in_bound_idxs, 2], 'Entropies', result_dir)
 
 
