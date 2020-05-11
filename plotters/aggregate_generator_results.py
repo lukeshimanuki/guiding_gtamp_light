@@ -19,8 +19,6 @@ def get_results(fin):
 
     for l in data:
         pidx = int(l.split(',')[0])
-        # if pidx > 9:
-        #    continue
         print l
         if True: #int(l.split(',')[-1]) == 1:
             result['iks'].append(int(l.split(',')[2]))
@@ -48,16 +46,37 @@ def print_results(results, result_file):
     print 'resets %.3f %.3f' % (np.mean(actions), np.std(actions) * 1.96 / np.sqrt(n_data))
     print 'success rate %.3f %.3f' % (np.mean(successes), np.std(successes) * 1.96 / np.sqrt(n_data))
 
+def average_over_problems(fin):
+    raw_dir = './planning_experience/for_testing_generators/'
+    all_plan_exp_files = os.listdir(raw_dir)
+    data = open(fdir + fin, 'r').read().splitlines()
+
+
+    result = {'iks': [], 'actions': [], 'mps': [], 'infeasible_mps': [], 'success': []}
+    result = {}
+    for l in data:
+        pidx = int(l.split(',')[0])
+        if pidx in result:
+            result[pidx].append(int(l.split(',')[9]))
+        else:
+            result[pidx] = [int(l.split(',')[9])]
+    return result
+
+
 
 def main():
-    file2 = '{}/unif_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
+    file2 = 'with_goal_object_poses/phaedra//unif_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
     results2 = get_results(file2)
     print_results(results2, file2)
+    file2_avg = average_over_problems(file2)
 
     print '============================================================'
-    file1 = '{}/place_fc.txt'.format(socket.gethostname())
+    file1 = 'with_goal_object_poses/phaedra/place_fc.txt'.format(socket.gethostname())
     results1 = get_results(file1)
     print_results(results1, file1)
+    file1_avg = average_over_problems(file1)
+    for k in file2_avg:
+        print "%20d %20d %20d %20.4f %20.4f %20d" % (k, np.mean(file2_avg[k]), np.mean(file1_avg[k]), np.std(file2_avg[k]), np.std(file1_avg[k]), np.mean(file2_avg[k])-np.mean(file1_avg[k]))
 
 
 if __name__ == '__main__':
