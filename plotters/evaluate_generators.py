@@ -33,7 +33,7 @@ def main():
         print "*******Already done*******"
         return
     else:
-        _, _, testset = get_data_generator(config.atype, config.region)
+        _, _, testset = get_data_generator(config.atype, config.region, seed=0)
         result = model.evaluate_generator(testset, iteration=config.iteration)
         pickle.dump(result, open(fdir + fname, 'wb'))
 

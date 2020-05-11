@@ -43,6 +43,7 @@ def main():
 
     parameters = parser.parse_args()
     model = WGANgp(parameters.atype, parameters.region, parameters.architecture)
+    
 
     max_iter = get_max_iteration(model.weight_dir)
     max_iter = min(250000, max_iter)
@@ -52,6 +53,7 @@ def main():
     else:
         next_iter_to_begin_from = max([int(f.split('_')[-1].split('.')[0]) for f in already_done])+100
     iterations = range(next_iter_to_begin_from, max_iter, 100)
+    iterations = range(0, max_iter, 100)
     configs = []
     for iteration in iterations:
         config = {
