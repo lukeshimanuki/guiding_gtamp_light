@@ -27,14 +27,14 @@ def plot_results(iterations, results, result_dir):
     results = copy.deepcopy(np.array(results))
     iterations = copy.deepcopy(np.array(iterations)[:len(results)])
     in_bound_idxs = results[:, 2] != np.inf
-    results = results[in_bound_idxs, :]
+    #results = results[in_bound_idxs, :]
     if len(results) == 0:
         return
-    iterations = iterations[in_bound_idxs]
+    #iterations = iterations[in_bound_idxs]
 
     plot(iterations, results[:, 0], 'Min MSEs', result_dir)
     plot(iterations, results[:, 1], 'kernel_density_estimates', result_dir)
-    plot(iterations, results[:, 2], 'Entropies', result_dir)
+    plot(iterations[in_bound_idxs], results[in_bound_idxs, 2], 'Entropies', result_dir)
 
 
 def print_results(results, iterations, plot_dir, result_dir):
@@ -59,8 +59,9 @@ def print_results(results, iterations, plot_dir, result_dir):
         if iteration == best_iter:
             break
     print weight_dir + fin
-    fin = open(plot_dir+'/results.txt', 'wb')
+    fin = open(plot_dir + '/results.txt', 'wb')
     fin.write(to_print)
+
 
 def main():
     parser = argparse.ArgumentParser('config')
@@ -80,7 +81,7 @@ def main():
 
     if config.atype == 'pick':
         result_dir = './generators/learning/learned_weights/{}/wgangp/{}/result_summary/'.format(config.atype,
-                                                                                                    config.architecture)
+                                                                                                 config.architecture)
     else:
         result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/result_summary/'.format(config.atype,
                                                                                                     config.region,
