@@ -68,6 +68,7 @@ def main():
             n_workers = 1 if parameters.architecture != 'fc' else multiprocessing.cpu_count()
             pool = ThreadPool(n_workers)
             results = pool.map(worker_wrapper_multi_input, configs)
+            pool.join()
 
 
 if __name__ == '__main__':
