@@ -127,7 +127,7 @@ class GeneratorDataset(Dataset):
                 if 'rectangular' in  a['object_name']:
                     object_id = [1, 0]
                 else:
-                    object_id = [0 ,1]
+                    object_id = [0, 1]
                 poses_from_state = get_processed_poses_from_state(s, 'absolute')
                 poses_from_state_and_id = np.hstack([poses_from_state, object_id])
                 poses_ids.append(poses_from_state_and_id)

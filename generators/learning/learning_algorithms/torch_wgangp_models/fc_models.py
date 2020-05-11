@@ -16,7 +16,7 @@ class Discriminator(BaseDiscriminator):
                 nn.ReLU()
             )
 
-        dim_pose_ids = 2*4 + 2
+        dim_pose_ids = 8*3 + 2
         self.pose_net = \
             nn.Sequential(
                 torch.nn.Linear(dim_pose_ids, n_hidden),
@@ -69,7 +69,7 @@ class Generator(BaseGenerator):
                 nn.ReLU()
             )
 
-        dim_pose_ids = 2*4 + 2
+        dim_pose_ids = 8*3 + 2
         self.pose_net = \
             nn.Sequential(
                 torch.nn.Linear(dim_pose_ids, n_hidden),
