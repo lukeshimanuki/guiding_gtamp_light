@@ -65,17 +65,17 @@ def average_over_problems(fin):
 
 
 def main():
-    file2 = 'with_goal_object_poses/phaedra//unif_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
+    file2 = '{}//unif_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
     results2 = get_results(file2)
     print_results(results2, file2)
     file2_avg = average_over_problems(file2)
 
     print '============================================================'
-    file1 = 'with_goal_object_poses/phaedra/place_fc.txt'.format(socket.gethostname())
+    file1 = '{}/place_fc.txt'.format(socket.gethostname())
     results1 = get_results(file1)
     print_results(results1, file1)
     file1_avg = average_over_problems(file1)
-    for k in file2_avg:
+    for k in file1_avg:
         print "%20d %20d %20d %20.4f %20.4f %20d" % (k, np.mean(file2_avg[k]), np.mean(file1_avg[k]), np.std(file2_avg[k]), np.std(file1_avg[k]), np.mean(file2_avg[k])-np.mean(file1_avg[k]))
 
 

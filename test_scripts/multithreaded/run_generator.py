@@ -26,7 +26,16 @@ def worker_wrapper_multi_input(multi_args):
 def main():
     raw_dir = './planning_experience/for_testing_generators/'
     all_plan_exp_files = os.listdir(raw_dir)
-    pidxs = [int(f.split('_')[1]) for f in all_plan_exp_files if '.pkl' in f]
+
+    pidxs = []
+    for f in all_plan_exp_files:
+        if '.pkl' not in f:
+            continue
+        if 'sampling_strategy' in f:
+            pidx = int(f.split('_')[3])
+        else:
+            pidx = int(f.split('_')[1])
+        pidxs.append(pidx)  
     seeds = range(0, 5)
 
     setup = parse_arguments()

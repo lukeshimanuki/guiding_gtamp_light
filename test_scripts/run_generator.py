@@ -82,7 +82,10 @@ def load_planning_experience_data(problem_seed):
     raw_dir = './planning_experience/for_testing_generators/'
     fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % problem_seed
 
-    plan_data = pickle.load(open(raw_dir + fname, 'r'))
+    try:
+        plan_data = pickle.load(open(raw_dir + fname, 'r'))
+    except:
+        plan_data = pickle.load(open(raw_dir+'sampling_strategy_uniform'+fname,'r'))
     plan = plan_data['plan']
 
     np.random.seed(problem_seed)
