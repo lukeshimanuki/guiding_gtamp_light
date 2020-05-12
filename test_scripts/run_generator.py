@@ -41,6 +41,7 @@ def parse_arguments():
     # parser.add_argument('-epoch_pick', type=int, default=100700)
     parser.add_argument('-pick_architecture', type=str, default='fc')
     parser.add_argument('-place_architecture', type=str, default='fc')
+    parser.add_argument('-atype', type=str, default='pap')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
@@ -66,34 +67,36 @@ def get_learned_smpler(config):
     loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
     loading_place_model.load_best_weights()
 
-    """
-    pick_model = None
-    if epoch_pick is not None:
-        action_type = 'pick'
-        pick_model = None  # WGANgp(action_type, region)
-        # pick_model.load_weights(epoch_pick)
-    """
+    action_type = 'pick'
+    pick_model = WGANgp(action_type, region, architecture=config.pick_architecture)
+    pick_model.load_best_weights()
 
-    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': None}
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
     return model
 
 
 def load_planning_experience_data(problem_seed):
     raw_dir = './planning_experience/for_testing_generators/'
     fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % problem_seed
+    np.random.seed(problem_seed)
+    random.seed(problem_seed)
 
     try:
         plan_data = pickle.load(open(raw_dir + fname, 'r'))
     except:
-        plan_data = pickle.load(open(raw_dir+'sampling_strategy_uniform'+fname,'r'))
+        plan_data = pickle.load(open(raw_dir + 'sampling_strategy_uniform' + fname, 'r'))
     plan = plan_data['plan']
+    return plan
 
+
+def create_problem(problem_seed):
     np.random.seed(problem_seed)
     random.seed(problem_seed)
-
     problem_env = create_environment(problem_seed)
-
-    return plan, problem_env
+    goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
+    goal_region = 'home_region'
+    problem_env.set_goal(goal_objs, goal_region)
+    return problem_env
 
 
 class DummyAbstractState:
@@ -159,7 +162,10 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
     else:
         print "Using learned sampler"
         sampler_model = get_learned_smpler(config)
-        sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+        if config.atype == 'place':
+            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+        else:
+            sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, action)
         sampler.infeasible_action_value = -9999
         generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                        n_parameters_to_try_motion_planning=n_mp_limit,
@@ -181,12 +187,13 @@ def visualize_samples(action, sampler):
 
 
 def execute_policy(plan, problem_env, goal_entities, config):
-    # init_abstract_state = DummyAbstractState(problem_env, goal_entities)
-    # init_abstract_state = pickle.load(open('temp.pkl', 'r'))
-    init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
-    abstract_state = init_abstract_state
-    abstract_state.make_plannable(problem_env)
-    goal_objs = goal_entities[:-1]
+    if config.use_learning:
+        init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
+        abstract_state = init_abstract_state
+        abstract_state.make_plannable(problem_env)
+    else:
+        init_abstract_state = DummyAbstractState(problem_env, goal_entities)
+        abstract_state = DummyAbstractState(problem_env, goal_entities)
 
     total_ik_checks = 0
     total_mp_checks = 0
@@ -274,27 +281,24 @@ def get_logfile_name(config):
 
 def main():
     config = parse_arguments()
-
-    plan, problem_env = load_planning_experience_data(config.pidx)
-    goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
-    goal_region = 'home_region'
-    problem_env.set_goal(goal_objs, goal_region)
+    problem_env = create_problem(config.pidx)
+    plan = load_planning_experience_data(config.pidx)
 
     if config.v:
         utils.viewer()
-        visualize_samplers_along_plan(plan, problem_env, goal_objs + [goal_region], config)
+        visualize_samplers_along_plan(plan, problem_env, problem_env.goal, config)
 
     set_seeds(config.seed)
 
     total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
     total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
-        execute_policy(plan, problem_env, goal_objs + [goal_region], config)
+        execute_policy(plan, problem_env, problem_env.goal, config)
 
     logfile = get_logfile_name(config)
     result_log = "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
         config.pidx, config.seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
-        total_place_mp_checks,
-        total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
+        total_place_mp_checks, total_place_mp_infeasible, total_mp_checks, total_infeasible_mp,
+        n_total_actions, goal_reached
     )
     logfile.write(result_log)
 
