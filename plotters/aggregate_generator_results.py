@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import socket
+import pickle
 
 fdir = './generators/sampler_performances/'
 
@@ -79,7 +80,15 @@ def main():
     diff_sorted_idxs = np.argsort([np.mean(file2_avg[k])-np.mean(file1_avg[k]) for k in file1_avg])
     sorted_keys = np.array(file1_avg.keys())[diff_sorted_idxs]
     for k in sorted_keys:
-        print "%20d+-%20d %20d+-%20.4f %20.4f %20d" % (k, np.mean(file2_avg[k]), 1.96*/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k]), np.mean(file1_avg[k]), np.std(file1_avg[k])*1.96*/np.sqrt(len(file2_avg[k])), np.mean(file2_avg[k])-np.mean(file1_avg[k]))
+        raw_dir = './planning_experience/for_testing_generators/'
+        fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % k
+        try:
+            plan_data = pickle.load(open(raw_dir + fname, 'r'))
+        except:
+            plan_data = pickle.load(open(raw_dir+'sampling_strategy_uniform'+fname,'r'))
+        plan = plan_data['plan']
+        plan_length = len(plan)
+        print "%10d %20.2f+-%.4f %20.2f+-%.4f %20.4f original_plan_length %d" % (k, np.mean(file2_avg[k]), 1.96/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k]), np.mean(file1_avg[k]), np.std(file1_avg[k])*1.96/np.sqrt(len(file2_avg[k])), np.mean(file2_avg[k])-np.mean(file1_avg[k]), plan_length)
 
 
 if __name__ == '__main__':
