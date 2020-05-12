@@ -58,9 +58,13 @@ def get_state_class(domain):
 def compute_hcount_old_number_in_goal(state, action):
     problem_env = state.problem_env
     target_o = action.discrete_parameters['object']
+    if type(target_o) != str and type(target_o) != unicode:
+        target_o = target_o.GetName()
     target_r = action.discrete_parameters['place_region']
+    if type(target_r) != str and type(target_r) != unicode:
+        target_r = target_r.name
     region_is_goal = state.nodes[target_r][8]
-    goal_region = 'home_region'
+    goal_region = problem_env.goal_region
     hcount = compute_hcount(state)
     given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
     number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))

@@ -35,6 +35,11 @@ class OneArmMover(Mover):
             for region in self.regions.values()
         }
 
+        self.placement_regions = {
+            region.name: region
+            for region in [self.target_box_region] + list(self.shelf_regions.values())
+        }
+
     def compute_box_region(self, box):
         box_region = AARegion.create_on_body(box)
         box_region.color = (1., 1., 0., 0.25)
@@ -111,6 +116,8 @@ class PaPOneArmMoverEnv(OneArmMover):
 
     def set_goal(self, goal):
         self.goal = goal
+        self.goal_region = goal[0]
+        self.goal_objects = goal[1:]
 
     def get_applicable_ops(self, parent_op=None):
         actions = []
