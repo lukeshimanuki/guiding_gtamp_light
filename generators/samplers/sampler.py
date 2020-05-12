@@ -85,14 +85,41 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         self.samples = self.sample_new_points(2000)
         self.curr_smpl_idx = 0
 
-    def sample_picks(self, poses, collisions, n_smpls):
+    def sample_picks(self, n_smpls):
         pick_min = get_pick_domain()[0]
         pick_max = get_pick_domain()[1]
         pick_samples = np.random.uniform(pick_min, pick_max, (n_smpls, 6)).squeeze()
         return pick_samples
 
-    def sample_placements(self, collisions, poses, encoded_pick_abs_poses, n_smpls):
-        poses[:, -6:-2] = encoded_pick_abs_poses
+    def sample_new_points(self, n_smpls):
+        # note: this function outputs absolute pick base pose and absolute place base pose
+        print "Generating new points"
+        poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
+
+        # sample picks
+        if self.pick_abs_base_pose is None:
+            pick_samples = self.sample_picks(n_smpls)
+            pick_abs_poses = np.array(
+                [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
+            encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
+        else:
+            encoded_pick_abs_poses = np.array(utils.encode_pose_with_sin_and_cos_angle(self.pick_abs_base_pose))
+            encoded_pick_abs_poses = np.tile(encoded_pick_abs_poses, (n_smpls, 1))
+            # some dummy variable. if we use this case besides the visualization, then save the pick samples
+            pick_samples = self.sample_picks(n_smpls)
+
+        poses = np.tile(poses, (n_smpls, 1))
+        poses[:, -4:] = encoded_pick_abs_poses
+        if 'rectangular' in self.obj:
+            object_id = [1, 0]
+        else:
+            object_id = [0, 1]
+        object_id =  np.tile(np.array(object_id)[None, :], (n_smpls,1))
+        poses = np.hstack([poses, object_id])
+
+        # making predictions using the sampler
+        collisions = self.smpler_state.pick_collision_vector
+        collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
         v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
         v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
         v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
@@ -102,35 +129,11 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
             chosen_sampler = self.policies['place_home']
         else:
             chosen_sampler = self.policies['place_loading']
-
         place_samples = chosen_sampler.generate(state_vec, poses)
+
+        # This is in robot's pose. I need to convert it to object poses
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
-        return place_samples
 
-    def sample_new_points(self, n_smpls):
-        print "Generating new points"
-        poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
-        poses = np.tile(poses, (n_smpls, 1))
-        if 'rectangular' in self.obj:
-            object_id = [1, 0]
-        else:
-            object_id = [0, 1]
-        object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
-        poses = np.hstack([poses, object_id])
-        collisions = self.smpler_state.pick_collision_vector
-        collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-
-        if self.pick_abs_base_pose is None:
-            pick_samples = self.sample_picks(poses, collisions, n_smpls)
-            pick_abs_poses = np.array(
-                [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
-            encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
-        else:
-            encoded_pick_abs_poses = np.array(utils.encode_pose_with_sin_and_cos_angle(self.pick_abs_base_pose))
-            encoded_pick_abs_poses = np.tile(encoded_pick_abs_poses, (n_smpls, 1))
-            pick_samples = self.sample_picks(poses, collisions, n_smpls)
-
-        place_samples = self.sample_placements(collisions, poses, encoded_pick_abs_poses, n_smpls)
         samples = np.hstack([pick_samples, place_samples])
         return samples
 
