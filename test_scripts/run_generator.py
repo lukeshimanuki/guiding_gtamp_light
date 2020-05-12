@@ -12,7 +12,7 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 from generators.samplers.uniform_sampler import UniformSampler
-from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler
+from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler, PickOnlyLearnedSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.samplers.voo_sampler import VOOSampler
 from generators.voo import TwoArmVOOGenerator
@@ -164,6 +164,8 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
         sampler_model = get_learned_smpler(config)
         if config.atype == 'place':
             sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+        elif config.atype == 'pick':
+            sampler = PickOnlyLearnedSampler(sampler_model, abstract_state, action)
         else:
             sampler = PickPlaceLearnedSampler(sampler_model, abstract_state, action)
         sampler.infeasible_action_value = -9999

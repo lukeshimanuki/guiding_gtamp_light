@@ -135,6 +135,48 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         return samples
 
 
+class PickOnlyLearnedSampler(LearnedSampler):
+    def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
+        LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
+        self.samples = self.sample_new_points(2000)
+        self.curr_smpl_idx = 0
+
+    def sample_picks(self, poses, collisions, n_smpls):
+        stime = time.time()
+        pick_samples = self.policies['pick'].generate(collisions, poses)
+        print "pick sampling time", time.time() - stime
+        base_angles = pick_samples[:, 4:6]
+        base_angles = [utils.decode_sin_and_cos_to_angle(base_angle) for base_angle in base_angles]
+        pick_samples[:, 4] = base_angles
+        pick_samples = np.delete(pick_samples, 5, 1)
+        return pick_samples
+
+    def sample_placements(self, n_smpls):
+        dim_parameters = self.domain.shape[-1]
+        domain_min = self.domain[0]
+        domain_max = self.domain[1]
+        pickplace_smpls = np.random.uniform(domain_min, domain_max, (n_smpls, dim_parameters)).squeeze()
+        place_smpls = pickplace_smpls[:, -3:]
+        return place_smpls
+
+    def sample_new_points(self, n_smpls):
+        print "Generating new points"
+        poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
+        poses = np.tile(poses, (n_smpls, 1))
+        if 'rectangular' in self.obj:
+            object_id = [1, 0]
+        else:
+            object_id = [0, 1]
+        object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
+        poses = np.hstack([poses, object_id])
+        collisions = self.smpler_state.pick_collision_vector
+        collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
+
+        pick_samples = self.sample_picks(poses, collisions, n_smpls)
+        place_samples = self.sample_placements(n_smpls)
+        return np.hstack([pick_samples, place_samples])
+
+
 class PickPlaceLearnedSampler(PlaceOnlyLearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         PlaceOnlyLearnedSampler.__init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose)
@@ -144,7 +186,7 @@ class PickPlaceLearnedSampler(PlaceOnlyLearnedSampler):
     def sample_picks(self, poses, collisions, n_smpls):
         stime = time.time()
         pick_samples = self.policies['pick'].generate(collisions, poses)
-        print "pick sampling time", time.time()-stime
+        print "pick sampling time", time.time() - stime
         base_angles = pick_samples[:, 4:6]
         base_angles = [utils.decode_sin_and_cos_to_angle(base_angle) for base_angle in base_angles]
         pick_samples[:, 4] = base_angles
