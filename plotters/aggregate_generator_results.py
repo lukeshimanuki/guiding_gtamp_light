@@ -80,6 +80,7 @@ def main():
     diff_sorted_idxs = np.argsort([np.mean(file2_avg[k])-np.mean(file1_avg[k]) for k in file1_avg])
     sorted_keys = np.array(file1_avg.keys())[diff_sorted_idxs]
     for k in sorted_keys:
+        """
         raw_dir = './planning_experience/for_testing_generators/'
         fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % k
         try:
@@ -88,7 +89,12 @@ def main():
             plan_data = pickle.load(open(raw_dir+'sampling_strategy_uniform'+fname,'r'))
         plan = plan_data['plan']
         plan_length = len(plan)
-        print "%10d %20.2f+-%.4f %20.2f+-%.4f %20.4f original_plan_length %d" % (k, np.mean(file2_avg[k]), 1.96/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k]), np.mean(file1_avg[k]), np.std(file1_avg[k])*1.96/np.sqrt(len(file2_avg[k])), np.mean(file2_avg[k])-np.mean(file1_avg[k]), plan_length)
+        """
+        unif_lb = np.mean(file2_avg[k]) - 1.96/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k])
+        learned_ub = np.mean(file1_avg[k]) + np.std(file1_avg[k])*1.96/np.sqrt(len(file2_avg[k]))
+        unif_ub = np.mean(file2_avg[k]) + 1.96/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k])
+        learned_lb = np.mean(file1_avg[k]) - np.std(file1_avg[k])*1.96/np.sqrt(len(file2_avg[k]))
+        print "%10d %15.2f+-%.4f %15.2f+-%.4f %15.4f %15.4f %15.4f  better? %2d worse? %2d" % (k, np.mean(file2_avg[k]), 1.96/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k]), np.mean(file1_avg[k]), np.std(file1_avg[k])*1.96/np.sqrt(len(file2_avg[k])), np.mean(file2_avg[k])-np.mean(file1_avg[k]), unif_lb, learned_ub, unif_lb > learned_ub, learned_lb > unif_ub)
 
 
 if __name__ == '__main__':
