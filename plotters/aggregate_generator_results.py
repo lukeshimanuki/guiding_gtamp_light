@@ -75,8 +75,11 @@ def main():
     results1 = get_results(file1)
     print_results(results1, file1)
     file1_avg = average_over_problems(file1)
-    for k in file1_avg:
-        print "%20d %20d %20d %20.4f %20.4f %20d" % (k, np.mean(file2_avg[k]), np.mean(file1_avg[k]), np.std(file2_avg[k]), np.std(file1_avg[k]), np.mean(file2_avg[k])-np.mean(file1_avg[k]))
+
+    diff_sorted_idxs = np.argsort([np.mean(file2_avg[k])-np.mean(file1_avg[k]) for k in file1_avg])
+    sorted_keys = np.array(file1_avg.keys())[diff_sorted_idxs]
+    for k in sorted_keys:
+        print "%20d+-%20d %20d+-%20.4f %20.4f %20d" % (k, np.mean(file2_avg[k]), 1.96*/np.sqrt(len(file2_avg[k]))*np.std(file2_avg[k]), np.mean(file1_avg[k]), np.std(file1_avg[k])*1.96*/np.sqrt(len(file2_avg[k])), np.mean(file2_avg[k])-np.mean(file1_avg[k]))
 
 
 if __name__ == '__main__':
