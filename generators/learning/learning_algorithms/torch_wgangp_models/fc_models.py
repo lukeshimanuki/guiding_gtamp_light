@@ -9,7 +9,7 @@ class Discriminator(BaseModel):
 
         self.konf_net = \
             nn.Sequential(
-                torch.nn.Linear(self.n_konfs, self.n_hidden),
+                torch.nn.Linear(self.n_konfs*self.dim_konf, self.n_hidden),
                 nn.ReLU(),
                 torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
@@ -41,7 +41,7 @@ class Discriminator(BaseModel):
 
     def forward(self, action, konf, pose_ids):
         konf, pose_ids = self.filter_data_according_to_cases(konf, pose_ids)
-        konf = konf.reshape((-1, 618 * self.dim_konf))
+        konf = konf.reshape((-1, self.n_konfs*self.dim_konf))
         konf_val = self.konf_net(konf)
 
         pose_val = self.pose_net(pose_ids)
@@ -56,7 +56,7 @@ class Generator(BaseModel):
 
         self.konf_net = \
             nn.Sequential(
-                torch.nn.Linear(self.n_konfs, self.n_hidden),
+                torch.nn.Linear(self.n_konfs*self.dim_konf, self.n_hidden),
                 nn.ReLU(),
                 torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
@@ -81,7 +81,7 @@ class Generator(BaseModel):
 
     def forward(self, konf, pose_ids, noise):
         konf, pose_ids = self.filter_data_according_to_cases(konf, pose_ids)
-        konf = konf.reshape((-1, 618 * self.dim_konf))
+        konf = konf.reshape((-1, self.n_konfs*self.dim_konf))
         konf_val = self.konf_net(konf)
 
         pose_val = self.pose_net(pose_ids)

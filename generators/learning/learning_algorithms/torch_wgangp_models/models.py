@@ -27,7 +27,7 @@ class BaseModel(nn.Module):
                 raise NotImplementedError
 
         self.n_hidden = 32
-        self.n_konfs = 618 * self.dim_konf
+        self.n_konfs = len(self.konf_indices)
 
     def forward(self, action, konf, pose):
         raise NotImplementedError
