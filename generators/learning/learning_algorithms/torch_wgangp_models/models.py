@@ -10,13 +10,14 @@ class BaseModel(nn.Module):
         self.dim_konf = dim_konf
         self.atype = atype
         self.region = region
+        key_configs, _ = pickle.load(open('prm.pkl'))
         if 'pick' in atype:
             self.dim_pose_ids = 8 + 2
             self.dim_konf = 2
+            self.konf_indices = get_indices_to_delete('home_region', key_configs)
         else:
             self.dim_pose_ids = 8 * 3 + 2
             self.dim_konf = 4
-            key_configs, _ = pickle.load(open('prm.pkl'))
             if 'home' in self.region:
                 # get home indices
                 self.konf_indices = get_indices_to_delete('loading_region', key_configs)
