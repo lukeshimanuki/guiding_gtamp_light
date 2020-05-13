@@ -20,6 +20,8 @@ def plot(x_data, y_data, title, file_dir):
     if not os.path.isdir(file_dir):
         os.makedirs(file_dir)
     print "Saving figure...", file_dir + '{}.png'.format(title)
+    if 'kernel' in title:
+        plt.ylim(np.mean(y_data)-0.5*np.std(y_data), np.mean(y_data)+np.std(y_data))
     plt.savefig(file_dir + '{}.png'.format(title))
 
 
