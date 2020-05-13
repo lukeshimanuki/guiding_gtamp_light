@@ -1,59 +1,46 @@
 import torch
 from torch import nn
-from models import BaseGenerator, BaseDiscriminator
+from models import BaseModel
 
 
-class Discriminator(BaseDiscriminator):
-    def __init__(self, dim_konf, dim_data, atype):
-        BaseDiscriminator.__init__(self, dim_konf, atype)
+class Discriminator(BaseModel):
+    def __init__(self, dim_konf, dim_data, atype, region):
+        BaseModel.__init__(self, dim_konf, atype, region)
 
-        if 'pick' in atype:
-            dim_pose_ids = 8 + 2
-            self.dim_konf = 2
-        else:
-            dim_pose_ids = 8 * 3 + 2
-            self.dim_konf = 4
-
-        n_hidden = 32
-        n_konfs = 618 * self.dim_konf
         self.konf_net = \
             nn.Sequential(
-                torch.nn.Linear(n_konfs, n_hidden),
+                torch.nn.Linear(self.n_konfs, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
+                torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
             )
         self.pose_net = \
             nn.Sequential(
-                torch.nn.Linear(dim_pose_ids, n_hidden),
+                torch.nn.Linear(self.dim_pose_ids, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
+                torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
             )
 
         dim_actions = dim_data
         self.action_net = \
             nn.Sequential(
-                torch.nn.Linear(dim_actions, n_hidden),
+                torch.nn.Linear(dim_actions, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
+                torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
             )
 
-        dim_input = n_hidden * 3
+        dim_input = self.n_hidden * 3
         self.output = \
             nn.Sequential(
-                torch.nn.Linear(dim_input, n_hidden),
+                torch.nn.Linear(dim_input, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, 1)
+                torch.nn.Linear(self.n_hidden, 1)
             )
 
     def forward(self, action, konf, pose_ids):
-        if 'pick' in self.atype:
-            target_obj_pose = pose_ids[:, 0:4]
-            robot_curr_pose_and_id = pose_ids[:, -6:]
-            pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
-            konf = konf[:, :, 0:2, :]
+        konf, pose_ids = self.filter_data_according_to_cases(konf, pose_ids)
         konf = konf.reshape((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
 
@@ -63,50 +50,37 @@ class Discriminator(BaseDiscriminator):
         return self.output(concat)
 
 
-class Generator(BaseGenerator):
-    def __init__(self, dim_konf, dim_data, atype):
-        BaseGenerator.__init__(self, dim_konf, atype)
-        if 'pick' in atype:
-            dim_pose_ids = 8 + 2
-            self.dim_konf = 2
-        else:
-            dim_pose_ids = 8 * 3 + 2
-            self.dim_konf = 4
+class Generator(BaseModel):
+    def __init__(self, dim_konf, dim_data, atype, region):
+        BaseModel.__init__(self, dim_konf, atype, region)
 
-        n_hidden = 32
-        n_konfs = 618 * self.dim_konf
         self.konf_net = \
             nn.Sequential(
-                torch.nn.Linear(n_konfs, n_hidden),
+                torch.nn.Linear(self.n_konfs, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
+                torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
             )
 
         self.pose_net = \
             nn.Sequential(
-                torch.nn.Linear(dim_pose_ids, n_hidden),
+                torch.nn.Linear(self.dim_pose_ids, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, n_hidden),
+                torch.nn.Linear(self.n_hidden, self.n_hidden),
                 nn.ReLU()
             )
 
         dim_actions = dim_data
-        dim_input = n_hidden * 2 + dim_actions
+        dim_input = self.n_hidden * 2 + dim_actions
         self.output = \
             nn.Sequential(
-                torch.nn.Linear(dim_input, n_hidden),
+                torch.nn.Linear(dim_input, self.n_hidden),
                 nn.ReLU(),
-                torch.nn.Linear(n_hidden, dim_actions)
+                torch.nn.Linear(self.n_hidden, dim_actions)
             )
 
     def forward(self, konf, pose_ids, noise):
-        if 'pick' in self.atype:
-            target_obj_pose = pose_ids[:, 0:4]
-            robot_curr_pose_and_id = pose_ids[:, -6:]
-            pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
-            konf = konf[:, :, 0:2, :]
-
+        konf, pose_ids = self.filter_data_according_to_cases(konf, pose_ids)
         konf = konf.reshape((-1, 618 * self.dim_konf))
         konf_val = self.konf_net(konf)
 

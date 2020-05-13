@@ -1,5 +1,4 @@
 from generators.learning.utils import data_processing_utils
-from generators.learning.learning_algorithms.PlacePolicyIMLE import gaussian_noise
 from gtamp_utils import utils
 
 import pickle
@@ -28,20 +27,20 @@ def unprocess_pick_and_place_smpls(smpls):
 
 
 def get_indices_to_delete(region, key_configs):
-    if region == 'loading_region':
+    if 'loading' in region:
         xmin = -0.7
         xmax = 4.3
         ymin = -8.55
         ymax = -4.85
-    elif region == 'home_region':
+    elif 'home' in region:
         xmin = -1.11322709
         xmax = 4.99456405
         ymin = -2.9463328
         ymax = 2.54926346
+    else:
+        raise NotImplementedError
     indices_to_delete = np.hstack([np.where(key_configs[:, 1] > ymax)[0], np.where(key_configs[:, 1] < ymin)[0],
                                    np.where(key_configs[:, 0] > xmax)[0], np.where(key_configs[:, 0] < xmin)[0]])
-    if region == 'home_region':
-        indices_to_delete = np.array([])
 
     return indices_to_delete
 

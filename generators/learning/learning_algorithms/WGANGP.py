@@ -10,7 +10,7 @@ import os
 import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
-from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
+#from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
 #from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
 
 from gtamp_utils import utils
@@ -71,11 +71,10 @@ class WGANgp:
 
     def create_models(self):
         if self.architecture == 'fc':
-            discriminator = Discriminator(self.dim_konf, self.n_dim_actions, self.action_type)
-            generator = Generator(self.dim_konf, self.n_dim_actions, self.action_type)
+            discriminator = Discriminator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
+            generator = Generator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
         elif self.architecture == 'cnn':
-            discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions, self.action_type)
-            generator = CNNGenerator(self.dim_konf, self.n_dim_actions, self.action_type)
+            raise NotImplementedError
         else:
             raise NotImplementedError
         discriminator.to(self.device)
