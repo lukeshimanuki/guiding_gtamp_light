@@ -46,6 +46,7 @@ def parse_arguments():
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
     parser.add_argument('-atype', type=str, default="place")  # used for threaded runs
     parser.add_argument('-n_mp_limit', type=int, default=5)  # used for threaded runs
+    parser.add_argument('-n_iter_limit', type=int, default=2000)  # used for threaded runs
     config = parser.parse_args()
     return config
 
@@ -141,42 +142,66 @@ def visualize_samplers_along_plan(plan, problem_env, goal_entities, config):
                                               parent_state=abstract_state, parent_action=action)
 
 
-def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
+def create_learned_sampler_models(config):
+    home_place_model = None
+    loading_place_model = None
+    pick_model = None
+
+    if 'place' in config.atype:
+        region = 'home_region'
+        action_type = 'place'
+        home_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
+        home_place_model.load_best_weights()
+
+        region = 'loading_region'
+        action_type = 'place'
+        loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
+        loading_place_model.load_best_weights()
+
+    if 'pick' in config.atype:
+        action_type = 'pick'
+        region = ''
+        pick_model = WGANgp(action_type, region, architecture=config.pick_architecture)
+        pick_model.load_best_weights()
+
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
+    return model
+
+
+def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     if not config.use_learning:
-        print "Using {} sampler".format(config.sampling_strategy)
         if config.sampling_strategy == 'unif':
-            sampler = UniformSampler(action.discrete_parameters['place_region'])
-            sampler.infeasible_action_value = -9999
-            generator = TwoArmPaPGenerator(abstract_state, action, sampler,
-                                           n_parameters_to_try_motion_planning=n_mp_limit,
-                                           n_iter_limit=2000, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
+            sampler = UniformSampler(abstract_action.discrete_parameters['place_region'])
         else:
-            sampler = VOOSampler(action.discrete_parameters['object'],
-                                 action.discrete_parameters['place_region'], 0.3, -9999)
-            generator = TwoArmVOOGenerator(abstract_state, action, sampler,
-                                           n_parameters_to_try_motion_planning=n_mp_limit,
-                                           n_iter_limit=2000, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
+            sampler = VOOSampler(abstract_action.discrete_parameters['object'],
+                                 abstract_action.discrete_parameters['place_region'], 0.3, -9999)
     else:
-        print "Using learned sampler"
-        sampler_model = get_learned_smpler(config)
         if 'pick' in config.atype and 'place' in config.atype:
             raise NotImplementedError
         elif 'pick' in config.atype:
-            sampler = PickOnlyLearnedSampler(sampler_model, abstract_state, action)
+            sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
         elif 'place' in config.atype:
-            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+            sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
         else:
             raise NotImplementedError
+    return sampler
+
+
+def get_generator(config, abstract_state, action, n_iter_limit, n_mp_limit, learned_sampler_model):
+    sampler = get_sampler(config, abstract_state, action, learned_sampler_model)
+    if config.sampling_strategy == 'unif':
         sampler.infeasible_action_value = -9999
         generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                        n_parameters_to_try_motion_planning=n_mp_limit,
-                                       n_iter_limit=2000, problem_env=problem_env,
+                                       n_iter_limit=n_iter_limit, problem_env=abstract_state.problem_env,
                                        pick_action_mode='ir_parameters',
                                        place_action_mode='robot_base_pose')
+    else:
+        generator = TwoArmVOOGenerator(abstract_state, action, sampler,
+                                       n_parameters_to_try_motion_planning=n_mp_limit,
+                                       n_iter_limit=n_iter_limit, problem_env=abstract_state.problem_env,
+                                       pick_action_mode='ir_parameters',
+                                       place_action_mode='object_pose')
     return generator
 
 
@@ -194,6 +219,7 @@ def visualize_samples(action, sampler):
 def execute_policy(plan, problem_env, goal_entities, config):
     # init_abstract_state = DummyAbstractState(problem_env, goal_entities)
     # init_abstract_state = pickle.load(open('temp.pkl', 'r'))
+    # init_abstract_state.make_plannable(problem_env)
     init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
     abstract_state = init_abstract_state
     abstract_state.make_plannable(problem_env)
@@ -215,6 +241,9 @@ def execute_policy(plan, problem_env, goal_entities, config):
     samples_tried = {i: [] for i in range(len(plan))}
     sample_values = {i: [] for i in range(len(plan))}
     n_mp_limit = config.n_mp_limit
+    learned_sampler_model = None
+    if config.use_learning:
+        learned_sampler_model = create_learned_sampler_models(config)
     while plan_idx < len(plan):
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
@@ -224,11 +253,8 @@ def execute_policy(plan, problem_env, goal_entities, config):
 
         action = plan[plan_idx]
 
-        generator = get_generator(config, abstract_state, action, n_mp_limit, problem_env)
-
-        stime = time.time()
+        generator = get_generator(config, abstract_state, action, config.n_iter_limit, config.n_mp_limit, sampler_model)
         cont_smpl = generator.sample_next_point(samples_tried[plan_idx], sample_values[plan_idx])
-        print time.time() - stime
         total_ik_checks += generator.n_ik_checks
         total_mp_checks += generator.n_mp_checks
         total_infeasible_mp += generator.n_mp_infeasible
