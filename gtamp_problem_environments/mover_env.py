@@ -52,7 +52,7 @@ class Mover(ProblemEnvironment):
         self.two_arm_pick_continuous_constraint = None
         self.two_arm_place_continuous_constraint = None
         self.objects_to_check_collision = None
-        self.goal = None
+        self.goal_entities = None
         self.goal_objects = None
         self.goal_region = None
 
@@ -63,6 +63,17 @@ class Mover(ProblemEnvironment):
             obj = self.env.GetKinBody(obj_name)
             n_collisions += self.env.CheckCollision(self.robot, obj)
         return n_collisions
+
+    def set_robot_to_default_dof_values(self):
+        default_dof_values = np.array([0., 0., 0., 0., 0.,
+                                       0., 0., 0., 0., 0.,
+                                       0., 0., 0.0115, 0., 0.,
+                                       0., 1.29023451, 0., -2.121308, 0.,
+                                       -0.69800004, 0., 0., 0., -0.,
+                                       -0., 0., 0., 1.29023451, -0.,
+                                       -2.121308, 0., -0.69800004, 0., 0.54800022,
+                                       -0., 0., 0., 0.])
+        self.robot.SetDOFValues(default_dof_values)
 
     def set_problem_type(self, problem_type):
         if problem_type == 'normal':
@@ -317,7 +328,7 @@ class PaPMoverEnv(Mover):
                 if 'region' not in r or 'entire' in r:
                     continue
 
-                if o not in self.goal and r in self.goal:
+                if o not in self.goal_entities and r in self.goal_entities:
                     # you cannot place non-goal object in the goal region
                     continue
 
@@ -364,18 +375,19 @@ class PaPMoverEnv(Mover):
             for obj in objs_to_move_near_entrance:
                 utils.randomly_place_region(obj, entrance_region, n_limit=100)
 
-
-            region_around_entrance_region = AARegion('region_around', ((-0.25, 1.7), (-6.6, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
+            region_around_entrance_region = AARegion('region_around', ((-0.25, 1.7), (-6.6, -5.0)), z=0.135,
+                                                     color=np.array((1, 1, 0, 0.25)))
 
             object_around_entrance = [obj for obj in self.objects if obj not in objs_to_move_near_entrance][0:3]
-            for obj in object_around_entrance: utils.randomly_place_region(obj, region_around_entrance_region, n_limit=100)
+            for obj in object_around_entrance: utils.randomly_place_region(obj, region_around_entrance_region,
+                                                                           n_limit=100)
 
         self.initial_robot_base_pose = get_body_xytheta(self.robot)
         self.object_init_poses = {o.GetName(): get_body_xytheta(o).squeeze() for o in self.objects}
         self.init_saver = CustomStateSaver(self.env)
 
         self.goal_region = goal_region
-        self.goal = self.goal_objects + [self.goal_region]
+        self.goal_entities = self.goal_objects + [self.goal_region]
 
     def reset_to_init_state(self, node):
         saver = node.state_saver

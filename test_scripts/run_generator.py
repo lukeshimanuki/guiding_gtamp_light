@@ -9,15 +9,10 @@ import socket
 
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
-from generators.learning.learning_algorithms.WGANGP import WGANgp
-
-from generators.samplers.uniform_sampler import UniformSampler
-from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler
-from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
-from generators.samplers.voo_sampler import VOOSampler
-from generators.voo import TwoArmVOOGenerator
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
+from planners.sahs.greedy_new import get_generator
+from test_scripts.run_greedy import get_learned_sampler_models
 
 from gtamp_utils import utils
 
@@ -26,25 +21,15 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-pidx', type=int, default=20000)  # used for threaded runs
-
-    # epoch 18700 for loading region, 86400 for home region, 43700 for pick
-    # home 96000 for fc
-    # home 98100 for cnn
-    # loading 34500 for cnn
-    # loading 9700 for fc
-    #     result_dir = weight dir + /results_summary
-    #     result_files = os.listdir(result_dir + '/')
-    #  for i, kde, mse, entropy in zip(iterations, results[:, 1], results[:, 0], results[:, 2]):
-    #     print i, kde, mse, entropy
-    # parser.add_argument('-epoch_home', type=int, default=98100)
-    # parser.add_argument('-epoch_loading', type=int, default=9700)
-    # parser.add_argument('-epoch_pick', type=int, default=100700)
     parser.add_argument('-pick_architecture', type=str, default='fc')
     parser.add_argument('-place_architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
-    parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
+    parser.add_argument('-sampling_strategy', type=str, default='uniform')  # used for threaded runs
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
+    parser.add_argument('-atype', type=str, default="place")  # used for threaded runs
     parser.add_argument('-n_mp_limit', type=int, default=5)  # used for threaded runs
+    parser.add_argument('-n_iter_limit', type=int, default=2000)  # used for threaded runs
+    parser.add_argument('-sampler_seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
     return config
 
@@ -53,29 +38,6 @@ def create_environment(problem_idx):
     problem_env = PaPMoverEnv(problem_idx)
     problem_env.set_motion_planner(BaseMotionPlanner(problem_env, 'prm'))
     return problem_env
-
-
-def get_learned_smpler(config):
-    region = 'home_region'
-    action_type = 'place'
-    home_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
-    home_place_model.load_best_weights()
-
-    region = 'loading_region'
-    action_type = 'place'
-    loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
-    loading_place_model.load_best_weights()
-
-    """
-    pick_model = None
-    if epoch_pick is not None:
-        action_type = 'pick'
-        pick_model = None  # WGANgp(action_type, region)
-        # pick_model.load_weights(epoch_pick)
-    """
-
-    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': None}
-    return model
 
 
 def load_planning_experience_data(problem_seed):
@@ -138,52 +100,10 @@ def visualize_samplers_along_plan(plan, problem_env, goal_entities, config):
                                               parent_state=abstract_state, parent_action=action)
 
 
-def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
-    if not config.use_learning:
-        print "Using {} sampler".format(config.sampling_strategy)
-        if config.sampling_strategy == 'unif':
-            sampler = UniformSampler(action.discrete_parameters['place_region'])
-            sampler.infeasible_action_value = -9999
-            generator = TwoArmPaPGenerator(abstract_state, action, sampler,
-                                           n_parameters_to_try_motion_planning=n_mp_limit,
-                                           n_iter_limit=2000, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
-        else:
-            sampler = VOOSampler(action.discrete_parameters['object'],
-                                 action.discrete_parameters['place_region'], 0.3, -9999)
-            generator = TwoArmVOOGenerator(abstract_state, action, sampler,
-                                           n_parameters_to_try_motion_planning=n_mp_limit,
-                                           n_iter_limit=2000, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
-    else:
-        print "Using learned sampler"
-        sampler_model = get_learned_smpler(config)
-        sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
-        sampler.infeasible_action_value = -9999
-        generator = TwoArmPaPGenerator(abstract_state, action, sampler,
-                                       n_parameters_to_try_motion_planning=n_mp_limit,
-                                       n_iter_limit=2000, problem_env=problem_env,
-                                       pick_action_mode='ir_parameters',
-                                       place_action_mode='robot_base_pose')
-    return generator
-
-
-def visualize_samples(action, sampler):
-    samples = [sampler.sample() for _ in range(30)]
-    place_poses = [smpl[-3:] for smpl in samples]
-    pick_samples = [smpl[:-3] for smpl in samples]
-    pick_abs_poses = np.array(
-        [utils.get_pick_base_pose_and_grasp_from_pick_parameters(action.discrete_parameters['object'], s)[1] for s in
-         pick_samples])
-    # utils.visualize_path(pick_abs_poses)
-    utils.visualize_path(place_poses)
-
-
 def execute_policy(plan, problem_env, goal_entities, config):
     # init_abstract_state = DummyAbstractState(problem_env, goal_entities)
     # init_abstract_state = pickle.load(open('temp.pkl', 'r'))
+    # init_abstract_state.make_plannable(problem_env)
     init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
     abstract_state = init_abstract_state
     abstract_state.make_plannable(problem_env)
@@ -204,7 +124,8 @@ def execute_policy(plan, problem_env, goal_entities, config):
     stime = time.time()
     samples_tried = {i: [] for i in range(len(plan))}
     sample_values = {i: [] for i in range(len(plan))}
-    n_mp_limit = config.n_mp_limit
+
+    learned_sampler_model = get_learned_sampler_models(config)
     while plan_idx < len(plan):
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
@@ -213,12 +134,8 @@ def execute_policy(plan, problem_env, goal_entities, config):
             break
 
         action = plan[plan_idx]
-
-        generator = get_generator(config, abstract_state, action, n_mp_limit, problem_env)
-
-        stime = time.time()
+        generator = get_generator(abstract_state, action, learned_sampler_model, config)
         cont_smpl = generator.sample_next_point(samples_tried[plan_idx], sample_values[plan_idx])
-        print time.time() - stime
         total_ik_checks += generator.n_ik_checks
         total_mp_checks += generator.n_mp_checks
         total_infeasible_mp += generator.n_mp_infeasible

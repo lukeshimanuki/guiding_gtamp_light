@@ -21,7 +21,7 @@ def save_weights(net, epoch, action_type, seed, region):
 
 
 def get_data_generator(action_type, region, seed):
-    dataset = StandardDataset(action_type, region, True, seed)
+    dataset = StandardDataset(action_type, region, True, is_testing=False, seed=seed)
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     batch_size = 32
@@ -46,7 +46,7 @@ def main():
     torch.cuda.manual_seed_all(config.seed)
     torch.manual_seed(config.seed)
 
-    model = WGANgp(config.atype, config.region, config.architecture)
+    model = WGANgp(config.atype, config.region, config.architecture, config.seed)
 
     trainloader, trainset, testset = get_data_generator(config.atype, config.region, config.seed)
     n_train = len(trainset)

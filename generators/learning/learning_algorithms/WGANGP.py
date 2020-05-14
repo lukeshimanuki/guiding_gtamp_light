@@ -10,11 +10,11 @@ import os
 import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
-#from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
-#from torch_wgangp_models.gnn_models import GNNGenerator, GNNDiscriminator
+from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
 
 from gtamp_utils import utils
 import socket
+
 
 def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size, use_cuda):
     lambda_val = .1  # Smaller lambda seems to help for toy tasks specifically
@@ -32,7 +32,8 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
     disc_interpolates = discriminator(interpolates, konf_obsts_v, poses_v)
 
     gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(disc_interpolates.size()),
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(
+                                  disc_interpolates.size()),
                               create_graph=True, retain_graph=True, only_inputs=True)[0]
 
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_val
@@ -40,14 +41,15 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 
 class WGANgp:
-    def __init__(self, action_type, region_name, architecture):
+    def __init__(self, action_type, region_name, architecture, seed):
         self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
+        self.seed = seed
         self.dim_konf = 4
         self.architecture = architecture
         self.region_name = region_name
         if socket.gethostname() == 'lab':
-            self.device = torch.device('cpu') # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
+            self.device = torch.device('cpu')  # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.discriminator, self.generator = self.create_models()
@@ -74,13 +76,13 @@ class WGANgp:
             discriminator = Discriminator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
             generator = Generator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
         elif self.architecture == 'cnn':
-            raise NotImplementedError
+            discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
+            generator = CNNGenerator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
         else:
             raise NotImplementedError
         discriminator.to(self.device)
         generator.to(self.device)
         return discriminator, generator
-
 
     @staticmethod
     def get_dim_action(action_type):
@@ -91,10 +93,11 @@ class WGANgp:
 
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/'.format(action_type, region_name,
-                                                                                 self.architecture)
+            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}'.format(action_type, region_name,
+                                                                                         self.architecture, self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/wgangp/{}/'.format(action_type, self.architecture)
+            dir = './generators/learning/learned_weights/{}/wgangp/{}/seed_{}'.format(action_type, self.architecture,
+                                                                                      self.seed)
         return dir
 
     def get_domain(self, action_type, region_name):
@@ -175,12 +178,12 @@ class WGANgp:
                 noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
                 new_smpls1 = self.generator(konf_obsts[:500], poses[:500], noise[:500])
                 new_smpls2 = self.generator(konf_obsts[500:], poses[500:], noise[500:])
-                new_smpls = torch.cat([new_smpls1,new_smpls2],dim=0)
+                new_smpls = torch.cat([new_smpls1, new_smpls2], dim=0)
             else:
                 noise = torch.randn(n_data, self.n_dim_actions).to(self.device)
                 new_smpls = self.generator(konf_obsts, poses, noise)
             smpls.append(new_smpls.cpu().detach().numpy())
-        print "Sample making time", time.time()-stime
+        print "Sample making time", time.time() - stime
         smpls = np.stack(smpls)
 
         real_actions = test_data['actions']
@@ -254,7 +257,7 @@ class WGANgp:
                     yield d
 
         data_gen = data_generator()
-        stime=time.time()
+        stime = time.time()
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -338,5 +341,5 @@ class WGANgp:
                 torch.save(self.discriminator.state_dict(), path)
                 path = self.weight_dir + '/gen_iter_%d.pt' % iteration
                 torch.save(self.generator.state_dict(), path)
-                print 'Time taken', time.time()-stime
+                print 'Time taken', time.time() - stime
                 stime = time.time()

@@ -16,7 +16,7 @@ class BaseModel(nn.Module):
             self.dim_konf = 2
             self.konf_indices = get_indices_to_delete('home_region', key_configs)
         else:
-            self.dim_pose_ids = 8 * 3 + 2
+            self.dim_pose_ids = 8 + 2
             self.dim_konf = 4
             if 'home' in self.region:
                 # get home indices
@@ -28,6 +28,10 @@ class BaseModel(nn.Module):
 
         self.n_hidden = 32
         self.n_konfs = len(self.konf_indices)
+        if 'home' in self.region or 'pick' in self.atype:
+            self.dim_cnn_features = 2688
+        else:
+            self.dim_cnn_features = 2624
 
     def forward(self, action, konf, pose):
         raise NotImplementedError
@@ -38,6 +42,10 @@ class BaseModel(nn.Module):
             robot_curr_pose_and_id = pose_ids[:, -6:]
             pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
             konf = konf[:, :, 0:2, :]
+        else:
+            target_obj_pose = pose_ids[:, 0:4]
+            robot_curr_pose_and_id = pose_ids[:, -6:]
+            pose_ids = torch.cat([target_obj_pose, robot_curr_pose_and_id], -1)
 
         konf = konf[:, self.konf_indices, :, :]
         return konf, pose_ids

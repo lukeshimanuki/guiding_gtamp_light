@@ -3,6 +3,7 @@ import os
 import re
 import numpy as np
 import multiprocessing
+import time
 
 from multiprocessing.pool import ThreadPool
 from generators.learning.learning_algorithms.WGANGP import WGANgp
@@ -40,28 +41,32 @@ def main():
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-region', type=str, default='home_region')
     parser.add_argument('-architecture', type=str, default='fc')
+    parser.add_argument('-seed', type=int, default=0)
 
     parameters = parser.parse_args()
-    model = WGANgp(parameters.atype, parameters.region, parameters.architecture)
+    model = WGANgp(parameters.atype, parameters.region, parameters.architecture, parameters.seed)
     while True:
         max_iter = get_max_iteration(model.weight_dir)
         max_iter = min(250000, max_iter)
-        already_done = os.listdir(model.weight_dir+'result_summary')
+        if not os.path.isdir(model.weight_dir + '/result_summary'):
+            os.makedirs(model.weight_dir+'/result_summary')
+        already_done = os.listdir(model.weight_dir+'/result_summary')
         if len(already_done) == 0:
             next_iter_to_begin_from = 0
         else:
             next_iter_to_begin_from = max([int(f.split('_')[-1].split('.')[0]) for f in already_done])+100
-        print next_iter_to_begin_from,max_iter
         iterations = range(next_iter_to_begin_from, max_iter, 100)
-        print "Eval on", iterations
         if len(iterations) > 0:
+            print next_iter_to_begin_from,max_iter
+            print "Eval on", iterations
             configs = []
             for iteration in iterations:
                 config = {
                     'iteration': iteration,
                     'atype': parameters.atype,
                     'region': parameters.region,
-                    'architecture': parameters.architecture
+                    'architecture': parameters.architecture,
+                    'seed': parameters.seed
                 }
 
                 configs.append(config)
@@ -70,6 +75,7 @@ def main():
             pool = ThreadPool(n_workers)
             results = pool.map(worker_wrapper_multi_input, configs)
             pool.terminate()
+            time.sleep(5)
 
 
 if __name__ == '__main__':

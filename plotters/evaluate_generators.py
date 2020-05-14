@@ -19,9 +19,10 @@ def main():
     parser.add_argument('-region', type=str, default='home_region')
     parser.add_argument('-iteration', type=int, default=0)
     parser.add_argument('-architecture', type=str, default='fc')
+    parser.add_argument('-seed', type=int, default=0)
     config = parser.parse_args()
 
-    model = WGANgp(config.atype, config.region, config.architecture)
+    model = WGANgp(config.atype, config.region, config.architecture, config.seed)
 
     fdir = model.weight_dir + '/result_summary/'
     if not os.path.isdir(fdir):
