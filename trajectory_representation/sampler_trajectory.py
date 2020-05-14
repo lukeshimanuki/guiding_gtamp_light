@@ -59,10 +59,10 @@ class SamplerTrajectory:
         self.problem_env = None
         self.n_objs_pack = n_objs_pack
 
-    def compute_state(self, obj, region, goal_entities):
+    def compute_state(self, abs_state, abs_action):
         if not 'two_arm_mover' in self.problem_env.name:
             raise NotImplementedError
-        return ConcreteNodeState(self.problem_env, obj, region, goal_entities)
+        return ConcreteNodeState(abs_state, abs_action)
 
     def add_state_prime(self):
         self.state_prime = self.states[1:]
@@ -242,9 +242,7 @@ class SAHSSamplerTrajectory(SamplerTrajectory):
         init_saver = abs_state.state_saver
         for action in plan:
             assert action.type == 'two_arm_pick_two_arm_place'
-            state = self.compute_state(action.discrete_parameters['object'],
-                                       action.discrete_parameters['place_region'],
-                                       goal_entities)
+            state = self.compute_state(abs_state, action)
             action_info = self.get_action_info(action)
             prev_n_in_way = self.compute_n_in_way(action, abs_state, goal_objs)
             prev_v_manip = self.compute_v_manip(abs_state, goal_objs)

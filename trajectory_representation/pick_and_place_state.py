@@ -4,12 +4,14 @@ from gtamp_utils.utils import CustomStateSaver, get_body_xytheta, set_robot_conf
 from gtamp_utils.utils import visualize_path, two_arm_pick_object
 from manipulation.bodies.bodies import set_color
 import pickle
+import numpy as np
 
 
 class PaPState(State):
     def __init__(self, problem_env, goal_entities, parent_state=None, parent_action=None, paps_used_in_data=None):
         self.state_saver = CustomStateSaver(problem_env.env)
         self.problem_env = problem_env
+        self.problem_env.set_robot_to_default_dof_values()
         self.parent_state = parent_state  # used to update the node features
         self.goal_entities = goal_entities
         self.object_names = [str(obj.GetName()) for obj in problem_env.objects]
@@ -83,7 +85,8 @@ class PaPState(State):
         set_robot_config(old_q, self.problem_env.robot)
 
         # what's the diff between collides and curr collides?
-        # collides include entire set of obj and obj name pose tuple
+        # collides include entire set of (obj, obj_pose) pairs that we have seen so far
+        # current collides are the collisions at the current object pose
         collisions_at_current_obj_pose_pairs = {
             obj.GetName(): collisions_at_all_obj_pose_pairs[(obj.GetName(), obj_name_to_pose[obj.GetName()])]
             for obj in self.problem_env.objects

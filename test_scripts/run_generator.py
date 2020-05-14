@@ -12,7 +12,7 @@ from planners.subplanners.motion_planner import BaseMotionPlanner
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 from generators.samplers.uniform_sampler import UniformSampler
-from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler
+from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler, PickOnlyLearnedSampler
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.samplers.voo_sampler import VOOSampler
 from generators.voo import TwoArmVOOGenerator
@@ -44,6 +44,7 @@ def parse_arguments():
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='unif')  # used for threaded runs
     parser.add_argument('-use_learning', action='store_true', default=False)  # used for threaded runs
+    parser.add_argument('-atype', type=str, default="place")  # used for threaded runs
     parser.add_argument('-n_mp_limit', type=int, default=5)  # used for threaded runs
     config = parser.parse_args()
     return config
@@ -56,25 +57,28 @@ def create_environment(problem_idx):
 
 
 def get_learned_smpler(config):
-    region = 'home_region'
-    action_type = 'place'
-    home_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
-    home_place_model.load_best_weights()
-
-    region = 'loading_region'
-    action_type = 'place'
-    loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
-    loading_place_model.load_best_weights()
-
-    """
+    home_place_model = None
+    loading_place_model = None
     pick_model = None
-    if epoch_pick is not None:
-        action_type = 'pick'
-        pick_model = None  # WGANgp(action_type, region)
-        # pick_model.load_weights(epoch_pick)
-    """
 
-    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': None}
+    if 'place' in config.atype:
+        region = 'home_region'
+        action_type = 'place'
+        home_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
+        home_place_model.load_best_weights()
+
+        region = 'loading_region'
+        action_type = 'place'
+        loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture)
+        loading_place_model.load_best_weights()
+
+    if 'pick' in config.atype:
+        action_type = 'pick'
+        region = ''
+        pick_model = WGANgp(action_type, region, architecture=config.pick_architecture)
+        pick_model.load_best_weights()
+
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
     return model
 
 
@@ -159,7 +163,14 @@ def get_generator(config, abstract_state, action, n_mp_limit, problem_env):
     else:
         print "Using learned sampler"
         sampler_model = get_learned_smpler(config)
-        sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+        if 'pick' in config.atype and 'place' in config.atype:
+            raise NotImplementedError
+        elif 'pick' in config.atype:
+            sampler = PickOnlyLearnedSampler(sampler_model, abstract_state, action)
+        elif 'place' in config.atype:
+            sampler = PlaceOnlyLearnedSampler(sampler_model, abstract_state, action)
+        else:
+            raise NotImplementedError
         sampler.infeasible_action_value = -9999
         generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                        n_parameters_to_try_motion_planning=n_mp_limit,

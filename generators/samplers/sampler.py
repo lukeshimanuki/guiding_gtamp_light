@@ -4,7 +4,7 @@ import time
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils import data_processing_utils
-from gtamp_utils.utils import get_pick_domain, get_place_domain
+from gtamp_utils.utils import get_pick_domain, get_place_domain, get_pick_base_pose_and_grasp_from_pick_parameters
 
 
 class Sampler:
@@ -27,11 +27,7 @@ class LearnedSampler(Sampler):
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
 
-        goal_entities = self.abstract_state.goal_entities
-        stime = time.time()
-        self.smpler_state = ConcreteNodeState(abstract_state.problem_env, self.obj, self.region, goal_entities,
-                                              key_configs=self.key_configs)
-        print "Concre node creation time", time.time() - stime
+        self.smpler_state = ConcreteNodeState(abstract_state, abstract_action)
 
     def sample_new_points(self, n_smpls):
         # Here, it would be much more accurate if I use place collision vector, but at this point
@@ -43,7 +39,7 @@ class LearnedSampler(Sampler):
     def sample(self):
         # prepare input to the network
         if self.curr_smpl_idx >= len(self.samples):
-            self.samples = self.sample_new_points(200)
+            self.samples = self.sample_new_points(2000)
             self.curr_smpl_idx = 0
         new_sample = self.samples[self.curr_smpl_idx]
         self.curr_smpl_idx += 1
@@ -141,17 +137,30 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 class PickOnlyLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
+        stime =time.time()
         self.samples = self.sample_new_points(2000)
+        print "total sample generation time", time.time() - stime
         self.curr_smpl_idx = 0
 
-    def sample_picks(self, poses, collisions, n_smpls):
-        stime = time.time()
-        pick_samples = self.policies['pick'].generate(collisions, poses)
-        print "pick sampling time", time.time() - stime
+    def decode_base_angle_encoding(self, pick_samples):
         base_angles = pick_samples[:, 4:6]
         base_angles = [utils.decode_sin_and_cos_to_angle(base_angle) for base_angle in base_angles]
         pick_samples[:, 4] = base_angles
-        pick_samples = np.delete(pick_samples, 5, 1)
+        pick_samples = np.delete(pick_samples, 5, 1)  # remove unnecessary 2-dim encoded base angle
+        return pick_samples
+
+    def sample_picks(self, poses, collisions):
+        pick_samples = self.policies['pick'].generate(collisions, poses)
+        pick_samples = self.decode_base_angle_encoding(pick_samples)
+        """
+        base_poses = []
+        for p in pick_samples:
+            grasp_params, pick_base_pose = get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, p)
+            base_poses.append(pick_base_pose)
+        utils.visualize_path(np.array(base_poses[0:20]))
+        import pdb;pdb.set_trace()
+        """
+
         return pick_samples
 
     def sample_placements(self, n_smpls):
@@ -175,7 +184,7 @@ class PickOnlyLearnedSampler(LearnedSampler):
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
 
-        pick_samples = self.sample_picks(poses, collisions, n_smpls)
+        pick_samples = self.sample_picks(poses, collisions)
         place_samples = self.sample_placements(n_smpls)
         return np.hstack([pick_samples, place_samples])
 
