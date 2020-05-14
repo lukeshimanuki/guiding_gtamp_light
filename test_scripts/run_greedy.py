@@ -133,8 +133,6 @@ def parse_arguments():
     # Sampler setup
     parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
-    parser.add_argument('-sampler_algo', type=str, default='imle_qg_combination')
-    parser.add_argument('-sampler_epoch', type=int, default=500)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-explr_p', type=float, default=0.3)
 
@@ -206,43 +204,6 @@ def get_pap_gnn_model(mover, config):
         pap_model = None
 
     return pap_model
-
-
-def get_learned_smpler(sampler_seed, epoch, algo):
-    print "Creating the learned sampler.."
-    atype = 'place'
-    placeholder_config_definition = collections.namedtuple('config',
-                                                           'algo dtype tau seed atype epoch region pick_seed place_seed filtered')
-    placeholder_config = placeholder_config_definition(
-        algo=algo,
-        tau=1.0,
-        dtype='n_objs_pack_1',
-        seed=sampler_seed,
-        atype=atype,
-        epoch=epoch,
-        region='loading_region',
-        pick_seed=0,
-        place_seed=sampler_seed,
-        filtered=False
-    )
-    placeholder_config = placeholder_config._replace(atype='pick')
-    pick_policy = create_policy(placeholder_config)
-
-    placeholder_config = placeholder_config._replace(atype='place')
-    placeholder_config = placeholder_config._replace(region='loading_region')
-    placeholder_config = placeholder_config._replace(filtered=True)
-    placeholder_config = placeholder_config._replace(place_seed=sampler_seed)
-    loading_place_policy = create_policy(placeholder_config)['place']
-
-    placeholder_config = placeholder_config._replace(region='home_region')
-    placeholder_config = placeholder_config._replace(place_seed=sampler_seed)
-    home_place_policy = create_policy(placeholder_config)['place']
-
-    pick_policy.load_best_weights()
-    loading_place_policy.load_best_weights()
-    home_place_policy.load_best_weights()
-    policy = {'pick': pick_policy, 'place_loading': loading_place_policy, 'place_home': home_place_policy}
-    return policy
 
 
 def make_pklable(plan):
