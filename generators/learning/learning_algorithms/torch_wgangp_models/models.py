@@ -28,6 +28,10 @@ class BaseModel(nn.Module):
 
         self.n_hidden = 32
         self.n_konfs = len(self.konf_indices)
+        if 'home' in self.region or 'pick' in self.atype:
+            self.dim_cnn_features = 2688
+        else:
+            self.dim_cnn_features = 2624
 
     def forward(self, action, konf, pose):
         raise NotImplementedError

@@ -8,7 +8,7 @@ class CNNDiscriminator(BaseModel):
         n_hidden = 32
         self.features = \
             torch.nn.Sequential(
-                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4+4+4+2)),
+                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4 + 4 + 4 + 2)),
                 torch.nn.LeakyReLU(),
                 torch.nn.Conv2d(n_hidden, n_hidden, kernel_size=(1, 1)),
                 torch.nn.LeakyReLU(),
@@ -19,9 +19,10 @@ class CNNDiscriminator(BaseModel):
                 torch.nn.LeakyReLU(),
                 torch.nn.MaxPool2d(kernel_size=(2, 1))
             )
+
         self.value = \
             torch.nn.Sequential(
-                torch.nn.Linear(2688, 32),
+                torch.nn.Linear(self.dim_cnn_features, 32),
                 torch.nn.ReLU(),
                 torch.nn.Linear(32, 32),
                 torch.nn.ReLU(),
@@ -47,7 +48,7 @@ class CNNGenerator(BaseModel):
         n_hidden = 32
         self.features = \
             torch.nn.Sequential(
-                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4+4+2)),
+                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4 + 4 + 2)),
                 torch.nn.LeakyReLU(),
                 torch.nn.Conv2d(n_hidden, n_hidden, kernel_size=(1, 1)),
                 torch.nn.LeakyReLU(),
@@ -60,7 +61,7 @@ class CNNGenerator(BaseModel):
             )
         self.value = \
             torch.nn.Sequential(
-                torch.nn.Linear(2688 + dim_data, 32), # for noise
+                torch.nn.Linear(self.dim_cnn_features + dim_data, 32),  # for noise
                 torch.nn.ReLU(),
                 torch.nn.Linear(32, 32),
                 torch.nn.ReLU(),
