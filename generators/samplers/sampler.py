@@ -137,9 +137,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 class PickOnlyLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
-        stime =time.time()
         self.samples = self.sample_new_points(2000)
-        print "total sample generation time", time.time() - stime
         self.curr_smpl_idx = 0
 
     def decode_base_angle_encoding(self, pick_samples):
@@ -157,6 +155,7 @@ class PickOnlyLearnedSampler(LearnedSampler):
         for p in pick_samples:
             grasp_params, pick_base_pose = get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, p)
             base_poses.append(pick_base_pose)
+        utils.viewer()
         utils.visualize_path(np.array(base_poses[0:20]))
         import pdb;pdb.set_trace()
         """
