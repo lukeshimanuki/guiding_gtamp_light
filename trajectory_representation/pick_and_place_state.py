@@ -83,7 +83,8 @@ class PaPState(State):
         set_robot_config(old_q, self.problem_env.robot)
 
         # what's the diff between collides and curr collides?
-        # collides include entire set of obj and obj name pose tuple
+        # collides include entire set of (obj, obj_pose) pairs that we have seen so far
+        # current collides are the collisions at the current object pose
         collisions_at_current_obj_pose_pairs = {
             obj.GetName(): collisions_at_all_obj_pose_pairs[(obj.GetName(), obj_name_to_pose[obj.GetName()])]
             for obj in self.problem_env.objects
