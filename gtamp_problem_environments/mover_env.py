@@ -328,7 +328,7 @@ class PaPMoverEnv(Mover):
                 if 'region' not in r or 'entire' in r:
                     continue
 
-                if o not in self.goal and r in self.goal:
+                if o not in self.goal_entities and r in self.goal_entities:
                     # you cannot place non-goal object in the goal region
                     continue
 
