@@ -21,6 +21,7 @@ from test_scripts.run_mcts import get_commit_hash
 # from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
+from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 
 def get_problem_env(config, goal_region, goal_objs):
@@ -69,18 +70,14 @@ def get_solution_file_name(config):
                '_mix_rate_' + str(config.mixrate) + '/'
     solution_file_dir += q_config
 
-    if config.integrated:
+    if config.use_learning:
         sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated_sampler_epoch_%d/' % config.sampler_epoch
-        solution_file_dir += sampler_config
-    elif config.integrated_unregularized_sampler:
-        sampler_config = '/unregularized_smpler_num_train_' + str(config.num_train) + '/'
-        solution_file_dir += '/integrated/'
+        solution_file_dir += '/using_learned_sampler/'
         solution_file_dir += sampler_config
 
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
-    if config.integrated or config.integrated_unregularized_sampler:
+    if config.use_learning:
         solution_file_name = 'pidx_' + str(config.pidx) + \
                              '_planner_seed_' + str(config.planner_seed) + \
                              '_gnn_seed_' + str(config.absq_seed) + \
@@ -132,12 +129,14 @@ def parse_arguments():
 
     # Sampler setup
     parser.add_argument('-sampler_seed', type=int, default=0)
-    parser.add_argument('-integrated_unregularized_sampler', action='store_true', default=False)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
+    parser.add_argument('-atype', type=str, default='place')
+    parser.add_argument('-use_learning', action='store_true', default=False)
     parser.add_argument('-explr_p', type=float, default=0.3)
+    parser.add_argument('-pick_architecture', type=str, default='fc')
+    parser.add_argument('-place_architecture', type=str, default='fc')
 
     # whether to use the learned sampler and the reachability
-    parser.add_argument('-integrated', action='store_true', default=False)
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
 
     config = parser.parse_args()
@@ -238,6 +237,36 @@ def get_total_n_feasibility_checks(nodes):
     return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
 
+def get_learned_sampler_models(config):
+    home_place_model = None
+    loading_place_model = None
+    pick_model = None
+
+    if not config.use_learning:
+        return None
+
+    if 'place' in config.atype:
+        region = 'home_region'
+        action_type = 'place'
+        home_place_model = WGANgp(action_type, region, architecture=config.place_architecture, seed=config.sampler_seed)
+        home_place_model.load_best_weights()
+
+        region = 'loading_region'
+        action_type = 'place'
+        loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture,
+                                     seed=config.sampler_seed)
+        loading_place_model.load_best_weights()
+
+    if 'pick' in config.atype:
+        action_type = 'pick'
+        region = ''
+        pick_model = WGANgp(action_type, region, architecture=config.pick_architecture, seed=config.sampler_seed)
+        pick_model.load_best_weights()
+
+    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
+    return model
+
+
 def main():
     config = parse_arguments()
     solution_file_name = get_solution_file_name(config)
@@ -277,18 +306,13 @@ def main():
     else:
         pap_model = None
 
-    if config.integrated or config.integrated_unregularized_sampler:
-        raise NotImplementedError
-        # smpler = get_learned_smpler(config.sampler_seed, config.sampler_epoch, config.sampler_algo)
-    else:
-        smpler = None
-
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     t = time.time()
     np.random.seed(config.planner_seed)
     random.seed(config.planner_seed)
+    learned_sampler_model = get_learned_sampler_models(config)
     nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs,
-                                                   goal_region, smpler, None)
+                                                   goal_region, learned_sampler_model)
     tottime = time.time() - t
     n_feasibility_checks = get_total_n_feasibility_checks(nodes)
 

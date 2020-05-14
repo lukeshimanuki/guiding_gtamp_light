@@ -2,16 +2,18 @@ import time
 import pickle
 import Queue
 import numpy as np
+
 from node import Node
 from gtamp_utils import utils
-
-from generators.samplers.uniform_sampler import UniformSampler
-from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
-from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
-
 from trajectory_representation.operator import Operator
-from generators.samplers.voo_sampler import VOOSampler
+
+# generators and samplers
+from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 from generators.voo import TwoArmVOOGenerator
+from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
+from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler, PickOnlyLearnedSampler
+from generators.samplers.uniform_sampler import UniformSampler
+from generators.samplers.voo_sampler import VOOSampler
 
 from helper import get_actions, get_state_class, update_search_queue
 
@@ -22,59 +24,72 @@ connected = np.array([len(s) >= 2 for s in prm_edges])
 prm_indices = {tuple(v): i for i, v in enumerate(prm_vertices)}
 DISABLE_COLLISIONS = False
 MAX_DISTANCE = 1.0
-counter = 1
-sum_smpl_time = 0
 
 
-def sample_continuous_parameters(abstract_action, abstract_state, abstract_node, mover, learned_sampler,
-                                 reachability_clf, config):
-    global counter
-    global sum_smpl_time
-    problem_env = abstract_state.problem_env
-    place_region = problem_env.regions[abstract_action.discrete_parameters['place_region']]
-    disc_param = (abstract_action.discrete_parameters['object'], abstract_action.discrete_parameters['place_region'])
-
-    assert type(abstract_action.discrete_parameters['object']) == unicode \
-           or type(abstract_action.discrete_parameters['object']) == str
-
-    assert type(abstract_action.discrete_parameters['place_region']) == unicode \
-           or type(abstract_action.discrete_parameters['place_region']) == str
-
-    # todo save the generator into the abstract node
-    we_dont_have_generator_for_this_discrete_action_yet = disc_param not in abstract_node.generators
-    if we_dont_have_generator_for_this_discrete_action_yet:
-        if config.sampling_strategy == 'uniform':
-            sampler = UniformSampler(place_region)
-            generator = TwoArmPaPGenerator(abstract_state, abstract_action, sampler,
-                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
-        elif config.sampling_strategy == 'voo':
-            target_obj = abstract_action.discrete_parameters['object']
-            sampler = VOOSampler(target_obj, place_region, config.explr_p, -np.inf)
-            generator = TwoArmVOOGenerator(abstract_state, abstract_action, sampler,
-                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                           n_iter_limit=config.n_iter_limit, problem_env=problem_env,
-                                           pick_action_mode='ir_parameters',
-                                           place_action_mode='object_pose')
+def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
+    if not config.use_learning:
+        if 'uniform' in config.sampling_strategy:
+            sampler = UniformSampler(abstract_action.discrete_parameters['place_region'])
+        elif 'voo' in config.sampling_strategy:
+            sampler = VOOSampler(abstract_action.discrete_parameters['object'],
+                                 abstract_action.discrete_parameters['place_region'], 0.3, -9999)
         else:
             raise NotImplementedError
+    else:
+        if 'pick' in config.atype and 'place' in config.atype:
+            raise NotImplementedError
+        elif 'pick' in config.atype:
+            sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+        elif 'place' in config.atype:
+            sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+        else:
+            raise NotImplementedError
+    return sampler
+
+
+def get_generator(abstract_state, action, learned_sampler_model, config):
+    sampler = get_sampler(config, abstract_state, action, learned_sampler_model)
+    if 'unif' in config.sampling_strategy:
+        sampler.infeasible_action_value = -9999
+        generator = TwoArmPaPGenerator(abstract_state, action, sampler,
+                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                       n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
+                                       pick_action_mode='ir_parameters',
+                                       place_action_mode='robot_base_pose')
+    elif 'voo' in config.sampling_strategy:
+        generator = TwoArmVOOGenerator(abstract_state, action, sampler,
+                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                       n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
+                                       pick_action_mode='ir_parameters',
+                                       place_action_mode='object_pose')
+    else:
+        raise NotImplementedError
+
+    return generator
+
+
+def sample_continuous_parameters(abstract_state, abstract_action, abstract_node, learned_sampler_model, config):
+    disc_param = (abstract_action.discrete_parameters['object'], abstract_action.discrete_parameters['place_region'])
+
+    we_dont_have_generator_for_this_discrete_action_yet = disc_param not in abstract_node.generators
+    if we_dont_have_generator_for_this_discrete_action_yet:
+        generator = get_generator(abstract_state, abstract_action, learned_sampler_model, config)
         abstract_node.generators[disc_param] = generator
     smpled_param = abstract_node.generators[disc_param].sample_next_point()
 
     if config.sampling_strategy == 'voo' and not smpled_param['is_feasible']:
         abstract_node.generators[disc_param].update_mp_infeasible_samples(smpled_param['samples'])
+
     return smpled_param
 
 
-def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler=None, reachability_clf=None):
+def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sampler_model):
     tt = time.time()
     goal_region = mover.placement_regions[goal_region_name]
     obj_names = [obj.GetName() for obj in mover.objects]
     n_objs_pack = config.n_objs_pack
     statecls = get_state_class(config.domain)
-    goal = mover.goal
+    goal = mover.goal_entities
     mover.reset_to_init_state_stripstream()
     depth_limit = 60
 
@@ -121,7 +136,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_smpler
 
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
-            smpled_param = sample_continuous_parameters(action, state, node, mover, learned_smpler, reachability_clf, config)
+            smpled_param = sample_continuous_parameters(state, action, node, learned_sampler_model, config)
 
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
