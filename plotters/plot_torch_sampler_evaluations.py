@@ -71,6 +71,7 @@ def main():
     parser.add_argument('-region', type=str, default='home_region')
     parser.add_argument('-iteration', type=int, default=0)
     parser.add_argument('-architecture', type=str, default='fc')
+    parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-old', action='store_true', default=False)  # used for threaded runs
     config = parser.parse_args()
     if config.old:
@@ -82,12 +83,12 @@ def main():
         return
 
     if config.atype == 'pick':
-        result_dir = './generators/learning/learned_weights/{}/wgangp/{}/result_summary/'.format(config.atype,
-                                                                                                 config.architecture)
+        result_dir = './generators/learning/learned_weights/{}/wgangp/{}/seed_{}/result_summary/'.format(config.atype,
+                                                                                                 config.architecture,config.seed)
     else:
-        result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/result_summary/'.format(config.atype,
+        result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}/result_summary/'.format(config.atype,
                                                                                                     config.region,
-                                                                                                    config.architecture)
+                                                                                                    config.architecture,config.seed)
     result_files = os.listdir(result_dir + '/')
     iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
     result_files_sorted = np.array(result_files)[np.argsort(iters)]
@@ -95,8 +96,8 @@ def main():
     result_files_sorted.tolist()
     results = [pickle.load(open(result_dir + result_file, 'r')) for result_file in result_files_sorted]
 
-    plot_dir = './plotters/generator_plots/{}/{}/wgangp/{}/'.format(config.atype, config.region,
-                                                                    config.architecture)
+    plot_dir = './plotters/generator_plots/{}/{}/wgangp/{}/seed_{}/'.format(config.atype, config.region,
+                                                                    config.architecture,config.seed)
     if not os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
 
