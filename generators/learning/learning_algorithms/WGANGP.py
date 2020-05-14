@@ -40,9 +40,10 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 
 class WGANgp:
-    def __init__(self, action_type, region_name, architecture):
+    def __init__(self, action_type, region_name, architecture, seed):
         self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
+        self.seed = seed
         self.dim_konf = 4
         self.architecture = architecture
         self.region_name = region_name
@@ -91,10 +92,10 @@ class WGANgp:
 
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/'.format(action_type, region_name,
-                                                                                 self.architecture)
+            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}'.format(action_type, region_name,
+                                                                                 self.architecture, self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/wgangp/{}/'.format(action_type, self.architecture)
+            dir = './generators/learning/learned_weights/{}/wgangp/{}/seed_{}'.format(action_type, self.architecture, self.seed)
         return dir
 
     def get_domain(self, action_type, region_name):
