@@ -19,6 +19,7 @@ class ShortestPathPaPState(PaPState):
     def __init__(self, problem_env, goal_entities, parent_state=None, parent_action=None, planner='greedy'):
         PaPState.__init__(self, problem_env, goal_entities, parent_state=None, parent_action=None,
                           paps_used_in_data=None)
+
         # print self.problem_env.robot.GetDOFValues()
         self.parent_state = parent_state
         self.parent_ternary_predicates = {}
@@ -126,6 +127,7 @@ class ShortestPathPaPState(PaPState):
         self.problem_env.disable_objects_in_region('entire_region')
         object.Enable(True)
 
+        self.problem_env.set_robot_to_default_dof_values()
         n_iters = range(10, 500, 10)
         feasible_cont_params = self.sample_feasible_picks(n_iters, generator, operator_skeleton, None)
         if len(feasible_cont_params) == 0 and moved_obj == object.GetName():
@@ -153,14 +155,7 @@ class ShortestPathPaPState(PaPState):
     def set_cached_pick_paths(self, parent_state, moved_obj):
         motion_planner = BaseMotionPlanner(self.problem_env, 'prm')
         # making it consistent with the feasibility checker
-        self.problem_env.robot.SetDOFValues(np.array([0., 0., 0., 0., 0.,
-                                                      0., 0., 0., 0., 0.,
-                                                      0., 0., 0.02391508, 0., 0.,
-                                                      0., 1.29023451, 0., -2.121308, 0.,
-                                                      -0.69800004, 0., 0., 0., -0.,
-                                                      0., 0., 0., 1.29023451, 0.,
-                                                      -2.121308, 0., -0.69800004, 0., 0.54800022,
-                                                      -0., -0., -0., 0.]))
+        self.problem_env.set_robot_to_default_dof_values()
 
         for obj, op_instance in self.pick_used.items():
             # print self.problem_env.robot.GetDOFValues()

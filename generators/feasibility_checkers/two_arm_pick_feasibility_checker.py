@@ -42,14 +42,6 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
     def is_grasp_config_feasible(self, obj, pick_base_pose, grasp_params, grasp_config):
         pick_action = {'operator_name': 'two_arm_pick', 'q_goal': pick_base_pose,
                        'grasp_params': grasp_params, 'g_config': grasp_config}
-        self.problem_env.robot.SetDOFValues(np.array([ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.02391508,  0.        ,  0.        ,
-        0.        ,  1.29023451,  0.        , -2.121308  ,  0.        ,
-       -0.69800004,  0.        ,  0.        ,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  1.29023451,  0.        ,
-       -2.121308  ,  0.        , -0.69800004,  0.        ,  0.54800022,
-       -0.        , -0.        , -0.        ,  0.        ]))
 
         orig_config = get_robot_xytheta(self.robot)
         two_arm_pick_object(obj, pick_action)
