@@ -19,7 +19,7 @@ class ShortestPathPaPState(PaPState):
     def __init__(self, problem_env, goal_entities, parent_state=None, parent_action=None, planner='greedy'):
         PaPState.__init__(self, problem_env, goal_entities, parent_state=None, parent_action=None,
                           paps_used_in_data=None)
-        #print self.problem_env.robot.GetDOFValues()
+        # print self.problem_env.robot.GetDOFValues()
         self.parent_state = parent_state
         self.parent_ternary_predicates = {}
         self.parent_binary_predicates = {}
@@ -71,7 +71,7 @@ class ShortestPathPaPState(PaPState):
         self.place_used = {}
         self.cached_pick_paths = {}
         self.cached_place_paths = {}
-        #print self.problem_env.robot.GetDOFValues()   
+        # print self.problem_env.robot.GetDOFValues()
         self.set_cached_pick_paths(parent_state, moved_obj)
         self.set_cached_place_paths(parent_state, moved_obj)
 
@@ -153,17 +153,17 @@ class ShortestPathPaPState(PaPState):
     def set_cached_pick_paths(self, parent_state, moved_obj):
         motion_planner = BaseMotionPlanner(self.problem_env, 'prm')
         # making it consistent with the feasibility checker
-        self.problem_env.robot.SetDOFValues(np.array([ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
-        0.        ,  0.        ,  0.02391508,  0.        ,  0.        ,
-        0.        ,  1.29023451,  0.        , -2.121308  ,  0.        ,
-       -0.69800004,  0.        ,  0.        ,  0.        , -0.        ,
-        0.        ,  0.        ,  0.        ,  1.29023451,  0.        ,
-       -2.121308  ,  0.        , -0.69800004,  0.        ,  0.54800022,
-       -0.        , -0.        , -0.        ,  0.        ]))
+        self.problem_env.robot.SetDOFValues(np.array([0., 0., 0., 0., 0.,
+                                                      0., 0., 0., 0., 0.,
+                                                      0., 0., 0.02391508, 0., 0.,
+                                                      0., 1.29023451, 0., -2.121308, 0.,
+                                                      -0.69800004, 0., 0., 0., -0.,
+                                                      0., 0., 0., 1.29023451, 0.,
+                                                      -2.121308, 0., -0.69800004, 0., 0.54800022,
+                                                      -0., -0., -0., 0.]))
 
         for obj, op_instance in self.pick_used.items():
-            #print self.problem_env.robot.GetDOFValues()   
+            # print self.problem_env.robot.GetDOFValues()
             motion_plan_goals = op_instance.continuous_parameters['q_goal']
             assert len(motion_plan_goals) > 0
             self.cached_pick_paths[obj] = None
@@ -175,8 +175,8 @@ class ShortestPathPaPState(PaPState):
                 path, _ = motion_planner.get_motion_plan(motion_plan_goals, cached_collisions={})
             [t.Enable(False) for t in self.problem_env.objects]
             rrt_motion_planner = BaseMotionPlanner(self.problem_env, 'rrt')
-            #motion_plan_goals[0] = np.array([-0.11255534, -0.26290062,  1.64126379])
-            #utils.set_robot_config(motion_plan_goals[0])
+            # motion_plan_goals[0] = np.array([-0.11255534, -0.26290062,  1.64126379])
+            # utils.set_robot_config(motion_plan_goals[0])
             for _ in range(100):
                 path, status = rrt_motion_planner.get_motion_plan(motion_plan_goals[0])
                 if status == 'HasSolution':
@@ -185,8 +185,9 @@ class ShortestPathPaPState(PaPState):
             try:
                 assert path is not None, 'Even RRT failed!'
             except:
-                import pdb;pdb.set_trace()
-            
+                import pdb;
+                pdb.set_trace()
+
             self.cached_pick_paths[obj] = path
             op_instance.low_level_motion = path
 
@@ -211,7 +212,7 @@ class ShortestPathPaPState(PaPState):
                 else:
                     if region.name == 'home_region':
                         # a location right at the entrance of home
-                        goal = [np.array([0.73064842, -2.85306871,  4.87927762])]
+                        goal = [np.array([0.73064842, -2.85306871, 4.87927762])]
                     else:
                         goal = region
                     if self.holding_collides is not None:
