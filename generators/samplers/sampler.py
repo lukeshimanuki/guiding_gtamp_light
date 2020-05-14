@@ -27,11 +27,7 @@ class LearnedSampler(Sampler):
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
 
-        goal_entities = self.abstract_state.goal_entities
-        stime = time.time()
-        self.smpler_state = ConcreteNodeState(abstract_state.problem_env, self.obj, self.region, goal_entities,
-                                              key_configs=self.key_configs)
-        print "Concre node creation time", time.time() - stime
+        self.smpler_state = ConcreteNodeState(abstract_state, abstract_action)
 
     def sample_new_points(self, n_smpls):
         # Here, it would be much more accurate if I use place collision vector, but at this point
@@ -141,7 +137,9 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 class PickOnlyLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
+        stime =time.time()
         self.samples = self.sample_new_points(2000)
+        print "total sample generation time", time.time() - stime
         self.curr_smpl_idx = 0
 
     def decode_base_angle_encoding(self, pick_samples):
@@ -152,10 +150,8 @@ class PickOnlyLearnedSampler(LearnedSampler):
         return pick_samples
 
     def sample_picks(self, poses, collisions):
-        stime = time.time()
         pick_samples = self.policies['pick'].generate(collisions, poses)
         pick_samples = self.decode_base_angle_encoding(pick_samples)
-        print "pick prediction time", time.time() - stime
         """
         base_poses = []
         for p in pick_samples:
