@@ -52,7 +52,7 @@ class Mover(ProblemEnvironment):
         self.two_arm_pick_continuous_constraint = None
         self.two_arm_place_continuous_constraint = None
         self.objects_to_check_collision = None
-        self.goal = None
+        self.goal_entities = None
         self.goal_objects = None
         self.goal_region = None
 
@@ -375,7 +375,7 @@ class PaPMoverEnv(Mover):
         self.init_saver = CustomStateSaver(self.env)
 
         self.goal_region = goal_region
-        self.goal = self.goal_objects + [self.goal_region]
+        self.goal_entities = self.goal_objects + [self.goal_region]
 
     def reset_to_init_state(self, node):
         saver = node.state_saver
