@@ -65,16 +65,8 @@ class TwoArmPickFeasibilityChecker(PickFeasibilityChecker):
 
         two_arm_place_object(pick_action)
         no_collision_with_arms_folded = not self.env.CheckCollision(self.robot)
-
         set_robot_config(orig_config, self.robot)
         no_collision = no_collision_at_pick_config and no_collision_with_arms_folded
-        #if np.all(np.isclose(np.array([-0.11255534, -0.26290062,  1.64126379]),pick_base_pose)):
-        #    import pdb;pdb.set_trace()
-
-        #if not no_collision:
-        #    print "Robot in collision in pick conf"
-        #if not inside_region:
-        #    print "Robot out of region in pick conf"
 
         return no_collision and inside_region
 
