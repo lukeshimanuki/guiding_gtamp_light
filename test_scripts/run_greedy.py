@@ -60,8 +60,8 @@ def get_solution_file_name(config):
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_rrt/uses_reachability_clf_%s/domain_%s/n_objs_pack_%d' \
-                            % (commit_hash, config.use_reachability_clf, config.domain, config.n_objs_pack)
+        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_rrt/domain_%s/n_objs_pack_%d' \
+                            % (commit_hash, config.domain, config.n_objs_pack)
     solution_file_dir += '/' + config.h_option + '/'
 
     q_config = '/q_config_num_train_' + str(config.num_train) + \
@@ -71,21 +71,13 @@ def get_solution_file_name(config):
     solution_file_dir += q_config
 
     if config.use_learning:
-        sampler_config = '/smpler_num_train_' + str(config.num_train) + '/'
         solution_file_dir += '/using_learned_sampler/'
-        solution_file_dir += sampler_config
 
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
-    if config.use_learning:
-        solution_file_name = 'pidx_' + str(config.pidx) + \
-                             '_planner_seed_' + str(config.planner_seed) + \
-                             '_gnn_seed_' + str(config.absq_seed) + \
-                             '_smpler_seed_' + str(config.sampler_seed) + '.pkl'
-    else:
-        solution_file_name = 'pidx_' + str(config.pidx) + \
-                             '_planner_seed_' + str(config.planner_seed) + \
-                             '_gnn_seed_' + str(config.absq_seed) + '.pkl'
+    solution_file_name = 'pidx_' + str(config.pidx) + \
+                         '_planner_seed_' + str(config.planner_seed) + \
+                         '_gnn_seed_' + str(config.absq_seed) + '.pkl'
 
     if not os.path.isdir(solution_file_dir):
         os.makedirs(solution_file_dir)
@@ -127,7 +119,6 @@ def parse_arguments():
     parser.add_argument('-h_option', type=str, default='qlearned_hcount_old_number_in_goal')
 
     # Sampler setup
-    parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-use_learning', action='store_true', default=False)
