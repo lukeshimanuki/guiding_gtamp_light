@@ -387,7 +387,24 @@ def get_absolute_pose_from_relative_pose(relative_pose, pose_relative_to):
 def get_transform_from_pose(pose, body_type):
     pose = np.array(pose).squeeze()
     assert len(pose) == 3, "must be x,y, theta where theta is rotation around [0,0,1]"
-    rotation_mat = sp_spatial.transform.Rotation.from_rotvec([0, 0, pose[-1]]).as_dcm()
+
+    # rotation_mat = sp_spatial.transform.Rotation.from_rotvec([0, 0, pose[-1]]).as_dcm()
+
+    # Got the below from https://en.wikipedia.org/wiki/3D_rotation_group, axis of rotation
+    rot_angle = pose[-1]
+    rotation_mat = np.array([[np.cos(rot_angle), -np.sin(rot_angle), 0],
+                             [np.sin(rot_angle), np.cos(rot_angle), 0],
+                             [0, 0, 1]])
+    """
+    try:
+        assert np.all(np.isclose(rotation_mat, rotation_mat2))
+    except:
+        print rotation_mat
+        print rotation_mat2
+        import sys
+        sys.exit(-1)
+    """
+
     transformation_matrix = np.zeros((4, 4))
     transformation_matrix[0:3, 0:3] = rotation_mat
     transformation_matrix[3, 3] = 1
@@ -693,28 +710,31 @@ def compute_ir_parameters_given_robot_xy(robot_xytheta, obj_xytheta, radius=PR2_
     return portion_of_dist_to_obj, angle
 
 
-def get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters):
+def get_pick_base_pose_and_grasp_from_pick_parameters(obj, pick_parameters, obj_xyth=None):
     if not isinstance(obj, openravepy.KinBody):
         env = openravepy.RaveGetEnvironments()[0]
         obj = env.GetKinBody(obj)
     assert len(pick_parameters) == 6
     grasp_params = pick_parameters[0:3]
     ir_params = pick_parameters[3:]
-    obj_xyth = get_body_xytheta(obj)
-    pick_base_pose = get_absolute_pick_base_pose_from_ir_parameters(ir_params, obj_xyth)
+
+    pick_base_pose = get_absolute_pick_base_pose_from_ir_parameters(ir_params, obj, obj_xyth)
     return grasp_params, pick_base_pose
 
 
-def get_absolute_pick_base_pose_from_ir_parameters(ir_parameters, obj_xyth):
-    portion_of_dist_to_obj = ir_parameters[0]
-    base_angle = ir_parameters[1]
-    angle_offset = ir_parameters[2]
-    t_obj = get_transform_from_pose(obj_xyth, 'kinbody')
+def get_absolute_pick_base_pose_from_ir_parameters(ir_parameters, obj, obj_xyth):
+    t_obj = obj.GetTransform()
+    portion_of_dist_to_obj, base_angle, angle_offset = ir_parameters[0], ir_parameters[1], ir_parameters[2]
+
     pick_base_pose = compute_robot_xy_given_ir_parameters(portion_of_dist_to_obj, base_angle, t_obj)
-    obj_xy = obj_xyth.squeeze()[:-1]
-    robot_xy = pick_base_pose[0:2]
+
+    if obj_xyth is None:
+        obj_xyth = get_body_xytheta(obj)
+
+    obj_xy, robot_xy = obj_xyth.squeeze()[:-1], pick_base_pose[0:2]
     angle_to_be_set = compute_angle_to_be_set(obj_xy, robot_xy)
     pick_base_pose[-1] = angle_to_be_set + angle_offset
+
     return pick_base_pose
 
 
