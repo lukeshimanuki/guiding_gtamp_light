@@ -29,8 +29,8 @@ def parse_arguments():
     parser.add_argument('-atype', type=str, default="place")  # used for threaded runs
     parser.add_argument('-n_mp_limit', type=int, default=5)  # used for threaded runs
     parser.add_argument('-n_iter_limit', type=int, default=2000)  # used for threaded runs
-    parser.add_argument('-pick_sampler_seed', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-loading_sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-pick_sampler_seed', type=int, default=2)  # used for threaded runs
+    parser.add_argument('-loading_sampler_seed', type=int, default=1)  # used for threaded runs
     parser.add_argument('-home_sampler_seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
     return config
@@ -136,7 +136,9 @@ def execute_policy(plan, problem_env, goal_entities, config):
             break
 
         action = plan[plan_idx]
-        generator = get_generator(abstract_state, action, learned_sampler_model, config)
+        stime = time.time();
+        generator = get_generator(abstract_state, action, learned_sampler_model, config);
+        print 'generator creation time', time.time() - stime
         cont_smpl = generator.sample_next_point(samples_tried[plan_idx], sample_values[plan_idx])
         total_ik_checks += generator.n_ik_checks
         total_mp_checks += generator.n_mp_checks
