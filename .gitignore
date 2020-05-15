@@ -30,3 +30,4 @@ data_idxs
 reachability_classification/weights
 tmp_data_for_debug_train_sampler.pkl
 generators/learning/learned_weights/*
+*.png
