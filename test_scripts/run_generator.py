@@ -29,7 +29,9 @@ def parse_arguments():
     parser.add_argument('-atype', type=str, default="place")  # used for threaded runs
     parser.add_argument('-n_mp_limit', type=int, default=5)  # used for threaded runs
     parser.add_argument('-n_iter_limit', type=int, default=2000)  # used for threaded runs
-    parser.add_argument('-sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-pick_sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-loading_sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-home_sampler_seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
     return config
 
