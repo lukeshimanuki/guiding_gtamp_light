@@ -228,26 +228,50 @@ class PickPlaceLearnedSampler(LearnedSampler):
         return pick_samples
 
     def sample_placements(self, pose_ids, collisions, pick_samples, n_smpls):
-        pick_abs_poses = np.array([utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1]
-                                   for s in pick_samples])
+        stttt = time.time()
+        obj_kinbody = self.abstract_state.problem_env.env.GetKinBody(self.obj)
+
+        stime = time.time()
+        obj_xyth = utils.get_body_xytheta(obj_kinbody)
+        # print 'objxytheta time',time.time()-stime
+        stime = time.time()
+        pick_abs_poses = []
+        for s in pick_samples:
+            _, poses = utils.get_pick_base_pose_and_grasp_from_pick_parameters(obj_kinbody, s, obj_xyth)
+            pick_abs_poses.append(poses)
+        # print "Pick abs pose time", time.time()-stime
+
+        stime = time.time()
         encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
+        # print "Pick pose encoding time", time.time() - stime
 
         pose_ids[:, -6:-2] = encoded_pick_abs_poses
         if self.v_manip is None:
             v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
+            stime = time.time()
             v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
+            # print 'vmanip conversion time', time.time()-stime
             v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
+
             self.v_manip = v_manip
 
+        stime = time.time()
         state_vec = np.concatenate([collisions, self.v_manip], axis=2)
+        # print 'concat time', time.time()-stime
 
         if 'home' in self.region:
             chosen_sampler = self.policies['place_home']
         else:
             chosen_sampler = self.policies['place_loading']
-        place_samples = chosen_sampler.generate(state_vec, pose_ids)
 
+        stime = time.time()
+        place_samples = chosen_sampler.generate(state_vec, pose_ids)
+        # print "prediction time", time.time()-stime
+
+        stime = time.time()
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
+        # print "place decoding time", time.time()-stime
+        print time.time() - stttt
         return place_samples
 
     def sample_new_points(self, n_smpls):
