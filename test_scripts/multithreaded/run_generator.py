@@ -2,6 +2,7 @@ import os
 import multiprocessing
 import argparse
 import socket
+import numpy as np
 
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 from threaded_test_utils import get_sahs_configs
@@ -14,7 +15,6 @@ def worker_p(config):
     for key, value in zip(config.keys(), config.values()):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
-    #command += ' -use_learning'
     print command
     os.system(command)
 
@@ -24,7 +24,7 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def main():
-    raw_dir = './planning_experience/for_testing_generators/'
+    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
     all_plan_exp_files = os.listdir(raw_dir)
 
     pidxs = []
@@ -35,7 +35,9 @@ def main():
             pidx = int(f.split('_')[3])
         else:
             pidx = int(f.split('_')[1])
-        pidxs.append(pidx)  
+        if pidx >= 60000:
+            pidxs.append(pidx)    
+    pidxs = range(60000,60100)
     seeds = range(0, 5)
 
     setup = parse_arguments()
@@ -46,17 +48,22 @@ def main():
         pidx = int(l.split(',')[0])
         seed = int(l.split(',')[1])
         pidx_seed_already_exist.append((pidx,seed))
+    print np.all([(pidx,seed) in pidx_seed_already_exist for seed in seeds for pidx in pidxs])
+
+    print [(pidx,seed) for seed in seeds for pidx in pidxs if (pidx,seed) not in pidx_seed_already_exist]
     configs = []
     for seed in seeds:
         for pidx in pidxs:
             if (pidx,seed) in pidx_seed_already_exist:
                 continue
-            config = {
-                'pidx': pidx,
-                'seed': seed,
-                'sampling_strategy': setup.sampling_strategy,
-                'n_mp_limit': setup.n_mp_limit
-            }
+            config = {}
+            for k,v in setup._get_kwargs():
+                if type(v) is bool and v is True:
+                    config[k] = ''
+                elif type(v) is not bool:
+                    config[k] = v
+            config['pidx'] = pidx
+            config['seed'] = seed
             if setup.use_learning:
                 config['use_learning'] = ''
 
