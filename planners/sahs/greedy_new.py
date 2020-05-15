@@ -37,7 +37,7 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
             raise NotImplementedError
     else:
         if 'pick' in config.atype and 'place' in config.atype:
-            raise NotImplementedError
+            sampler = PickPlaceLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
         elif 'pick' in config.atype:
             sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
         elif 'place' in config.atype:
