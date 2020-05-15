@@ -98,7 +98,6 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
 
     parser.add_argument('-v', action='store_true', default=False)
-    parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])  # used for threaded runs
 
     # problem definition
     parser.add_argument('-pidx', type=int, default=0)
