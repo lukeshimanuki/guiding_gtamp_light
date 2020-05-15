@@ -248,19 +248,19 @@ def get_learned_sampler_models(config):
     if 'place' in config.atype:
         region = 'home_region'
         action_type = 'place'
-        home_place_model = WGANgp(action_type, region, architecture=config.place_architecture, seed=config.sampler_seed)
+        home_place_model = WGANgp(action_type, region, architecture=config.place_architecture, seed=config.home_sampler_seed)
         home_place_model.load_best_weights()
 
         region = 'loading_region'
         action_type = 'place'
         loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture,
-                                     seed=config.sampler_seed)
+                                     seed=config.loading_sampler_seed)
         loading_place_model.load_best_weights()
 
     if 'pick' in config.atype:
         action_type = 'pick'
         region = ''
-        pick_model = WGANgp(action_type, region, architecture=config.pick_architecture, seed=config.sampler_seed)
+        pick_model = WGANgp(action_type, region, architecture=config.pick_architecture, seed=config.pick_sampler_seed)
         pick_model.load_best_weights()
 
     model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}

@@ -29,7 +29,9 @@ def parse_arguments():
     parser.add_argument('-atype', type=str, default="place")  # used for threaded runs
     parser.add_argument('-n_mp_limit', type=int, default=5)  # used for threaded runs
     parser.add_argument('-n_iter_limit', type=int, default=2000)  # used for threaded runs
-    parser.add_argument('-sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-pick_sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-loading_sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-home_sampler_seed', type=int, default=0)  # used for threaded runs
     config = parser.parse_args()
     return config
 
@@ -42,6 +44,7 @@ def create_environment(problem_idx):
 
 def load_planning_experience_data(problem_seed):
     raw_dir = './planning_experience/for_testing_generators/'
+    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
     fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % problem_seed
     try:
         plan_data = pickle.load(open(raw_dir + fname, 'r'))
