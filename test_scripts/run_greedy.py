@@ -135,6 +135,9 @@ def parse_arguments():
     parser.add_argument('-explr_p', type=float, default=0.3)
     parser.add_argument('-pick_architecture', type=str, default='fc')
     parser.add_argument('-place_architecture', type=str, default='fc')
+    parser.add_argument('-pick_sampler_seed', type=int, default=2)  # used for threaded runs
+    parser.add_argument('-loading_sampler_seed', type=int, default=1)  # used for threaded runs
+    parser.add_argument('-home_sampler_seed', type=int, default=0)  # used for threaded runs
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
@@ -295,6 +298,7 @@ def main():
         goal_region = 'rectangular_packing_box1_region'
     else:
         raise NotImplementedError
+
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:
