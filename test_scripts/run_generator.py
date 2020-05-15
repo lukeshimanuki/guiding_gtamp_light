@@ -181,8 +181,15 @@ def get_logfile_name(config):
         os.makedirs(logfile_dir)
 
     if config.use_learning:
-        logfile = open(logfile_dir + 'place_%s.txt' % (config.place_architecture),
-                       'a')
+        if 'pick' in config.atype and 'place' in config.atype:
+            logfile = open(logfile_dir + 'pap_pick_%s_place_%s.txt' % (
+                config.pick_architecture, config.place_architecture), 'a')
+        elif 'pick' in config.atype:
+            logfile = open(logfile_dir + '%s_pick_%s.txt' % (config.atype, config.pick_architecture), 'a')
+        elif 'place' in config.atype:
+            logfile = open(logfile_dir + '%s_place_%s.txt' % (config.atype, config.place_architecture), 'a')
+        else:
+            raise NotImplementedError
     else:
         logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit,
                        'a')
