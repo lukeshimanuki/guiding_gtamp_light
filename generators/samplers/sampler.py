@@ -132,7 +132,6 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         place_samples = chosen_sampler.generate(state_vec, pose_ids)
 
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
-        import pdb;pdb.set_trace()
         return place_samples
 
     def sample_new_points(self, n_smpls):
@@ -156,7 +155,6 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         place_samples = self.sample_placements(pose_ids, collisions, pick_samples, n_smpls)
         samples = np.hstack([pick_samples, place_samples])
         print 'place prediction time', time.time() - stime
-        import pdb;pdb.set_trace()
         return samples
 
 
@@ -203,32 +201,33 @@ class PickPlaceLearnedSampler(LearnedSampler):
         self.samples = self.sample_new_points(2000)
         self.curr_smpl_idx = 0
 
-    def sample_placements(self, pose_ids, collisions, pick_samples, n_smpls):
-        pick_abs_poses = np.array(
-            [utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1] for s in pick_samples])
-        encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
-        pose_ids[:, -6:-2] = encoded_pick_abs_poses
+    def sample_picks(self, poses, collisions):
+        pick_samples = self.policies['pick'].generate(collisions, poses)
+        pick_samples = self.decode_base_angle_encoding(pick_samples)
+        return pick_samples
 
-        stime = time.time()
-        v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
-        v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
-        v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
-        state_vec = np.concatenate([collisions, v_manip], axis=2)
-        print time.time() - stime
-        import pdb;
-        pdb.set_trace()
+    def sample_placements(self, pose_ids, collisions, pick_samples, n_smpls):
+        pick_abs_poses = np.array([utils.get_pick_base_pose_and_grasp_from_pick_parameters(self.obj, s)[1]
+                                   for s in pick_samples])
+        encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
+
+        pose_ids[:, -6:-2] = encoded_pick_abs_poses
+        if self.v_manip is None:
+            v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
+            v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
+            v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
+            self.v_manip = v_manip
+
+        state_vec = np.concatenate([collisions, self.v_manip], axis=2)
 
         if 'home' in self.region:
             chosen_sampler = self.policies['place_home']
         else:
             chosen_sampler = self.policies['place_loading']
         place_samples = chosen_sampler.generate(state_vec, pose_ids)
-        return place_samples
 
-    def sample_picks(self, poses, collisions):
-        pick_samples = self.policies['pick'].generate(collisions, poses)
-        pick_samples = self.decode_base_angle_encoding(pick_samples)
-        return pick_samples
+        place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
+        return place_samples
 
     def sample_new_points(self, n_smpls):
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
@@ -243,7 +242,6 @@ class PickPlaceLearnedSampler(LearnedSampler):
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
 
         pick_samples = self.sample_picks(pose_ids, collisions)
-        import pdb;
-        pdb.set_trace()
         place_samples = self.sample_placements(pose_ids, collisions, pick_samples, n_smpls)
-        return np.hstack([pick_samples, place_samples])
+        samples = np.hstack([pick_samples, place_samples])
+        return samples
