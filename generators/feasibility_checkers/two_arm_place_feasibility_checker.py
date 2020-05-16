@@ -49,6 +49,7 @@ class TwoArmPlaceFeasibilityChecker:
             dof_vals = self.robot.GetDOFValues()
             utils.release_obj()
             utils.fold_arms()
+            self.problem_env.set_robot_to_default_dof_values()
             is_base_pose_infeasible = self.env.CheckCollision(self.robot)
             self.robot.SetDOFValues(dof_vals)
             utils.grab_obj(obj)

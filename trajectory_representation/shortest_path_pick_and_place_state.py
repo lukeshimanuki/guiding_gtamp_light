@@ -177,11 +177,7 @@ class ShortestPathPaPState(PaPState):
                 if status == 'HasSolution':
                     break
             [t.Enable(True) for t in self.problem_env.objects]
-            try:
-                assert path is not None, 'Even RRT failed!'
-            except:
-                import pdb;
-                pdb.set_trace()
+            assert path is not None, 'Even RRT failed!'
 
             self.cached_pick_paths[obj] = path
             op_instance.low_level_motion = path
