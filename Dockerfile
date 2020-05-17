@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-runtime-ubuntu16.04
+FROM nvidia/cuda:10.0-runtime-ubuntu16.04
 
 # openrave dependencies
 RUN apt-get update
@@ -37,6 +37,9 @@ RUN apt-get -y install --no-install-recommends wget
 RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc && mv mc /usr/bin
 
 RUN pip install --upgrade --ignore-installed torch==0.4.0
+
+# torch installation
+pip install torch===1.2.0 torchvision===0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # copy qqq
 COPY . /guiding_gtamp_light
