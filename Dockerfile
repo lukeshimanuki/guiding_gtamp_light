@@ -39,7 +39,7 @@ RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc && mv
 RUN pip install --upgrade --ignore-installed torch==0.4.0
 
 # torch installation
-pip install torch===1.2.0 torchvision===0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
+RUN pip install torch===1.2.0 torchvision===0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # copy qqq
 COPY . /guiding_gtamp_light
