@@ -470,6 +470,7 @@ def prm_connect(q1, q2, collision_checker, source=''):
             if not is_collision(idx):
                 start.add(idx)
     #####
+    # todo can I get this set start? It can optimize v_manip computation
 
     path = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision, source)[0]
 
