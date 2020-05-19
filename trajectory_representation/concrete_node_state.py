@@ -15,11 +15,11 @@ class ConcreteNodeState:
 
         self.pick_collision_vector = self.convert_collision_at_prm_indices_to_col_vec(abstract_state.current_collides)
         self.place_collision_vector = None
-
         self.abs_robot_pose = utils.clean_pose_data(utils.get_body_xytheta(self.problem_env.robot))
-        self.abs_obj_pose = utils.clean_pose_data(utils.get_body_xytheta(self.obj))
-        self.abs_goal_obj_poses = [utils.clean_pose_data(utils.get_body_xytheta(o))
-                                   for o in self.problem_env.goal_entities if 'region' not in o]
+        self.abs_obj_pose = utils.clean_pose_data(utils.get_body_xytheta(self.problem_env.env.GetKinBody(self.obj)))
+        self.abs_goal_obj_poses = [np.array([0, 0, 0])]
+        #self.abs_goal_obj_poses = [utils.clean_pose_data(utils.get_body_xytheta(o))
+        #                           for o in self.problem_env.goal_entities if 'region' not in o]
 
     def convert_collision_at_prm_indices_to_col_vec(self, obj_pose_and_obj_name_to_prm_indices_in_collision):
         prm_indices_in_collision = list(set.union(*obj_pose_and_obj_name_to_prm_indices_in_collision.values()))
