@@ -38,7 +38,6 @@ class PickPlaceLearnedSampler(LearnedSampler):
         print "Pick pose encoding time", time.time() - stime
 
         pose_ids[:, -6:-2] = encoded_pick_abs_poses
-        print 'concat time', time.time()-stime
 
         if 'home' in self.region:
             chosen_sampler = self.policies['place_home']
@@ -87,5 +86,4 @@ class PickPlaceLearnedSampler(LearnedSampler):
         print "Place sampling time", time.time() - stime
         samples = np.hstack([pick_samples, place_samples])
         print "Total sampling time", time.time() - stime11
-        import pdb;pdb.set_trace()
         return samples
