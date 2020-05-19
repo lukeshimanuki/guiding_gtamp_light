@@ -1,4 +1,5 @@
 import os
+import sys
 import numpy as np
 import pickle
 
@@ -13,7 +14,7 @@ def get_best_epoch(weight_dir):
 
     max_kde_idx = np.argsort(results[:, 1])[::-1][0]
     max_kde_iteration = iters[max_kde_idx]
-    weight_file = weight_dir + '/gen_iter_%d.pt' % max_kde_iteration
+    weight_file = '/gen_iter_%d.pt' % max_kde_iteration
     return weight_file
 
 
@@ -21,6 +22,12 @@ def send_to_s3(weight_file):
     command = 'mc cp {} {}'.format(weight_file, 'csail/bkim')
     os.system(command)
 
+
+def download_from_s3(weight_file, weight_dir):
+    command = 'mc cp csail/bkim{} {}'.format(weight_file, weight_dir)
+    print command
+    os.system(command)
+    
 
 def main():
     pick_weight_dir = 'generators/learning/learned_weights/pick/wgangp/fc/seed_2/'
@@ -30,9 +37,16 @@ def main():
     place_loading_weight_dir = 'generators/learning/learned_weights/place/loading_region/wgangp/fc/seed_1/'
     place_loading_weight_file = get_best_epoch(place_loading_weight_dir)
 
-    send_to_s3(pick_weight_dir + pick_weight_file)
-    send_to_s3(place_home_weight_dir + place_home_weight_file)
-    send_to_s3(place_loading_weight_dir + place_loading_weight_file)
+    if sys.argv[1] == 'upload':
+        send_to_s3(pick_weight_dir+rick_weight_file)
+        send_to_s3(place_home_weight_dir+place_home_weight_file)
+        send_to_s3(place_loading_weight_dir+place_loading_weight_file)
+    elif sys.argv[1] == 'download':
+        download_from_s3(pick_weight_file, pick_weight_dir)
+        download_from_s3(place_home_weight_file, place_home_weight_dir)
+        download_from_s3(place_loading_weight_file, place_loading_weight_dir)
+    
+    
 
 
 if __name__ == '__main__':
