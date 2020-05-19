@@ -12,6 +12,9 @@ def get_results(fin):
               'place_infeasible_mps': [], 'success': []}
 
     pidxs = [60053, 60023, 60081, 60001, 60021, 60008, 60062, 60079, 60033, 60044, 60031, 60018, 60075, 60050, 60030, 60020, 60098, 60016, 60067, 60061, 60024, 60096, 60005, 60088, 60091, 60010, 60011, 60045, 60006, 60099, 60038, 60083, 60058, 60046, 60029, 60032, 60097, 60039]
+    pidxs = [60089, 60061, 60094, 60075, 60074, 60050, 60096, 60057, 60008, 60088, 60026, 60003, 60010, 60067, 60091,
+             60031, 60006, 60024, 60030, 60062, 60099, 60018, 60011, 60029, 60098, 60083, 60079, 60016, 60045, 60038,
+             60046, 60032, 60058, 60097, 60039]
 
     for l in data:
         pidx = int(l.split(',')[0])
@@ -56,6 +59,7 @@ def average_over_problems(fin):
 
 def main():
     file2 = 'phaedra//uniform_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
+    #file2 = 'phaedra//uniform_sqrt_pap_mps_n_mp_limit_5.txt'
     results2 = get_results(file2)
     print_results(results2, file2)
     file2_avg = average_over_problems(file2)

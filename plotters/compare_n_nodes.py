@@ -25,6 +25,7 @@ def get_n_nodes(target_dir):
 
     print "number of target pidxs", len(target_pidxs)
     successes = []
+    times = []
     for filename in test_files:
         if 'pkl' not in filename:
             print 'File skipped', filename
@@ -56,6 +57,7 @@ def get_n_nodes(target_dir):
         n_iks.append(n_ik)
         n_nodes.append(n_node)
         n_mps.append(n_mp)
+        times.append(fin['tottime'])
         #print filename, n_node
 
     #del n_iks[np.argmax(n_nodes)]
@@ -67,16 +69,17 @@ def get_n_nodes(target_dir):
     print 'n nodes',np.mean(n_nodes), np.std(n_nodes)*1.96/np.sqrt(n_data)
     print 'iks', np.mean(n_iks), np.std(n_iks)*1.96/np.sqrt(n_data)
     print 'mps', np.mean(n_mps), np.std(n_mps)*1.96/np.sqrt(n_data)
+    print 'times', np.mean(times), np.std(times)*1.96/np.sqrt(n_data)
     print "remaining", targets
 
 
 def main():
     print "****Learned****"
-    target_dir = 'test_results/93e53df8344c4540c3cf9417e3dccfd108f54f3a/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
+    target_dir = 'test_results/cb6badde39e27f38b1f7816341d60bc059033374/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/using_cpu/n_mp_limit_5_n_iter_limit_2000/'
     n_nodes = get_n_nodes(target_dir)
 
     print "****UNIFORM****"
-    target_dir = 'test_results/93e53df8344c4540c3cf9417e3dccfd108f54f3a/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    target_dir = 'test_results/cb6badde39e27f38b1f7816341d60bc059033374/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
     n_nodes = get_n_nodes(target_dir)
     
 
