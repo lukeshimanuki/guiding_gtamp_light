@@ -10,6 +10,7 @@ class PickPlaceLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action):
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
         self.v_manip = None
+        self.state_vec = None
         self.samples = self.sample_new_points(self.n_smpl_per_iter)
         self.curr_smpl_idx = 0
 
@@ -37,17 +38,6 @@ class PickPlaceLearnedSampler(LearnedSampler):
         print "Pick pose encoding time", time.time() - stime
 
         pose_ids[:, -6:-2] = encoded_pick_abs_poses
-        if self.v_manip is None:
-            stime = time.time()
-            v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
-            v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
-            print 'vmanip creation time', time.time()-stime
-            v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
-
-            self.v_manip = v_manip
-
-        stime = time.time()
-        state_vec = np.concatenate([collisions, self.v_manip], axis=2)
         print 'concat time', time.time()-stime
 
         if 'home' in self.region:
@@ -56,7 +46,7 @@ class PickPlaceLearnedSampler(LearnedSampler):
             chosen_sampler = self.policies['place_loading']
 
         stime = time.time()
-        place_samples = chosen_sampler.generate(state_vec, pose_ids)
+        place_samples = chosen_sampler.generate(self.state_vec, pose_ids)
         print "prediction time", time.time()-stime
 
         stime = time.time()
@@ -77,6 +67,15 @@ class PickPlaceLearnedSampler(LearnedSampler):
         object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
         pose_ids = np.hstack([poses, object_id])
         collisions = self.smpler_state.pick_collision_vector
+
+        if self.state_vec is None:
+            stime = time.time()
+            v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
+            v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
+            self.state_vec = np.concatenate([collisions, v_manip], axis=2)
+            self.state_vec = np.tile(self.state_vec, (n_smpls, 1, 1, 1))
+            print 'state_vec creation time', time.time()-stime
+
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
         print "input processing time", time.time()-stime
 
