@@ -8,6 +8,7 @@ from gtamp_utils.utils import get_pick_domain, get_place_domain, get_pick_base_p
 
 import torch
 
+
 class Sampler:
     def __init__(self, policy, target_region):
         self.policies = policy
@@ -22,16 +23,13 @@ class Sampler:
 
 class LearnedSampler(Sampler):
     def __init__(self, sampler, abstract_state, abstract_action):
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         Sampler.__init__(self, sampler, abstract_action.discrete_parameters['place_region'])
         self.key_configs = abstract_state.prm_vertices
         self.abstract_state = abstract_state
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
 
-        stime = time.time()
         self.smpler_state = ConcreteNodeState(abstract_state, abstract_action)
-        print "Concrete node creation time", time.time()-stime
         self.n_smpl_per_iter = 2000
 
     def sample_new_points(self, n_smpls):
@@ -61,36 +59,22 @@ class LearnedSampler(Sampler):
 def compute_v_manip(abs_state, goal_objs):
     goal_objs_not_in_goal = [goal_obj for goal_obj in goal_objs if
                              not abs_state.binary_edges[(goal_obj, 'home_region')][0]]
-    v_manip = np.zeros((len(abs_state.prm_vertices), 1))
-    # todo optimize this code
-    init_end_times = 0
-    path_times = 0
-    stime = time.time()
+    v_manip = np.zeros((len(abs_state.prm_vertices)))
     for goal_obj in goal_objs_not_in_goal:
+
         prm_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
-        stime2 = time.time()
-        # todo possible optimization:
-        #   I can use the prm_path[1]'s edge to compute the neighbors, instead of using all of them.
-        distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in abs_state.prm_vertices]
-        init_end_times += time.time() - stime2
-        closest_prm_idx = np.argmin(distances)
-        prm_path.pop(0)
-        prm_path.insert(0, abs_state.prm_vertices[closest_prm_idx, :])
 
-        stime2 = time.time()
-        distances = [utils.base_pose_distance(prm_path[-1], prm_vtx) for prm_vtx in abs_state.prm_vertices]
-        init_end_times += time.time() - stime2
-        closest_prm_idx = np.argmin(distances)
-        prm_path[-1] = abs_state.prm_vertices[closest_prm_idx, :]
+        startset_idxs, prm_idxs = abs_state.cached_place_start_and_prm_idxs[(goal_obj, 'home_region')]
+        startset_idxs = list(startset_idxs)
+        startconfs = abs_state.prm_vertices[startset_idxs]
+        distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in startconfs]
 
-        stime2 = time.time()
-        for p in prm_path:
-            boolean_matching_prm_vertices = np.all(np.isclose(abs_state.prm_vertices[:, :2], p[:2]), axis=-1)
-            if np.any(boolean_matching_prm_vertices):
-                idx = np.argmax(boolean_matching_prm_vertices)
-                v_manip[idx] = 1
-        path_times += time.time() - stime2
-    #print 'v_manip creation time', time.time() - stime
+        q0_closest_prm_idx = startset_idxs[np.argmin(distances)]
+        qg_closest_prm_idx = 74
+        v_manip[prm_idxs] = 1
+        v_manip[q0_closest_prm_idx] = 1
+        v_manip[qg_closest_prm_idx] = 1
+
     return v_manip
 
 
@@ -115,33 +99,33 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         stttt = time.time()
         obj_kinbody = self.abstract_state.problem_env.env.GetKinBody(self.obj)
 
-        stime=time.time()
+        stime = time.time()
         obj_xyth = utils.get_body_xytheta(obj_kinbody)
-        #print 'objxytheta time',time.time()-stime
-        stime =time.time()
-        pick_abs_poses =[]
+        # print 'objxytheta time',time.time()-stime
+        stime = time.time()
+        pick_abs_poses = []
         for s in pick_samples:
-            _, poses  = utils.get_pick_base_pose_and_grasp_from_pick_parameters(obj_kinbody, s, obj_xyth)
+            _, poses = utils.get_pick_base_pose_and_grasp_from_pick_parameters(obj_kinbody, s, obj_xyth)
             pick_abs_poses.append(poses)
-        #print "Pick abs pose time", time.time()-stime
+        # print "Pick abs pose time", time.time()-stime
 
-        stime =time.time()
+        stime = time.time()
         encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
-        #print "Pick pose encoding time", time.time() - stime
+        # print "Pick pose encoding time", time.time() - stime
 
         pose_ids[:, -6:-2] = encoded_pick_abs_poses
         if self.v_manip is None:
             v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
             stime = time.time()
             v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
-            #print 'vmanip conversion time', time.time()-stime
+            # print 'vmanip conversion time', time.time()-stime
             v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
 
             self.v_manip = v_manip
 
-        stime =time.time()
+        stime = time.time()
         state_vec = np.concatenate([collisions, self.v_manip], axis=2)
-        #print 'concat time', time.time()-stime
+        # print 'concat time', time.time()-stime
 
         if 'home' in self.region:
             chosen_sampler = self.policies['place_home']
@@ -150,11 +134,11 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 
         stime = time.time()
         place_samples = chosen_sampler.generate(state_vec, pose_ids)
-        #print "prediction time", time.time()-stime
+        # print "prediction time", time.time()-stime
 
-        stime =time.time()
+        stime = time.time()
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
-        #print "place decoding time", time.time()-stime
+        # print "place decoding time", time.time()-stime
         return place_samples
 
     def sample_new_points(self, n_smpls):
@@ -216,83 +200,3 @@ class PickOnlyLearnedSampler(LearnedSampler):
         pick_samples = self.sample_picks(poses, collisions)
         place_samples = self.sample_placements(n_smpls)
         return np.hstack([pick_samples, place_samples])
-
-
-class PickPlaceLearnedSampler(LearnedSampler):
-    def __init__(self, sampler, abstract_state, abstract_action):
-        
-        LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
-        self.v_manip = None
-        self.samples = self.sample_new_points(self.n_smpl_per_iter)
-        self.curr_smpl_idx = 0
-
-    def sample_picks(self, poses, collisions):
-        pick_samples = self.policies['pick'].generate(collisions, poses)
-        pick_samples = self.decode_base_angle_encoding(pick_samples)
-        return pick_samples
-
-    def sample_placements(self, pose_ids, collisions, pick_samples, n_smpls):
-        stttt = time.time()
-        obj_kinbody = self.abstract_state.problem_env.env.GetKinBody(self.obj)
-
-        stime = time.time()
-        obj_xyth = utils.get_body_xytheta(obj_kinbody)
-        # print 'objxytheta time',time.time()-stime
-        stime = time.time()
-        pick_abs_poses = []
-        for s in pick_samples:
-            _, poses = utils.get_pick_base_pose_and_grasp_from_pick_parameters(obj_kinbody, s, obj_xyth)
-            pick_abs_poses.append(poses)
-        # print "Pick abs pose time", time.time()-stime
-
-        stime = time.time()
-        encoded_pick_abs_poses = np.array([utils.encode_pose_with_sin_and_cos_angle(s) for s in pick_abs_poses])
-        # print "Pick pose encoding time", time.time() - stime
-
-        pose_ids[:, -6:-2] = encoded_pick_abs_poses
-        if self.v_manip is None:
-            v_manip = compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
-            stime = time.time()
-            v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, 618, 2, 1))
-            # print 'vmanip conversion time', time.time()-stime
-            v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
-
-            self.v_manip = v_manip
-
-        stime = time.time()
-        state_vec = np.concatenate([collisions, self.v_manip], axis=2)
-        # print 'concat time', time.time()-stime
-
-        if 'home' in self.region:
-            chosen_sampler = self.policies['place_home']
-        else:
-            chosen_sampler = self.policies['place_loading']
-
-        stime = time.time()
-        place_samples = chosen_sampler.generate(state_vec, pose_ids)
-        # print "prediction time", time.time()-stime
-
-        stime = time.time()
-        place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
-        # print "place decoding time", time.time()-stime
-        #print time.time() - stttt
-        return place_samples
-
-    def sample_new_points(self, n_smpls):
-        stime11 = time.time()
-        poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
-        poses = np.tile(poses, (n_smpls, 1))
-        if 'rectangular' in self.obj:
-            object_id = [1, 0]
-        else:
-            object_id = [0, 1]
-        object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
-        pose_ids = np.hstack([poses, object_id])
-        collisions = self.smpler_state.pick_collision_vector
-        collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-
-        pick_samples = self.sample_picks(pose_ids, collisions)
-        place_samples = self.sample_placements(pose_ids, collisions, pick_samples, n_smpls)
-        samples = np.hstack([pick_samples, place_samples])
-        print "Total sampling time" ,time.time()-stime11
-        return samples
