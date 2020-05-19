@@ -59,13 +59,13 @@ class PickPlaceLearnedSampler(LearnedSampler):
         stime11 = time.time()
         stime = time.time()
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
-        poses = np.tile(poses, (n_smpls, 1))
         if 'rectangular' in self.obj:
             object_id = [1, 0]
         else:
             object_id = [0, 1]
-        object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
+        object_id = np.array(object_id)[None, :]
         pose_ids = np.hstack([poses, object_id])
+        pose_ids = np.tile(pose_ids, (n_smpls, 1))
         collisions = self.smpler_state.pick_collision_vector
 
         if self.state_vec is None:
