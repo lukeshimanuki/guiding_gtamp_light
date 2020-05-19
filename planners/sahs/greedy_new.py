@@ -69,6 +69,7 @@ def get_generator(abstract_state, action, learned_sampler_model, config):
 
 
 def sample_continuous_parameters(abstract_state, abstract_action, abstract_node, learned_sampler_model, config):
+    stime=time.time()
     disc_param = (abstract_action.discrete_parameters['object'], abstract_action.discrete_parameters['place_region'])
 
     we_dont_have_generator_for_this_discrete_action_yet = disc_param not in abstract_node.generators
@@ -144,11 +145,13 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 executed_action = utils.get_body_xytheta(action.discrete_parameters['object']).squeeze()
                 intended_action = action.continuous_parameters['place']['object_pose'].squeeze()
                 placement_poses_match = np.all(np.isclose(executed_action[0:2], intended_action[0:2]))
+                """
                 try:
                     assert placement_poses_match
                 except:
                     import pdb;
                     pdb.set_trace()
+                """
                 print "Action executed"
             else:
                 print "Failed to sample an action"
