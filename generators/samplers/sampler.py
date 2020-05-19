@@ -6,6 +6,7 @@ from trajectory_representation.concrete_node_state import ConcreteNodeState
 from generators.learning.utils import data_processing_utils
 from gtamp_utils.utils import get_pick_domain, get_place_domain, get_pick_base_pose_and_grasp_from_pick_parameters
 
+import torch
 
 class Sampler:
     def __init__(self, policy, target_region):
@@ -21,13 +22,16 @@ class Sampler:
 
 class LearnedSampler(Sampler):
     def __init__(self, sampler, abstract_state, abstract_action):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         Sampler.__init__(self, sampler, abstract_action.discrete_parameters['place_region'])
         self.key_configs = abstract_state.prm_vertices
         self.abstract_state = abstract_state
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
 
+        stime = time.time()
         self.smpler_state = ConcreteNodeState(abstract_state, abstract_action)
+        print "Concrete node creation time", time.time()-stime
         self.n_smpl_per_iter = 2000
 
     def sample_new_points(self, n_smpls):
@@ -86,7 +90,7 @@ def compute_v_manip(abs_state, goal_objs):
                 idx = np.argmax(boolean_matching_prm_vertices)
                 v_manip[idx] = 1
         path_times += time.time() - stime2
-    print 'v_manip creation time', time.time() - stime
+    #print 'v_manip creation time', time.time() - stime
     return v_manip
 
 
@@ -151,7 +155,6 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         stime =time.time()
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
         #print "place decoding time", time.time()-stime
-        print time.time() - stttt
         return place_samples
 
     def sample_new_points(self, n_smpls):
@@ -217,6 +220,7 @@ class PickOnlyLearnedSampler(LearnedSampler):
 
 class PickPlaceLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action):
+        
         LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
         self.v_manip = None
         self.samples = self.sample_new_points(self.n_smpl_per_iter)
@@ -271,10 +275,11 @@ class PickPlaceLearnedSampler(LearnedSampler):
         stime = time.time()
         place_samples = np.array([utils.decode_pose_with_sin_and_cos_angle(s) for s in place_samples])
         # print "place decoding time", time.time()-stime
-        print time.time() - stttt
+        #print time.time() - stttt
         return place_samples
 
     def sample_new_points(self, n_smpls):
+        stime11 = time.time()
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
         poses = np.tile(poses, (n_smpls, 1))
         if 'rectangular' in self.obj:
@@ -285,11 +290,9 @@ class PickPlaceLearnedSampler(LearnedSampler):
         pose_ids = np.hstack([poses, object_id])
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-        stime = time.time()
+
         pick_samples = self.sample_picks(pose_ids, collisions)
-        print 'Pick sampling time', time.time() - stime
-        stime = time.time()
         place_samples = self.sample_placements(pose_ids, collisions, pick_samples, n_smpls)
-        print 'Place sampling time', time.time() - stime
         samples = np.hstack([pick_samples, place_samples])
+        print "Total sampling time" ,time.time()-stime11
         return samples
