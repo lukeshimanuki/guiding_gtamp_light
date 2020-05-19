@@ -2,6 +2,8 @@ import time
 import pickle
 import Queue
 import numpy as np
+import os
+
 
 from node import Node
 from gtamp_utils import utils
@@ -11,7 +13,8 @@ from trajectory_representation.operator import Operator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 from generators.voo import TwoArmVOOGenerator
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
-from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickPlaceLearnedSampler, PickOnlyLearnedSampler
+from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickOnlyLearnedSampler
+from generators.samplers.pick_place_learned_sampler import PickPlaceLearnedSampler
 from generators.samplers.uniform_sampler import UniformSampler
 from generators.samplers.voo_sampler import VOOSampler
 
@@ -97,6 +100,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
     state = statecls(mover, goal)
+
+
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     initnode = Node(None, None, state)
     actions = get_actions(mover, goal, config)
@@ -142,10 +147,10 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
                 action.execute()
+                """
                 executed_action = utils.get_body_xytheta(action.discrete_parameters['object']).squeeze()
                 intended_action = action.continuous_parameters['place']['object_pose'].squeeze()
                 placement_poses_match = np.all(np.isclose(executed_action[0:2], intended_action[0:2]))
-                """
                 try:
                     assert placement_poses_match
                 except:

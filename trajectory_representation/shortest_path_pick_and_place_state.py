@@ -72,6 +72,7 @@ class ShortestPathPaPState(PaPState):
         self.place_used = {}
         self.cached_pick_paths = {}
         self.cached_place_paths = {}
+        self.cached_place_start_and_prm_idxs = {}
         # print self.problem_env.robot.GetDOFValues()
         self.set_cached_pick_paths(parent_state, moved_obj)
         self.set_cached_place_paths(parent_state, moved_obj)
@@ -207,20 +208,28 @@ class ShortestPathPaPState(PaPState):
                     else:
                         goal = region
                     if self.holding_collides is not None:
-                        path, status = motion_planner.get_motion_plan(goal, cached_collisions=self.holding_collides)
+                        path, status, start_and_prm_idxs = motion_planner.get_motion_plan(goal,
+                                                                                          cached_collisions=self.holding_collides,
+                                                                                          return_start_set_and_path_idxs=True)
                     else:
                         # note: self.collides is computed without holding the object.
-                        path, status = motion_planner.get_motion_plan(goal, cached_collisions=self.collides)
+                        path, status, start_and_prm_idxs = motion_planner.get_motion_plan(goal,
+                                                                                          cached_collisions=self.collides,
+                                                                                          return_start_set_and_path_idxs=True)
                     if status == 'HasSolution':
                         self.reachable_regions_while_holding.append((obj, region_name))
                     else:
                         if parent_state_has_cached_path_for_obj and cached_path_is_shortest_path:
                             path = parent_state.cached_place_paths[(obj, region_name)]
+                            start_and_prm_idxs = parent_state.cached_place_start_and_prm_idxs[(obj, region_name)]
                         else:
-                            path, _ = motion_planner.get_motion_plan(goal, cached_collisions={})
+                            path, _, start_and_prm_idxs = motion_planner.get_motion_plan(goal, cached_collisions={},
+                                                                                         return_start_set_and_path_idxs=True)
                 saver.Restore()
                 # assert path is not None
+
                 self.cached_place_paths[(obj, region_name)] = path
+                self.cached_place_start_and_prm_idxs[(obj, region_name)] = start_and_prm_idxs
 
     def get_binary_edges(self):
         self.pick_in_way.set_pick_used(self.pick_used)

@@ -15,15 +15,15 @@ prm_vertices = prm_edges = None
 
 
 def get_number_of_confs_in_between(q1, q2, body):
-    #n = int(
+    # n = int(
     #    np.max(np.abs(np.divide(body.SubtractActiveDOFValues(q1, q2), np.array([0.3, 0.3, 40 * np.pi / 180.0]))))) + 1
     base_conf_diff = utils.base_conf_diff(q1, q2)
     assert base_conf_diff[-1] < np.pi
-    n_angle = int(base_conf_diff[-1] / (30.0/180.0 * np.pi))
+    n_angle = int(base_conf_diff[-1] / (30.0 / 180.0 * np.pi))
     n_xy = int(np.max(base_conf_diff[0:2] / np.array([0.2, 0.2])))
-    #print np.linalg.norm(base_conf_diff[0:2]), n
+    # print np.linalg.norm(base_conf_diff[0:2]), n
     return max(n_xy, n_angle)
-    #return n_xy
+    # return n_xy
 
 
 def leftarm_torso_linear_interpolation(body, q1, q2, resolution):  # Sequence doesn't include q1
@@ -354,7 +354,7 @@ def find_prm_path(start, goal_fns, heuristic, is_collision, source=''):
             if is_collision(next):  # I think this can be lazily checked?
                 continue
 
-            #for i, goal_fn in enumerate(goal_fns):
+            # for i, goal_fn in enumerate(goal_fns):
             if results[0] is None and goal_fns[0](next):
                 # what does results[i] supposed to hold? The path and next node if the next node is a goal node.
                 results[0] = path + [next]
@@ -363,7 +363,7 @@ def find_prm_path(start, goal_fns, heuristic, is_collision, source=''):
                 newdist = dist + np.linalg.norm(prm_vertices[vertex] - prm_vertices[next])
                 queue.put((newdist + heuristic(next), newdist, np.random.rand(), next, path + [next]))
 
-    #if source == 'sampler' and results[0] is None:
+    # if source == 'sampler' and results[0] is None:
     #    import pdb; pdb.set_trace()
 
     # todo keep track of the configuration that is closest to the goal config
@@ -377,7 +377,7 @@ def init_prm():
         prm_vertices, prm_edges = pickle.load(open('./prm.pkl', 'rb'))
 
 
-def prm_connect(q1, q2, collision_checker, source=''):
+def prm_connect(q1, q2, collision_checker, source='', return_start_set_and_path_idxs=False):
     global prm_vertices
     global prm_edges
 
@@ -396,8 +396,6 @@ def prm_connect(q1, q2, collision_checker, source=''):
     collision_checker_is_set = isinstance(collision_checker, set)
     no_collision_checking = collision_checker_is_set and len(collision_checker) == 0
 
-    # todo I cannot read this code below and understand what happens when q2 is a region
-
     ## Base case checks
     if not no_collision_checking:
         env = openravepy.RaveGetEnvironment(1)
@@ -406,38 +404,55 @@ def prm_connect(q1, q2, collision_checker, source=''):
 
         if non_prm_config_collision_checker(q1):
             print "Collision at init config"
-            return None
+            if return_start_set_and_path_idxs:
+                return None, None
+            else:
+                return None
 
         if is_single_goal and non_prm_config_collision_checker(q2):
             print "Collision at goal config"
-            return None
+            if return_start_set_and_path_idxs:
+                return None, None
+            else:
+                return None
 
         if is_multiple_goals:
             q2_original = q2
             q2 = [q_goal for q_goal in q2_original if not non_prm_config_collision_checker(q_goal)]
 
             if len(q2) == 0:
-                return None
+                if return_start_set_and_path_idxs:
+                    return None, None
+                else:
+                    return None
 
     if is_single_goal and are_base_confs_close_enough(q1, q2, xy_threshold=0.8, th_threshold=50.):
-        return [q1, q2]
+        if return_start_set_and_path_idxs:
+            return [q1, q2], None
+        else:
+            return [q1, q2]
+
 
     if is_multiple_goals:
         for q_goal in q2:
             if are_base_confs_close_enough(q1, q_goal, xy_threshold=0.8, th_threshold=50.):
-                return [q1, q_goal]
+                if return_start_set_and_path_idxs:
+                    return [q1, q_goal], None
+                else:
+                    return [q1, q_goal]
     ###
 
     ## Defines a goal test function
     if is_multiple_goals:
         close_points = []
+
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
             goals = q2
             if len(q.squeeze()) != 3:
                 raise NotImplementedError
 
-            #if source == 'sampler':
+            # if source == 'sampler':
             #    diff = utils.base_conf_diff(q, q2[0])
             #    xydist = np.linalg.norm(diff[0:2])
             #    if xydist < 0.8:
@@ -453,6 +468,7 @@ def prm_connect(q1, q2, collision_checker, source=''):
         def is_connected_to_goal(prm_vertex_idx):
             q = prm_vertices[prm_vertex_idx]
             return are_base_confs_close_enough(q, q2, xy_threshold=0.8, th_threshold=52.)
+
     #####
 
     def heuristic(q):
@@ -472,20 +488,23 @@ def prm_connect(q1, q2, collision_checker, source=''):
     #####
     # todo can I get this set start? It can optimize v_manip computation
 
-    path = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision, source)[0]
+    path_idxs = find_prm_path(start, [is_connected_to_goal], heuristic, is_collision, source)[0]
+    # distances = [utils.base_pose_distance(q2[0], prm_vtx) for prm_vtx in prm_vertices]
 
-    #if source == 'sampler':
+    # if source == 'sampler':
     #    import pdb;pdb.set_trace()
-
-    if path is not None:
-        path = [q1] + [prm_vertices[i] for i in path]
+    if path_idxs is not None:
+        path = [q1] + [prm_vertices[i] for i in path_idxs]
         if is_single_goal:
             path += [q2]
         elif is_multiple_goals:
             path += [get_goal_config_used(path, q2)]
-        return path
+        if return_start_set_and_path_idxs:
+            return path, (start, path_idxs)
+        else:
+            return path
     else:
-        return None
+        return None, (start, path_idxs)
 
 
 def direct_path(q1, q2, extend, collision):
