@@ -38,7 +38,7 @@ def main():
     place_loading_weight_file = get_best_epoch(place_loading_weight_dir)
 
     if sys.argv[1] == 'upload':
-        send_to_s3(pick_weight_dir+rick_weight_file)
+        send_to_s3(pick_weight_dir+pick_weight_file)
         send_to_s3(place_home_weight_dir+place_home_weight_file)
         send_to_s3(place_loading_weight_dir+place_loading_weight_file)
     elif sys.argv[1] == 'download':
