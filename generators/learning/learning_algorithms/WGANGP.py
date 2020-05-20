@@ -60,7 +60,7 @@ class WGANgp:
             os.makedirs(self.weight_dir)
 
     def load_best_weights(self):
-        if socket.get_hostname() == 'phaedra' or socket.get_hostname() == 'shakey':
+        if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey':
             result_dir = self.weight_dir + '/result_summary/'
             assert os.path.isdir(result_dir), "Did you run plotters/evaluate_generators.py?"
             result_files = os.listdir(result_dir)
