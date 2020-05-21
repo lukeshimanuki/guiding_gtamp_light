@@ -76,9 +76,9 @@ class WGANgp:
             print "On cloud. Loading the only weight"
             weight_file = os.listdir(self.weight_dir)[0]
             if 'cpu' in self.device.type:
-                self.generator.load_state_dict(torch.load(weight_file, map_location=torch.device('cpu')))
+                self.generator.load_state_dict(torch.load(self.weight_dir+'/'+weight_file, map_location=torch.device('cpu')))
             else:
-                self.generator.load_state_dict(torch.load(weight_file))
+                self.generator.load_state_dict(torch.load(self.weight_dir+'/'+weight_file))
 
     def create_models(self):
         if self.architecture == 'fc':
