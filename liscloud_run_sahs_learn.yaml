@@ -5,7 +5,7 @@ metadata:
   labels:
     experiment: NAME
 spec:
-  ttlSecondsAfterFinished: 0
+  ttlSecondsAfterFinished: 100
   template:
     spec:
       containers:
@@ -22,7 +22,8 @@ spec:
           && python move_best_weights_on_s3.py download
           && export PYTHONPATH=/guiding_gtamp_light/openrave_wrapper/manipulation:/guiding_gtamp_light/openrave_wrapper:/guiding_gtamp_light:/guiding_gtamp_light/mover_library:/pddlstream
           && python ./test_scripts/run_greedy.py -pidx PIDX -planner_seed PLANSEED -domain two_arm_mover -mse_weight 1.0 -h_option qlearned_hcount_old_number_in_goal -problem_type normal -pick_architecture fc -n_mp_limit 5 -num_node_limit 3000 -absq_seed 0 -pick_sampler_seed 2 -place_architecture fc -n_iter_limit 2000 -mixrate 1.0 -loss largemargin -num_train 5000 -n_objs_pack 4 -atype place -explr_p 0.3 -timelimit 9999 -home_sampler_seed 0 -loading_sampler_seed 1 -use_learning -atype pick_and_place
-          && mc cp -r test_results csail/bkim/guiding-gtamp; echo finished'
+          && mc cp -r test_results csail/bkim/guiding-gtamp
+          && echo finished'
         envFrom:
           - secretRef:
               name: openstack-s3
