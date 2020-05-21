@@ -5,7 +5,9 @@ import numpy as np
 import time
 import pickle
 
-#from sklearn.neighbors import KernelDensity
+import socket
+if socket.gethostname() == 'phaedra':
+    from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
 
@@ -13,7 +15,6 @@ from torch_wgangp_models.fc_models import Generator, Discriminator
 from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
 
 from gtamp_utils import utils
-import socket
 
 
 def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_data, batch_size, use_cuda):

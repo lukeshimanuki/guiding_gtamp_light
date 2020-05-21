@@ -32,10 +32,10 @@ def download_from_s3(weight_file, weight_dir):
 def main():
     pick_weight_dir = 'generators/learning/learned_weights/pick/wgangp/fc/seed_2/'
     pick_weight_file = '/gen_iter_106700.pt' #get_best_epoch(pick_weight_dir)
-    place_home_weight_dir = 'generators/learning/learned_weights/place/home_region/wgangp/fc/seed_0/'
-    place_home_weight_file = '/gen_iter_35900.pt' #get_best_epoch(place_home_weight_dir)
-    place_loading_weight_dir = 'generators/learning/learned_weights/place/loading_region/wgangp/fc/seed_1/'
-    place_loading_weight_file = '/gen_iter_16500.pt' #get_best_epoch(place_loading_weight_dir)
+    place_home_weight_dir = 'generators/learning/learned_weights/place/home_region/wgangp/fc/seed_3/'
+    place_home_weight_file = '/gen_iter_92000.pt' #get_best_epoch(place_home_weight_dir)
+    place_loading_weight_dir = 'generators/learning/learned_weights/place/loading_region/wgangp/fc/seed_3/'
+    place_loading_weight_file = '/gen_iter_13400.pt' #get_best_epoch(place_loading_weight_dir)
 
     if sys.argv[1] == 'upload':
         send_to_s3(pick_weight_dir+pick_weight_file)

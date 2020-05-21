@@ -116,7 +116,7 @@ class GeneratorDataset(Dataset):
                 if action_type == 'pick':
                     collision_vec = s.pick_collision_vector
                 elif action_type == 'place':
-                    collision_vec = s.place_collision_vector
+                    collision_vec = s.pick_collision_vector
                 else:
                     raise NotImplementedError
 
