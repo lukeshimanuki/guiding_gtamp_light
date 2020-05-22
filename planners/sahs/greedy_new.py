@@ -4,7 +4,6 @@ import Queue
 import numpy as np
 import os
 
-
 from node import Node
 from gtamp_utils import utils
 from trajectory_representation.operator import Operator
@@ -73,7 +72,7 @@ def get_generator(abstract_state, action, learned_sampler_model, config):
 
 
 def sample_continuous_parameters(abstract_state, abstract_action, abstract_node, learned_sampler_model, config):
-    stime=time.time()
+    stime = time.time()
     disc_param = (abstract_action.discrete_parameters['object'], abstract_action.discrete_parameters['place_region'])
 
     we_dont_have_generator_for_this_discrete_action_yet = disc_param not in abstract_node.generators
@@ -101,7 +100,6 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
     state = statecls(mover, goal)
-
 
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     initnode = Node(None, None, state)
@@ -148,16 +146,6 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
                 action.execute()
-                """
-                executed_action = utils.get_body_xytheta(action.discrete_parameters['object']).squeeze()
-                intended_action = action.continuous_parameters['place']['object_pose'].squeeze()
-                placement_poses_match = np.all(np.isclose(executed_action[0:2], intended_action[0:2]))
-                try:
-                    assert placement_poses_match
-                except:
-                    import pdb;
-                    pdb.set_trace()
-                """
                 print "Action executed"
             else:
                 print "Failed to sample an action"
@@ -196,9 +184,10 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             else:
                 mover.enable_objects()
                 current_region = mover.get_region_containing(obj).name
-                papg = OneArmPaPUniformGenerator(action, mover, cached_picks=(
-                    node.state.iksolutions[current_region], node.state.iksolutions[r]))
-                pick_params, place_params, status = papg.sample_next_point(500)
+                papg = OneArmPaPUniformGenerator(action, mover, n_iter_limit=config.n_iter_limit,
+                                                 cached_picks=(node.state.iksolutions[current_region],
+                                                               node.state.iksolutions[r]))
+                pick_params, place_params, status = papg.sample_next_point(cont_param_type='discretized')
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
