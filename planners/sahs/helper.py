@@ -4,6 +4,7 @@ from trajectory_representation.shortest_path_pick_and_place_state import Shortes
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
 from learn.data_traj import get_actions as convert_action_to_predictable_form
 import numpy as np
+import openravepy
 
 
 def get_actions(mover, goal, config):
@@ -142,4 +143,11 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
         discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
         node.set_heuristic(discrete_params, hval)
         action_queue.put((hval, float('nan'), a, node))  # initial q
-        print "%35s %35s  hval %.4f" % (a.discrete_parameters['object'], a.discrete_parameters['place_region'], hval)
+
+        obj = a.discrete_parameters['object'].GetName()
+        if not (isinstance(obj, str) or  isinstance(obj, unicode)):
+            obj = obj.GetName()
+        region = a.discrete_parameters['place_region']
+        if not (isinstance(region, str)):
+            region = region.name
+        print "%35s %35s  hval %.4f" % (obj, region, hval)
