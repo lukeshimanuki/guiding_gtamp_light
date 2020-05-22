@@ -19,7 +19,8 @@ class BaseMotionPlanner(MotionPlanner):
         MotionPlanner.__init__(self, problem_env)
         self.algorithm = algorithm
 
-    def get_motion_plan(self, goal, region_name='entire_region', n_iterations=None, cached_collisions=None, source=''):
+    def get_motion_plan(self, goal, region_name='entire_region', n_iterations=None, cached_collisions=None, source='',
+                        return_start_set_and_path_idxs=False):
         self.problem_env.robot.SetActiveDOFs([], DOFAffine.X | DOFAffine.Y | DOFAffine.RotationAxis, [0, 0, 1])
 
         if region_name == 'bridge_region':
@@ -62,11 +63,18 @@ class BaseMotionPlanner(MotionPlanner):
                         return path, 'HasSolution'
         else:
             planning_algorithm = prm_connect
-            path = planning_algorithm(q_init, goal, c_fn, source)
+            if return_start_set_and_path_idxs:
+                path, start_and_prm_idxs = planning_algorithm(q_init, goal, c_fn, source, return_start_set_and_path_idxs)
+            else:
+                path = planning_algorithm(q_init, goal, c_fn, source, return_start_set_and_path_idxs)
+
             if path is not None:
                 status = "HasSolution"
 
-        return path, status
+        if return_start_set_and_path_idxs:
+            return path, status, start_and_prm_idxs
+        else:
+            return path, status
 
 
 class ArmBaseMotionPlanner(MotionPlanner):

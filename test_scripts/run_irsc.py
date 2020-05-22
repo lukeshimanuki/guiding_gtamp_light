@@ -28,7 +28,7 @@ ROOTDIR = './'
 
 
 def make_and_get_save_dir(parameters):
-    save_dir = ROOTDIR + '/planning_experience/irsc/'
+    save_dir = ROOTDIR + '/test_results/irsc/'
     save_dir += parameters.domain + '/n_objs_pack_'
     save_dir += str(parameters.n_objs_pack)
 

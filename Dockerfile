@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-runtime-ubuntu16.04
+FROM nvidia/cuda:10.0-runtime-ubuntu16.04
 
 # openrave dependencies
 RUN apt-get update
@@ -26,7 +26,7 @@ RUN cd openrave && git checkout 9c79ea260e1c009b0a6f7c03ec34f59629ccbe2c && mkdi
 # other ggl dependencies
 RUN apt-get update && apt-get -y install --no-install-recommends cmake g++ g++-multilib make python python-tk python-pip libcudnn7=7.0.5.15-1+cuda9.0 libcuda1-440
 RUN pip install --upgrade pip==19.0.3 setuptools==39.1.0
-RUN pip install --upgrade --ignore-installed numpy==1.14.5 scipy==1.2.2 pybullet==2.4.1 sympy==0.7.1 tensorflow-gpu==1.10.0
+RUN pip install --upgrade --ignore-installed numpy==1.14.5 scipy==1.2.2 pybullet==2.4.1 sympy==0.7.1 tensorflow-gpu==1.13.1
 
 # pddlstream + fastdownward
 RUN git clone git://github.com/caelan/pddlstream.git
@@ -37,6 +37,9 @@ RUN apt-get -y install --no-install-recommends wget
 RUN wget https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc && mv mc /usr/bin
 
 RUN pip install --upgrade --ignore-installed torch==0.4.0
+
+# torch installation
+RUN pip install torch===1.2.0 torchvision===0.4.0 -f https://download.pytorch.org/whl/torch_stable.html
 
 # copy qqq
 COPY . /guiding_gtamp_light

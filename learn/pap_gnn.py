@@ -163,9 +163,12 @@ class PaPGNN(GNN):
         else:
             concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
 
+        # The msg model has the same number of dimensions as the sender model
         msg_network = msg_model(concat_layer)
         msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
-
+        # for testing purpose; delete it later
+        inputs = [self.node_input, self.edge_input, self.action_input]
+        self.first_msg_agg = self.make_model(inputs, msg_aggregation_layer, 'first_msg_agg')
         # rounds of msg passing
         for i in range(config.n_msg_passing):
             if same_model_for_sender_and_dest:
@@ -173,6 +176,35 @@ class PaPGNN(GNN):
                 concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
             else:
                 region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
+                # todo
+                #   This is conceptually different from what I have written in the paper and needs to be fixed.
+                #   Unfortunately, I do not have time to re-run experiments at the moment, so here I write
+                #   how it should have been.
+                #   Our GNN two disconnected graphs, one for each region. In each component of the graph,
+                #   we have the value of moving object to the region. Suppose we have two objects
+                #   and two regions, o1, o2 and r1 and r2. Then, we have two disconnected graphs where one component
+                #   encodes value of moving o1 to r1 and o2 to r1, and the other for o1 to r2 and o2 to r2
+                #   Within each component, the graph is fully connected.
+                #   For each edge between o1 and o2, we encode the unary predicates of o1, o2, and
+                #   its corresponding region, say r1, as well as binary predicates between
+                #   o1 and r1 and o2 and r1. A ternary predicate is also encoded for o1, o2, and r1.
+                #   To compute the messages, we first compute node values at o1 and o2, using f(o;\theta_1).
+                #   We then compute the edges values using f(edge(o1,o2,r1); \theta_2)
+                #   We aggregate the message at node o1 using averaging, which in this case would be just
+                #   agg_msg_o1 = f(edge(o1,o2,r1); theta2)
+                #   A new node value is computed by a new function: new_value_at_o1_for_r = f(agg_msg_o1; \theta_3)
+                # todo
+                #   Unfortunately, this is not what I have. I need to:
+                #   - Create a new node feature for each region. Right now, I use
+                #     new_value_at_o1_for_r1 where it should have been new_value_at_o1_for_r2, using
+                #     region_agnostic_msg_value
+                #   To do this, keep separate values for each region.
+                #   Create a new node input that corresponds to different regions
+                #   Fix L79. It should not repeat the src_dest_concatenated, but use appropriate value
+                #   for the corresponding region.
+
+                #   That is, sender_network_r1 and sender_networ_r2
+
                 val = region_agnostic_msg_value(msg_aggregation_layer)
                 sender_network = sender_model(val)
                 dest_network = dest_model(val)
@@ -181,8 +213,7 @@ class PaPGNN(GNN):
             msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
             # todo it is saturating here when I use relu?
 
-        # for testing purpose; delete it later
-        inputs = [self.node_input, self.edge_input, self.action_input]
+        self.second_msg_agg = self.make_model(inputs, msg_aggregation_layer, 'second_msg_agg')
         self.msg_model = self.make_model(inputs, msg_network, 'msg_model')
         self.concat_model = self.make_model(inputs, concat_layer, 'concat_model')
         if same_model_for_sender_and_dest:

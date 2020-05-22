@@ -4,6 +4,7 @@ from trajectory_representation.shortest_path_pick_and_place_state import Shortes
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
 from learn.data_traj import get_actions as convert_action_to_predictable_form
 import numpy as np
+import openravepy
 
 
 def get_actions(mover, goal, config):
@@ -58,9 +59,13 @@ def get_state_class(domain):
 def compute_hcount_old_number_in_goal(state, action):
     problem_env = state.problem_env
     target_o = action.discrete_parameters['object']
+    if type(target_o) != str and type(target_o) != unicode:
+        target_o = target_o.GetName()
     target_r = action.discrete_parameters['place_region']
+    if type(target_r) != str and type(target_r) != unicode:
+        target_r = target_r.name
     region_is_goal = state.nodes[target_r][8]
-    goal_region = 'home_region'
+    goal_region = problem_env.goal_region
     hcount = compute_hcount(state)
     given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
     number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
@@ -138,4 +143,11 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
         discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
         node.set_heuristic(discrete_params, hval)
         action_queue.put((hval, float('nan'), a, node))  # initial q
-        print "%35s %35s  hval %.4f" % (a.discrete_parameters['object'], a.discrete_parameters['place_region'], hval)
+
+        obj = a.discrete_parameters['object'].GetName()
+        if not (isinstance(obj, str) or  isinstance(obj, unicode)):
+            obj = obj.GetName()
+        region = a.discrete_parameters['place_region']
+        if not (isinstance(region, str)):
+            region = region.name
+        print "%35s %35s  hval %.4f" % (obj, region, hval)

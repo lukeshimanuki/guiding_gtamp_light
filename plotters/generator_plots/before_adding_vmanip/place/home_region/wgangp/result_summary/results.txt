@@ -1,0 +1,4 @@
+Max KDE epoch 590 
+Max KDE -97.0467438463 
+Max KDE entropy 2.69765002002 
+Max KDE min MSE 1.19478881674

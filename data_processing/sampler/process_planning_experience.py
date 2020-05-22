@@ -38,6 +38,7 @@ def save_traj(traj, save_fname):
     # making picklable
     for state in traj.states:
         state.problem_env = None
+        state.abstract_state = None
     traj.problem_env = None
     pickle.dump(traj, open(save_fname, 'wb'))
 

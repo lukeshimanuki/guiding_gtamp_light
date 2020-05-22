@@ -1,14 +1,14 @@
 import torch
-from models import BaseGenerator, BaseDiscriminator
+from models import BaseModel
 
 
-class CNNDiscriminator(BaseDiscriminator):
-    def __init__(self, dim_konf, dim_actions):
-        BaseDiscriminator.__init__(self, dim_konf)
+class CNNDiscriminator(BaseModel):
+    def __init__(self, dim_konf, dim_data, atype, region):
+        BaseModel.__init__(self, dim_konf, atype, region)
         n_hidden = 32
         self.features = \
             torch.nn.Sequential(
-                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 8)),
+                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4 + 4 + 4 + 2)),
                 torch.nn.LeakyReLU(),
                 torch.nn.Conv2d(n_hidden, n_hidden, kernel_size=(1, 1)),
                 torch.nn.LeakyReLU(),
@@ -19,20 +19,21 @@ class CNNDiscriminator(BaseDiscriminator):
                 torch.nn.LeakyReLU(),
                 torch.nn.MaxPool2d(kernel_size=(2, 1))
             )
+
         self.value = \
             torch.nn.Sequential(
-                torch.nn.Linear(32 * 154, 32),
+                torch.nn.Linear(self.dim_cnn_features, 32),
                 torch.nn.ReLU(),
                 torch.nn.Linear(32, 32),
                 torch.nn.ReLU(),
                 torch.nn.Linear(32, 1)
             )
 
-    def forward(self, action, konf, pose):
-        action_expanded = action.unsqueeze(1).repeat((1, 618, 1)).unsqueeze(-1)
-        robot_curr_pose = pose[:, -4:]
-        robot_curr_pose_expanded = robot_curr_pose.unsqueeze(1).repeat((1, 618, 1)).unsqueeze(-1)
-        concat = torch.cat([action_expanded, robot_curr_pose_expanded, konf], dim=2)
+    def forward(self, action, konf, pose_ids):
+        konf, pose_ids = self.filter_data_according_to_cases(konf, pose_ids)
+        pose_ids = pose_ids.unsqueeze(1).repeat((1, self.n_konfs, 1)).unsqueeze(-1)
+        action_expanded = action.unsqueeze(1).repeat((1, self.n_konfs, 1)).unsqueeze(-1)
+        concat = torch.cat([action_expanded, pose_ids, konf], dim=2)
         concat = concat.reshape((concat.shape[0], concat.shape[-1], concat.shape[1], concat.shape[2]))
 
         features = self.features(concat)
@@ -41,14 +42,13 @@ class CNNDiscriminator(BaseDiscriminator):
         return value
 
 
-class CNNGenerator(BaseGenerator):
-    def __init__(self, dim_konf, dim_data):
-        BaseGenerator.__init__(self, dim_konf)
+class CNNGenerator(BaseModel):
+    def __init__(self, dim_konf, dim_data, atype, region):
+        BaseModel.__init__(self, dim_konf, atype, region)
         n_hidden = 32
-
         self.features = \
             torch.nn.Sequential(
-                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4)),
+                torch.nn.Conv2d(1, n_hidden, kernel_size=(1, self.dim_konf + 4 + 4 + 2)),
                 torch.nn.LeakyReLU(),
                 torch.nn.Conv2d(n_hidden, n_hidden, kernel_size=(1, 1)),
                 torch.nn.LeakyReLU(),
@@ -61,16 +61,16 @@ class CNNGenerator(BaseGenerator):
             )
         self.value = \
             torch.nn.Sequential(
-                torch.nn.Linear(32 * 154 + dim_data, 32),
+                torch.nn.Linear(self.dim_cnn_features + dim_data, 32),  # for noise
                 torch.nn.ReLU(),
                 torch.nn.Linear(32, 32),
                 torch.nn.ReLU(),
                 torch.nn.Linear(32, dim_data))
 
-    def forward(self, konf, pose, noise):
-        robot_curr_pose = pose[:, -4:]
-        robot_curr_pose_expanded = robot_curr_pose.unsqueeze(1).repeat((1, 618, 1)).unsqueeze(-1)
-        concat = torch.cat([robot_curr_pose_expanded, konf], dim=2)
+    def forward(self, konf, pose_ids, noise):
+        konf, pose_ids = self.filter_data_according_to_cases(konf, pose_ids)
+        pose_ids = pose_ids.unsqueeze(1).repeat((1, self.n_konfs, 1)).unsqueeze(-1)
+        concat = torch.cat([pose_ids, konf], dim=2)
         concat = concat.reshape((concat.shape[0], concat.shape[-1], concat.shape[1], concat.shape[2]))
 
         features = self.features(concat)

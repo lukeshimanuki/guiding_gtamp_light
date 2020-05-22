@@ -1,10 +1,17 @@
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 from generators.learning.train_torch_sampler import get_data_generator
+from generators.learning.datasets.GeneratorDataset import StandardDataset
 
 import pickle
 import os
 import argparse
+from generators.learning.train_torch_sampler import get_data_generator
 
+
+#def get_data_generator(action_type, region):
+#    dataset = StandardDataset(action_type, region, True, is_testing=True)
+#    batch_size = 32
+#    return dataset
 
 def main():
     parser = argparse.ArgumentParser('config')
@@ -12,9 +19,10 @@ def main():
     parser.add_argument('-region', type=str, default='home_region')
     parser.add_argument('-iteration', type=int, default=0)
     parser.add_argument('-architecture', type=str, default='fc')
+    parser.add_argument('-seed', type=int, default=0)
     config = parser.parse_args()
 
-    model = WGANgp(config.atype, config.region, config.architecture)
+    model = WGANgp(config.atype, config.region, config.architecture, config.seed)
 
     fdir = model.weight_dir + '/result_summary/'
     if not os.path.isdir(fdir):
@@ -26,7 +34,7 @@ def main():
         print "*******Already done*******"
         return
     else:
-        trainloader, trainset, testset = get_data_generator(config.atype, config.region)
+        _, _, testset = get_data_generator(config.atype, config.region, seed=0)
         result = model.evaluate_generator(testset, iteration=config.iteration)
         pickle.dump(result, open(fdir + fname, 'wb'))
 

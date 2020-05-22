@@ -1,6 +1,7 @@
 from gtamp_utils import utils
 import numpy as np
 
+
 def c_outside_threshold(c, configs, xy_threshold, th_threshold):
     min_dist = np.inf
     c = np.array(c)
@@ -16,7 +17,7 @@ def c_outside_threshold(c, configs, xy_threshold, th_threshold):
     return True
 
 
-def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20*np.pi/180):
+def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20 * np.pi / 180):
     configs = []
     for c in path:
         print len(configs)
@@ -28,6 +29,7 @@ def filter_configs_that_are_too_close(path, xy_threshold=0.2, th_threshold=20*np
             configs.append(c)
 
     return configs
+
 
 def make_konfs_relative_to_pose(obj_pose, key_configs):
     rel_konfs = []
@@ -41,10 +43,10 @@ def make_konfs_relative_to_pose(obj_pose, key_configs):
 
 
 def get_processed_poses_from_state(state, state_data_mode):
-    if state_data_mode == 'absolute':
-        obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
-        curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
-        goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
+    obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
+    curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
+    goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
+    """
     elif state_data_mode == 'robot_rel_to_obj':
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
         robot_pose = utils.get_relative_robot_pose_wrt_body_pose(state.abs_robot_pose, state.abs_obj_pose)
@@ -55,6 +57,7 @@ def get_processed_poses_from_state(state, state_data_mode):
         goal_obj_poses = np.hstack(goal_obj_poses)
     else:
         raise not NotImplementedError
+    """
     pose = np.hstack([obj_pose, goal_obj_poses, curr_robot_pose])
     return pose
 
