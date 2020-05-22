@@ -118,6 +118,8 @@ class PaPOneArmMoverEnv(OneArmMover):
         self.goal = goal
         self.goal_region = goal[0]
         self.goal_objects = goal[1:]
+        self.goal_entities = self.goal_objects + [self.goal_region]
+
 
     def get_applicable_ops(self, parent_op=None):
         actions = []
