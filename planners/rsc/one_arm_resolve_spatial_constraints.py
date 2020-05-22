@@ -24,7 +24,8 @@ def attach_q_goal_as_low_level_motion(target_op_inst):
 
 
 class OneArmResolveSpatialConstraints:
-    def __init__(self, problem_env, goal_object_name, goal_region_name):
+    def __init__(self, problem_env, goal_object_name, goal_region_name, config):
+        self.config = config
         self.objects_moved_before = []
         self.plan = []
         self.objects_in_collision = []
@@ -241,11 +242,11 @@ class OneArmResolveSpatialConstraints:
                            discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
                                                 'place_region': self.problem_env.regions[r]})
 
-        papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
-                                         cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
-
-        num_tries = 200
-        pick_params, place_params, status = papg.sample_next_point(num_tries)
+        papg = OneArmPaPUniformGenerator(op_skel,
+                                         self.problem_env,
+                                         cached_picks=(self.iksolutions[current_region], self.iksolutions[r]),
+                                         n_iter_limit=self.config.n_iter_limit)
+        pick_params, place_params, status = papg.sample_next_point(cont_param_type='discretized')
         if 'HasSolution' in status:
             self.pap_params[(obj, r)].append((pick_params, place_params))
             self.pick_params[obj].append(pick_params)
