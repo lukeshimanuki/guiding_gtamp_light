@@ -41,7 +41,7 @@ RUN pip install --upgrade --ignore-installed torch==0.4.0
 # torch installation
 RUN pip install torch===1.2.0 torchvision===0.4.0 -f https://download.pytorch.org/whl/torch_stable.html=
 
-RUN pip install sklearn
+RUN pip install scikit-learn==0.20.4
 
 # copy qqq
 COPY . /guiding_gtamp_light
