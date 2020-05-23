@@ -55,7 +55,8 @@ class OneArmResolveSpatialConstraints:
         self.number_of_nodes = 0
 
         ikcachename = './ikcache.pkl'
-        self.iksolutions = {}
+        import collections
+        self.iksolutions = collections.defaultdict(list)
         if os.path.isfile(ikcachename):
             self.iksolutions = pickle.load(open(ikcachename, 'r'))
 
@@ -245,7 +246,7 @@ class OneArmResolveSpatialConstraints:
                                          cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
 
         num_tries = 200
-        pick_params, place_params, status = papg.sample_next_point(num_tries)
+        pick_params, place_params, status = papg.sample_next_point(max_ik_attempts=num_tries)
         if 'HasSolution' in status:
             self.pap_params[(obj, r)].append((pick_params, place_params))
             self.pick_params[obj].append(pick_params)

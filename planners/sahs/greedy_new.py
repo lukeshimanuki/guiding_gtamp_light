@@ -187,7 +187,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 papg = OneArmPaPUniformGenerator(action, mover, n_iter_limit=config.n_iter_limit,
                                                  cached_picks=(node.state.iksolutions[current_region],
                                                                node.state.iksolutions[r]))
-                pick_params, place_params, status = papg.sample_next_point(cont_param_type='discretized')
+                pick_params, place_params, status = papg.sample_next_point(cont_param_type='cont')
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:

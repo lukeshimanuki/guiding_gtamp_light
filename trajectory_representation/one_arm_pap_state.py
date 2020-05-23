@@ -35,13 +35,14 @@ class OneArmPaPState(PaPState):
 
         # cache ik solutions
         ikcachename = './ikcache.pkl'
-        self.iksolutions = {}
+        import collections
         if parent_state is not None:
             self.iksolutions = parent_state.iksolutions
         elif os.path.isfile(ikcachename):
             self.iksolutions = pickle.load(open(ikcachename, 'r'))
         else:
-            self.compute_and_cache_ik_solutions(ikcachename)
+            #self.compute_and_cache_ik_solutions(ikcachename)
+            self.iksolutions = collections.defaultdict(list)
 
         # ik solutions contain 1000 paps.
         # Suppose at each state, we try 15 ik attempts for each object (the number we have for  non-goal-entities).
@@ -338,7 +339,7 @@ class OneArmPaPState(PaPState):
                 # I think num_iters is the number of paps for each object
                 nocollision = False
                 for _ in range(num_iters - len(self.pap_params[(obj, r)])):
-                    pick_params, place_params, status = papg.sample_next_point(cont_param_type='discretized')
+                    pick_params, place_params, status = papg.sample_next_point(cont_param_type='cont')
                     if 'HasSolution' in status:
                         self.pap_params[(obj, r)].append((pick_params, place_params))
                         self.pick_params[obj].append(pick_params)

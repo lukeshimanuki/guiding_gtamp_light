@@ -15,7 +15,7 @@ from feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFe
 
 
 class OneArmPaPUniformGenerator:
-    def __init__(self, operator_skeleton, problem_env, n_iter_limit, swept_volume_constraint=None, cached_picks=None):
+    def __init__(self, operator_skeleton, problem_env, n_iter_limit=2000, swept_volume_constraint=None, cached_picks=None):
         self.problem_env = problem_env
         self.cached_picks = cached_picks
         self.n_iter_limit = n_iter_limit
@@ -50,10 +50,10 @@ class OneArmPaPUniformGenerator:
         self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
         self.operator_skeleton = operator_skeleton
 
-    def sample_next_point(self, cont_param_type='cont'):
+    def sample_next_point(self, cont_param_type='cont', max_ik_attempts=2000):
         # n_iter refers to the max number of IK attempts on pick
         n_ik_attempts = 0
-        while True:
+        while n_ik_attempts < max_ik_attempts:
             if 'cont' in cont_param_type:
                 pick_cont_params, place_cont_params, status = self.sample_cont_params()
             else:
