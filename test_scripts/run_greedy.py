@@ -56,11 +56,11 @@ def get_solution_file_name(config):
     commit_hash = get_commit_hash()
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/raw/uses_rrt/'
+        root_dir = root_dir + '/planning_experience/raw/uses_prm/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_rrt/domain_%s/n_objs_pack_%d' \
+        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_prm/domain_%s/n_objs_pack_%d' \
                             % (commit_hash, config.domain, config.n_objs_pack)
     solution_file_dir += '/' + config.h_option + '/'
 
