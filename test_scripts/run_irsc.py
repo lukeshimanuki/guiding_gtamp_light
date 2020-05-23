@@ -74,7 +74,7 @@ def attach_q_goal_as_low_level_motion(target_op_inst):
     return target_op_inst
 
 
-def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit):
+def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit, parameters):
     is_one_arm_environment = environment.name.find('one_arm') != -1
     if is_one_arm_environment:
         target_op_inst = attach_q_goal_as_low_level_motion(target_op_inst)
@@ -86,7 +86,8 @@ def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit):
             return [target_op_inst], 1, "HasSolution", (0, 0)
         rsc = OneArmResolveSpatialConstraints(problem_env=environment,
                                               goal_object_name=obj_name,
-                                              goal_region_name='rectangular_packing_box1_region')
+                                              goal_region_name='rectangular_packing_box1_region',
+                                              config=parameters)
         obstacle_to_remove_idx = 0
 
     else:
@@ -214,10 +215,9 @@ def main():
     total_time_taken = 0
     found_solution = False
     timelimit = parameters.timelimit
-    timelimit = np.inf
-    while total_n_nodes < 1000 and total_time_taken < timelimit:
+    while total_time_taken < timelimit:
         goal_obj_name = goal_object_names[idx]
-        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime, timelimit)
+        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime, timelimit, parameters)
         total_n_nodes += n_nodes
         total_time_taken = time.time() - stime
         print goal_obj_name, goal_object_names, total_n_nodes

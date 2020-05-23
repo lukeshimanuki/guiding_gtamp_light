@@ -58,6 +58,7 @@ class OneArmPaPUniformGenerator:
                 pick_cont_params, place_cont_params, status = self.sample_cont_params()
             else:
                 pick_cont_params, place_cont_params, status = self.sample_cont_params_from_discrete_set()
+            """
             if status == 'InfeasibleIK':
                 n_ik_attempts += 1
                 if n_ik_attempts == self.n_iter_limit:
@@ -65,9 +66,16 @@ class OneArmPaPUniformGenerator:
             elif status == 'InfeasibleBase':
                 self.n_ik_checks += n_ik_attempts
                 return None, None, "NoSolution"
-            elif status == 'HasSolution':
+            el
+            """
+            if status == 'HasSolution':
                 self.n_ik_checks += n_ik_attempts
                 return pick_cont_params, place_cont_params, 'HasSolution'
+            else:
+                n_ik_attempts += 1
+                if n_ik_attempts == self.n_iter_limit:
+                    break
+
         self.n_ik_checks += n_ik_attempts
         return None, None, 'NoSolution'
 
