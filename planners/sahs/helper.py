@@ -144,7 +144,7 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
         node.set_heuristic(discrete_params, hval)
         action_queue.put((hval, float('nan'), a, node))  # initial q
 
-        obj = a.discrete_parameters['object'].GetName()
+        obj = a.discrete_parameters['object']
         if not (isinstance(obj, str) or  isinstance(obj, unicode)):
             obj = obj.GetName()
         region = a.discrete_parameters['place_region']
