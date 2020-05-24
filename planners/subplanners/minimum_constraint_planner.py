@@ -55,7 +55,7 @@ class MinimumConstraintPlanner(BaseMotionPlanner, ArmBaseMotionPlanner):
                         cached_collisions=None):
         path_ignoring_obstacles = self.compute_path_ignoring_obstacles(goal_configuration)
         if path_ignoring_obstacles is None:
-            return None
+            return None, "NoSolution"
 
         naive_path_collisions = self.problem_env.get_objs_in_collision(path_ignoring_obstacles, 'entire_region')
         assert not (self.target_object in naive_path_collisions)
