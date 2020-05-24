@@ -49,13 +49,13 @@ class MinimumConstraintPlanner(BaseMotionPlanner, ArmBaseMotionPlanner):
             path, status = BaseMotionPlanner.get_motion_plan(self, goal_configuration)
             print "Motion plan time", time.time()-stime
         self.problem_env.enable_objects_in_region('entire_region')
-        if path is None:
-            import pdb; pdb.set_trace()
         return path
 
     def get_motion_plan(self, goal_configuration, region_name='entire_region', n_iterations=None,
                         cached_collisions=None):
         path_ignoring_obstacles = self.compute_path_ignoring_obstacles(goal_configuration)
+        if path_ignoring_obstacles is None:
+            return None
 
         naive_path_collisions = self.problem_env.get_objs_in_collision(path_ignoring_obstacles, 'entire_region')
         assert not (self.target_object in naive_path_collisions)
