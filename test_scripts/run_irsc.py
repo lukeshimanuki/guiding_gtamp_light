@@ -198,7 +198,7 @@ def main():
     if parameters.v:
         environment.env.SetViewer('qtcoin')
 
-    environment.set_motion_planner(BaseMotionPlanner(environment, 'prm'))
+    environment.set_motion_planner(BaseMotionPlanner(environment, 'rrt'))
     # from manipulation.bodies.bodies import set_color
     # set_color(environment.env.GetKinBody(goal_object_names[0]), [1, 0, 0])
     stime = time.time()
