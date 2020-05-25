@@ -89,6 +89,7 @@ def sample_continuous_parameters(abstract_state, abstract_action, abstract_node,
 
 def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sampler_model):
     tt = time.time()
+    print "Greedy search began"
     goal_region = mover.placement_regions[goal_region_name]
     obj_names = [obj.GetName() for obj in mover.objects]
     n_objs_pack = config.n_objs_pack
@@ -98,7 +99,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     depth_limit = 60
 
     # lowest valued items are retrieved first in PriorityQueue
-    search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);
+    search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
+    print "State computation..."
     state = statecls(mover, goal)
 
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
@@ -110,6 +112,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
 
     iter = 0
     # beginning of the planner
+    print "Beginning of the while-loop"
     while True:
         iter += 1
         curr_time = time.time() - tt
@@ -184,10 +187,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             else:
                 mover.enable_objects()
                 current_region = mover.get_region_containing(obj).name
-                papg = OneArmPaPUniformGenerator(action, mover, n_iter_limit=config.n_iter_limit,
-                                                 cached_picks=(node.state.iksolutions[current_region],
-                                                               node.state.iksolutions[r]))
-                pick_params, place_params, status = papg.sample_next_point(cont_param_type='discretized')
+                papg = OneArmPaPUniformGenerator(action, mover, cached_picks=(node.state.iksolutions[current_region], node.state.iksolutions[r]))
+                pick_params, place_params, status = papg.sample_next_point(500)
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
@@ -199,7 +200,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                     operator_type='one_arm_pick_one_arm_place',
                     discrete_parameters={
                         'object': obj,
-                        'place_region': mover.regions[r],
+                        'region': mover.regions[r],
                     },
                     continuous_parameters={
                         'pick': pick_params,
@@ -216,14 +217,15 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
 
                 if is_goal_achieved:
                     print("found successful plan: {}".format(n_objs_pack))
-                    node.is_goal_traj = True
-                    nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
-                    plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
-                    return nodes_to_goal, plan, iter, nodes
+                    plan = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
+                    plan = [nd.action for nd in plan[1:]] + [action]
+                    return plan, iter, nodes
                 else:
                     newstate = statecls(mover, goal, node.state, action)
+                    print "New state computed"
                     newnode = Node(node, action, newstate)
                     newactions = get_actions(mover, goal, config)
+                    print "Old h value", curr_hval
                     update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
 
             if not success:
