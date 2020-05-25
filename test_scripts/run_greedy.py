@@ -280,15 +280,19 @@ def main():
         config.timelimit = np.inf
 
     if config.domain == 'two_arm_mover':
-        goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
-                     'rectangular_packing_box4']
-        goal_region = 'home_region'
+        if config.n_objs_pack == 4:
+            goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                         'rectangular_packing_box4']
+            goal_region = 'home_region'
+        else:
+            goal_objs = ['square_packing_box1']
+            goal_region = 'home_region'
     elif config.domain == 'one_arm_mover':
         goal_objs = ['c_obst0', 'c_obst1', 'c_obst2', 'c_obst3']
         goal_region = 'rectangular_packing_box1_region'
     else:
         raise NotImplementedError
-
+    print "Goal:", goal_objs, goal_region
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:
