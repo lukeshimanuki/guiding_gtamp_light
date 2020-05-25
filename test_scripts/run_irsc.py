@@ -235,7 +235,7 @@ def main():
     timelimit = parameters.timelimit
     while total_time_taken < timelimit:
         goal_obj_name = goal_object_names[idx]
-        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime,
+        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, start_time,
                                                             timelimit, parameters)
         total_n_nodes += n_nodes
         total_time_taken = time.time() - start_time
