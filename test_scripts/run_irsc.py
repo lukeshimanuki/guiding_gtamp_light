@@ -120,7 +120,7 @@ def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit, p
                                       obstacles_to_remove=[],
                                       objects_moved_before=[],
                                       plan=[],
-                                      stime=stime,
+                                      ultimate_plan_stime=stime,
                                       timelimit=timelimit)
         plan_found = status == 'HasSolution'
         if plan_found:
@@ -159,16 +159,16 @@ def save_plan(total_plan, total_n_nodes, n_remaining_objs, found_solution, file_
                  }, open(file_path, 'wb'))
 
 
-def find_plan_without_reachability(problem_env, goal_object_names, parameters):
+def find_plan_without_reachability(problem_env, goal_object_names, start_time, parameters):
     if problem_env.name.find('one_arm_mover') != -1:
         planner = OneArmPlannerWithoutReachability(problem_env, goal_object_names,
                                                    goal_region='rectangular_packing_box1_region', config=parameters)
     else:
         planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region',
                                              config=parameters)
-    goal_obj_order_plan, plan = planner.search()
-
-    goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
+    goal_obj_order_plan, plan = planner.search(start_time, parameters.timelimit)
+    if goal_obj_order_plan is not None:
+        goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
     return goal_obj_order_plan, plan, (planner.n_mp, planner.n_ik)
 
 
@@ -187,8 +187,8 @@ def main():
         environment = Mover(parameters.pidx)
         goal_region = ['home_region']
     else:
-        environment = OneArmMover(parameters.pidx)
         goal_region = ['rectangular_packing_box1_region']
+        environment = OneArmMover(parameters.pidx)
 
     environment.initial_robot_base_pose = get_body_xytheta(environment.robot)
 
@@ -198,6 +198,7 @@ def main():
                                  'rectangular_packing_box4']
         else:
             goal_object_names = ['square_packing_box1']
+        environment.set_goal(goal_object_names, goal_region)
     elif parameters.domain == 'one_arm_mover':
         assert parameters.n_objs_pack == 1
         goal_object_names = ['c_obst0']
@@ -219,14 +220,14 @@ def main():
     n_mp = n_ik = 0
 
     goal_object_names, high_level_plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names,
-                                                                                  parameters)  # finds the plan
+                                                                                  stime, parameters)  # finds the plan
+    total_time_taken = time.time()-stime
     n_mp += mp
     n_ik += ik
 
     total_n_nodes = 0
     total_plan = []
     idx = 0
-    total_time_taken = 0
     found_solution = False
     timelimit = parameters.timelimit
     while total_time_taken < timelimit:
@@ -237,6 +238,8 @@ def main():
         total_time_taken = time.time() - stime
         print goal_obj_name, goal_object_names, total_n_nodes
         print "Time taken: %.2f" % total_time_taken
+        if total_time_taken > timelimit:
+            break
         if status == 'HasSolution':
             execute_plan(plan)
             environment.initial_robot_base_pose = utils.get_body_xytheta(environment.robot)
@@ -247,18 +250,16 @@ def main():
         else:
             # Note that HPN does not have any recourse if this happens. We re-plan at the higher level.
             goal_object_names, plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names,
-                                                                               parameters)  # finds the plan
+                                                                               stime, parameters)  # finds the plan
             n_mp += mp
             n_ik += ik
             total_plan = []
             idx = 0
-
         if idx == len(goal_object_names):
             found_solution = True
             break
         else:
             idx %= len(goal_object_names)
-
     save_plan(total_plan, total_n_nodes, len(goal_object_names) - idx, found_solution, file_path, goal_entities,
               total_time_taken, {'mp': n_mp, 'ik': n_ik}, parameters)
     print 'plan saved'
