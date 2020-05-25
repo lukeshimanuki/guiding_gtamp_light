@@ -76,6 +76,7 @@ def get_target_pidxs(domain):
         pidxs = [60053, 60077, 60058, 60011, 60008, 60029, 60088, 60082, 60021, 60049, 60048, 60060, 60059,
                  60055, 60027, 60007, 60081, 60042, 60093, 60084, 60023, 60098, 60010, 60099, 60046, 60001,
                  60078, 60096, 60020, 60022, 60038, 60004]
+        pidxs = pidxs[0:10]
     return pidxs
 
 
@@ -105,7 +106,7 @@ def main():
     algorithm = 'greedy'
     domain = 'two-arm-mover'
     n_objs_pack = 1
-    timelimit = 500 * n_objs_pack
+    timelimit = 2000 * n_objs_pack
 
     if 'hcount' in algorithm:
         hoption = 'hcount_old_number_in_goal'
