@@ -288,7 +288,8 @@ def main():
             goal_objs = ['square_packing_box1']
             goal_region = 'home_region'
     elif config.domain == 'one_arm_mover':
-        goal_objs = ['c_obst0', 'c_obst1', 'c_obst2', 'c_obst3']
+        assert config.n_objs_pack == 1
+        goal_objs = ['c_obst0']
         goal_region = 'rectangular_packing_box1_region'
     else:
         raise NotImplementedError
