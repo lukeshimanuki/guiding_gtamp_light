@@ -5,14 +5,26 @@ from gtamp_utils.utils import CustomStateSaver
 
 from gtamp_utils import utils
 
+from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
+from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
+from generators.samplers.uniform_sampler import UniformSampler
+
+import pickle
 import numpy as np
 
 
 class PlannerWithoutReachability:
-    def __init__(self, problem_env, goal_object_names, goal_region):
+    def __init__(self, problem_env, goal_object_names, goal_region, config):
         self.problem_env = problem_env
         self.goal_objects = [problem_env.env.GetKinBody(o) for o in goal_object_names]
         self.goal_region = self.problem_env.regions[goal_region]
+
+        self.config = config
+
+        # cache ik solutions
+        ikcachename = './ikcache.pkl'
+        self.iksolutions = pickle.load(open(ikcachename, 'r'))
+
         self.n_mp = 0
         self.n_ik = 0
 
@@ -33,36 +45,41 @@ class PlannerWithoutReachability:
         which_goal = np.argmin(np.linalg.norm(motion_plan[-1] - potential_goal_configs, axis=-1))
         return potential_goal_configs[which_goal]
 
-    def find_pick(self, curr_obj):
+    def find_pap(self, curr_obj):
         if self.problem_env.name.find("one_arm") != -1:
-            pick_op = Operator(operator_type='one_arm_pick', discrete_parameters={'object': curr_obj})
+            op = Operator(operator_type='one_arm_pick_one_arm_place',
+                                discrete_parameters={'object': curr_obj, 'place_region': self.goal_region.name})
+            current_region = problem.get_region_containing(problem.env.GetKinBody(o)).name
+            sampler = OneArmPaPUniformGenerator(action, problem, cached_picks=(iksolutions[current_region], self.iksolutions[self.goal_region.name]))
+            pick_params, place_params, status = sampler.sample_next_point(self.config.n_iter_limit)
+            self.n_ik += generator.n_ik_checks
+            if status == 'HasSolution':
+                params = {'pick': pick_params, 'place': place_params}
+            else:
+                params = None
         else:
-            pick_op = Operator(operator_type='two_arm_pick', discrete_parameters={'object': curr_obj})
-        params = self.sample_cont_params(pick_op, n_iter=500)
-        if not params['is_feasible']:
-            return None
+            op = Operator(operator_type='two_arm_pick_two_arm_place', discrete_parameters={'object': curr_obj,
+                                                                                    'place_region': self.goal_region.name})
+            state = None
 
-        pick_op.continuous_parameters = params
-        return pick_op
-
-    def find_place(self, curr_obj, pick):
-        if self.problem_env.name.find("one_arm") != -1:
-            place_op = Operator(operator_type='one_arm_place',
-                                discrete_parameters={'object': curr_obj, 'place_region': self.goal_region},
-                                continuous_parameters=pick.continuous_parameters)
-        else:
-            place_op = Operator(operator_type='two_arm_place', discrete_parameters={'object': curr_obj,
-                                                                                    'place_region': self.goal_region})
+            sampler = UniformSampler(self.goal_region)
+            generator = TwoArmPaPGenerator(state, op, sampler,
+                                           n_parameters_to_try_motion_planning=self.config.n_mp_limit,
+                                           n_iter_limit=self.config.n_iter_limit, problem_env=self.problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='object_pose')
+            params = generator.sample_next_point()
+            self.n_mp += generator.n_mp_checks
+            self.n_ik += generator.n_ik_checks
         # it must be because sampling a feasible pick can be done by trying as many as possible,
         # but placements cannot be made feasible  by sampling more
         # also, it takes longer to check feasibility on place?
         # I just have to check the IK solution once
-        params = self.sample_cont_params(place_op, n_iter=500)
         if not params['is_feasible']:
             return None
 
-        place_op.continuous_parameters = params
-        return place_op
+        op.continuous_parameters = params
+        return op
 
     def search(self):
         # returns the order of objects that respects collision at placements
@@ -80,37 +97,24 @@ class PlannerWithoutReachability:
             self.problem_env.disable_objects_in_region('entire_region')
             print [o.IsEnabled() for o in self.problem_env.objects]
             curr_obj.Enable(True)
-            pick = self.find_pick(curr_obj)
-            if pick is None:
+            pap = self.find_pap(curr_obj)
+            if pap is None:
                 plan = []  # reset the whole thing?
                 goal_obj_move_plan = []
                 idx += 1
                 idx = idx % len(self.goal_objects)
                 init_state.Restore()
-                print "Pick sampling failed"
+                print "Pap sampling failed"
                 continue
-            pick.execute()
+            pap.execute()
 
-            self.problem_env.enable_objects_in_region('entire_region')
-            place = self.find_place(curr_obj, pick)
-            if place is None:
-                plan = []
-                goal_obj_move_plan = []
-                idx += 1
-                idx = idx % len(self.goal_objects)
-                init_state.Restore()
-                print "Place sampling failed"
-                continue
-            place.execute()
-
-            plan.append(pick)
-            plan.append(place)
+            plan.append(pap)
             goal_obj_move_plan.append(curr_obj)
 
             idx += 1
             idx = idx % len(self.goal_objects)
             print "Plan length: ", len(plan)
-            if len(plan) / 2.0 == len(self.goal_objects):
+            if len(plan) == len(self.goal_objects):
                 break
 
         init_state.Restore()
