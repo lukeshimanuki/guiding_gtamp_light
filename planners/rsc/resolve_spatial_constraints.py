@@ -150,9 +150,9 @@ class ResolveSpatialConstraints:
         return potential_goal_configs[which_goal]
 
     def search(self, object_to_move, parent_swept_volumes, obstacles_to_remove, objects_moved_before, plan,
-               parent_pick=None, parent_obj=None, stime=None, timelimit=None):
-        print time.time() - stime
-        if time.time() - stime > timelimit:
+               parent_pick=None, parent_obj=None, ultimate_plan_stime=None, timelimit=None):
+        print time.time() - ultimate_plan_stime
+        if time.time() - ultimate_plan_stime > timelimit:
             return False, 'NoSolution'
         swept_volumes = PickAndPlaceSweptVolume(self.problem_env, parent_swept_volumes)
         objects_moved_before = [o for o in objects_moved_before]
@@ -267,7 +267,8 @@ class ResolveSpatialConstraints:
                                               objects_moved_before,
                                               plan,
                                               pick_operator_instance_for_curr_object,
-                                              parent_obj=object_to_move, stime=stime, timelimit=timelimit)
+                                              parent_obj=object_to_move, ultimate_plan_stime=ultimate_plan_stime,
+                                              timelimit=timelimit)
             is_branch_success = status == 'HasSolution'
             if is_branch_success:
                 return branch_plan, status

@@ -11,6 +11,7 @@ from generators.samplers.uniform_sampler import UniformSampler
 
 import pickle
 import numpy as np
+import time
 
 
 class PlannerWithoutReachability:
@@ -81,7 +82,7 @@ class PlannerWithoutReachability:
         op.continuous_parameters = params
         return op
 
-    def search(self):
+    def search(self, start_time, time_limit):
         # returns the order of objects that respects collision at placements
         # todo if I cannot find a grasp or placement in the goal region, then I should declare infeasible problem
 
@@ -92,8 +93,9 @@ class PlannerWithoutReachability:
         goal_obj_move_plan = []
 
         while True:
+            if time.time()-start_time > time_limit:
+                return None, None
             curr_obj = self.goal_objects[idx]
-
             self.problem_env.disable_objects_in_region('entire_region')
             print [o.IsEnabled() for o in self.problem_env.objects]
             curr_obj.Enable(True)
