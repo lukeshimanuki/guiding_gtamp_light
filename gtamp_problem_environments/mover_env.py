@@ -314,33 +314,6 @@ class Mover(ProblemEnvironment):
 
         return applicable_ops
 
-
-class PaPMoverEnv(Mover):
-    def __init__(self, problem_idx):
-        Mover.__init__(self, problem_idx)
-
-    def get_applicable_ops(self, parent_op=None):
-        actions = []
-        for o in self.entity_names:
-            if 'region' in o:
-                continue
-            for r in self.entity_names:
-                if 'region' not in r or 'entire' in r:
-                    continue
-
-                if o not in self.goal_entities and r in self.goal_entities:
-                    # you cannot place non-goal object in the goal region
-                    continue
-
-                action = Operator('two_arm_pick_two_arm_place',
-                                  {'object': o, 'place_region': r})
-                # following two lines are for legacy reasons, will fix later
-                # action.discrete_parameters['object'] = action.discrete_parameters['two_arm_place_object']
-                # action.discrete_parameters['region'] = action.discrete_parameters['two_arm_place_region']
-
-                actions.append(action)
-        return actions
-
     def set_goal(self, goal_objects, goal_region):
         self.goal_objects = goal_objects
         [utils.set_color(o, [1, 0, 0]) for o in self.goal_objects]
@@ -388,6 +361,35 @@ class PaPMoverEnv(Mover):
 
         self.goal_region = goal_region
         self.goal_entities = self.goal_objects + [self.goal_region]
+
+
+
+class PaPMoverEnv(Mover):
+    def __init__(self, problem_idx):
+        Mover.__init__(self, problem_idx)
+
+    def get_applicable_ops(self, parent_op=None):
+        actions = []
+        for o in self.entity_names:
+            if 'region' in o:
+                continue
+            for r in self.entity_names:
+                if 'region' not in r or 'entire' in r:
+                    continue
+
+                if o not in self.goal_entities and r in self.goal_entities:
+                    # you cannot place non-goal object in the goal region
+                    continue
+
+                action = Operator('two_arm_pick_two_arm_place',
+                                  {'object': o, 'place_region': r})
+                # following two lines are for legacy reasons, will fix later
+                # action.discrete_parameters['object'] = action.discrete_parameters['two_arm_place_object']
+                # action.discrete_parameters['region'] = action.discrete_parameters['two_arm_place_region']
+
+                actions.append(action)
+        return actions
+
 
     def reset_to_init_state(self, node):
         saver = node.state_saver
