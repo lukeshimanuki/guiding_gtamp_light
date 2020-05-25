@@ -161,7 +161,7 @@ def find_plan_without_reachability(problem_env, goal_object_names, config):
         planner = OneArmPlannerWithoutReachability(problem_env, goal_object_names,
                                                    goal_region='rectangular_packing_box1_region', config=config)
     else:
-        planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region', config=config)
+        planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region')
     goal_obj_order_plan, plan = planner.search()
 
     goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
