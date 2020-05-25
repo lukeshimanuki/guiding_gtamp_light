@@ -30,7 +30,7 @@ class MinimumConstraintPlanner(BaseMotionPlanner, ArmBaseMotionPlanner):
                 path, status = BaseMotionPlanner.get_motion_plan(self,
                                                                  goal_configuration,
                                                                  cached_collisions=cached_collisions,
-                                                                 n_iterations=[20, 50, 100])
+                                                                 n_iterations=[20, 50, 100, 500, 1000])
             if status != 'HasSolution':
                 minimal_objects_in_way.append(obj)
             else:
@@ -46,7 +46,8 @@ class MinimumConstraintPlanner(BaseMotionPlanner, ArmBaseMotionPlanner):
             path, status = ArmBaseMotionPlanner.get_motion_plan(self, goal_configuration)
         else:
             stime = time.time()
-            path, status = BaseMotionPlanner.get_motion_plan(self, goal_configuration)
+            path, status = BaseMotionPlanner.get_motion_plan(self, goal_configuration,
+                                                             n_iterations=[20, 50, 100, 500, 1000])
             print "Motion plan time", time.time()-stime
         self.problem_env.enable_objects_in_region('entire_region')
         return path
