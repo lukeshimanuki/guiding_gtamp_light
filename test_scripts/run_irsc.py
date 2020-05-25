@@ -18,6 +18,8 @@ import numpy as np
 import random
 import time
 import socket
+from test_scripts.run_mcts import get_commit_hash
+
 
 ROOTDIR = './'
 
@@ -30,7 +32,8 @@ ROOTDIR = './'
 
 
 def make_and_get_save_dir(parameters):
-    save_dir = ROOTDIR + '/test_results/irsc/'
+    commit_hash = get_commit_hash()
+    save_dir = ROOTDIR + '/test_results/'+str(commit_hash)+'/irsc/'
     save_dir += parameters.domain + '/n_objs_pack_'
     save_dir += str(parameters.n_objs_pack)
 
@@ -215,13 +218,13 @@ def main():
     environment.set_motion_planner(BaseMotionPlanner(environment, 'rrt'))
     # from manipulation.bodies.bodies import set_color
     # set_color(environment.env.GetKinBody(goal_object_names[0]), [1, 0, 0])
-    stime = time.time()
+    start_time = time.time()
 
     n_mp = n_ik = 0
 
     goal_object_names, high_level_plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names,
-                                                                                  stime, parameters)  # finds the plan
-    total_time_taken = time.time()-stime
+                                                                                  start_time, parameters)  # finds the plan
+    total_time_taken = time.time()-start_time
     n_mp += mp
     n_ik += ik
 
@@ -235,7 +238,7 @@ def main():
         plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime,
                                                             timelimit, parameters)
         total_n_nodes += n_nodes
-        total_time_taken = time.time() - stime
+        total_time_taken = time.time() - start_time
         print goal_obj_name, goal_object_names, total_n_nodes
         print "Time taken: %.2f" % total_time_taken
         if total_time_taken > timelimit:
@@ -250,7 +253,7 @@ def main():
         else:
             # Note that HPN does not have any recourse if this happens. We re-plan at the higher level.
             goal_object_names, plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names,
-                                                                               stime, parameters)  # finds the plan
+                                                                               start_time, parameters)  # finds the plan
             n_mp += mp
             n_ik += ik
             total_plan = []
@@ -260,6 +263,7 @@ def main():
             break
         else:
             idx %= len(goal_object_names)
+    total_time_taken = time.time()-start_time
     save_plan(total_plan, total_n_nodes, len(goal_object_names) - idx, found_solution, file_path, goal_entities,
               total_time_taken, {'mp': n_mp, 'ik': n_ik}, parameters)
     print 'plan saved'
