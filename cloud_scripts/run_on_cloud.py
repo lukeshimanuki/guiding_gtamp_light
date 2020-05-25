@@ -3,6 +3,7 @@ import subprocess
 import re
 import time
 
+
 def filter_runs_already_done(undone, dir):
     # filter things already one
     if os.path.isdir(dir):
@@ -19,7 +20,7 @@ def get_yaml_file_name(algorithm, domain):
         if 'one' in domain:
             yaml_file = 'run_discretized_rsc_one_arm.yaml'
         else:
-            raise NotImplementedError
+            yaml_file = 'run_rsc_two_arm.yaml'
     else:
         if 'one' in domain:
             yaml_file = 'run_discretized_uniform_one_arm.yaml'
@@ -33,7 +34,7 @@ def get_yaml_file_name(algorithm, domain):
 
 
 def main():
-    algorithm = 'greedy'
+    algorithm = 'greedy-learn'
     domain = 'two-arm-mover'
 
     if 'hcount' in algorithm:
@@ -46,6 +47,9 @@ def main():
         n_objs_pack = 1
     else:
         pidxs = range(60000, 60101)
+        pidxs = [60053, 60077, 60058, 60011, 60008, 60029, 60088, 60082, 60021, 60049, 60048, 60060, 60059,
+                 60055, 60027, 60007, 60081, 60042, 60093, 60084, 60023, 60098, 60010, 60099, 60046, 60001,
+                 60078, 60096, 60020, 60022, 60038, 60004]
         n_objs_pack = 4
 
     yaml_file = get_yaml_file_name(algorithm, domain)
@@ -53,12 +57,13 @@ def main():
     undone = [(seed, pidx) for seed in range(5) for pidx in pidxs]
 
     ###
-    #dir = './temp/guiding-gtamp/test_results/%s/%s/n_objs_pack_%d/' % (algorithm, domain, n_objs_pack)
+    # dir = './temp/guiding-gtamp/test_results/%s/%s/n_objs_pack_%d/' % (algorithm, domain, n_objs_pack)
+    """
     if 'rsc' in algorithm:
         if 'one' in domain:
             s3_path = 'csail/bkim/guiding-gtamp/test_results/irsc/one_arm_mover/n_objs_pack_1'
         else:
-            raise NotImplementedError
+            s3_path = 'csail/bkim/guiding-gtamp/test_results/irsc/two_arm_mover/n_objs_pack_4'
     else:
         if 'one' in domain:
             s3_path = 'csail/bkim/guiding-gtamp/test_results/f0cf459f5cb177eaacd17a0fa9b6b89caa96dbe3/sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_500/'
@@ -82,16 +87,16 @@ def main():
         runs_finished = re.findall('pidx_[0-9]*_planner_seed_[0-9]*', result)
         seed_pidx_pairs_finished = [{'pidx': fin.split('_')[1], 'seed': fin.split('_')[-1]} for fin in runs_finished]
 
-    #undone = filter_runs_already_done(undone, dir)
+    # undone = filter_runs_already_done(undone, dir)
     done = [(int(k['seed']), int(k['pidx'])) for k in seed_pidx_pairs_finished]
     undone = [un for un in undone if un not in done]
+    """
     print len(undone)
-    import pdb;pdb.set_trace()
     for idx, un in enumerate(undone):
         pidx = un[1]
         seed = un[0]
         print idx
-        if False: #not (pidx == 20059 and seed == 1):
+        if False:  # not (pidx == 20059 and seed == 1):
             continue
         else:
             cmd = 'cat cloud_scripts/{} | ' \

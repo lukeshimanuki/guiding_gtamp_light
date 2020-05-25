@@ -32,8 +32,8 @@ def get_yaml_file_name(algorithm, domain):
 
 
 def main():
-    algorithm = 'greedy'
-    domain = 'two-arm-mover'
+    algorithm = 'rsc'
+    domain = 'one-arm-mover'
 
     if 'rsc' in algorithm:
         if 'one' in domain:
