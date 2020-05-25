@@ -73,15 +73,10 @@ class ResolveSpatialConstraints:
 
         generator = UniformGenerator(operator_skeleton, self.problem_env, swept_volume_constraint=swept_volumes)
         print "Generating goals for ", target_object
-        potential_motion_plan_goals = []
-        n_iters = range(10, 500, 10)
-        for n_iter_to_try in n_iters:
-            op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
-                                                                        n_iter=n_iter_to_try,
-                                                                        n_parameters_to_try_motion_planning=n_configs)
-            potential_motion_plan_goals = [op['q_goal'] for op in op_cont_params if op['q_goal'] is not None]
-            if len(potential_motion_plan_goals) > 2:
-                break
+        op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
+                                                                    n_iter=2000,
+                                                                    n_parameters_to_try_motion_planning=n_configs)
+        potential_motion_plan_goals = [op['q_goal'] for op in op_cont_params if op['q_goal'] is not None]
 
         print "Done"
         self.problem_env.enable_objects_in_region('entire_region')
