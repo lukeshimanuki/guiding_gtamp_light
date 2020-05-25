@@ -114,7 +114,7 @@ class PlannerWithoutReachability:
             idx += 1
             idx = idx % len(self.goal_objects)
             print "Plan length: ", len(plan)
-            if len(plan) / 2.0 == len(self.goal_objects):
+            if len(plan) == len(self.goal_objects):
                 break
 
         init_state.Restore()
