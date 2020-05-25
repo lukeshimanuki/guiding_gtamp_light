@@ -219,7 +219,12 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                     print("found successful plan: {}".format(n_objs_pack))
                     plan = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
                     plan = [nd.action for nd in plan[1:]] + [action]
-                    return plan, iter, nodes
+                    nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
+                    plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
+                    for plan_action, nd in zip(plan, nodes_to_goal):
+                        nd.is_goal_traj = True
+                        nd.executed_action = plan_action
+                    return nodes_to_goal, plan, iter, nodes
                 else:
                     newstate = statecls(mover, goal, node.state, action)
                     print "New state computed"

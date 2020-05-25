@@ -201,7 +201,10 @@ def get_pap_gnn_model(mover, config):
 def make_pklable(plan):
     for p in plan:
         obj = p.discrete_parameters['object']
-        region = p.discrete_parameters['place_region']
+        if 'region' in p.discrete_parameters:
+            region = p.discrete_parameters['region']
+        else:
+            region = p.discrete_parameters['place_region']
         if not isinstance(region, str):
             p.discrete_parameters['place_region'] = region.name
         if not (isinstance(obj, unicode) or isinstance(obj, str)):
