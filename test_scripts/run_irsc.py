@@ -59,8 +59,8 @@ def parse_parameters():
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-n_feasibility_checks', type=int, default=500)
     parser.add_argument('-n_parameters_to_test_each_sample_time', type=int, default=10)
-    parser.add_argument('-n_mp_limit', type=int, default=10)
-    parser.add_argument('-n_iter_limit', type=int, default=200)
+    parser.add_argument('-n_mp_limit', type=int, default=5)
+    parser.add_argument('-n_iter_limit', type=int, default=2000)
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
 
@@ -213,7 +213,7 @@ def main():
     random.seed(parameters.planner_seed)
 
     if parameters.v:
-        environment.env.SetViewer('qtcoin')
+        utils.viewer()
 
     environment.set_motion_planner(BaseMotionPlanner(environment, 'rrt'))
     # from manipulation.bodies.bodies import set_color
