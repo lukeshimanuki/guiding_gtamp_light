@@ -318,10 +318,17 @@ class Mover(ProblemEnvironment):
         self.goal_objects = goal_objects
         [utils.set_color(o, [1, 0, 0]) for o in self.goal_objects]
         if 50000 <= self.problem_idx < 60000:
+            # hard problems for both RSC and Greedy
+            # hard for RSC: make sure the goal object needs to be moved twice
+            # dillema: if I put the goal object near the entrance, then I can just move that to the goal region
+            # I must surround the robot with the goal object such that the shortest path always go
+            # through the goal object
+            # another option is to block the object in the entrance region with the goal object
             entrance_region = AARegion('entrance', ((0.25, 1.33), (-6, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
-            non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
+            non_entrance_region = AARegion('non_entrance_region',
+                                           # xmin,xmax    ymin, ymax
+                                           ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
                                            color=np.array((1, 1, 0, 0.25)))
-
             # move objects out of the entrance region
             utils.randomly_place_region(self.robot, non_entrance_region)
             [utils.randomly_place_region(obj, non_entrance_region) for obj in self.objects]
@@ -331,10 +338,37 @@ class Mover(ProblemEnvironment):
             for obj in objs_to_move_near_entrance:
                 utils.randomly_place_region(obj, entrance_region, n_limit=100)
 
-            # move the object to random places
-            [utils.randomly_place_region(obj, self.regions['loading_region'])
-             for obj in self.objects if obj not in objs_to_move_near_entrance]
-            utils.randomly_place_region(self.robot, self.regions['loading_region'])
+            region_around_entrance_region = AARegion('region_around', ((-0.25, 1.7), (-6.6, -5.0)), z=0.135,
+                                                     color=np.array((1, 1, 0, 0.25)))
+
+            object_around_entrance = [obj for obj in self.objects if obj not in objs_to_move_near_entrance
+                                      if obj.GetName() not in goal_objects][0:3]
+            #object_around_entrance = np.array(object_around_entrance)[
+            #    np.random.choice(range(len(object_around_entrance)), 3, replace=False)]
+            for obj in object_around_entrance: utils.randomly_place_region(obj, region_around_entrance_region,
+                                                                           n_limit=100)
+
+            # xmin,xmax    ymin, ymax
+            robot_region = AARegion('robot_region', ((3.0, 4.29), (-8.0, -6.0)), z=0.135,
+                                    color=np.array((1, 1, 0, 0.25)))
+            utils.randomly_place_region(self.robot, robot_region)
+
+            [utils.randomly_place_region(obj, non_entrance_region) for obj in self.objects
+             if obj not in object_around_entrance + objs_to_move_near_entrance]
+
+            # surround the robot?
+            # Force the goal object to be around the robot
+            utils.randomly_place_region(self.robot, robot_region)
+            radius = 1
+            center = utils.get_body_xytheta(self.robot).squeeze()[0:2]
+            xmin = center[0] - radius
+            xmax = center[0] + radius
+            ymin = center[1] - radius
+            ymax = center[1] + radius
+            goal_obj_region = AARegion('goal_obj_region', ((xmin, xmax), (ymin, ymax)), z=0.135,
+                                    color=np.array((1, 1, 0, 0.25)))
+            for obj in goal_objects:
+                utils.randomly_place_region(self.env.GetKinBody(obj), goal_obj_region)
         elif self.problem_idx >= 60000:
             entrance_region = AARegion('entrance', ((0.25, 1.33), (-6, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
             non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
@@ -363,7 +397,6 @@ class Mover(ProblemEnvironment):
         self.goal_entities = self.goal_objects + [self.goal_region]
 
 
-
 class PaPMoverEnv(Mover):
     def __init__(self, problem_idx):
         Mover.__init__(self, problem_idx)
@@ -389,7 +422,6 @@ class PaPMoverEnv(Mover):
 
                 actions.append(action)
         return actions
-
 
     def reset_to_init_state(self, node):
         saver = node.state_saver
