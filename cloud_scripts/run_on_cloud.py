@@ -39,7 +39,8 @@ def get_s3_path(domain, algorithm, n_objs_pack):
             assert n_objs_pack == 1
             s3_path = 'csail/bkim/guiding-gtamp/test_results/irsc/one_arm_mover/n_objs_pack_1'
         else:
-            s3_path = 'csail/bkim/guiding-gtamp/test_results/irsc/two_arm_mover/n_objs_pack_{}'.format(n_objs_pack)
+            s3_path = 'csail/bkim/guiding-gtamp/test_results/e26923f/irsc/two_arm_mover/n_objs_pack_{}'.format(
+                n_objs_pack)
     else:
         if 'one' in domain:
             s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
@@ -51,7 +52,7 @@ def get_s3_path(domain, algorithm, n_objs_pack):
         else:
             if 'learn' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
-                          'f0cf459f5cb177eaacd17a0fa9b6b89caa96dbe3/' \
+                          'e26923f/' \
                           'sahs_results/uses_rrt/' \
                           'domain_two_arm_mover/' \
                           'n_objs_pack_{}/' \
@@ -60,7 +61,7 @@ def get_s3_path(domain, algorithm, n_objs_pack):
                           'using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
             else:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
-                          'f0cf459f5cb177eaacd17a0fa9b6b89caa96dbe3/' \
+                          'e26923f/' \
                           'sahs_results/uses_rrt/domain_two_arm_mover/' \
                           'n_objs_pack_{}/' \
                           'qlearned_hcount_old_number_in_goal/' \
@@ -76,7 +77,8 @@ def get_target_pidxs(domain):
         pidxs = [60053, 60077, 60058, 60011, 60008, 60029, 60088, 60082, 60021, 60049, 60048, 60060, 60059,
                  60055, 60027, 60007, 60081, 60042, 60093, 60084, 60023, 60098, 60010, 60099, 60046, 60001,
                  60078, 60096, 60020, 60022, 60038, 60004]
-        pidxs = pidxs[0:10]
+        pidxs = range(50000, 50020)
+        # pidxs = pidxs[9:]
     return pidxs
 
 
@@ -103,9 +105,9 @@ def get_seed_and_pidx_pairs_that_needs_to_run(pidxs, seed_pidx_pairs_finished):
 
 
 def main():
-    algorithm = 'greedy'
+    algorithm = 'greedy-learn'
     domain = 'two-arm-mover'
-    n_objs_pack = 1
+    n_objs_pack = 4
     timelimit = 2000 * n_objs_pack
 
     if 'hcount' in algorithm:
@@ -120,6 +122,8 @@ def main():
     undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs, seed_pidx_pairs_finished)
 
     print "Remaining runs", len(undone)
+    import pdb;
+    pdb.set_trace()
     for idx, un in enumerate(undone):
         pidx = un[1]
         seed = un[0]
@@ -133,7 +137,6 @@ def main():
               'sed \"s/NOBJS/{}/\" |  ' \
               'kubectl apply -f - -n beomjoon;'.format(yaml_file, algorithm, domain, pidx, seed, pidx, seed,
                                                        hoption, timelimit, n_objs_pack)
-
         print cmd
         os.system(cmd)
         time.sleep(1.5)

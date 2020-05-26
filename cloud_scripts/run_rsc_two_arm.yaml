@@ -5,7 +5,6 @@ metadata:
   labels:
     experiment: NAME
 spec:
-  ttlSecondsAfterFinished: 0
   template:
     spec:
       imagePullSecrets:
