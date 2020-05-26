@@ -348,7 +348,7 @@ class Mover(ProblemEnvironment):
             ymax = center[1] + radius
             goal_obj_region = AARegion('goal_obj_region', ((xmin, xmax), (ymin, ymax)), z=0.135,
                                     color=np.array((1, 1, 0, 0.25)))
-            for obj in goal_objects:
+            for obj in goal_objects[0:1]:
                 utils.randomly_place_region(self.env.GetKinBody(obj), goal_obj_region, n_limit=100)
         elif 50000 <= self.problem_idx < 60000:
             # hard problems for both RSC and Greedy
