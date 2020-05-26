@@ -165,8 +165,9 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
 
                 return nodes_to_goal, plan, iter, nodes
             else:
+                stime = time.time()
                 newstate = statecls(mover, goal, node.state, action)
-                print "New state computed"
+                print "New state computation time ", time.time()-stime
                 newnode = Node(node, action, newstate)
                 newactions = get_actions(mover, goal, config)
                 update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
