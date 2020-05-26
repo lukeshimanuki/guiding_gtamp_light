@@ -7,7 +7,6 @@ from manipulation.bodies.bodies import set_color, get_color
 from gtamp_utils import utils
 
 import numpy as np
-import pdb
 import time
 
 
@@ -37,33 +36,6 @@ class ResolveSpatialConstraints:
     def get_num_nodes(self):
         return self.number_of_nodes
 
-    def generate_potential_pick_configs(self, operator_skeleton, n_pick_configs):
-        target_object = operator_skeleton.discrete_parameters['object']
-
-
-        self.problem_env.disable_objects_in_region('entire_region')
-        target_object.Enable(True)
-        # todo I think it might be better to try to generate goals without disabling first?
-        generator = UniformGenerator(operator_skeleton, self.problem_env, None)
-        potential_motion_plan_goals = []
-        n_iters = range(10, 500, 10)
-        for n_iter_to_try in n_iters:
-            op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
-                                                                        n_iter=n_iter_to_try,
-                                                                        n_parameters_to_try_motion_planning=n_pick_configs)
-            potential_motion_plan_goals = [op['q_goal'] for op in op_cont_params if op['q_goal'] is not None]
-            if len(potential_motion_plan_goals) > 2:
-                break
-
-
-        print "Done"
-        self.problem_env.enable_objects_in_region('entire_region')
-        is_op_skel_infeasible = len(potential_motion_plan_goals) == 0
-        if is_op_skel_infeasible:
-            return None
-        else:
-            return potential_motion_plan_goals
-
     def generate_motion_plan_goals(self, operator_skeleton, n_configs, swept_volumes=None):
         target_object = operator_skeleton.discrete_parameters['object']
 
@@ -73,6 +45,7 @@ class ResolveSpatialConstraints:
 
         generator = UniformGenerator(operator_skeleton, self.problem_env, swept_volume_constraint=swept_volumes)
         print "Generating goals for ", target_object
+        # This is really fast because everything is disabled. How should I deal with this problem?
         op_cont_params, _ = generator.sample_feasible_op_parameters(operator_skeleton,
                                                                     n_iter=2000,
                                                                     n_parameters_to_try_motion_planning=n_configs)
@@ -90,11 +63,9 @@ class ResolveSpatialConstraints:
         obj_holding = self.robot.GetGrabbed()[0]
         place_op = Operator(operator_type='two_arm_place', discrete_parameters={'object': obj_holding,
                                                                                 'place_region': target_region})
-        stime = time.time()
         potential_motion_plan_goals = self.generate_motion_plan_goals(place_op,
                                                                       n_configs=5,
                                                                       swept_volumes=swept_volumes)
-        print time.time() - stime
 
         if potential_motion_plan_goals is None:
             return None, "NoSolution", None
@@ -102,30 +73,26 @@ class ResolveSpatialConstraints:
         if motion is None:
             return None, "NoSolution", None
         place_op.low_level_motion = motion
-        place_op.continuous_parameters = {'q_goal': motion[-1]}
+        place_op.continuous_parameters = {'q_goal': motion[-1], 'motion': motion}
         return motion, status, place_op
 
     def get_pick_from_initial_config(self, obj):
         utils.set_robot_config(self.problem_env.initial_robot_base_pose)
         pick_op = Operator(operator_type='two_arm_pick', discrete_parameters={'object': obj})
-        we_already_have_pick_config = obj.GetName() in self.sampled_pick_configs_for_objects.keys()
-        if we_already_have_pick_config:
-            return self.sampled_pick_configs_for_objects[obj.GetName()]
-        else:
-            potential_motion_plan_goals = self.generate_motion_plan_goals(pick_op, n_configs=5)
-
+        potential_motion_plan_goals = self.generate_motion_plan_goals(pick_op, n_configs=5)
         if potential_motion_plan_goals is None:
             return None, "NoSolution", None
+
         motion, status = self.get_minimum_constraint_path_to(potential_motion_plan_goals, obj)
         if motion is None:
             return None, "NoSolution", None
         pick_op.low_level_motion = motion
-        pick_op.continuous_parameters = {'q_goal': motion[-1]}
+        pick_op.continuous_parameters = {'q_goal': motion[-1], 'motion': motion}
         return motion, status, pick_op
 
     def get_minimum_constraint_path_to(self, goal_config, target_obj):
         motion_planner = MinimumConstraintPlanner(self.problem_env, target_obj, 'rrt')
-        print "Planning to goal config:", goal_config
+        #print "Planning to goal config:", goal_config
         motion, status = motion_planner.get_motion_plan(goal_config)
         if motion is None:
             return None, 'NoSolution'
@@ -134,20 +101,30 @@ class ResolveSpatialConstraints:
         return motion, status
 
     def plan_pick_motion_for(self, object_to_move, pick_op_instance):
+        #motion_planner = MinimumConstraintPlanner(self.problem_env, object_to_move, 'rrt')
+        #motion, status = motion_planner.get_motion_plan(pick_op_instance.continuous_parameters['q_goal'])
+        motion, status = self.get_minimum_constraint_path_to([pick_op_instance.continuous_parameters['q_goal']], object_to_move)
         pick_op = Operator(operator_type='two_arm_pick', discrete_parameters={'object': object_to_move})
-        motion_planner = MinimumConstraintPlanner(self.problem_env, object_to_move, 'rrt')
-        motion, status = motion_planner.get_motion_plan(pick_op_instance.continuous_parameters['q_goal'])
         if motion is None:
             return None, "NoSolution", None
         motion.append(pick_op_instance.continuous_parameters['q_goal'])
         pick_op.low_level_motion = motion
-
-        pick_op.continuous_parameters = {'q_goal': motion[-1]}
+        pick_op.continuous_parameters = {'q_goal': motion[-1], 'motion': motion}
         return motion, status, pick_op
 
     def get_goal_config_used(self, motion_plan, potential_goal_configs):
         which_goal = np.argmin(np.linalg.norm(motion_plan[-1] - potential_goal_configs, axis=-1))
         return potential_goal_configs[which_goal]
+
+    def get_target_region_for_obj(self, object_to_move):
+        if object_to_move == self.goal_object:
+            target_region = self.goal_region
+        else:
+            if self.misc_region.contains(object_to_move.ComputeAABB()):
+                target_region = self.misc_region
+            else:
+                target_region = self.goal_region
+        return target_region
 
     def search(self, object_to_move, parent_swept_volumes, obstacles_to_remove, objects_moved_before, plan,
                parent_pick=None, parent_obj=None, ultimate_plan_stime=None, timelimit=None):
@@ -159,17 +136,11 @@ class ResolveSpatialConstraints:
         plan = [p for p in plan]
 
         self.problem_env.set_exception_objs_when_disabling_objects_in_region(objects_moved_before)
-
         self.number_of_nodes += 1
-        if isinstance(object_to_move, unicode):
-            object_to_move = self.problem_env.env.GetKinBody(object_to_move)
-        if object_to_move == self.goal_object:
-            target_region = self.goal_region
-        else:
-            if self.misc_region.contains(object_to_move.ComputeAABB()):
-                target_region = self.misc_region
-            else:
-                target_region = self.goal_region
+
+        object_to_move = self.problem_env.env.GetKinBody(object_to_move) if isinstance(object_to_move,
+                                                                                       unicode) else object_to_move
+        target_region = self.get_target_region_for_obj(object_to_move)
 
         # Debugging purpose
         color_before = get_color(object_to_move)
@@ -179,20 +150,19 @@ class ResolveSpatialConstraints:
         # PlanGrasp
         saver = utils.CustomStateSaver(self.problem_env.env)
         stime = time.time()
-        _, _, pick_operator_instance_for_curr_object = self.get_pick_from_initial_config(object_to_move) # this contains mc-path from initial config to the target obj
-        print 'Time pick', time.time()-stime
+        # this contains mc-path from initial config to the target obj
+        _, _, pick_operator_instance_for_curr_object = self.get_pick_from_initial_config(object_to_move)
+        #print 'Time pick', time.time() - stime
 
         if pick_operator_instance_for_curr_object is None:
             saver.Restore()
             self.reset()
-            print "Infeasible branch"
+            #print "Infeasible branch"
             return False, 'NoSolution'
         utils.two_arm_pick_object(object_to_move, pick_operator_instance_for_curr_object.continuous_parameters)
 
         # FindPlacements
-        stime = time.time()
         _, _, place_operator_instance = self.plan_place(target_region, swept_volumes)
-        print "Place time", time.time() - stime
         if place_operator_instance is None:
             saver.Restore()
             self.reset()
@@ -205,9 +175,8 @@ class ResolveSpatialConstraints:
 
         if parent_pick is not None:
             utils.two_arm_place_object(place_operator_instance.continuous_parameters)
-            stime = time.time()
-            _, _, pick_operator_instance_for_parent_object = self.plan_pick_motion_for(parent_obj, parent_pick) # PlanNavigation
-            print "Parent pick time", time.time()-stime
+            _, _, pick_operator_instance_for_parent_object = self.plan_pick_motion_for(parent_obj,
+                                                                                       parent_pick)  # PlanNavigation
             if pick_operator_instance_for_parent_object is None:
                 print "Infeasible branch"
                 saver.Restore()
@@ -226,7 +195,7 @@ class ResolveSpatialConstraints:
 
         # O_{PAST}
         self.problem_env.enable_objects_in_region('entire_region')
-        objs_in_collision_for_pap             \
+        objs_in_collision_for_pap \
             = swept_volumes.get_objects_in_collision_with_pick_and_place(pick_operator_instance_for_parent_object,
                                                                          place_operator_instance)
 
@@ -239,7 +208,8 @@ class ResolveSpatialConstraints:
 
         if len(obstacles_to_remove) == 0:
             objs_in_collision_for_picking_curr_obj \
-                = swept_volumes.pick_swept_volume.get_objects_in_collision_with_given_op_inst(pick_operator_instance_for_curr_object)
+                = swept_volumes.pick_swept_volume.get_objects_in_collision_with_given_op_inst(
+                pick_operator_instance_for_curr_object)
             if len(objs_in_collision_for_picking_curr_obj) == 0:
                 plan.insert(0, pick_operator_instance_for_curr_object)
                 return plan, 'HasSolution'
@@ -260,7 +230,7 @@ class ResolveSpatialConstraints:
             set_color(object_to_move, color_before)
             tmp_obstacles_to_remove = set(obstacles_to_remove).difference(set([new_obj_to_move]))
             tmp_obstacles_to_remove = list(tmp_obstacles_to_remove)
-            print "tmp obstacles to remove:", tmp_obstacles_to_remove
+            #print "tmp obstacles to remove:", tmp_obstacles_to_remove
             branch_plan, status = self.search(new_obj_to_move,
                                               swept_volumes,
                                               tmp_obstacles_to_remove,
