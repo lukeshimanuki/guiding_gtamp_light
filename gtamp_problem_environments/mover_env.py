@@ -317,7 +317,40 @@ class Mover(ProblemEnvironment):
     def set_goal(self, goal_objects, goal_region):
         self.goal_objects = goal_objects
         [utils.set_color(o, [1, 0, 0]) for o in self.goal_objects]
-        if 50000 <= self.problem_idx < 60000:
+        if 40000 <= self.problem_idx < 50000:
+            entrance_region = AARegion('entrance', ((0.25, 1.33), (-6, -5.0)), z=0.135, color=np.array((1, 1, 0, 0.25)))
+            non_entrance_region = AARegion('non_entrance_region', ((1.5, 4.25), (-8.49, -5.01)), z=0.135,
+                                           color=np.array((1, 1, 0, 0.25)))
+            # move objects out of the entrance region
+            utils.randomly_place_region(self.robot, non_entrance_region)
+            [utils.randomly_place_region(obj, non_entrance_region) for obj in self.objects]
+
+            # try to put three objs near the entrance
+            objs_to_move_near_entrance = [obj for obj in self.objects if obj.GetName() not in goal_objects][0:1]
+            for obj in objs_to_move_near_entrance:
+                utils.randomly_place_region(obj, entrance_region, n_limit=100)
+
+            region_around_entrance_region = AARegion('region_around', ((-0.25, 1.7), (-6.6, -5.0)), z=0.135,
+                                                     color=np.array((1, 1, 0, 0.25)))
+
+            object_around_entrance = [obj for obj in self.objects if obj not in objs_to_move_near_entrance and obj.GetName() not in goal_objects][0:3]
+            for obj in object_around_entrance: utils.randomly_place_region(obj, region_around_entrance_region,
+                                                                           n_limit=100)
+
+            # surround the robot?
+            # Force the goal object to be around the robot
+            #utils.randomly_place_region(self.robot, robot_region)
+            radius = 1
+            center = utils.get_body_xytheta(self.robot).squeeze()[0:2]
+            xmin = center[0] - radius
+            xmax = center[0]
+            ymin = center[1]
+            ymax = center[1] + radius
+            goal_obj_region = AARegion('goal_obj_region', ((xmin, xmax), (ymin, ymax)), z=0.135,
+                                    color=np.array((1, 1, 0, 0.25)))
+            for obj in goal_objects:
+                utils.randomly_place_region(self.env.GetKinBody(obj), goal_obj_region, n_limit=100)
+        elif 50000 <= self.problem_idx < 60000:
             # hard problems for both RSC and Greedy
             # hard for RSC: make sure the goal object needs to be moved twice
             # dillema: if I put the goal object near the entrance, then I can just move that to the goal region
@@ -343,7 +376,7 @@ class Mover(ProblemEnvironment):
 
             object_around_entrance = [obj for obj in self.objects if obj not in objs_to_move_near_entrance
                                       if obj.GetName() not in goal_objects][0:3]
-            #object_around_entrance = np.array(object_around_entrance)[
+            # object_around_entrance = np.array(object_around_entrance)[
             #    np.random.choice(range(len(object_around_entrance)), 3, replace=False)]
             for obj in object_around_entrance: utils.randomly_place_region(obj, region_around_entrance_region,
                                                                            n_limit=100)
@@ -366,7 +399,7 @@ class Mover(ProblemEnvironment):
             ymin = center[1] - radius
             ymax = center[1] + radius
             goal_obj_region = AARegion('goal_obj_region', ((xmin, xmax), (ymin, ymax)), z=0.135,
-                                    color=np.array((1, 1, 0, 0.25)))
+                                       color=np.array((1, 1, 0, 0.25)))
             for obj in goal_objects:
                 utils.randomly_place_region(self.env.GetKinBody(obj), goal_obj_region)
         elif self.problem_idx >= 60000:
