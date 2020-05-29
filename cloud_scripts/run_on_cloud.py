@@ -25,8 +25,10 @@ def get_yaml_file_name(algorithm, domain):
         if 'one' in domain:
             yaml_file = 'run_discretized_uniform_one_arm.yaml'
         else:
-            if 'learn' in algorithm:
+            if 'greedy_learn' in algorithm:
                 yaml_file = 'run_learned_two_arm.yaml'
+            elif 'pure_learning' in algorithm:
+                yaml_file = 'pure_learning_two_arm.yaml'
             else:
                 yaml_file = 'run_uniform_two_arm.yaml'
 
@@ -39,7 +41,7 @@ def get_s3_path(domain, algorithm, n_objs_pack):
             assert n_objs_pack == 1
             s3_path = 'csail/bkim/guiding-gtamp/test_results/irsc/one_arm_mover/n_objs_pack_1'
         else:
-            s3_path = 'csail/bkim/guiding-gtamp/test_results/e26923f/irsc/two_arm_mover/n_objs_pack_{}'.format(
+            s3_path = 'csail/bkim/guiding-gtamp/test_results/9226036/irsc/two_arm_mover/n_objs_pack_{}'.format(
                 n_objs_pack)
     else:
         if 'one' in domain:
@@ -50,23 +52,41 @@ def get_s3_path(domain, algorithm, n_objs_pack):
                       'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                       'n_mp_limit_5_n_iter_limit_500/'
         else:
-            if 'learn' in algorithm:
+            if 'greedy_learn' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
-                          'e26923f/' \
+                          '9226036/' \
                           'sahs_results/uses_rrt/' \
                           'domain_two_arm_mover/' \
                           'n_objs_pack_{}/' \
                           'qlearned_hcount_old_number_in_goal/' \
                           'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                           'using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
-            else:
+            elif 'pure_learning' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
-                          'e26923f/' \
-                          'sahs_results/uses_rrt/domain_two_arm_mover/' \
+                          '9226036/' \
+                          'pure_learning/' \
+                          'domain_two_arm_mover/' \
                           'n_objs_pack_{}/' \
                           'qlearned_hcount_old_number_in_goal/' \
                           'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
-                          'n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
+                          'using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
+            else:
+                if 'hcount' in algorithm:
+                    s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
+                              '9226036/' \
+                              'sahs_results/uses_rrt/domain_two_arm_mover/' \
+                              'n_objs_pack_{}/' \
+                              'hcount_old_number_in_goal/' \
+                              'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                              'n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
+                else:
+                    s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
+                              '9226036/' \
+                              'sahs_results/uses_rrt/domain_two_arm_mover/' \
+                              'n_objs_pack_{}/' \
+                              'qlearned_hcount_old_number_in_goal/' \
+                              'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                              'n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
     return s3_path
 
 
@@ -74,11 +94,14 @@ def get_target_pidxs(domain):
     if 'one' in domain:
         pidxs = range(20000, 20030)
     else:
-        pidxs = [60053, 60077, 60058, 60011, 60008, 60029, 60088, 60082, 60021, 60049, 60048, 60060, 60059,
-                 60055, 60027, 60007, 60081, 60042, 60093, 60084, 60023, 60098, 60010, 60099, 60046, 60001,
-                 60078, 60096, 60020, 60022, 60038, 60004]
-        pidxs = range(50000, 50020)
-        # pidxs = pidxs[9:]
+        # previous run
+        pidxs = range(40000, 40100)
+        pidxs.remove(40034)
+        pidxs.remove(40079)
+        pidxs.remove(40060)  # running this one runs out of memory - dunno why
+
+        # new runs
+        pidxs = range(40100, 40400)
     return pidxs
 
 
@@ -104,42 +127,63 @@ def get_seed_and_pidx_pairs_that_needs_to_run(pidxs, seed_pidx_pairs_finished):
     return undone
 
 
+def get_running_seed_and_pidx_pairs(algorithm, domain):
+    cmd = 'kubectl get jobs $(kubectl get jobs -o=jsonpath=\'{.items[?(@.status.running>0)].metadata.name}\') -n beomjoon'
+    results = subprocess.check_output(cmd, shell=True).split('\n')
+    running = []
+    for result in results:
+        if domain not in result:
+            continue
+        if algorithm not in result:
+            continue
+
+        pidx = int(result.split('-')[-2])
+        seed = int(result.split('-')[-1].split(' ')[0])
+        running.append({'pidx': pidx, 'seed': seed})
+    return running
+
+
 def main():
-    algorithm = 'greedy-learn'
-    domain = 'two-arm-mover'
-    n_objs_pack = 4
-    timelimit = 2000 * n_objs_pack
+    for algorithm in ['pure_learning']:
+        for n_objs_pack in [4]:
+            domain = 'two-arm-mover'
+            timelimit = 2000 * n_objs_pack
 
-    if 'hcount' in algorithm:
-        hoption = 'hcount_old_number_in_goal'
-    else:
-        hoption = 'qlearned_hcount_old_number_in_goal'
+            if 'hcount' in algorithm:
+                hoption = 'hcount_old_number_in_goal'
+            else:
+                hoption = 'qlearned_hcount_old_number_in_goal'
 
-    target_pidxs = get_target_pidxs(domain)
-    yaml_file = get_yaml_file_name(algorithm, domain)
+            target_pidxs = get_target_pidxs(domain)
+            yaml_file = get_yaml_file_name(algorithm, domain)
 
-    seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack)
-    undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs, seed_pidx_pairs_finished)
+            seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack)
+            seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
+            # seed_pidx_pairs_finished = []
+            undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs,
+                                                               seed_pidx_pairs_finished + seed_pidx_pairs_running)
 
-    print "Remaining runs", len(undone)
-    import pdb;
-    pdb.set_trace()
-    for idx, un in enumerate(undone):
-        pidx = un[1]
-        seed = un[0]
-        print idx
+            print "Remaining runs", len(undone)
+            consecutive_runs = 0
+            for idx, un in enumerate(undone):
+                pidx = un[1]
+                seed = un[0]
 
-        cmd = 'cat cloud_scripts/{} | ' \
-              'sed \"s/NAME/{}-{}-{}-{}/\" | ' \
-              'sed \"s/PIDX/{}/\" | sed \"s/PLANSEED/{}/\" |  ' \
-              'sed \"s/HOPTION/{}/\" |  ' \
-              'sed \"s/TIMELIMIT/{}/\" |  ' \
-              'sed \"s/NOBJS/{}/\" |  ' \
-              'kubectl apply -f - -n beomjoon;'.format(yaml_file, algorithm, domain, pidx, seed, pidx, seed,
-                                                       hoption, timelimit, n_objs_pack)
-        print cmd
-        os.system(cmd)
-        time.sleep(1.5)
+                cmd = 'cat cloud_scripts/{} | ' \
+                      'sed \"s/NAME/{}-{}-{}-{}/\" | ' \
+                      'sed \"s/PIDX/{}/\" | sed \"s/PLANSEED/{}/\" |  ' \
+                      'sed \"s/HOPTION/{}/\" |  ' \
+                      'sed \"s/TIMELIMIT/{}/\" |  ' \
+                      'sed \"s/NOBJS/{}/\" |  ' \
+                      'kubectl apply -f - -n beomjoon;'.format(yaml_file, algorithm, domain, pidx, seed, pidx, seed,
+                                                               hoption, timelimit, n_objs_pack)
+                print idx, cmd
+                os.system(cmd)
+                time.sleep(2)
+                consecutive_runs += 1
+                if consecutive_runs % 100 == 0:
+                    print "Long break"
+                    time.sleep(30)
 
 
 if __name__ == '__main__':
