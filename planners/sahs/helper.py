@@ -78,7 +78,8 @@ def compute_hcount_old_number_in_goal(state, action):
 def compute_heuristic(state, action, pap_model, h_option, mixrate):
     # parameters used for CoRL
     assert h_option == 'qlearned_hcount_old_number_in_goal' or \
-           h_option == 'hcount_old_number_in_goal'
+           h_option == 'hcount_old_number_in_goal' or\
+           h_option == 'qlearned'
     assert mixrate == 1
 
     is_two_arm_domain = 'two_arm_' in action.type
@@ -111,6 +112,10 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
     elif h_option == 'hcount_old_number_in_goal':
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic
+    elif h_option == 'qlearned':
+        nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
+        nodes = nodes[..., 6:]
+        hval = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
 
     return hval
 
