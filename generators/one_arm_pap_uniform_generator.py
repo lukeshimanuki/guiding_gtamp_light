@@ -59,8 +59,9 @@ class OneArmPaPUniformGenerator:
 
     def is_base_feasible(self, base_pose):
         utils.set_robot_config(base_pose, self.robot)
-        inside_region = self.problem_env.regions['home_region'].contains(self.robot.ComputeAABB()) or \
-                        self.problem_env.regions['loading_region'].contains(self.robot.ComputeAABB())
+        robot_aabb = self.robot.ComputeAABB()
+        inside_region = self.problem_env.regions['home_region'].contains(robot_aabb)
+            #or self.problem_env.regions['loading_region'].contains(robot_aabb)
         no_collision = not self.problem_env.env.CheckCollision(self.robot)
         if (not inside_region) or (not no_collision):
             return False
@@ -230,7 +231,7 @@ class OneArmPaPUniformGenerator:
                 n_ik_attempts += 1
                 break
 
-            if n_ik_attempts == 1 or n_base_attempts == 500:
+            if n_ik_attempts == 1 or n_base_attempts == 1:
                 break
         if status != 'HasSolution':
             utils.set_robot_config(robot_pose)
@@ -253,7 +254,7 @@ class OneArmPaPUniformGenerator:
             elif status == 'HasSolution':
                 n_ik_attempts += 1
                 break
-            if n_ik_attempts == 1 or n_base_attempts == 500:
+            if n_ik_attempts == 1 or n_base_attempts == 1:
                 break
         utils.one_arm_place_object(pick_cont_params)
         self.robot.SetDOFValues(robot_config)
