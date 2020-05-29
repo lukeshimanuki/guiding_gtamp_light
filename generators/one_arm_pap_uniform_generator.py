@@ -42,6 +42,9 @@ class OneArmPaPUniformGenerator:
         self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
         self.operator_skeleton = operator_skeleton
 
+        self.n_ik_checks = 0
+
+
     def sample_next_point(self, max_ik_attempts):
         # n_iter refers to the max number of IK attempts on pick
         n_ik_attempts = 0
@@ -49,6 +52,7 @@ class OneArmPaPUniformGenerator:
             pick_cont_params, place_cont_params, status = self.sample_cont_params()
             if status == 'InfeasibleIK':
                 n_ik_attempts += 1
+                self.n_ik_checks += 1
                 if n_ik_attempts == max_ik_attempts:
                     break
             elif status == 'InfeasibleBase':

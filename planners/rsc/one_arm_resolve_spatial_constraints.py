@@ -245,10 +245,9 @@ class OneArmResolveSpatialConstraints:
 
         papg = OneArmPaPUniformGenerator(op_skel,
                                          self.problem_env,
-                                         cached_picks=(self.iksolutions[current_region], self.iksolutions[r]),
-                                         n_iter_limit=self.config.n_iter_limit)
-        num_tries = 200
-        pick_params, place_params, status = papg.sample_next_point(max_ik_attempts=num_tries, cont_param_type='discretized')
+                                         cached_picks=None)
+                                         #cached_picks=(self.iksolutions[current_region], self.iksolutions[r]),
+        pick_params, place_params, status = papg.sample_next_point(max_ik_attempts=self.config.n_iter_limit)
 
         if 'HasSolution' in status:
             self.pap_params[(obj, r)].append((pick_params, place_params))
