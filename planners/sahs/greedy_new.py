@@ -188,7 +188,9 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             else:
                 mover.enable_objects()
                 current_region = mover.get_region_containing(obj).name
-                papg = OneArmPaPUniformGenerator(action, mover, cached_picks=(node.state.iksolutions[current_region], node.state.iksolutions[r]))
+                papg = OneArmPaPUniformGenerator(action, mover,
+                                                 cached_picks=None)
+                                                 #cached_picks=(node.state.iksolutions[current_region], node.state.iksolutions[r]))
                 pick_params, place_params, status = papg.sample_next_point(500)
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params

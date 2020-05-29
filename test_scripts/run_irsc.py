@@ -30,10 +30,11 @@ ROOTDIR = './'
 # else:
 #    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
+from test_scripts.run_mcts import get_commit_hash
 
 def make_and_get_save_dir(parameters):
     commit_hash = get_commit_hash()
-    save_dir = ROOTDIR + '/test_results/'+str(commit_hash)+'/irsc/'
+    save_dir = ROOTDIR + '/test_results/' + str(commit_hash) + '/irsc/'
     save_dir += parameters.domain + '/n_objs_pack_'
     save_dir += str(parameters.n_objs_pack)
 

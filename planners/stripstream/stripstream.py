@@ -40,6 +40,7 @@ from trajectory_representation.trajectory import Trajectory
 import numpy as np
 import openravepy
 
+import collections
 from collections import Counter
 from manipulation.primitives.display import set_viewer_options, draw_line, draw_point
 from manipulation.primitives.savers import DynamicEnvironmentStateSaver
@@ -57,8 +58,9 @@ num_mp_checks = 0
 def gen_pap(problem, config):
     # cache ik solutions
     ikcachename = './ikcache.pkl'
-    iksolutions = {}
-    iksolutions = pickle.load(open(ikcachename, 'r'))
+    iksolutions = collections.defaultdict(list)
+    if os.path.isfile(ikcachename):
+        iksolutions = pickle.load(open(ikcachename, 'r'))
 
     def fcn(o, r, s):
         global num_ik_checks
@@ -94,7 +96,7 @@ def gen_pap(problem, config):
                 action = Operator('one_arm_pick_one_arm_place', {'object': problem.env.GetKinBody(o), 'place_region': problem.regions[r]})
                 current_region = problem.get_region_containing(problem.env.GetKinBody(o)).name
                 sampler = OneArmPaPUniformGenerator(action, problem, cached_picks=(iksolutions[current_region], iksolutions[r]))
-                pick_params, place_params, status = sampler.sample_next_point(500)
+                pick_params, place_params, status = sampler.sample_next_point(max_ik_attempts=500)
 
                 if status == 'HasSolution':
                     action.continuous_parameters = {'pick': pick_params, 'place': place_params}

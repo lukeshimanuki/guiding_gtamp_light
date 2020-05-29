@@ -150,6 +150,7 @@ def load_learned_q(config, problem_env):
 def get_commit_hash():
     syscmd = 'git ls-remote ./ refs/heads/master | cut -f 1'
     hash = subprocess.check_output(['git', 'log',  '--pretty=format:%h', '-n', '1'])
+
     return hash
 
 

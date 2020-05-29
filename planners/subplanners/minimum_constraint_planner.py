@@ -57,6 +57,9 @@ class MinimumConstraintPlanner(BaseMotionPlanner, ArmBaseMotionPlanner):
                                                              n_iterations=[20, 50, 100, 500, 1000])
             # print "Motion plan time", time.time()-stime
         self.problem_env.enable_objects_in_region('entire_region')
+        if path is None:
+            #import pdb; pdb.set_trace()
+            print('### WARNING: path ignoring obstacles not found ###')
         return path
 
     def get_motion_plan(self, goal_configuration, region_name='entire_region', n_iterations=None,

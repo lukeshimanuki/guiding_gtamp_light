@@ -504,7 +504,10 @@ def prm_connect(q1, q2, collision_checker, source='', return_start_set_and_path_
         else:
             return path
     else:
-        return None, (start, path_idxs)
+        if return_start_set_and_path_idxs:
+            return None, (start, path_idxs)
+        else:
+            return None
 
 
 def direct_path(q1, q2, extend, collision):
