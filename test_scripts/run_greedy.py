@@ -263,6 +263,23 @@ def get_learned_sampler_models(config):
     return model
 
 
+def get_goal_obj_and_region(config):
+    if config.domain == 'two_arm_mover':
+        if config.n_objs_pack == 4:
+            goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                         'rectangular_packing_box4']
+            goal_region = 'home_region'
+        else:
+            goal_objs = ['square_packing_box1']
+            goal_region = 'home_region'
+    elif config.domain == 'one_arm_mover':
+        assert config.n_objs_pack == 1
+        goal_objs = ['c_obst0']
+        goal_region = 'rectangular_packing_box1_region'
+    else:
+        raise NotImplementedError
+    return goal_objs, goal_region
+
 def main():
     config = parse_arguments()
     solution_file_name = get_solution_file_name(config)
@@ -282,20 +299,7 @@ def main():
     if config.gather_planning_exp:
         config.timelimit = np.inf
 
-    if config.domain == 'two_arm_mover':
-        if config.n_objs_pack == 4:
-            goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
-                         'rectangular_packing_box4']
-            goal_region = 'home_region'
-        else:
-            goal_objs = ['square_packing_box1']
-            goal_region = 'home_region'
-    elif config.domain == 'one_arm_mover':
-        assert config.n_objs_pack == 1
-        goal_objs = ['c_obst0']
-        goal_region = 'rectangular_packing_box1_region'
-    else:
-        raise NotImplementedError
+    goal_objs, goal_region = get_goal_obj_and_region(config)
     print "Goal:", goal_objs, goal_region
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
