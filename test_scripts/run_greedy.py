@@ -56,7 +56,7 @@ def get_solution_file_name(config):
     commit_hash = get_commit_hash()
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/raw/uses_prm/'
+        root_dir = root_dir + '/planning_experience/raw/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
@@ -215,6 +215,8 @@ def make_node_pklable(node):
     node.state.make_pklable()
     node.tried_samples = {}
     node.tried_sample_feasibility_labels = {}
+    if 'heuristic_vals' in dir(node):
+        node.heuristic_vals = None
     """
     for k in node.generators.keys():
         node.tried_samples[k] = node.generators[k].tried_samples
