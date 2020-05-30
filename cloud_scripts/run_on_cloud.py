@@ -25,10 +25,10 @@ def get_yaml_file_name(algorithm, domain):
         if 'one' in domain:
             yaml_file = 'run_discretized_uniform_one_arm.yaml'
         else:
-            if 'greedy_learn' in algorithm:
+            if 'greedy-learn' in algorithm:
                 yaml_file = 'run_learned_two_arm.yaml'
-            elif 'pure_learning' in algorithm:
-                yaml_file = 'pure_learning_two_arm.yaml'
+            elif 'pure-learning' in algorithm:
+                yaml_file = 'run_pure_learning_two_arm.yaml'
             else:
                 yaml_file = 'run_uniform_two_arm.yaml'
 
@@ -52,7 +52,7 @@ def get_s3_path(domain, algorithm, n_objs_pack):
                       'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                       'n_mp_limit_5_n_iter_limit_500/'
         else:
-            if 'greedy_learn' in algorithm:
+            if 'greedy-learn' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
                           '9226036/' \
                           'sahs_results/uses_rrt/' \
@@ -61,7 +61,7 @@ def get_s3_path(domain, algorithm, n_objs_pack):
                           'qlearned_hcount_old_number_in_goal/' \
                           'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                           'using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
-            elif 'pure_learning' in algorithm:
+            elif 'pure-learning' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
                           '9226036/' \
                           'pure_learning/' \
@@ -70,7 +70,7 @@ def get_s3_path(domain, algorithm, n_objs_pack):
                           'qlearned_hcount_old_number_in_goal/' \
                           'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                           'using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
-            else:
+            elif 'greedy' == algorithm:
                 if 'hcount' in algorithm:
                     s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
                               '9226036/' \
@@ -87,6 +87,8 @@ def get_s3_path(domain, algorithm, n_objs_pack):
                               'qlearned_hcount_old_number_in_goal/' \
                               'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                               'n_mp_limit_5_n_iter_limit_2000/'.format(n_objs_pack)
+            else:
+                raise NotImplementedError
     return s3_path
 
 
@@ -144,8 +146,8 @@ def get_running_seed_and_pidx_pairs(algorithm, domain):
 
 
 def main():
-    for algorithm in ['pure_learning']:
-        for n_objs_pack in [4]:
+    for algorithm in ['pure-learning']:
+        for n_objs_pack in [1,4]:
             domain = 'two-arm-mover'
             timelimit = 2000 * n_objs_pack
 

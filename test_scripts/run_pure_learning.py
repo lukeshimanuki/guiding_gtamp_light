@@ -4,6 +4,7 @@ import pickle
 import time
 import os
 import torch
+import sys
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from planners.sahs.greedy_new import get_generator
@@ -105,6 +106,19 @@ def get_solution_file_name(config):
 def main():
     config = parse_arguments()
     config.use_learning = True
+    solution_file_name = get_solution_file_name(config)
+    is_problem_solved_before = os.path.isfile(solution_file_name)
+    if is_problem_solved_before and not config.f:
+        print "***************Already solved********************"
+        with open(solution_file_name, 'rb') as f:
+            trajectory = pickle.load(f)
+            success = trajectory['success']
+            tottime = trajectory['tottime']
+            num_nodes = trajectory['num_nodes']
+            plan_length = len(trajectory['plan']) if success else 0
+            print 'Time: %.2f Success: %d Plan length: %d Num nodes: %d ' % (
+                tottime, success, plan_length, num_nodes)
+        sys.exit(-1)
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
     problem_env = get_problem_env(config, goal_region, goal_objs)
@@ -116,10 +130,9 @@ def main():
     random.seed(config.planner_seed)
     learned_sampler_model = get_learned_sampler_models(config)
 
-    solution_file_name = get_solution_file_name(config)
     total_time, n_total_actions, goal_reached = \
         execute_learned_predictors(pap_model, learned_sampler_model, problem_env, goal_objs + [goal_region], config)
-
+    print goal_reached
     data = {
         'n_objs_pack': config.n_objs_pack,
         'tottime': total_time,
