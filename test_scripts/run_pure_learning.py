@@ -123,7 +123,6 @@ def main():
     goal_objs, goal_region = get_goal_obj_and_region(config)
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
-    problem_env.set_goal(goal_objs, goal_region)
 
     pap_model = get_pap_gnn_model(problem_env, config)
     np.random.seed(config.planner_seed)
