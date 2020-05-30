@@ -21,6 +21,7 @@ spec:
           && git config --global user.email "beomjoon.kim0@gmail.com"
           && git fetch --all
           && git reset --hard origin/beomjoon
+          && git checkout COMMITHASH
           && git log --pretty=format:%h -n 1
           && mc config host add csail https://ceph.csail.mit.edu 119df3538de4475aaf3f0737600003b4 7e0b2e1e15004eafb75f49d1f265baf7
           && mc cp csail/bkim/ik/kinematics.9ff4f1d77a61494bbd09f843fedb0314 ~/.openrave/ --recursive
