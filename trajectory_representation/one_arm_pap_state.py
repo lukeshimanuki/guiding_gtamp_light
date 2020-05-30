@@ -262,8 +262,9 @@ class OneArmPaPState(PaPState):
         #sorted_objects = sorted(self.objects, key=lambda o: o not in self.goal_entities)
         #sorted_regions = sorted(self.regions, key=lambda r: r not in self.goal_entities)
         assert len(self.goal_entities) == 2
-        goal_obj = 'c_obst1'
-        goal_region = 'rectangular_packing_box1_region'
+        assert 'c_obst1' in self.goal_entities
+        goal_obj = self.problem_env.goal_objects[0]
+        goal_region = self.problem_env.goal_region[0]
         sorted_objects = [goal_obj] + [o for o in self.objects if o not in self.goal_entities]
         sorted_regions = [goal_region] + [r for r in self.regions if r not in self.goal_entities]
         all_goals_are_reachable = True
