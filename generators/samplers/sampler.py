@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 from gtamp_utils import utils
-from trajectory_representation.two_arm_sampler_trajectory import TwoArmConcreteNodeState
+from trajectory_representation.concrete_node_state import TwoArmConcreteNodeState
 from generators.learning.utils import data_processing_utils
 from gtamp_utils.utils import get_pick_domain, get_place_domain, get_pick_base_pose_and_grasp_from_pick_parameters
 
