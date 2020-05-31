@@ -74,9 +74,10 @@ class GeneratorDataset(Dataset):
                     f = pickle.load(open(testing_cached_file, 'r'))
                 else:
                     f = pickle.load(open(traj_dir + cache_file_name, 'r'))
-                    #new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_' + cache_file_name, 'r'))
-                    testset_index_file =  './generators/datasets/testset_cache_file_idxs/seed_{}_atype_{}_region_{}.pkl'.format(self.seed, action_type, desired_region)
-                    test_set_indices = os.pickle.load(open(testset_index_file,'r'))
+                    # new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_' + cache_file_name, 'r'))
+                    testset_index_file = './generators/datasets/testset_cache_file_idxs/seed_{}_atype_{}_region_{}.pkl'.format(
+                        self.seed, action_type, desired_region)
+                    test_set_indices = os.pickle.load(open(testset_index_file, 'r'))
                     new_f = (f[0][testset_indices, :], f[1][testset_indices, :], f[2][testset_indices, :])
                     f = pickle.dump(new_f, open(testing_cached_file, 'wb'))
                     f = new_f
@@ -113,18 +114,13 @@ class GeneratorDataset(Dataset):
                 if self.we_should_skip_this_state_and_action(s, desired_region, reward, action_type, use_filter):
                     continue
 
-                if action_type == 'pick':
-                    collision_vec = s.pick_collision_vector
-                elif action_type == 'place':
-                    collision_vec = s.pick_collision_vector
-                else:
-                    raise NotImplementedError
+                collision_vec = s.pick_collision_vector
 
                 v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 618, 2, 1))
                 state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
 
                 states.append(state_vec)
-                if 'rectangular' in  a['object_name']:
+                if 'rectangular' in a['object_name']:
                     object_id = [1, 0]
                 else:
                     object_id = [0, 1]
