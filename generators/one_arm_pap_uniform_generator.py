@@ -50,13 +50,11 @@ class OneArmPaPUniformGenerator:
         n_ik_attempts = 0
         while True:
             pick_cont_params, place_cont_params, status = self.sample_cont_params()
-            if status == 'InfeasibleIK':
+            if status == 'InfeasibleIK' or status == 'InfeasibleBase':
                 n_ik_attempts += 1
                 self.n_ik_checks += 1
                 if n_ik_attempts == max_ik_attempts:
                     break
-            elif status == 'InfeasibleBase':
-                return None, None, "NoSolution"
             elif status == 'HasSolution':
                 return pick_cont_params, place_cont_params, 'HasSolution'
         return None, None, 'NoSolution'
@@ -235,7 +233,7 @@ class OneArmPaPUniformGenerator:
                 n_ik_attempts += 1
                 break
 
-            if n_ik_attempts == 1 or n_base_attempts == 1:
+            if n_ik_attempts == 1 or n_base_attempts == 4:
                 break
         if status != 'HasSolution':
             utils.set_robot_config(robot_pose)
