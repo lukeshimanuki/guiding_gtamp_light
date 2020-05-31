@@ -641,11 +641,11 @@ def place_distance(a1, a2):
     return base_distance
 
 
-def base_pose_distance(a1, a2):
+def base_pose_distance(a1, a2, x_max_diff=2.51, y_max_diff=2.51):
     base_a1 = clean_pose_data(a1).squeeze()
     base_a2 = clean_pose_data(np.array(a2)).squeeze()
 
-    base_distance_max_diff = np.array([1. / 2.51, 1. / 2.51, 1 / np.pi])
+    base_distance_max_diff = np.array([1. / x_max_diff, 1. / y_max_diff, 1 / np.pi])
     base_distance = np.sum(np.dot(base_conf_diff(base_a1, base_a2), base_distance_max_diff))
 
     return base_distance
