@@ -651,6 +651,56 @@ def base_pose_distance(a1, a2, x_max_diff=2.51, y_max_diff=2.51):
     return base_distance
 
 
+def set_rightarm_torso(config, robot=None):
+    if robot is None:
+        env = openravepy.RaveGetEnvironments()[0]
+        robot = env.GetRobot('pr2')
+
+    manip = robot.GetManipulator('rightarm_torso')
+    robot.SetActiveDOFs(manip.GetArmIndices(), DOFAffine.X | DOFAffine.Y | DOFAffine.RotationAxis, [0, 0, 1])
+    set_active_config(config, robot)
+
+
+def clean_rightarm_torso_config(arm_config):
+    if len(arm_config.shape) == 2:
+        assert arm_config.shape[1] == 8, 'Dimension of config must be 11'
+    else:
+        assert len(arm_config) == 8, 'Dimension of config must be 11'
+    if arm_config[5] < 0:
+        arm_config[5] += 2 * np.pi
+
+    if arm_config[-1] < 0:
+        arm_config[-1] += 2 * np.pi
+
+    if arm_config[5] > 2 * np.pi:
+        arm_config[5] -= 2 * np.pi
+
+    if arm_config[-1] > 2 * np.pi:
+        arm_config[-1] -= 2 * np.pi
+    return arm_config
+
+
+def clean_rightarm_torso_base_pose(robot_config):
+    assert len(robot_config.shape) == 1, 'robot config to be cleaned must have shape of length 1'
+    clean_rightarm_torso_config(robot_config[:-3])
+    clean_pose_data(robot_config[-3:])
+    return robot_config
+
+
+def get_rightarm_torso_config(robot=None):
+    if robot is None:
+        env = openravepy.RaveGetEnvironments()[0]
+        robot = env.GetRobot('pr2')
+    with robot:
+        manip = robot.GetManipulator('rightarm_torso')
+        robot.SetActiveDOFs(manip.GetArmIndices(), DOFAffine.X | DOFAffine.Y | DOFAffine.RotationAxis, [0, 0, 1])
+        robot_config = robot.GetActiveDOFValues()
+
+    robot_config = robot_config[None, :]
+    clean_rightarm_torso_base_pose(robot_config[0, :])
+    return robot_config
+
+
 def compute_robot_xy_given_ir_parameters(portion_of_dist_to_obj, angle, t_obj, radius=PR2_ARM_LENGTH):
     dist_to_obj = radius * portion_of_dist_to_obj  # how close are you to obj?
     x = dist_to_obj * np.cos(angle)  # Relative pose to the object
@@ -751,14 +801,15 @@ def get_ir_parameters_from_robot_obj_poses(robot_xyth, obj_xyth):
         facing_angle_offset -= 2 * np.pi
     while facing_angle_offset < -30. / 180 * np.pi:
         facing_angle_offset += 2 * np.pi
-
     portion, base_angle = compute_ir_parameters_given_robot_xy(robot_xyth, obj_xyth)
-
+    """
     recovered_robot_xyth = get_absolute_pick_base_pose_from_ir_parameters([portion, base_angle, facing_angle_offset],
+                                                                          obj,
                                                                           obj_xyth)
     recovered_robot_xyth = clean_pose_data(recovered_robot_xyth)
     robot_xyth = clean_pose_data(robot_xyth)
     assert np.all(np.isclose(recovered_robot_xyth, robot_xyth.squeeze()))
+    """
     return portion, base_angle, facing_angle_offset
 
 
