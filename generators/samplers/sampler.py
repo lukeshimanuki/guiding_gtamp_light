@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 from gtamp_utils import utils
-from trajectory_representation.concrete_node_state import ConcreteNodeState
+from trajectory_representation.two_arm_sampler_trajectory import TwoArmConcreteNodeState
 from generators.learning.utils import data_processing_utils
 from gtamp_utils.utils import get_pick_domain, get_place_domain, get_pick_base_pose_and_grasp_from_pick_parameters
 
@@ -29,7 +29,7 @@ class LearnedSampler(Sampler):
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
 
-        self.smpler_state = ConcreteNodeState(abstract_state, abstract_action)
+        self.smpler_state = TwoArmConcreteNodeState(abstract_state, abstract_action)
         self.n_smpl_per_iter = 2000
 
     def sample_new_points(self, n_smpls):
