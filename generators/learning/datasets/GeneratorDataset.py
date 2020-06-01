@@ -94,7 +94,12 @@ class GeneratorDataset(Dataset):
         for traj_file_idx, traj_file in enumerate(traj_files):
             if 'pidx' not in traj_file:
                 continue
-            traj = pickle.load(open(traj_dir + traj_file, 'r'))
+            try:
+                traj = pickle.load(open(traj_dir + traj_file, 'r')) 
+            except:
+                print traj_file
+                continue
+
             if len(traj.states) == 0:
                 continue
 
