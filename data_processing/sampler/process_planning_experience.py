@@ -8,11 +8,7 @@ import socket
 import sys
 
 hostname = socket.gethostname()
-if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
-
+ROOTDIR = './'
 
 def get_save_dir(parameters):
     if 'two_arm' in parameters.domain:
