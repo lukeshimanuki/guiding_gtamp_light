@@ -40,11 +40,13 @@ def main():
     parser = argparse.ArgumentParser('config')
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-region', type=str, default='home_region')
+    parser.add_argument('-domain', type=str, default='two_arm_mover')
+    parser.add_argument('-iteration', type=int, default=0)
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
-
     parameters = parser.parse_args()
-    model = WGANgp(parameters.atype, parameters.region, parameters.architecture, parameters.seed)
+
+    model = WGANgp(parameters.atype, parameters.region, parameters.architecture, parameters.seed, parameters.domain)
     while True:
         max_iter = get_max_iteration(model.weight_dir)
         max_iter = min(250000, max_iter)
