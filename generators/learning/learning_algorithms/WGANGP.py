@@ -6,6 +6,7 @@ import time
 import pickle
 
 import socket
+
 if socket.gethostname() == 'phaedra':
     from sklearn.neighbors import KernelDensity
 import os
@@ -42,7 +43,7 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 
 class WGANgp:
-    def __init__(self, action_type, region_name, architecture, seed):
+    def __init__(self, action_type, region_name, architecture, seed, problem_name):
         self.action_type = action_type
         self.n_dim_actions = self.get_dim_action(action_type)
         self.seed = seed
@@ -53,6 +54,7 @@ class WGANgp:
             self.device = torch.device('cpu')  # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.problem_name = problem_name
         self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(action_type, region_name)
         self.domain = self.get_domain(action_type, region_name)
@@ -76,14 +78,17 @@ class WGANgp:
             print "On cloud. Loading the only weight"
             weight_file = os.listdir(self.weight_dir)[0]
             if 'cpu' in self.device.type:
-                self.generator.load_state_dict(torch.load(self.weight_dir+'/'+weight_file, map_location=torch.device('cpu')))
+                self.generator.load_state_dict(
+                    torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
             else:
-                self.generator.load_state_dict(torch.load(self.weight_dir+'/'+weight_file))
+                self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
 
     def create_models(self):
         if self.architecture == 'fc':
-            discriminator = Discriminator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
-            generator = Generator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
+            discriminator = Discriminator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name,
+                                          self.problem_name)
+            generator = Generator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name,
+                                  self.problem_name)
         elif self.architecture == 'cnn':
             discriminator = CNNDiscriminator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
             generator = CNNGenerator(self.dim_konf, self.n_dim_actions, self.action_type, self.region_name)
