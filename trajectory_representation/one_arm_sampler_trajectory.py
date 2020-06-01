@@ -160,13 +160,10 @@ class OneArmSAHSSamplerTrajectory(SamplerTrajectory):
 
         self.problem_env = problem_env
         abs_state = OneArmPaPState(problem_env, goal_entities)
-        abs_state.make_pklable()
-        pickle.dump(abs_state, open('temp.pkl', 'wb'))
-        #abs_state = pickle.load(open('temp.pkl', 'r'))
-        abs_state.make_plannable(self.problem_env)
+        state = None
         for action in plan:
             assert action.type == 'one_arm_pick_one_arm_place'
-            state = OneArmConcreteNodeState(abs_state, action, self.key_configs)
+            state = OneArmConcreteNodeState(abs_state, action, self.key_configs, parent_state=state)
             action_info = self.get_action_info(action)
 
             ## Sanity check

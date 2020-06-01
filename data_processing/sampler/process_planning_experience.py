@@ -14,9 +14,15 @@ else:
     ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
 
-def get_save_dir():
-    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
-    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+def get_save_dir(parameters):
+    if 'two_arm' in parameters.domain:
+        n_objs_pack = 1
+    else:
+        n_objs_pack = 1
+
+    save_dir = ROOTDIR + '/planning_experience/processed/{}/n_objs_pack_{}/sahs/uses_rrt/' \
+                         'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'.format(parameters.domain,
+                                                                                             n_objs_pack)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     return save_dir
@@ -93,9 +99,9 @@ def quit_if_already_done(fpath, config):
 def main():
     parameters = parse_parameters()
     raw_dir = get_raw_dir(parameters)
-    #make_key_configs(parameters, raw_dir)
+    # make_key_configs(parameters, raw_dir)
     raw_fname = get_raw_fname(raw_dir, parameters)
-    save_dir = get_save_dir()
+    save_dir = get_save_dir(parameters)
     processed_fname = get_processed_fname(raw_fname)
     print "Raw fname", raw_dir + raw_fname
     print "Processed fname ", save_dir + processed_fname
