@@ -5,6 +5,7 @@ from generators.learning.datasets.GeneratorDataset import StandardDataset
 import pickle
 import os
 import argparse
+import torch
 from generators.learning.train_torch_sampler import get_data_generator
 
 
@@ -17,12 +18,15 @@ def main():
     parser = argparse.ArgumentParser('config')
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-region', type=str, default='home_region')
+    parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-iteration', type=int, default=0)
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
     config = parser.parse_args()
 
-    model = WGANgp(config.atype, config.region, config.architecture, config.seed)
+    torch.cuda.manual_seed_all(config.seed)
+    torch.manual_seed(config.seed)
+    model = WGANgp(config.atype, config.region, config.architecture, config.seed, config.domain)
 
     fdir = model.weight_dir + '/result_summary/'
     if not os.path.isdir(fdir):
@@ -34,7 +38,7 @@ def main():
         print "*******Already done*******"
         return
     else:
-        _, _, testset = get_data_generator(config.atype, config.region, seed=0)
+        _, _, testset = get_data_generator(config)
         result = model.evaluate_generator(testset, iteration=config.iteration)
         pickle.dump(result, open(fdir + fname, 'wb'))
 
