@@ -44,7 +44,11 @@ def make_konfs_relative_to_pose(obj_pose, key_configs):
 
 def get_processed_poses_from_state(state, state_data_mode):
     obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
-    curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
+
+    if state.abs_robot_pose.shape[1] == 11:
+        curr_robot_pose = np.array([-9999, -9999, -9999, -9999])
+    else:
+        curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
     goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
     """
     elif state_data_mode == 'robot_rel_to_obj':

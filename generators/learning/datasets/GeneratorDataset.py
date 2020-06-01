@@ -82,7 +82,7 @@ class GeneratorDataset(Dataset):
             print "Loading the cache file", traj_dir + cache_file_name
             f = pickle.load(open(traj_dir + cache_file_name, 'r'))
             print "Cache data loaded"
-            #return f
+            return f
 
         print 'caching file...%s' % cache_file_name
         all_states = []
