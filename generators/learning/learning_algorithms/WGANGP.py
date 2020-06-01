@@ -107,11 +107,15 @@ class WGANgp:
 
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}'.format(action_type, region_name,
-                                                                                         self.architecture, self.seed)
+            dir = './generators/learning/learned_weights/{}/{}/{}/wgangp/{}/seed_{}'.format(self.problem_name,
+                                                                                            action_type,
+                                                                                            region_name,
+                                                                                            self.architecture,
+                                                                                            self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/wgangp/{}/seed_{}'.format(action_type, self.architecture,
-                                                                                      self.seed)
+            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}'.format(self.problem_name, action_type,
+                                                                                         self.architecture,
+                                                                                         self.seed)
         return dir
 
     def get_domain(self, action_type, region_name):
@@ -278,6 +282,8 @@ class WGANgp:
             ###########################
             for p in self.discriminator.parameters():  # reset requires_grad
                 p.requires_grad = True  # they are set to False below in self.generator update
+
+            print "%d / %d" % (iteration, total_iterations)
 
             for iter_d in xrange(CRITIC_ITERS):
                 _data = data_gen.next()
