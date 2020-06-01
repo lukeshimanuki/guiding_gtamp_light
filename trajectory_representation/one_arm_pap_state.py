@@ -42,7 +42,7 @@ class OneArmPaPState(PaPState):
             print "Loading ik cache from harddrive"
             self.iksolutions = pickle.load(open(ikcachename, 'r'))
         else:
-            #self.compute_and_cache_ik_solutions(ikcachename)
+            # self.compute_and_cache_ik_solutions(ikcachename)
             self.iksolutions = collections.defaultdict(list)
 
         # ik solutions contain 1000 paps.
@@ -259,11 +259,12 @@ class OneArmPaPState(PaPState):
     def initialize_pap_pick_place_params(self, moved_obj, parent_state):
         self.problem_env.disable_objects()
         stime = time.time()
-        #sorted_objects = sorted(self.objects, key=lambda o: o not in self.goal_entities)
-        #sorted_regions = sorted(self.regions, key=lambda r: r not in self.goal_entities)
+        # sorted_objects = sorted(self.objects, key=lambda o: o not in self.goal_entities)
+        # sorted_regions = sorted(self.regions, key=lambda r: r not in self.goal_entities)
         assert len(self.goal_entities) == 2
-        goal_obj = 'c_obst1'
-        goal_region = 'rectangular_packing_box1_region'
+        assert 'c_obst1' in self.goal_entities
+        goal_obj = self.problem_env.goal_objects[0]
+        goal_region = self.problem_env.goal_region[0]
         sorted_objects = [goal_obj] + [o for o in self.objects if o not in self.goal_entities]
         sorted_regions = [goal_region] + [r for r in self.regions if r not in self.goal_entities]
         all_goals_are_reachable = True
@@ -291,6 +292,7 @@ class OneArmPaPState(PaPState):
 
                 current_region = self.problem_env.get_region_containing(obj).name
 
+                # What are these values?
                 if obj in self.goal_entities and r in self.goal_entities:
                     num_tries = 20
                     num_iters = 50
@@ -300,29 +302,25 @@ class OneArmPaPState(PaPState):
                     num_tries = 5
                     num_iters = 10
 
+                # Re-use the pap parameters
                 if self.parent_state is not None and obj != moved_obj:
                     self.pap_params[(obj, r)] = parent_state.pap_params[(obj, r)]
                 else:
                     self.pap_params[(obj, r)] = []
 
-                op_skel = Operator(operator_type='one_arm_pick_one_arm_place',
-                                   discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
-                                                        'place_region': self.problem_env.regions[r]})
-
-                # It easily samples without cached iks?
-                papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
-                                                 cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
-
-                # check existing solutions
+                # check existing solutions. If we have no collision solution, then no need to sample new values
                 if (obj, r) in self.pap_params:
                     nocollision = False
                     self.problem_env.enable_objects()
                     for pick_params, place_params in self.pap_params[(obj, r)]:
+                        # checking pick has no collision
                         collision = False
                         pick_op.continuous_parameters = pick_params
                         pick_op.execute()
                         if self.problem_env.env.CheckCollision(self.problem_env.robot):
                             collision = True
+                        ####
+                        # checking place has no collision
                         place_op.continuous_parameters = place_params
                         place_op.execute()
                         if self.problem_env.env.CheckCollision(self.problem_env.robot):
@@ -333,21 +331,31 @@ class OneArmPaPState(PaPState):
                         if not collision:
                             nocollision = True
                             break
+                        ####
                     self.problem_env.disable_objects()
                     if nocollision:
-                        # we already have a nocollision solution
-                        # print('already have nocollision', obj, r)
+                        # we already have a nocollision solution, move onto the next region
+                        self.pick_params[obj].append(pick_params)
+                        self.place_params[(obj, r)].append(place_params)
+                        print('already have nocollision', obj, r)
                         continue
+                ### end of checking existing pick and place samples
 
-                # I think num_iters is the number of paps for each object
+                # No collision-free pick and place exists. Sampling new paps
+                op_skel = Operator(operator_type='one_arm_pick_one_arm_place',
+                                   discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
+                                                        'place_region': self.problem_env.regions[r]})
+                papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
+                                                 cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
                 nocollision = False
                 for _ in range(num_iters - len(self.pap_params[(obj, r)])):
+                    # does the place parameter necessarily have the same arm configa s the pick param?
                     pick_params, place_params, status = papg.sample_next_point(num_tries)
                     if 'HasSolution' in status:
                         self.pap_params[(obj, r)].append((pick_params, place_params))
                         self.pick_params[obj].append(pick_params)
 
-                        #print('success')
+                        # print('success')
 
                         self.problem_env.enable_objects()
                         collision = False
@@ -476,7 +484,7 @@ class OneArmPaPState(PaPState):
                 is_place_in_b_reachable_while_holding_a = True
             else:
                 is_place_in_b_reachable_while_holding_a = (a, b) in self.nocollision_place_op or (
-                a, b) in self.collision_place_op and len(self.collision_place_op[(a, b)][1]) == 0
+                    a, b) in self.collision_place_op and len(self.collision_place_op[(a, b)][1]) == 0
             # print 'is_place_in_%s_reachable_while_holding_%s: %d' % (b, a, is_place_in_b_reachable_while_holding_a)
         else:
             is_place_in_b_reachable_while_holding_a = False

@@ -107,6 +107,14 @@ def execute_policy(plan, problem_env, goal_entities, config):
     # init_abstract_state = pickle.load(open('temp.pkl', 'r'))
     # init_abstract_state.make_plannable(problem_env)
     init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
+    """
+    init_abstract_state.problem_env.env.SetViewer('qtcoin')
+    utils.set_color('rectangular_packing_box2', [0.7,0,0])
+    utils.visualize_path(init_abstract_state.cached_pick_paths['rectangular_packing_box2'])
+    init_abstract_state.pick_used['rectangular_packing_box2'].execute()
+    utils.visualize_path(init_abstract_state.cached_place_paths[('rectangular_packing_box2','home_region')])
+    import pdb;pdb.set_trace()
+    """
     abstract_state = init_abstract_state
     abstract_state.make_plannable(problem_env)
     goal_objs = goal_entities[:-1]

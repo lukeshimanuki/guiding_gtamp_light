@@ -56,7 +56,7 @@ def get_solution_file_name(config):
     commit_hash = get_commit_hash()
 
     if config.gather_planning_exp:
-        root_dir = root_dir + '/planning_experience/raw/uses_prm/'
+        root_dir = root_dir + '/planning_experience/raw/'
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
@@ -201,7 +201,10 @@ def get_pap_gnn_model(mover, config):
 def make_pklable(plan):
     for p in plan:
         obj = p.discrete_parameters['object']
-        region = p.discrete_parameters['place_region']
+        if 'region' in p.discrete_parameters:
+            region = p.discrete_parameters['region']
+        else:
+            region = p.discrete_parameters['place_region']
         if not isinstance(region, str):
             p.discrete_parameters['place_region'] = region.name
         if not (isinstance(obj, unicode) or isinstance(obj, str)):
@@ -212,6 +215,8 @@ def make_node_pklable(node):
     node.state.make_pklable()
     node.tried_samples = {}
     node.tried_sample_feasibility_labels = {}
+    if 'heuristic_vals' in dir(node):
+        node.heuristic_vals = None
     """
     for k in node.generators.keys():
         node.tried_samples[k] = node.generators[k].tried_samples
@@ -260,6 +265,23 @@ def get_learned_sampler_models(config):
     return model
 
 
+def get_goal_obj_and_region(config):
+    if config.domain == 'two_arm_mover':
+        if config.n_objs_pack == 4:
+            goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                         'rectangular_packing_box4']
+            goal_region = 'home_region'
+        else:
+            goal_objs = ['square_packing_box1']
+            goal_region = 'home_region'
+    elif config.domain == 'one_arm_mover':
+        assert config.n_objs_pack == 1
+        goal_objs = ['c_obst0']
+        goal_region = 'rectangular_packing_box1_region'
+    else:
+        raise NotImplementedError
+    return goal_objs, goal_region
+
 def main():
     config = parse_arguments()
     solution_file_name = get_solution_file_name(config)
@@ -279,16 +301,8 @@ def main():
     if config.gather_planning_exp:
         config.timelimit = np.inf
 
-    if config.domain == 'two_arm_mover':
-        goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
-                     'rectangular_packing_box4']
-        goal_region = 'home_region'
-    elif config.domain == 'one_arm_mover':
-        goal_objs = ['c_obst0', 'c_obst1', 'c_obst2', 'c_obst3']
-        goal_region = 'rectangular_packing_box1_region'
-    else:
-        raise NotImplementedError
-
+    goal_objs, goal_region = get_goal_obj_and_region(config)
+    print "Goal:", goal_objs, goal_region
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:

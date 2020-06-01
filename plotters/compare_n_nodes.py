@@ -2,87 +2,147 @@ import pickle
 import os
 import numpy as np
 
+
 def get_n_nodes(target_dir):
+    print target_dir
     test_files = os.listdir(target_dir)
-    n_iks = [] 
+    n_iks = []
     n_nodes = []
     n_mps = []
 
-
-    test_file_pidxs = [int(filename.split('pidx_')[1].split('_')[0]) for filename in test_files if 'pkl' in filename]
+    if 'rsc' in target_dir:
+        test_file_pidxs = [int(filename.split('pidx_')[1].split('.pkl')[0]) for filename in test_files if
+                           'pkl' in filename]
+    else:
+        test_file_pidxs = [int(filename.split('pidx_')[1].split('_')[0]) for filename in test_files if
+                           'pkl' in filename]
     test_files = np.array(test_files)[np.argsort(test_file_pidxs)]
-
-    target_pidxs = [60053, 60023, 60081, 60001, 60021, 60008, 60062, 60079, 60033, 60044, 60031, 60018, 60075, 60050, 60030, 60020, 60098, 60016, 60067, 60061, 60024, 60096, 60005, 60088, 60091, 60010, 60011, 60045, 60006, 60099, 60038, 60083, 60058, 60046, 60029, 60032, 60097, 60039]
-    target_pidxs = [60089, 60061, 60094, 60075, 60074, 60050, 60096, 60057, 60008, 60088, 60026, 60003, 60010, 60067, 60091,
-             60031, 60006, 60024, 60030, 60062, 60099, 60018, 60011, 60029, 60098, 60083, 60079, 60016, 60045, 60038,
-             60046, 60032, 60058, 60097, 60039]
+    if 'two_arm' in target_dir:
+        if 'n_objs_pack_1' in target_dir:
+            if 'pure_learning' not in target_dir:
+                assert '934adde' in target_dir, 'n objs pack for two arm must use commit 934adde'
+            target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
+                            40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+        else:
+            target_pidxs = [40321, 40203, 40338, 40089, 40220, 40223, 40352, 40357, 40380, 40253, 40331, 40260, 40353,
+                            40393, 40272, 40148, 40149, 40283, 40162, 40292, 40295, 40185, 40314, 40060]
+    else:
+        target_pidxs = range(20000, 20030)
 
     targets = []
     for pidx in target_pidxs:
         for i in range(5):
-            targets.append((pidx,i))
-        
+            targets.append((pidx, i))
 
     print "number of target pidxs", len(target_pidxs)
     successes = []
     times = []
+    pidx_times = {}
+    pidx_nodes = {}
     for filename in test_files:
         if 'pkl' not in filename:
             print 'File skipped', filename
             continue
-        pidx = int(filename.split('pidx_')[1].split('_')[0])
+        if 'rsc' in target_dir:
+            pidx = int(filename.split('pidx_')[1].split('.pkl')[0])
+        else:
+            pidx = int(filename.split('pidx_')[1].split('_')[0])
+
+        seed = int(filename.split('seed_')[1].split('_')[0])
         if not pidx in target_pidxs:
             continue
-        seed = int(filename.split('seed_')[1].split('_')[0])
-        fin = pickle.load(open(target_dir+filename,'r'))
-        targets.remove((pidx,seed))
-        successes.append(fin['success'])
-        if not fin['success']:
-            print filename
-        if 'num_nodes' in fin:
-            n_node = fin['num_nodes'] 
-        else:
-            n_node = fin['n_nodes'] 
-        if 'n_feasibility_checks' in fin:
-            n_ik = fin['n_feasibility_checks']['ik']
-            n_mp = fin['n_feasibility_checks']['mp']
-            #n_infeasible_mp = fin['n_feasibility_checks']['infeasible_mp']
-        else:
-            n_ik = fin['search_time_to_reward'][-1][2]  
-        if 'search_time_to_reward' in fin:
-            if True:
-              where_is_three = np.where(np.array(fin['search_time_to_reward'])[:,-1] == 3)[0][0]
-              n_steps_after_three = len(np.array(fin['search_time_to_reward'])[where_is_three:,-1])
-        #print filename, n_ik
-        n_iks.append(n_ik)
-        n_nodes.append(n_node)
-        n_mps.append(n_mp)
-        times.append(fin['tottime'])
-        #print filename, n_node
 
-    #del n_iks[np.argmax(n_nodes)]
-    #del n_mps[np.argmax(n_nodes)]
-    #del n_nodes[np.argmax(n_nodes)]
+        fin = pickle.load(open(target_dir + filename, 'r'))
+        targets.remove((pidx, seed))
+
+        if 'num_nodes' in fin:
+            n_node = fin['num_nodes']
+        else:
+            n_node = fin['n_nodes']
+
+        n_nodes.append(n_node)
+        if 'n_objs_pack_4' in target_dir:
+            timelimit = 8000
+        else:
+            timelimit = 2000
+
+        if fin['tottime'] >= timelimit:
+            successes.append(False)
+            times.append(timelimit)
+        else:
+            successes.append(fin['success'])
+            times.append(fin['tottime'])
+
+        if pidx in pidx_times:
+            pidx_nodes[pidx].append(n_node)
+            pidx_times[pidx].append(fin['tottime'])
+        else:
+            pidx_nodes[pidx] = [n_node]
+            pidx_times[pidx] = [fin['tottime']]
+
     n_data = len(n_nodes)
+    print "remaining", len(targets), targets
+    #for pidx in targets:
+    #    times.append(timelimit)
+
     print 'n_data', n_data
     print 'success', np.mean(successes)
-    print 'n nodes',np.mean(n_nodes), np.std(n_nodes)*1.96/np.sqrt(n_data)
-    print 'iks', np.mean(n_iks), np.std(n_iks)*1.96/np.sqrt(n_data)
-    print 'mps', np.mean(n_mps), np.std(n_mps)*1.96/np.sqrt(n_data)
-    print 'times', np.mean(times), np.std(times)*1.96/np.sqrt(n_data)
-    print "remaining", targets
+    print 'n nodes', np.mean(n_nodes), np.std(n_nodes) * 1.96 / np.sqrt(n_data)
+    print 'times', np.mean(times), np.std(times) * 1.96 / np.sqrt(n_data)
+    return pidx_nodes, pidx_times
+
+
+def get_target_idxs(pidx_nodes_1, pidx_nodes_2, n_objs_pack):
+    get_target_idxs = True
+    if get_target_idxs:
+        if n_objs_pack == 1:
+            target_idxs = [pidx for pidx in pidx_nodes_1 if
+                           abs(np.mean(pidx_nodes_1[pidx]) - np.mean(pidx_nodes_2[pidx])) >= 20]
+        else:
+            target_idxs = [pidx for pidx in pidx_nodes_1 if
+                           pidx in pidx_nodes_2 and abs(np.mean(pidx_nodes_1[pidx]) - np.mean(pidx_nodes_2[pidx])) > 60]
+        print 'n target idxs', len(target_idxs)
+    return target_idxs
 
 
 def main():
-    print "****Learned****"
-    target_dir = 'test_results/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
-    n_nodes = get_n_nodes(target_dir)
+    n_objs = 4
 
+    print  "****Pure learning****"
+    if n_objs == 1:
+        target_dir = '067e376/pure_learning/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
+    else:
+        target_dir = '067e376/pure_learning/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_times_5 = get_n_nodes(target_dir)
 
-    print "****UNIFORM****"
-    target_dir = 'test_results//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
-    n_nodes = get_n_nodes(target_dir)
-    
+    print  "****Ranking function****"
+    if n_objs == 1:
+        target_dir = 'test_results/934adde_two_arm_n_objs_pack_1_results/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    else:
+        target_dir = '9226036/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_1, pidx_times_1 = get_n_nodes(target_dir)
+
+    print  "****Ranking+sampler****"
+    if n_objs == 1:
+        target_dir = 'test_results/934adde_two_arm_n_objs_pack_1_results//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
+    else:
+        target_dir = '9226036//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+
+    print  "****Hcount****"
+    if n_objs == 1:
+        target_dir = 'test_results/934adde_two_arm_n_objs_pack_1_results//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    else:
+        target_dir = '9226036//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_times_3 = get_n_nodes(target_dir)
+
+    print  "****RSC****"
+    if n_objs == 1:
+        target_dir = 'test_results/934adde_two_arm_n_objs_pack_1_results//irsc/two_arm_mover/n_objs_pack_1/'
+    else:
+        target_dir = '9226036//irsc/two_arm_mover/n_objs_pack_4/'
+    pidx_times_4 = get_n_nodes(target_dir)
+
 
 
 if __name__ == '__main__':

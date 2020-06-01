@@ -115,11 +115,10 @@ class PaPOneArmMoverEnv(OneArmMover):
         OneArmMover.__init__(self, problem_idx)
 
     def set_goal(self, goal):
-        self.goal = goal
-        self.goal_region = goal[0]
-        self.goal_objects = goal[1:]
+        self.goal_objects = [e for e in goal if 'region' not in e]
+        self.goal_region = [e for e in goal if 'region' in e]
+        assert 'c_obst1' in self.goal_objects and len(self.goal_objects) == 1
         self.goal_entities = self.goal_objects + [self.goal_region]
-
 
     def get_applicable_ops(self, parent_op=None):
         actions = []

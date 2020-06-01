@@ -2,7 +2,7 @@ import numpy as np
 import time
 
 from gtamp_utils import utils
-from trajectory_representation.concrete_node_state import ConcreteNodeState
+from trajectory_representation.concrete_node_state import TwoArmConcreteNodeState
 from generators.learning.utils import data_processing_utils
 from gtamp_utils.utils import get_pick_domain, get_place_domain, get_pick_base_pose_and_grasp_from_pick_parameters
 
@@ -29,7 +29,7 @@ class LearnedSampler(Sampler):
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
 
-        self.smpler_state = ConcreteNodeState(abstract_state, abstract_action)
+        self.smpler_state = TwoArmConcreteNodeState(abstract_state, abstract_action)
         self.n_smpl_per_iter = 2000
 
     def sample_new_points(self, n_smpls):
@@ -59,24 +59,37 @@ class LearnedSampler(Sampler):
 def compute_v_manip(abs_state, goal_objs):
     goal_objs_not_in_goal = [goal_obj for goal_obj in goal_objs if
                              not abs_state.binary_edges[(goal_obj, 'home_region')][0]]
-    v_manip = np.zeros((len(abs_state.prm_vertices)))
+    v_manip = np.zeros((len(abs_state.prm_vertices), 1))
+    # todo optimize this code
+    init_end_times = 0
+    path_times = 0
+    stime = time.time()
     for goal_obj in goal_objs_not_in_goal:
-
         prm_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
+        stime2 = time.time()
+        # todo possible optimization:
+        #   I can use the prm_path[1]'s edge to compute the neighbors, instead of using all of them.
+        distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+        init_end_times += time.time() - stime2
+        closest_prm_idx = np.argmin(distances)
+        prm_path.pop(0)
+        prm_path.insert(0, abs_state.prm_vertices[closest_prm_idx, :])
 
-        startset_idxs, prm_idxs = abs_state.cached_place_start_and_prm_idxs[(goal_obj, 'home_region')]
-        startset_idxs = list(startset_idxs)
-        startconfs = abs_state.prm_vertices[startset_idxs]
-        distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in startconfs]
+        stime2 = time.time()
+        distances = [utils.base_pose_distance(prm_path[-1], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+        init_end_times += time.time() - stime2
+        closest_prm_idx = np.argmin(distances)
+        prm_path[-1] = abs_state.prm_vertices[closest_prm_idx, :]
 
-        q0_closest_prm_idx = startset_idxs[np.argmin(distances)]
-        qg_closest_prm_idx = 74
-        v_manip[prm_idxs] = 1
-        v_manip[q0_closest_prm_idx] = 1
-        v_manip[qg_closest_prm_idx] = 1
-
+        stime2 = time.time()
+        for p in prm_path:
+            boolean_matching_prm_vertices = np.all(np.isclose(abs_state.prm_vertices[:, :2], p[:2]), axis=-1)
+            if np.any(boolean_matching_prm_vertices):
+                idx = np.argmax(boolean_matching_prm_vertices)
+                v_manip[idx] = 1
+        path_times += time.time() - stime2
+    print 'v_manip creation time', time.time() - stime
     return v_manip
-
 
 class PlaceOnlyLearnedSampler(LearnedSampler):
     def __init__(self, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):

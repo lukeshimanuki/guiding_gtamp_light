@@ -1,4 +1,5 @@
-from trajectory_representation.sampler_trajectory import SamplerTrajectory, SAHSSamplerTrajectory
+from trajectory_representation.two_arm_sampler_trajectory import TwoArmSAHSSamplerTrajectory
+from trajectory_representation.one_arm_sampler_trajectory import OneArmSAHSSamplerTrajectory
 
 import pickle
 import os
@@ -7,26 +8,29 @@ import socket
 import sys
 
 hostname = socket.gethostname()
-if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
+ROOTDIR = './'
 
+def get_save_dir(parameters):
+    if 'two_arm' in parameters.domain:
+        n_objs_pack = 1
+    else:
+        n_objs_pack = 1
 
-def get_save_dir():
-    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/sampler_trajectory_data/'
-    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+    save_dir = ROOTDIR + '/planning_experience/processed/{}/n_objs_pack_{}/sahs/uses_rrt/' \
+                         'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'.format(parameters.domain,
+                                                                                             n_objs_pack)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     return save_dir
 
 
-def get_raw_dir():
-    raw_dir = ROOTDIR + '/planning_experience/raw/two_arm_mover/n_objs_pack_1//'
-    raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/' \
-                        'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
-    raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/'
-    raw_dir = ROOTDIR + 'planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+def get_raw_dir(parameters):
+    if parameters.domain == 'two_arm_mover':
+        raw_dir = ROOTDIR + 'planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+    elif parameters.domain == 'one_arm_mover':
+        raw_dir = ROOTDIR + 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    else:
+        raise NotImplementedError
     return raw_dir
 
 
@@ -47,12 +51,13 @@ def process_plan_file(filename, pidx):
     print "Plan file name", filename
     plan_data = pickle.load(open(filename, 'r'))
     plan = plan_data['plan']
-    hvals = plan_data['hvalues']
     if not plan_data['success']:
         return None
-    # traj = SamplerTrajectory(pidx)
-    traj = SAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
-    traj.add_trajectory(plan, hvals)
+    if 'one_arm_mover' in filename:
+        traj = OneArmSAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
+    else:
+        traj = TwoArmSAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
+    traj.add_trajectory(plan)
     return traj
 
 
@@ -60,6 +65,7 @@ def parse_parameters():
     parser = argparse.ArgumentParser(description='parameters')
     parser.add_argument('-pidx', type=int, default=0)
     parser.add_argument('-f', action='store_true', default=False)
+    parser.add_argument('-domain', type=str, default='two_arm_mover')
     parameters = parser.parse_args()
 
     return parameters
@@ -70,10 +76,13 @@ def get_processed_fname(raw_fname):
     return traj_fname
 
 
-def get_raw_fname(parameters):
-    fname = 'pidx_%d_planner_seed_0_train_seed_0_domain_two_arm_mover.pkl' % parameters.pidx
-    #fname = 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
-    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' %parameters.pidx
+def get_raw_fname(raw_dir, parameters):
+    # fname = 'pidx_%d_planner_seed_0_train_seed_0_domain_two_arm_mover.pkl' % parameters.pidx
+    # fname = 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
+    if 'one_arm_mover' in raw_dir:
+        fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_0.pkl'.format(parameters.pidx)
+    else:
+        fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % parameters.pidx
     return fname
 
 
@@ -85,10 +94,10 @@ def quit_if_already_done(fpath, config):
 
 def main():
     parameters = parse_parameters()
-
-    raw_dir = get_raw_dir()
-    raw_fname = get_raw_fname(parameters)
-    save_dir = get_save_dir()
+    raw_dir = get_raw_dir(parameters)
+    # make_key_configs(parameters, raw_dir)
+    raw_fname = get_raw_fname(raw_dir, parameters)
+    save_dir = get_save_dir(parameters)
     processed_fname = get_processed_fname(raw_fname)
     print "Raw fname", raw_dir + raw_fname
     print "Processed fname ", save_dir + processed_fname

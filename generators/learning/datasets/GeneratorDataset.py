@@ -11,16 +11,18 @@ import os
 
 
 class GeneratorDataset(Dataset):
-    def __init__(self, action_type, desired_region, use_filter, is_testing):
+    def __init__(self, config, use_filter, is_testing):
         self.use_filter = use_filter
-        self.desired_region = desired_region
-        self.konf_obsts, self.poses, self.actions = self.get_data(action_type, desired_region, is_testing)
+        self.is_testing = is_testing
+        self.config = config
+        self.konf_obsts, self.poses, self.actions = self.get_data()
 
-    @staticmethod
-    def get_cache_file_name(action_data_mode, action_type, desired_region, use_filter):
+    def get_cache_file_name(self, action_data_mode):
         state_data_mode = 'absolute'
-
-        if action_type == 'pick':
+        action_type = self.config.atype
+        desired_region = self.config.region
+        use_filter = self.use_filter
+        if 'pick' in action_type:
             cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
         else:
             if use_filter:
@@ -35,53 +37,50 @@ class GeneratorDataset(Dataset):
                                                                                                  desired_region)
         return cache_file_name
 
-    @staticmethod
-    def get_data_dir(filtered):
-        if filtered:
-            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
-                       'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+    def get_data_dir(self):
+        if self.use_filter:
+            if 'one_arm' in self.config.domain:
+                data_dir = 'planning_experience/processed/one_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
+                           'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+            else:
+                data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
+                           'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
         else:
-            data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
-                       'sampler_trajectory_data/'
+            raise NotImplementedError
         return data_dir
 
-    @staticmethod
-    def we_should_skip_this_state_and_action(s, desired_region, reward, action_type, use_filter):
-        if 'pick' not in action_type:
+    def we_should_skip_this_state_and_action(self, s, reward):
+        action_type = self.config.atype
+        desired_region = self.config.region
+        use_filter = self.use_filter
+        if 'place' in action_type:
             is_move_to_goal_region = s.region in s.goal_entities
-            if desired_region == 'home_region' and not is_move_to_goal_region:
-                return True
-
-            if desired_region == 'loading_region' and is_move_to_goal_region:
-                return True
-
             if reward <= 0 and use_filter:
                 return True
 
+            if 'two_arm' in self.config.domain:
+                if desired_region == 'home_region' and not is_move_to_goal_region:
+                    return True
+
+                if desired_region == 'loading_region' and is_move_to_goal_region:
+                    return True
+            else:
+                if desired_region == 'rectangular_packing_box1_region' and not is_move_to_goal_region:
+                    return True
+
+                if desired_region == 'center_shelf_region' and is_move_to_goal_region:
+                    return True
+
         return False
 
-    def load_data_from_files(self, action_type, desired_region, use_filter, action_data_mode, is_testing):
-        traj_dir = self.get_data_dir(use_filter)
+    def load_data_from_files(self, action_data_mode):
+        traj_dir = self.get_data_dir()
         print "Loading data from", traj_dir
         traj_files = os.listdir(traj_dir)
-        cache_file_name = self.get_cache_file_name(action_data_mode, action_type, desired_region, use_filter)
+        cache_file_name = self.get_cache_file_name(action_data_mode)
         if os.path.isfile(traj_dir + cache_file_name):
             print "Loading the cache file", traj_dir + cache_file_name
-
-            if is_testing:
-                testing_cached_file = traj_dir + 'for_testing_' + cache_file_name
-                if os.path.isfile(testing_cached_file):
-                    f = pickle.load(open(testing_cached_file, 'r'))
-                else:
-                    f = pickle.load(open(traj_dir + cache_file_name, 'r'))
-                    #new_idxs = pickle.load(open(traj_dir + 'seed_0_test_indices_for_' + cache_file_name, 'r'))
-                    testset_index_file =  './generators/datasets/testset_cache_file_idxs/seed_{}_atype_{}_region_{}.pkl'.format(self.seed, action_type, desired_region)
-                    test_set_indices = os.pickle.load(open(testset_index_file,'r'))
-                    new_f = (f[0][testset_indices, :], f[1][testset_indices, :], f[2][testset_indices, :])
-                    f = pickle.dump(new_f, open(testing_cached_file, 'wb'))
-                    f = new_f
-            else:
-                f = pickle.load(open(traj_dir + cache_file_name, 'r'))
+            f = pickle.load(open(traj_dir + cache_file_name, 'r'))
             print "Cache data loaded"
             return f
 
@@ -104,27 +103,26 @@ class GeneratorDataset(Dataset):
             actions = []
             konf_relevance = []
 
-            if use_filter:
+            if self.use_filter:
                 rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) > 0
             else:
                 rewards = 1
 
             for s, a, reward, v_manip_goal in zip(traj.states, traj.actions, rewards, traj.prev_v_manip_goal):
-                if self.we_should_skip_this_state_and_action(s, desired_region, reward, action_type, use_filter):
+                if self.we_should_skip_this_state_and_action(s, reward):
                     continue
 
-                if action_type == 'pick':
-                    collision_vec = s.pick_collision_vector
-                elif action_type == 'place':
-                    collision_vec = s.pick_collision_vector
+                collision_vec = s.pick_collision_vector
+                if 'two_arm' in self.config.domain:
+                    v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 618, 2, 1))
                 else:
-                    raise NotImplementedError
-
-                v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 618, 2, 1))
+                    v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 355, 2, 1))
                 state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
 
                 states.append(state_vec)
-                if 'rectangular' in  a['object_name']:
+
+                # note that this is not used in one arm domain
+                if 'rectangular' in a['object_name']:
                     object_id = [1, 0]
                 else:
                     object_id = [0, 1]
@@ -158,18 +156,16 @@ class GeneratorDataset(Dataset):
 
         return all_states, all_poses_ids, all_actions
 
-    def get_data(self, action_type, region, is_testing):
-        atype = action_type
-        filtered = True
-        if atype == 'pick':
+    def get_data(self):
+        if self.config.atype == 'pick':
             action_data_mode = 'PICK_grasp_params_and_ir_parameters_PLACE_abs_base'
         else:
             action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
-        states, poses, actions = self.load_data_from_files(atype, region, filtered, action_data_mode, is_testing)
-        if atype == 'pick':
+        states, poses, actions = self.load_data_from_files(action_data_mode)
+        if self.config.atype == 'pick':
             actions = actions[:, :-4]
-        elif atype == 'place':
+        elif self.config.atype == 'place':
             pick_abs_poses = actions[:, 3:7]  # must swap out the q0 with the pick base pose
             poses[:, -6:-2] = pick_abs_poses
             actions = actions[:, -4:]
@@ -186,9 +182,8 @@ class GeneratorDataset(Dataset):
 
 
 class StandardDataset(GeneratorDataset):
-    def __init__(self, action_type, desired_region, use_filter, is_testing=False, seed=0):
-        super(StandardDataset, self).__init__(action_type, desired_region, use_filter, is_testing)
-        self.seed = seed
+    def __init__(self, config, use_filter, is_testing):
+        super(StandardDataset, self).__init__(config, use_filter, is_testing)
 
     def __getitem__(self, idx):
         data = {
@@ -197,46 +192,3 @@ class StandardDataset(GeneratorDataset):
             'actions': self.actions[idx],
         }
         return data
-
-
-class GNNDataset(GeneratorDataset):
-    def __init__(self, action_type, desired_region, use_filter):
-        super(GNNDataset, self).__init__(action_type, desired_region, use_filter)
-        self.prm_vertices, self.prm_edges = pickle.load(open('prm.pkl', 'r'))
-        self.gnn_vertices = self.prm_vertices
-
-        edges = [[], []]
-        for src_idx, _ in enumerate(self.prm_vertices):
-            neighbors = list(self.prm_edges[src_idx])
-            n_edges = len(neighbors)
-            edges[0] += [src_idx] * n_edges
-            edges[1] += neighbors
-        self.edges = np.array(edges)
-
-    def __getitem__(self, idx):
-        # return the data at idx
-        data = {
-            'konf_obsts': self.konf_obsts[idx],
-            'poses': self.poses[idx],
-            'actions': self.actions[idx],
-            'edges': self.edges
-        }
-
-        """
-        if type(idx) is int:
-            # where is the pick robot pose?
-            prm_vertices = self.prm_vertices
-            n_konfs = len(prm_vertices)
-            dim_q = self.q0s.shape[-1]
-            q0 = np.array(self.q0s).reshape((len(self.q0s), dim_q))[idx][None, :]
-            repeat_q0 = np.repeat(q0, n_konfs, axis=0)
-            goal_obj_poses = self.goal_obj_poses[idx].reshape((1, 4 * 3))
-            repeat_goal_obj_poses = np.repeat(goal_obj_poses, n_konfs, axis=0)
-            v = np.hstack([prm_vertices, repeat_q0, repeat_goal_obj_poses, self.cols[idx]])
-        else:
-            raise NotImplementedError
-        """
-
-        v = torch.from_numpy(v)
-
-        return {'vertex': v, 'edges': self.edges, 'actions': self.actions[idx]}

@@ -18,12 +18,16 @@ import numpy as np
 import random
 import time
 import socket
+from test_scripts.run_mcts import get_commit_hash
+
 
 ROOTDIR = './'
-#hostname = socket.gethostname()
-#if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
+
+
+# hostname = socket.gethostname()
+# if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
 #    ROOTDIR = './'
-#else:
+# else:
 #    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
 
 from test_scripts.run_mcts import get_commit_hash
@@ -56,8 +60,8 @@ def parse_parameters():
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-n_feasibility_checks', type=int, default=500)
     parser.add_argument('-n_parameters_to_test_each_sample_time', type=int, default=10)
-    parser.add_argument('-n_mp_limit', type=int, default=10)
-    parser.add_argument('-n_iter_limit', type=int, default=200)
+    parser.add_argument('-n_mp_limit', type=int, default=5)
+    parser.add_argument('-n_iter_limit', type=int, default=2000)
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
 
@@ -89,7 +93,7 @@ def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit, p
         rsc = OneArmResolveSpatialConstraints(problem_env=environment,
                                               goal_object_name=obj_name,
                                               goal_region_name='rectangular_packing_box1_region',
-                                              config=parameters)
+                                              parameters=parameters)
         obstacle_to_remove_idx = 0
 
     else:
@@ -120,7 +124,7 @@ def find_plan_for_obj(obj_name, target_op_inst, environment, stime, timelimit, p
                                       obstacles_to_remove=[],
                                       objects_moved_before=[],
                                       plan=[],
-                                      stime=stime,
+                                      ultimate_plan_stime=stime,
                                       timelimit=timelimit)
         plan_found = status == 'HasSolution'
         if plan_found:
@@ -142,31 +146,33 @@ def execute_plan(plan):
         p.execute()
 
 
-def save_plan(total_plan, total_n_nodes, n_remaining_objs, found_solution, file_path, goal_entities, time_taken, n_feasibility_checks, config):
+def save_plan(total_plan, total_n_nodes, n_remaining_objs, found_solution, file_path, goal_entities, time_taken,
+              n_feasibility_checks, parameters):
     [p.make_pklable() for p in total_plan]
     pickle.dump({"plan": total_plan,
                  'num_nodes': total_n_nodes,
                  'n_remaining_objs': n_remaining_objs,
-                 'n_objs_pack': config.n_objs_pack,
+                 'n_objs_pack': parameters.n_objs_pack,
                  'plan_length': len(total_plan),
                  'n_feasibility_checks': n_feasibility_checks,
-                 'nodes': [], # TODO: do we need to track these
+                 'nodes': [],  # TODO: do we need to track these
                  'hvalues': [],
                  'goal_entities': goal_entities,
                  'tottime': time_taken,
                  'success': found_solution,
-    }, open(file_path, 'wb'))
+                 }, open(file_path, 'wb'))
 
 
-def find_plan_without_reachability(problem_env, goal_object_names, config):
+def find_plan_without_reachability(problem_env, goal_object_names, start_time, parameters):
     if problem_env.name.find('one_arm_mover') != -1:
         planner = OneArmPlannerWithoutReachability(problem_env, goal_object_names,
-                                                   goal_region='rectangular_packing_box1_region', config=config)
+                                                   goal_region='rectangular_packing_box1_region', config=parameters)
     else:
-        planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region', config=config)
-    goal_obj_order_plan, plan = planner.search()
-
-    goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
+        planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region',
+                                             config=parameters)
+    goal_obj_order_plan, plan = planner.search(start_time, parameters.timelimit)
+    if goal_obj_order_plan is not None:
+        goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
     return goal_obj_order_plan, plan, (planner.n_mp, planner.n_ik)
 
 
@@ -185,12 +191,22 @@ def main():
         environment = Mover(parameters.pidx)
         goal_region = ['home_region']
     else:
-        environment = OneArmMover(parameters.pidx)
         goal_region = ['rectangular_packing_box1_region']
+        environment = OneArmMover(parameters.pidx)
 
     environment.initial_robot_base_pose = get_body_xytheta(environment.robot)
 
-    goal_object_names = [obj.GetName() for obj in environment.objects[:parameters.n_objs_pack]]
+    if parameters.domain == 'two_arm_mover':
+        if parameters.n_objs_pack == 4:
+            goal_object_names = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
+                                 'rectangular_packing_box4']
+        else:
+            goal_object_names = ['square_packing_box1']
+        environment.set_goal(goal_object_names, goal_region)
+    elif parameters.domain == 'one_arm_mover':
+        assert parameters.n_objs_pack == 1
+        goal_object_names = ['c_obst0']
+
     goal_entities = goal_object_names + goal_region
 
     # for randomized algorithms
@@ -198,32 +214,36 @@ def main():
     random.seed(parameters.planner_seed)
 
     if parameters.v:
-        environment.env.SetViewer('qtcoin')
+        utils.viewer()
 
-    environment.set_motion_planner(BaseMotionPlanner(environment, 'prm'))
+    environment.set_motion_planner(BaseMotionPlanner(environment, 'rrt'))
     # from manipulation.bodies.bodies import set_color
     # set_color(environment.env.GetKinBody(goal_object_names[0]), [1, 0, 0])
-    stime = time.time()
+    start_time = time.time()
 
     n_mp = n_ik = 0
 
-    goal_object_names, high_level_plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
+    goal_object_names, high_level_plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names,
+                                                                                  start_time, parameters)  # finds the plan
+    total_time_taken = time.time()-start_time
     n_mp += mp
     n_ik += ik
 
     total_n_nodes = 0
     total_plan = []
     idx = 0
-    total_time_taken = 0
     found_solution = False
     timelimit = parameters.timelimit
     while total_time_taken < timelimit:
         goal_obj_name = goal_object_names[idx]
-        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, stime, timelimit, parameters)
+        plan, n_nodes, status, (mp, ik) = find_plan_for_obj(goal_obj_name, high_level_plan[idx], environment, start_time,
+                                                            timelimit, parameters)
         total_n_nodes += n_nodes
-        total_time_taken = time.time() - stime
+        total_time_taken = time.time() - start_time
         print goal_obj_name, goal_object_names, total_n_nodes
         print "Time taken: %.2f" % total_time_taken
+        if total_time_taken > timelimit:
+            break
         if status == 'HasSolution':
             execute_plan(plan)
             environment.initial_robot_base_pose = utils.get_body_xytheta(environment.robot)
@@ -233,18 +253,18 @@ def main():
             idx += 1
         else:
             # Note that HPN does not have any recourse if this happens. We re-plan at the higher level.
-            goal_object_names, plan, (mp,ik) = find_plan_without_reachability(environment, goal_object_names, parameters)  # finds the plan
+            goal_object_names, plan, (mp, ik) = find_plan_without_reachability(environment, goal_object_names,
+                                                                               start_time, parameters)  # finds the plan
             n_mp += mp
             n_ik += ik
             total_plan = []
             idx = 0
-
         if idx == len(goal_object_names):
             found_solution = True
             break
         else:
             idx %= len(goal_object_names)
-
+    total_time_taken = time.time()-start_time
     save_plan(total_plan, total_n_nodes, len(goal_object_names) - idx, found_solution, file_path, goal_entities,
               total_time_taken, {'mp': n_mp, 'ik': n_ik}, parameters)
     print 'plan saved'

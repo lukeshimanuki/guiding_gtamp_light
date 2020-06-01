@@ -44,7 +44,6 @@ class OneArmPaPUniformGenerator:
 
         self.n_ik_checks = 0
 
-
     def sample_next_point(self, max_ik_attempts):
         # n_iter refers to the max number of IK attempts on pick
         n_ik_attempts = 0
@@ -63,7 +62,7 @@ class OneArmPaPUniformGenerator:
         utils.set_robot_config(base_pose, self.robot)
         robot_aabb = self.robot.ComputeAABB()
         inside_region = self.problem_env.regions['home_region'].contains(robot_aabb)
-            #or self.problem_env.regions['loading_region'].contains(robot_aabb)
+        # or self.problem_env.regions['loading_region'].contains(robot_aabb)
         no_collision = not self.problem_env.env.CheckCollision(self.robot)
         if (not inside_region) or (not no_collision):
             return False
@@ -104,125 +103,100 @@ class OneArmPaPUniformGenerator:
         else:
             return cont_params, status
 
-    def sample_cont_params(self):
-        # todo refactor this function
-        robot_pose = utils.get_body_xytheta(self.robot)
-        robot_config = self.robot.GetDOFValues()
-        assert len(self.robot.GetGrabbed()) == 0
+    def sample_from_discretized_set(self):
+        (pick_tf, pick_params), (place_tf, place_params) = random.choice(zip(*self.cached_picks))
+        pick_region = self.problem_env.get_region_containing(self.target_obj)
+        place_region = self.place_op.discrete_parameters['place_region']
 
-        if self.cached_picks is not None:
-            (pick_tf, pick_params), (place_tf, place_params) = random.choice(zip(*self.cached_picks))
-            pick_region = self.problem_env.get_region_containing(self.target_obj)
-            place_region = self.place_op.discrete_parameters['place_region']
+        pick_params = copy.deepcopy(pick_params)
+        place_params = copy.deepcopy(place_params)
 
-            pick_params = copy.deepcopy(pick_params)
-            place_params = copy.deepcopy(place_params)
+        old_tf = self.target_obj.GetTransform()
+        old_pose = get_body_xytheta(self.target_obj).squeeze()
 
-            old_tf = self.target_obj.GetTransform()
-            old_pose = get_body_xytheta(self.target_obj).squeeze()
+        self.pick_op.continuous_parameters = place_params
+        self.target_obj.SetTransform(place_tf)
+        set_robot_config(self.pick_op.continuous_parameters['q_goal'][-3:])
 
-            self.pick_op.continuous_parameters = place_params
-            self.target_obj.SetTransform(place_tf)
-            set_robot_config(self.pick_op.continuous_parameters['q_goal'][-3:])
+        # This is the only sampling here
+        place_pose = self.place_generator.sample_from_uniform()
 
-            # This is the only sampling here
-            place_pose = self.place_generator.sample_from_uniform()
+        place_base_pose = self.place_feasibility_checker.place_object_and_robot_at_new_pose(self.target_obj,
+                                                                                            place_pose,
+                                                                                            place_region)
 
-            place_base_pose = self.place_feasibility_checker.place_object_and_robot_at_new_pose(self.target_obj,
-                                                                                                place_pose,
-                                                                                                place_region)
-
-            if self.problem_env.env.CheckCollision(self.problem_env.robot) or self.problem_env.env.CheckCollision(
-                    self.target_obj):
-                self.target_obj.SetTransform(old_tf)
-                return None, None, 'InfeasibleIK'
-
-            if not place_region.contains(self.target_obj.ComputeAABB()):
-                self.target_obj.SetTransform(old_tf)
-                return None, None, 'InfeasibleIK'
-
-            place_params['operator_name'] = 'one_arm_place'
-            place_params['object_pose'] = place_pose
-            place_params['action_parameters'] = place_pose
-            place_params['base_pose'] = place_base_pose
-            place_params['q_goal'][-3:] = place_base_pose
-            self.place_op.continuous_parameters = place_params
-
-            self.pick_op.continuous_parameters = pick_params  # is reference and will be changed lader
-            self.target_obj.SetTransform(pick_tf)
-            # assert_region(pick_region)
-            # self.pick_op.execute()
-            set_robot_config(self.pick_op.continuous_parameters['q_goal'][-3:])
-
-            pick_base_pose = self.place_feasibility_checker.place_object_and_robot_at_new_pose(self.target_obj,
-                                                                                               old_pose, pick_region)
-            pick_params['q_goal'][-3:] = pick_base_pose
-
-            # assert_region(pick_region)
-
-            # self.target_obj.SetTransform(pick_tf)
-            # self.pick_op.execute()
-            # tf = np.dot(np.dot(old_tf, np.linalg.pinv(pick_tf)), self.problem_env.robot.GetTransform())
-            # self.place_op.execute()
-            # self.target_obj.SetTransform(old_tf)
-            # self.problem_env.robot.SetTransform(tf)
-            # pick_base_pose = get_body_xytheta(self.problem_env.robot).squeeze()
-            # pick_params['q_goal'][-3:] = pick_base_pose
-
-            bad = False
+        if self.problem_env.env.CheckCollision(self.problem_env.robot) or self.problem_env.env.CheckCollision(
+                self.target_obj):
             self.target_obj.SetTransform(old_tf)
-            self.pick_op.execute()
+            return None, None, 'InfeasibleIK'
 
-            # assert_region(pick_region)
-
-            if self.problem_env.env.CheckCollision(self.problem_env.robot):
-                release_obj()
-                self.target_obj.SetTransform(old_tf)
-                return None, None, 'InfeasibleIK'
-
-            self.place_op.execute()
-
-            if self.problem_env.env.CheckCollision(self.problem_env.robot) or self.problem_env.env.CheckCollision(
-                    self.target_obj):
-                self.target_obj.SetTransform(old_tf)
-                return None, None, 'InfeasibleIK'
-
-            if not self.place_op.discrete_parameters['place_region'].contains(self.target_obj.ComputeAABB()):
-                self.target_obj.SetTransform(old_tf)
-                return None, None, 'InfeasibleIK'
-
-            # assert_region(place_region)
-
-            # place_action = {
-            #    'operator_name': 'one_arm_place',
-            #    'q_goal': np.hstack([grasp_config, new_base_pose]),
-            #    'base_pose': new_base_pose,
-            #    'object_pose': place_parameters,
-            #    'action_parameters': obj_pose,
-            #    'g_config': grasp_config,
-            #    'grasp_params': grasp_params,
-            # }
-
-            # pick_action = {
-            #    'operator_name': operator_skeleton.type,
-            #    'q_goal': np.hstack([grasp_config, pick_base_pose]),
-            #    'grasp_params': grasp_params,
-            #    'g_config': grasp_config,
-            #    'action_parameters': pick_parameters,
-            # }
-
+        if not place_region.contains(self.target_obj.ComputeAABB()):
             self.target_obj.SetTransform(old_tf)
+            return None, None, 'InfeasibleIK'
 
-            # assert pick_params['operator_name'] == 'one_arm_pick'
-            # assert place_params['operator_name'] == 'one_arm_place'
+        place_params['operator_name'] = 'one_arm_place'
+        place_params['object_pose'] = place_pose
+        place_params['action_parameters'] = place_pose
+        place_params['base_pose'] = place_base_pose
+        place_params['q_goal'][-3:] = place_base_pose
+        self.place_op.continuous_parameters = place_params
 
-            return pick_params, place_params, 'HasSolution'
+        self.pick_op.continuous_parameters = pick_params  # is reference and will be changed lader
+        self.target_obj.SetTransform(pick_tf)
+        # assert_region(pick_region)
+        # self.pick_op.execute()
+        set_robot_config(self.pick_op.continuous_parameters['q_goal'][-3:])
 
+        pick_base_pose = self.place_feasibility_checker.place_object_and_robot_at_new_pose(self.target_obj,
+                                                                                           old_pose, pick_region)
+        pick_params['q_goal'][-3:] = pick_base_pose
+
+        # assert_region(pick_region)
+
+        # self.target_obj.SetTransform(pick_tf)
+        # self.pick_op.execute()
+        # tf = np.dot(np.dot(old_tf, np.linalg.pinv(pick_tf)), self.problem_env.robot.GetTransform())
+        # self.place_op.execute()
+        # self.target_obj.SetTransform(old_tf)
+        # self.problem_env.robot.SetTransform(tf)
+        # pick_base_pose = get_body_xytheta(self.problem_env.robot).squeeze()
+        # pick_params['q_goal'][-3:] = pick_base_pose
+
+        bad = False
+        self.target_obj.SetTransform(old_tf)
+        self.pick_op.execute()
+
+        # assert_region(pick_region)
+
+        if self.problem_env.env.CheckCollision(self.problem_env.robot):
+            release_obj()
+            self.target_obj.SetTransform(old_tf)
+            return None, None, 'InfeasibleIK'
+
+        self.place_op.execute()
+
+        if self.problem_env.env.CheckCollision(self.problem_env.robot) or self.problem_env.env.CheckCollision(
+                self.target_obj):
+            self.target_obj.SetTransform(old_tf)
+            return None, None, 'InfeasibleIK'
+
+        if not self.place_op.discrete_parameters['place_region'].contains(self.target_obj.ComputeAABB()):
+            self.target_obj.SetTransform(old_tf)
+            return None, None, 'InfeasibleIK'
+
+        self.target_obj.SetTransform(old_tf)
+        return pick_params, place_params, 'HasSolution'
+
+    def sample_from_continuous_space(self):
         # sample pick
         pick_cont_params = None
         n_ik_attempts = 0
         n_base_attempts = 0
         status = "NoSolution"
+        robot_pose = utils.get_body_xytheta(self.robot)
+        robot_config = self.robot.GetDOFValues()
+
+        # sample pick parameters
         while pick_cont_params is None:
             pick_cont_params, status = self.sample_pick_cont_parameters()
             if status == 'InfeasibleBase':
@@ -232,7 +206,6 @@ class OneArmPaPUniformGenerator:
             elif status == 'HasSolution':
                 n_ik_attempts += 1
                 break
-
             if n_ik_attempts == 1 or n_base_attempts == 4:
                 break
         if status != 'HasSolution':
@@ -258,11 +231,26 @@ class OneArmPaPUniformGenerator:
                 break
             if n_ik_attempts == 1 or n_base_attempts == 1:
                 break
+
+        # reverting back to the state before sampling
         utils.one_arm_place_object(pick_cont_params)
         self.robot.SetDOFValues(robot_config)
         utils.set_robot_config(robot_pose)
+
         if status != 'HasSolution':
             return None, None, status
         else:
             self.place_op.continuous_parameters = place_cont_params
             return pick_cont_params, place_cont_params, status
+
+    def sample_cont_params(self):
+        assert len(self.robot.GetGrabbed()) == 0
+        if self.cached_picks is not None:
+            return self.sample_from_discretized_set()
+        else:
+            # sampling:
+            #   - pick parameters: ir and grasp parameters
+            #   - place parameters: object place pose; uses the same grasp parameters as pick
+            return self.sample_from_continuous_space()
+
+

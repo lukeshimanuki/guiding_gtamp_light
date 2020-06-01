@@ -51,6 +51,7 @@ class BaseMotionPlanner(MotionPlanner):
         path = None
         status = 'NoSolution'
         if self.algorithm == 'rrt':
+            print "Calling an RRT"
             planning_algorithm = rrt_connect
             #assert cached_collisions is None
             if not isinstance(goal, list):
@@ -62,6 +63,7 @@ class BaseMotionPlanner(MotionPlanner):
                     if path is not None:
                         return path, 'HasSolution'
         else:
+            print "Calling PRM connect"
             planning_algorithm = prm_connect
             if return_start_set_and_path_idxs:
                 path, start_and_prm_idxs = planning_algorithm(q_init, goal, c_fn, source, return_start_set_and_path_idxs)
