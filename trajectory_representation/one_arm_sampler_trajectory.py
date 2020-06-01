@@ -43,21 +43,23 @@ def compute_v_manip(abs_state, goal_objs, key_configs):
     else:
         pick_op, objs_in_way = abs_state.collision_pick_op[goal_obj]
     pick_op_config = pick_op.continuous_parameters['q_goal']
+
     best_arm_dist = np.inf
     best_base_dist = np.inf
     minidx = 0
-    for idx, k in enumerate(key_configs):
-        base_dist, arm_dist = rightarm_torso_base_distance(pick_op_config, k, xmax_diff, ymax_diff, arm_max_diff)
-        if base_dist < 0.1:
-            if arm_dist < best_arm_dist:
-                minidx = idx
-                best_arm_dist = arm_dist
-                best_base_dist = base_dist
+    base_dist_threshold = 0.1
+    while best_arm_dist == np.inf:
+        for idx, k in enumerate(key_configs):
+            base_dist, arm_dist = rightarm_torso_base_distance(pick_op_config, k, xmax_diff, ymax_diff, arm_max_diff)
+            if base_dist < base_dist_threshold:
+                if arm_dist < best_arm_dist:
+                    minidx = idx
+                    best_arm_dist = arm_dist
+                    best_base_dist = base_dist
+        if best_arm_dist == np.inf:
+            base_dist_threshold += 0.01
+
     v_manip[minidx] = 1
-    if best_arm_dist == np.inf:
-        import pdb;pdb.set_trace()
-        utils.set_rightarm_torso(pick_op_config)
-        utils.set_rightarm_torso(key_configs[minidx])
     print 'v_manip creation time', time.time() - stime
     return v_manip
 
