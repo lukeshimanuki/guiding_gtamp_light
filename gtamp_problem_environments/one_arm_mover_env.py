@@ -114,9 +114,9 @@ class PaPOneArmMoverEnv(OneArmMover):
     def __init__(self, problem_idx):
         OneArmMover.__init__(self, problem_idx)
 
-    def set_goal(self, goal):
-        self.goal_objects = [e for e in goal if 'region' not in e]
-        self.goal_region = [e for e in goal if 'region' in e]
+    def set_goal(self, goal_object, goal_region):
+        self.goal_objects = goal_object
+        self.goal_region = goal_region
         assert 'c_obst1' in self.goal_objects and len(self.goal_objects) == 1
         self.goal_entities = self.goal_objects + [self.goal_region]
 
@@ -128,7 +128,7 @@ class PaPOneArmMoverEnv(OneArmMover):
             for r in self.entity_names:
                 if 'region' not in r:
                     continue
-                if o not in self.goal and r in self.goal:
+                if o not in self.goal_entities and r in self.goal_entities:
                     # you cannot place non-goal object in the goal region
                     continue
 
