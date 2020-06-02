@@ -1,15 +1,9 @@
 import numpy as np
-import random
-import copy
 
-from gtamp_utils.utils import get_pick_base_pose_and_grasp_from_pick_parameters, get_body_xytheta, set_robot_config, \
-    release_obj
+from gtamp_utils.utils import get_pick_base_pose_and_grasp_from_pick_parameters
 from gtamp_utils import utils
-from generators.one_arm_generators.one_arm_pick_generator import OneArmPickGenerator
-from generators.uniform import UniformGenerator
 from trajectory_representation.operator import Operator
 from gtamp_utils.operator_utils import grasp_utils
-from generators.samplers.uniform_sampler import UniformSampler
 
 from generators.feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeasibilityChecker
 from generators.feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFeasibilityChecker
