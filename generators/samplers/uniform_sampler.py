@@ -3,8 +3,8 @@ import numpy as np
 
 
 class UniformSampler(Sampler):
-    def __init__(self, target_region, policy=None):
-        Sampler.__init__(self, policy, target_region)
+    def __init__(self, atype, target_region):
+        Sampler.__init__(self, atype, target_region, policy=None)
 
     def sample(self):
         dim_parameters = self.domain.shape[-1]

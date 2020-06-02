@@ -113,13 +113,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
     print "State computation..."
-    try:
-        state = pickle.load(open('temp.pkl', 'r'))
-    except:
-        state = statecls(mover, goal)
-        state.make_pklable()
-        pickle.dump(state, open('temp.pkl', 'wb'))
-    state.make_plannable(mover)
+    state = statecls(mover, goal)
 
     [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     initnode = Node(None, None, state)
