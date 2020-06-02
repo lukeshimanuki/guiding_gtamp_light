@@ -44,15 +44,20 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
         else:
             raise NotImplementedError
     else:
-        if 'pick' in config.atype and 'place' in config.atype:
-            print "Using PaP sampler"
-            sampler = PickPlaceLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-        elif 'pick' in config.atype:
-            sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-        elif 'place' in config.atype:
-            sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+        if 'two_arm' in config.domain:
+            if 'pick' in config.atype and 'place' in config.atype:
+                print "Using PaP sampler"
+                sampler = PickPlaceLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            elif 'pick' in config.atype:
+                sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            elif 'place' in config.atype:
+                sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            else:
+                raise NotImplementedError
         else:
-            raise NotImplementedError
+            pick_sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            place_sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
 
@@ -201,13 +206,11 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 pap_params = pick_op.continuous_parameters, place_op.continuous_parameters
             else:
                 mover.enable_objects()
-                papg = OneArmPaPUniformGenerator(action, mover,
-                                                 cached_picks=None)
-                pick_params, place_params, status = papg.sample_next_point(200)
-                import pdb;pdb.set_trace()
-                pick_params2, place_params2, status2 = sample_continuous_parameters(state, action, node, learned_sampler_model, config)
-                print status, status2
-
+                #papg = OneArmPaPUniformGenerator(action, mover,
+                #                                 cached_picks=None)
+                #pick_params, place_params, status = papg.sample_next_point(200)
+                pick_params, place_params, status = sample_continuous_parameters(state, action, node,
+                                                                                 learned_sampler_model, config)
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
