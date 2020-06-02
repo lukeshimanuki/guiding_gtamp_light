@@ -420,7 +420,7 @@ class OneArmPaPState(PaPState):
         if isobj:
             is_entity_reachable = entity in self.nocollision_pick_op
         else:
-            is_entity_reachable = False
+            is_entity_reachable = True
 
         return [
             0,  # l

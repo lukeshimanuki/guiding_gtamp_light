@@ -207,6 +207,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 import pdb;pdb.set_trace()
                 pick_params2, place_params2, status2 = sample_continuous_parameters(state, action, node, learned_sampler_model, config)
                 print status, status2
+
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:

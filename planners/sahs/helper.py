@@ -50,7 +50,8 @@ def get_state_class(domain):
                 else:
                     print('failed to find any paps, trying again')
 
-        statecls = create_one_arm_pap_state
+        #statecls = create_one_arm_pap_state
+        statecls = OneArmPaPState
     else:
         raise NotImplementedError
     return statecls
