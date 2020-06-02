@@ -28,6 +28,8 @@ class OneArmPaPGenerator:
         self.robot = problem_env.robot
         self.target_region = target_region
         self.target_obj = target_obj
+        if type(self.target_obj) is str  or type(self.target_obj) is unicode:
+            self.target_obj = self.problem_env.env.GetKinBody(self.target_obj)
 
         # todo change this to use the sampler passed in
         self.pick_op = Operator(operator_type='one_arm_pick',
