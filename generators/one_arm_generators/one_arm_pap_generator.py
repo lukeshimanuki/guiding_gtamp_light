@@ -55,14 +55,12 @@ class OneArmPaPGenerator:
         # n_iter refers to the max number of IK attempts on pick
         n_ik_attempts = 0
         while True:
-            pick_cont_params, place_cont_params, status = self.sample_cont_params()
-            if status == 'InfeasibleIK':
+            pick_cont_params, place_cont_params, status = self.sample_from_continuous_space()
+            if status == 'InfeasibleIK' or status == 'InfeasibleBase':
                 n_ik_attempts += 1
                 self.n_ik_checks += 1
                 if n_ik_attempts == self.n_iter_limit:
                     break
-            elif status == 'InfeasibleBase':
-                return None, None, "NoSolution"
             elif status == 'HasSolution':
                 return pick_cont_params, place_cont_params, 'HasSolution'
         return None, None, 'NoSolution'
@@ -112,6 +110,8 @@ class OneArmPaPGenerator:
             return cont_params, status
 
     def sample_from_continuous_space(self):
+        assert len(self.robot.GetGrabbed()) == 0
+
         # sample pick
         pick_cont_params = None
         n_ik_attempts = 0
@@ -130,7 +130,7 @@ class OneArmPaPGenerator:
             elif status == 'HasSolution':
                 n_ik_attempts += 1
                 break
-            if n_ik_attempts == 1 or n_base_attempts == 1:
+            if n_ik_attempts == 1 or n_base_attempts == 4:
                 break
         if status != 'HasSolution':
             utils.set_robot_config(robot_pose)
@@ -167,6 +167,3 @@ class OneArmPaPGenerator:
             self.place_op.continuous_parameters = place_cont_params
             return pick_cont_params, place_cont_params, status
 
-    def sample_cont_params(self):
-        assert len(self.robot.GetGrabbed()) == 0
-        return self.sample_from_continuous_space()
