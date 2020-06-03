@@ -25,23 +25,17 @@ from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 
 def get_problem_env(config, goal_region, goal_objs):
-    n_objs_pack = config.n_objs_pack
     np.random.seed(config.pidx)
     random.seed(config.pidx)
     if config.domain == 'two_arm_mover':
         problem_env = PaPMoverEnv(config.pidx)
-        # goal = ['home_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
-        # for obj in problem_env.objects[:n_objs_pack]:
-        #    utils.set_color(obj, [0, 1, 0])
-        [utils.set_color(o, [0, 0, 0.8]) for o in goal_objs]
-
-        # goal = ['home_region'] + ['rectangular_packing_box1', 'rectangular_packing_box2', 'rectangular_packing_box3',
-        #                 'rectangular_packing_box4']
+        [utils.set_color(o, [0.8, 0, 0]) for o in goal_objs]
         problem_env.set_goal(goal_objs, goal_region)
     elif config.domain == 'one_arm_mover':
         problem_env = PaPOneArmMoverEnv(config.pidx)
-        goal = ['rectangular_packing_box1_region'] + [obj.GetName() for obj in problem_env.objects[:n_objs_pack]]
-        problem_env.set_goal(goal)
+        [utils.set_color(obj, [0.0, 0.0, 0.7]) for obj in problem_env.objects]
+        [utils.set_color(o, [1.0, 1.0, 0]) for o in goal_objs]
+        problem_env.set_goal(goal_objs, goal_region)
     else:
         raise NotImplementedError
     return problem_env
@@ -235,33 +229,34 @@ def get_total_n_feasibility_checks(nodes):
     return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
 
+def make_sampler_model_and_load_weights(action_type, region, config):
+    model = WGANgp(action_type, region, architecture=config.place_architecture,
+                   seed=config.home_sampler_seed, problem_name=config.domain)
+    model.load_best_weights()
+    return model
+
+
 def get_learned_sampler_models(config):
-    home_place_model = None
-    loading_place_model = None
+    goal_region_place_model = None
+    obj_region_place_model = None
     pick_model = None
 
     if not config.use_learning:
         return None
 
     if 'place' in config.atype:
-        region = 'home_region'
-        action_type = 'place'
-        home_place_model = WGANgp(action_type, region, architecture=config.place_architecture, seed=config.home_sampler_seed)
-        home_place_model.load_best_weights()
-
-        region = 'loading_region'
-        action_type = 'place'
-        loading_place_model = WGANgp(action_type, region, architecture=config.place_architecture,
-                                     seed=config.loading_sampler_seed)
-        loading_place_model.load_best_weights()
+        if 'two_arm' in config.domain:
+            goal_region_place_model = make_sampler_model_and_load_weights('place', 'home_region', config)
+            obj_region_place_model = make_sampler_model_and_load_weights('place', 'loading_region', config)
+        else:
+            goal_region_place_model = make_sampler_model_and_load_weights('place', 'rectangular_packing_box1_region',
+                                                                          config)
+            obj_region_place_model = make_sampler_model_and_load_weights('place', 'center_shelf_region', config)
 
     if 'pick' in config.atype:
-        action_type = 'pick'
-        region = ''
-        pick_model = WGANgp(action_type, region, architecture=config.pick_architecture, seed=config.pick_sampler_seed)
-        pick_model.load_best_weights()
+        pick_model = make_sampler_model_and_load_weights('pick', '', config)
 
-    model = {'place_home': home_place_model, 'place_loading': loading_place_model, 'pick': pick_model}
+    model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model, 'pick': pick_model}
     return model
 
 
@@ -276,11 +271,12 @@ def get_goal_obj_and_region(config):
             goal_region = 'home_region'
     elif config.domain == 'one_arm_mover':
         assert config.n_objs_pack == 1
-        goal_objs = ['c_obst0']
+        goal_objs = ['c_obst1']
         goal_region = 'rectangular_packing_box1_region'
     else:
         raise NotImplementedError
     return goal_objs, goal_region
+
 
 def main():
     config = parse_arguments()

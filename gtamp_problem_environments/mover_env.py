@@ -440,6 +440,7 @@ class Mover(ProblemEnvironment):
 class PaPMoverEnv(Mover):
     def __init__(self, problem_idx):
         Mover.__init__(self, problem_idx)
+        self.name = 'two_arm_mover'
 
     def get_applicable_ops(self, parent_op=None):
         actions = []

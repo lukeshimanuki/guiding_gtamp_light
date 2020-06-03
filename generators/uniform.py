@@ -2,11 +2,11 @@ from gtamp_utils import utils
 from gtamp_utils.utils import get_pick_domain, get_place_domain
 from mover_library.utils import get_pick_base_pose_and_grasp_from_pick_parameters
 
-from feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
-from feasibility_checkers.two_arm_place_feasibility_checker import TwoArmPlaceFeasibilityChecker
-from feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeasibilityChecker
-from feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFeasibilityChecker
-from feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityChecker
+from generators.feasibility_checkers.two_arm_pick_feasibility_checker import TwoArmPickFeasibilityChecker
+from generators.feasibility_checkers.two_arm_place_feasibility_checker import TwoArmPlaceFeasibilityChecker
+from generators.feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeasibilityChecker
+from generators.feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFeasibilityChecker
+from generators.feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityChecker
 
 from generators.generator_retired import PaPGenerator
 
@@ -55,35 +55,11 @@ class UniformGenerator:  # Used in RSC and to generate abstract state
             self.domain = get_pick_domain()
             self.op_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
         elif operator_type == 'two_arm_place':
-            #raise NotImplementedError
-            ## This should not be used
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env, 'object_pose')
         elif operator_type == 'one_arm_place':
-            #if target_region is None:
-            #    import pdb;
-            #    pdb.set_trace()
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
-        #elif operator_type == 'two_arm_pick_two_arm_place':
-        #    # used by MCTS
-        #    pick_min = get_pick_domain()[0]
-        #    pick_max = get_pick_domain()[1]
-        #    place_min = get_place_domain(target_region)[0]
-        #    place_max = get_place_domain(target_region)[1]
-        #    mins = np.hstack([pick_min, place_min])
-        #    maxes = np.hstack([pick_max, place_max])
-        #    self.domain = np.vstack([mins, maxes])
-        #    self.op_feasibility_checker = TwoArmPaPFeasibilityChecker(problem_env)
-        #elif operator_type == 'one_arm_pick_one_arm_place':
-        #    self.pick_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
-        #    self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
-        #    pick_min = get_pick_domain()[0]
-        #    pick_max = get_pick_domain()[1]
-        #    place_min = get_place_domain(target_region)[0]
-        #    place_max = get_place_domain(target_region)[1]
-        #    self.pick_domain = np.vstack([pick_min, pick_max])
-        #    self.place_domain = np.vstack([place_min, place_max])
         else:
             raise ValueError
 

@@ -264,7 +264,7 @@ class OneArmPaPState(PaPState):
         assert len(self.goal_entities) == 2
         assert 'c_obst1' in self.goal_entities
         goal_obj = self.problem_env.goal_objects[0]
-        goal_region = self.problem_env.goal_region[0]
+        goal_region = self.problem_env.goal_region
         sorted_objects = [goal_obj] + [o for o in self.objects if o not in self.goal_entities]
         sorted_regions = [goal_region] + [r for r in self.regions if r not in self.goal_entities]
         all_goals_are_reachable = True

@@ -10,15 +10,29 @@ import torch
 
 
 class Sampler:
-    def __init__(self, policy, target_region):
+    def __init__(self, atype, target_region, policy):
         self.policies = policy
-        pick_min = get_pick_domain()[0]
-        pick_max = get_pick_domain()[1]
-        place_min = get_place_domain(target_region)[0]
-        place_max = get_place_domain(target_region)[1]
-        mins = np.hstack([pick_min, place_min])
-        maxes = np.hstack([pick_max, place_max])
+        if 'pick' in atype  and 'place' in atype:
+            pick_min = get_pick_domain()[0]
+            pick_max = get_pick_domain()[1]
+            place_min = get_place_domain(target_region)[0]
+            place_max = get_place_domain(target_region)[1]
+            mins = np.hstack([pick_min, place_min])
+            maxes = np.hstack([pick_max, place_max])
+        elif 'pick' in atype  and 'place' not in atype:
+            pick_min = get_pick_domain()[0]
+            pick_max = get_pick_domain()[1]
+            mins = pick_min
+            maxes = pick_max
+        elif 'pick' not in atype  and 'place' in atype:
+            place_min = get_place_domain(target_region)[0]
+            place_max = get_place_domain(target_region)[1]
+            mins = place_min
+            maxes = place_max
+        else:
+            raise NotImplementedError
         self.domain = np.vstack([mins, maxes])
+
 
 
 class LearnedSampler(Sampler):

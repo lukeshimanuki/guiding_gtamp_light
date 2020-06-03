@@ -12,6 +12,7 @@ from trajectory_representation.operator import Operator
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 from generators.voo import TwoArmVOOGenerator
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
+from generators.one_arm_generators.one_arm_pap_generator import OneArmPaPGenerator
 from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickOnlyLearnedSampler
 from generators.samplers.pick_place_learned_sampler import PickPlaceLearnedSampler
 from generators.samplers.uniform_sampler import UniformSampler
@@ -31,53 +32,64 @@ MAX_DISTANCE = 1.0
 def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     if not config.use_learning:
         if 'uniform' in config.sampling_strategy:
-            sampler = UniformSampler(abstract_action.discrete_parameters['place_region'])
+            if 'two_arm' in config.domain:
+                sampler = UniformSampler(atype='two_arm_pick_and_place',
+                                         target_region=abstract_action.discrete_parameters['place_region'])
+            else:
+                sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
+                           'place': UniformSampler(target_region=abstract_action.discrete_parameters['place_region'],
+                                                   atype='one_arm_place')}
         elif 'voo' in config.sampling_strategy:
-            sampler = VOOSampler(abstract_action.discrete_parameters['object'],
-                                 abstract_action.discrete_parameters['place_region'], 0.3, -9999)
+            raise NotImplementedError
         else:
             raise NotImplementedError
     else:
-        if 'pick' in config.atype and 'place' in config.atype:
-            print "Using PaP sampler"
-            sampler = PickPlaceLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-        elif 'pick' in config.atype:
-            sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-        elif 'place' in config.atype:
-            sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+        if 'two_arm' in config.domain:
+            if 'pick' in config.atype and 'place' in config.atype:
+                print "Using PaP sampler"
+                sampler = PickPlaceLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            elif 'pick' in config.atype:
+                sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            elif 'place' in config.atype:
+                sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            else:
+                raise NotImplementedError
         else:
-            raise NotImplementedError
+            pick_sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            place_sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
 
-def get_generator(abstract_state, action, learned_sampler_model, config):
-    sampler = get_sampler(config, abstract_state, action, learned_sampler_model)
+def get_generator(abstract_state, action, sampler_model, config):
+    sampler = get_sampler(config, abstract_state, action, sampler_model)
     if 'unif' in config.sampling_strategy:
-        sampler.infeasible_action_value = -9999
-        generator = TwoArmPaPGenerator(abstract_state, action, sampler,
-                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                       n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
-                                       pick_action_mode='ir_parameters',
-                                       place_action_mode='robot_base_pose')
+        if 'two_arm' in config.domain:
+            sampler.infeasible_action_value = -9999
+            generator = TwoArmPaPGenerator(abstract_state, action, sampler,
+                                           n_parameters_to_try_motion_planning=config.n_mp_limit,
+                                           n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
+                                           pick_action_mode='ir_parameters',
+                                           place_action_mode='robot_base_pose')
+        else:
+            generator = OneArmPaPGenerator(action, n_iter_limit=config.n_iter_limit,
+                                           problem_env=abstract_state.problem_env,
+                                           pick_sampler=sampler['pick'], place_sampler=sampler['place'])
+
     elif 'voo' in config.sampling_strategy:
-        generator = TwoArmVOOGenerator(abstract_state, action, sampler,
-                                       n_parameters_to_try_motion_planning=config.n_mp_limit,
-                                       n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
-                                       pick_action_mode='ir_parameters',
-                                       place_action_mode='object_pose')
+        raise NotImplementedError
     else:
         raise NotImplementedError
 
     return generator
 
 
-def sample_continuous_parameters(abstract_state, abstract_action, abstract_node, learned_sampler_model, config):
-    stime = time.time()
+def sample_continuous_parameters(abstract_state, abstract_action, abstract_node, sampler_model, config):
     disc_param = (abstract_action.discrete_parameters['object'], abstract_action.discrete_parameters['place_region'])
 
     we_dont_have_generator_for_this_discrete_action_yet = disc_param not in abstract_node.generators
     if we_dont_have_generator_for_this_discrete_action_yet:
-        generator = get_generator(abstract_state, abstract_action, learned_sampler_model, config)
+        generator = get_generator(abstract_state, abstract_action, sampler_model, config)
         abstract_node.generators[disc_param] = generator
     smpled_param = abstract_node.generators[disc_param].sample_next_point()
 
@@ -167,7 +179,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             else:
                 stime = time.time()
                 newstate = statecls(mover, goal, node.state, action)
-                print "New state computation time ", time.time()-stime
+                print "New state computation time ", time.time() - stime
                 newnode = Node(node, action, newstate)
                 newactions = get_actions(mover, goal, config)
                 update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
@@ -183,15 +195,16 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             r = region.name
 
             if (o, r) in state.nocollision_place_op:
+                print "Already no collision place op"
                 pick_op, place_op = node.state.nocollision_place_op[(o, r)]
                 pap_params = pick_op.continuous_parameters, place_op.continuous_parameters
             else:
                 mover.enable_objects()
-                current_region = mover.get_region_containing(obj).name
-                papg = OneArmPaPUniformGenerator(action, mover,
-                                                 cached_picks=None)
-                                                 #cached_picks=(node.state.iksolutions[current_region], node.state.iksolutions[r]))
-                pick_params, place_params, status = papg.sample_next_point(200)
+                #papg = OneArmPaPUniformGenerator(action, mover,
+                #                                 cached_picks=None)
+                #pick_params, place_params, status = papg.sample_next_point(200)
+                pick_params, place_params, status = sample_continuous_parameters(state, action, node,
+                                                                                 learned_sampler_model, config)
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
