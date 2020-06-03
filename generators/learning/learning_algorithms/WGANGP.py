@@ -75,12 +75,19 @@ class WGANgp:
             self.load_weights(max_kde_iteration)
         else:
             print "On cloud. Loading the only weight"
-            weight_file = os.listdir(self.weight_dir)[0]
             # todo don't commit the below
             if 'one_arm_mover/place/center_shelf_region/' in self.weight_dir:
                 weight_file = 'gen_iter_13600.pt'
             elif 'one_arm_mover/pick/' in self.weight_dir:
                 weight_file = 'gen_iter_26900.pt'
+            elif 'two_arm_mover/pick/' in self.weight_dir:
+                weight_file = 'gen_iter_106700.pt'
+            elif 'two_arm_mover/place/home_region' in self.weight_dir:
+                weight_file = 'gen_iter_35900.pt'
+            elif 'two_arm_mover/place/loading_region' in self.weight_dir:
+                weight_file = 'gen_iter_16500.pt'
+            else:
+                weight_file = os.listdir(self.weight_dir)[0]
             if 'cpu' in self.device.type:
                 self.generator.load_state_dict(
                     torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
@@ -93,9 +100,6 @@ class WGANgp:
                                           self.problem_name)
             generator = Generator(self.n_dim_actions, self.action_type, self.region_name,
                                   self.problem_name)
-        elif self.architecture == 'cnn':
-            discriminator = CNNDiscriminator(self.n_dim_actions, self.action_type, self.region_name)
-            generator = CNNGenerator(self.n_dim_actions, self.action_type, self.region_name)
         else:
             raise NotImplementedError
         discriminator.to(self.device)
