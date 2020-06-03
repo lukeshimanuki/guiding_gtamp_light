@@ -1,4 +1,4 @@
-from sampler import LearnedSampler, compute_v_manip
+from sampler import LearnedSampler
 
 import numpy as np
 import time
@@ -6,16 +6,52 @@ from gtamp_utils import utils
 from generators.learning.utils import data_processing_utils
 
 
+def compute_v_manip(abs_state, goal_objs):
+    goal_objs_not_in_goal = [goal_obj for goal_obj in goal_objs if
+                             not abs_state.binary_edges[(goal_obj, 'home_region')][0]]
+    v_manip = np.zeros((len(abs_state.prm_vertices), 1))
+    # todo optimize this code
+    init_end_times = 0
+    path_times = 0
+    stime = time.time()
+    for goal_obj in goal_objs_not_in_goal:
+        prm_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
+        stime2 = time.time()
+        # todo possible optimization:
+        #   I can use the prm_path[1]'s edge to compute the neighbors, instead of using all of them.
+        distances = [utils.base_pose_distance(prm_path[0], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+        init_end_times += time.time() - stime2
+        closest_prm_idx = np.argmin(distances)
+        prm_path.pop(0)
+        prm_path.insert(0, abs_state.prm_vertices[closest_prm_idx, :])
+
+        stime2 = time.time()
+        distances = [utils.base_pose_distance(prm_path[-1], prm_vtx) for prm_vtx in abs_state.prm_vertices]
+        init_end_times += time.time() - stime2
+        closest_prm_idx = np.argmin(distances)
+        prm_path[-1] = abs_state.prm_vertices[closest_prm_idx, :]
+
+        stime2 = time.time()
+        for p in prm_path:
+            boolean_matching_prm_vertices = np.all(np.isclose(abs_state.prm_vertices[:, :2], p[:2]), axis=-1)
+            if np.any(boolean_matching_prm_vertices):
+                idx = np.argmax(boolean_matching_prm_vertices)
+                v_manip[idx] = 1
+        path_times += time.time() - stime2
+    print 'v_manip creation time', time.time() - stime
+    return v_manip
+
+
 class PickPlaceLearnedSampler(LearnedSampler):
-    def __init__(self, sampler, abstract_state, abstract_action):
-        LearnedSampler.__init__(self, sampler, abstract_state, abstract_action)
+    def __init__(self, atype, sampler, abstract_state, abstract_action):
+        LearnedSampler.__init__(self,  atype, sampler, abstract_state, abstract_action)
         self.v_manip = None
         self.state_vec = None
         self.samples = self.sample_new_points(self.n_smpl_per_iter)
         self.curr_smpl_idx = 0
 
     def sample_picks(self, poses, collisions):
-        pick_samples = self.policies['pick'].generate(collisions, poses)
+        pick_samples = self.samplers['pick'].generate(collisions, poses)
         pick_samples = self.decode_base_angle_encoding(pick_samples)
         return pick_samples
 
@@ -38,11 +74,10 @@ class PickPlaceLearnedSampler(LearnedSampler):
         print "Pick pose encoding time", time.time() - stime
 
         pose_ids[:, -6:-2] = encoded_pick_abs_poses
-
         if 'home' in self.region:
-            chosen_sampler = self.policies['place_home']
+            chosen_sampler = self.samplers['place_goal_region']
         else:
-            chosen_sampler = self.policies['place_loading']
+            chosen_sampler = self.samplers['place_obj_region']
 
         stime = time.time()
         place_samples = chosen_sampler.generate(self.state_vec, pose_ids)
