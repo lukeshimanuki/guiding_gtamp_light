@@ -102,10 +102,10 @@ def get_actions(op_skeleton, entity_names):
         action = np.zeros((n_entities, n_regions))
         action[object_idx, region_idx] = 1
     elif op_skeleton.type == 'one_arm_pick_one_arm_place':
-        object_idx = name_to_idx[op_skeleton.discrete_parameters['object'].GetName()]
+        object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
         # todo if you are processing data, then use the commented lines.
         # region_name = op_skeleton.discrete_parameters['region'].name
-        region_name = op_skeleton.discrete_parameters['place_region'].name
+        region_name = op_skeleton.discrete_parameters['place_region']
         #region_idx = region_name_to_idx[region_name]
         if region_name == 'rectangular_packing_box1_region':
             region_idx = 0
