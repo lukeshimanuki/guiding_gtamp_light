@@ -4,8 +4,8 @@ from models import BaseModel
 
 
 class Discriminator(BaseModel):
-    def __init__(self, dim_konf, dim_data, atype, region, problem_name):
-        BaseModel.__init__(self, dim_konf, atype, region, problem_name)
+    def __init__(self, dim_data, atype, region, problem_name):
+        BaseModel.__init__(self, atype, region, problem_name)
 
         self.konf_net = \
             nn.Sequential(
@@ -51,8 +51,8 @@ class Discriminator(BaseModel):
 
 
 class Generator(BaseModel):
-    def __init__(self, dim_konf, dim_data, atype, region, problem_name):
-        BaseModel.__init__(self, dim_konf, atype, region, problem_name)
+    def __init__(self, dim_data, atype, region, problem_name):
+        BaseModel.__init__(self, atype, region, problem_name)
 
         self.konf_net = \
             nn.Sequential(

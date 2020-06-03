@@ -6,9 +6,8 @@ import numpy as np
 
 
 class BaseModel(nn.Module):
-    def __init__(self, dim_konf, atype, region, problem_name):
+    def __init__(self, atype, region, problem_name):
         nn.Module.__init__(self)
-        self.dim_konf = dim_konf
         self.atype = atype
         self.region = region
         self.problem_name = problem_name
