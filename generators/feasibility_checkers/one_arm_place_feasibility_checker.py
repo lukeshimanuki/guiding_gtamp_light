@@ -3,11 +3,13 @@ from mover_library.utils import set_robot_config, grab_obj, release_obj, set_con
 from generators.feasibility_checkers.place_feasibility_checker import PlaceFeasibilityChecker
 from generators.feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeasibilityChecker
 from mover_library.operator_utils.grasp_utils import compute_one_arm_grasp, solveIKs
+from gtamp_utils import utils
 
 
 class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibilityChecker):
-    def __init__(self, problem_env):
+    def __init__(self, problem_env, action_mode='object_pose'):
         PlaceFeasibilityChecker.__init__(self, problem_env)
+        self.action_mode = action_mode
 
     def place_object_and_robot_at_new_pose(self, obj, obj_pose, obj_region):
         T_r_wrt_o = np.dot(np.linalg.inv(obj.GetTransform()), self.robot.GetTransform())
@@ -35,8 +37,8 @@ class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibili
 
     def check_feasibility(self, operator_skeleton, place_parameters, swept_volume_to_avoid=None):
         obj = self.robot.GetGrabbed()[0]
+
         obj_original_pose = obj.GetTransform()
-        obj_pose = place_parameters
 
         robot_original_xytheta = get_body_xytheta(self.robot)
         robot_original_config = self.robot.GetDOFValues()
@@ -48,7 +50,13 @@ class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibili
         target_robot_region = self.problem_env.regions['home_region']
         target_obj_region = obj_region
 
-        new_base_pose = self.place_object_and_robot_at_new_pose(obj, obj_pose, obj_region)
+        if self.action_mode == 'object_pose':
+            obj_pose = place_parameters
+            new_base_pose = self.place_object_and_robot_at_new_pose(obj, obj_pose, obj_region)
+        else:
+            utils.set_robot_config(place_parameters)
+            obj_pose = utils.get_body_xytheta(obj)
+            new_base_pose = place_parameters
 
         is_object_pose_infeasible = self.env.CheckCollision(obj) or \
                                     (not target_obj_region.contains(obj.ComputeAABB()))
@@ -63,11 +71,13 @@ class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibili
             set_robot_config(robot_original_xytheta)
             self.robot.SetDOFValues(robot_original_config)
             obj.SetTransform(obj_original_pose)
-            grab_obj(obj)
+            if len(self.robot.GetGrabbed()) == 0:
+                grab_obj(obj)
             return action, 'InfeasibleBase'
 
         is_base_pose_infeasible = self.env.CheckCollision(self.robot) or \
                                   (not target_robot_region.contains(self.robot.ComputeAABB()))
+        """
         if is_base_pose_infeasible:
             for i in range(3):
                 obj_pose[-1] += 90 * np.pi / 180.0
@@ -78,6 +88,7 @@ class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibili
                                           (not target_robot_region.contains(self.robot.ComputeAABB()))
                 if not (is_base_pose_infeasible or is_object_pose_infeasible):
                     break
+        """
 
         if is_base_pose_infeasible or is_object_pose_infeasible:
             action = {'operator_name': 'one_arm_place', 'q_goal': None, 'base_pose': None, 'object_pose': None,
@@ -85,7 +96,8 @@ class OneArmPlaceFeasibilityChecker(PlaceFeasibilityChecker, OneArmPickFeasibili
             set_robot_config(robot_original_xytheta)
             self.robot.SetDOFValues(robot_original_config)
             obj.SetTransform(obj_original_pose)
-            grab_obj(obj)
+            if len(self.robot.GetGrabbed()) == 0:
+                grab_obj(obj)
             return action, 'InfeasibleBase'
 
         grasp_config = self.solve_ik_from_grasp_params(obj, grasp_params)

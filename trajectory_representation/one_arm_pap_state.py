@@ -337,7 +337,7 @@ class OneArmPaPState(PaPState):
                         # we already have a nocollision solution, move onto the next region
                         self.pick_params[obj].append(pick_params)
                         self.place_params[(obj, r)].append(place_params)
-                        print('already have nocollision', obj, r)
+                        print('state computation: already have nocollision', obj, r)
                         continue
                 ### end of checking existing pick and place samples
 

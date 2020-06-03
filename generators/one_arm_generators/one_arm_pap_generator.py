@@ -16,13 +16,13 @@ class OneArmPaPGenerator:
         target_region = None
         if 'place_region' in operator_skeleton.discrete_parameters:
             target_region = operator_skeleton.discrete_parameters['place_region']
-            if type(target_region) == str:
+            if type(target_region) is str or type(target_region) is unicode:
                 target_region = self.problem_env.regions[target_region]
         target_obj = operator_skeleton.discrete_parameters['object']
         self.robot = problem_env.robot
         self.target_region = target_region
         self.target_obj = target_obj
-        if type(self.target_obj) is str  or type(self.target_obj) is unicode:
+        if type(self.target_obj) is str or type(self.target_obj) is unicode:
             self.target_obj = self.problem_env.env.GetKinBody(self.target_obj)
 
         # todo change this to use the sampler passed in
@@ -35,7 +35,10 @@ class OneArmPaPGenerator:
                                  continuous_parameters={})
         self.place_sampler = place_sampler
         self.pick_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
-        self.place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
+        self.robot_base_place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env,
+                                                                                  action_mode='robot_base_pose')
+        self.obj_base_place_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env,
+                                                                                action_mode='object_pose')
         self.operator_skeleton = operator_skeleton
 
         self.n_pick_mp_checks = 0
@@ -84,6 +87,7 @@ class OneArmPaPGenerator:
                                                    theta=grasp_params[0],
                                                    obj=self.target_obj,
                                                    robot=self.robot)
+
         grasp_config, grasp = grasp_utils.solveIKs(self.problem_env.env, self.robot, grasps)
 
         param = {'q_goal': np.hstack([grasp_config, pick_base_pose]),
@@ -99,7 +103,29 @@ class OneArmPaPGenerator:
     def sample_place_cont_parameters(self, pick_params):
         obj_place_pose = self.place_sampler.sample()
         self.place_op.continuous_parameters['grasp_params'] = pick_params['grasp_params']
-        cont_params, status = self.place_feasibility_checker.check_feasibility(self.place_op, obj_place_pose)
+
+        #  We only have the below for the learned sampler
+        is_using_learning = self.place_sampler.samplers is not None
+        if is_using_learning:
+            if 'rectangular_packing_box1_region' in self.target_region.name:
+                sampler_to_use = self.place_sampler.samplers['place_goal_region']
+            elif 'center_shelf_region' in self.target_region.name:
+                sampler_to_use = self.place_sampler.samplers['place_obj_region']
+            else:
+                raise NotImplementedError
+            # We dont learn sampler for goal region
+            if 'Uniform' in sampler_to_use.__class__.__name__:
+                cont_params, status = self.obj_base_place_feasibility_checker.check_feasibility(self.place_op,
+                                                                                                obj_place_pose)
+            elif 'WGAN' in sampler_to_use.__class__.__name__:
+                cont_params, status = self.robot_base_place_feasibility_checker.check_feasibility(self.place_op,
+                                                                                                  obj_place_pose)
+            else:
+                raise NotImplementedError
+        else:
+            cont_params, status = self.obj_base_place_feasibility_checker.check_feasibility(self.place_op,
+                                                                                            obj_place_pose)
+
         if status != 'HasSolution':
             return None, status
         else:
@@ -162,4 +188,3 @@ class OneArmPaPGenerator:
         else:
             self.place_op.continuous_parameters = place_cont_params
             return pick_cont_params, place_cont_params, status
-

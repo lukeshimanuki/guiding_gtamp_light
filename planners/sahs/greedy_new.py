@@ -13,8 +13,10 @@ from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
 from generators.voo import TwoArmVOOGenerator
 from generators.TwoArmPaPGenerator import TwoArmPaPGenerator
 from generators.one_arm_generators.one_arm_pap_generator import OneArmPaPGenerator
-from generators.samplers.sampler import PlaceOnlyLearnedSampler, PickOnlyLearnedSampler
 from generators.samplers.pick_place_learned_sampler import PickPlaceLearnedSampler
+from generators.samplers.pick_only_learned_sampler import PickOnlyLearnedSampler
+from generators.samplers.place_only_learned_sampler import PlaceOnlyLearnedSampler
+
 from generators.samplers.uniform_sampler import UniformSampler
 from generators.samplers.voo_sampler import VOOSampler
 
@@ -32,31 +34,22 @@ MAX_DISTANCE = 1.0
 def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     if not config.use_learning:
         if 'uniform' in config.sampling_strategy:
+            target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
             if 'two_arm' in config.domain:
-                sampler = UniformSampler(atype='two_arm_pick_and_place',
-                                         target_region=abstract_action.discrete_parameters['place_region'])
+                sampler = UniformSampler(atype='two_arm_pick_and_place', target_region=target_region)
             else:
                 sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
-                           'place': UniformSampler(target_region=abstract_action.discrete_parameters['place_region'],
-                                                   atype='one_arm_place')}
+                           'place': UniformSampler(target_region=target_region, atype='one_arm_place')}
         elif 'voo' in config.sampling_strategy:
             raise NotImplementedError
         else:
             raise NotImplementedError
     else:
         if 'two_arm' in config.domain:
-            if 'pick' in config.atype and 'place' in config.atype:
-                print "Using PaP sampler"
-                sampler = PickPlaceLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-            elif 'pick' in config.atype:
-                sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-            elif 'place' in config.atype:
-                sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-            else:
-                raise NotImplementedError
+            sampler = PickPlaceLearnedSampler('two_arm_pick_and_place', learned_sampler_model, abstract_state, abstract_action)
         else:
-            pick_sampler = PickOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
-            place_sampler = PlaceOnlyLearnedSampler(learned_sampler_model, abstract_state, abstract_action)
+            pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state, abstract_action)
+            place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state, abstract_action)
             sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
@@ -109,13 +102,11 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     goal = mover.goal_entities
     mover.reset_to_init_state_stripstream()
     depth_limit = 60
-
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
     print "State computation..."
     state = statecls(mover, goal)
 
-    [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     initnode = Node(None, None, state)
     actions = get_actions(mover, goal, config)
 
@@ -157,7 +148,6 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
         if action.type == 'two_arm_pick_two_arm_place':
             print("Sampling for {}".format(action.discrete_parameters.values()))
             smpled_param = sample_continuous_parameters(state, action, node, learned_sampler_model, config)
-
             if smpled_param['is_feasible']:
                 action.continuous_parameters = smpled_param
                 action.execute()
@@ -189,10 +179,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             print("Sampling for {}".format(action.discrete_parameters.values()))
             success = False
 
-            obj = action.discrete_parameters['object']
-            region = action.discrete_parameters['place_region']
-            o = obj.GetName()
-            r = region.name
+            o = action.discrete_parameters['object']
+            r = action.discrete_parameters['place_region']
 
             if (o, r) in state.nocollision_place_op:
                 print "Already no collision place op"
@@ -215,7 +203,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 action = Operator(
                     operator_type='one_arm_pick_one_arm_place',
                     discrete_parameters={
-                        'object': obj,
+                        'object': o,
                         'region': mover.regions[r],
                     },
                     continuous_parameters={

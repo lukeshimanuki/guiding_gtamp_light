@@ -22,6 +22,7 @@ from test_scripts.run_mcts import get_commit_hash
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
 from generators.learning.learning_algorithms.WGANGP import WGANgp
+from generators.samplers.uniform_sampler import UniformSampler
 
 
 def get_problem_env(config, goal_region, goal_objs):
@@ -54,7 +55,7 @@ def get_solution_file_name(config):
         solution_file_dir = root_dir + '/%s/n_objs_pack_%d' \
                             % (config.domain, config.n_objs_pack)
     else:
-        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_prm/domain_%s/n_objs_pack_%d' \
+        solution_file_dir = root_dir + '/test_results/%s/sahs_results/uses_rrt/domain_%s/n_objs_pack_%d' \
                             % (commit_hash, config.domain, config.n_objs_pack)
     solution_file_dir += '/' + config.h_option + '/'
 
@@ -229,9 +230,8 @@ def get_total_n_feasibility_checks(nodes):
     return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
 
-def make_sampler_model_and_load_weights(action_type, region, config):
-    model = WGANgp(action_type, region, architecture=config.place_architecture,
-                   seed=config.home_sampler_seed, problem_name=config.domain)
+def make_sampler_model_and_load_weights(action_type, region, seed, config):
+    model = WGANgp(action_type, region, architecture=config.place_architecture, seed=seed, problem_name=config.domain)
     model.load_best_weights()
     return model
 
@@ -244,17 +244,16 @@ def get_learned_sampler_models(config):
     if not config.use_learning:
         return None
 
-    if 'place' in config.atype:
-        if 'two_arm' in config.domain:
-            goal_region_place_model = make_sampler_model_and_load_weights('place', 'home_region', config)
-            obj_region_place_model = make_sampler_model_and_load_weights('place', 'loading_region', config)
-        else:
-            goal_region_place_model = make_sampler_model_and_load_weights('place', 'rectangular_packing_box1_region',
-                                                                          config)
-            obj_region_place_model = make_sampler_model_and_load_weights('place', 'center_shelf_region', config)
-
-    if 'pick' in config.atype:
-        pick_model = make_sampler_model_and_load_weights('pick', '', config)
+    #if 'place' in config.atype:
+    if 'two_arm' in config.domain:
+        goal_region_place_model = make_sampler_model_and_load_weights('place', 'home_region', seed=3, config=config)
+        obj_region_place_model = make_sampler_model_and_load_weights('place', 'loading_region', seed=3, config=config)
+        pick_model = make_sampler_model_and_load_weights('pick', '', seed=2, config=config)
+    else:
+        goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
+                                                 atype='one_arm_place') # I don't think we need to learn sampler for this
+        obj_region_place_model = make_sampler_model_and_load_weights('place', 'center_shelf_region', seed=0, config=config)
+        pick_model = make_sampler_model_and_load_weights('pick', '', seed=0, config=config)
 
     model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model, 'pick': pick_model}
     return model
@@ -310,7 +309,6 @@ def main():
     else:
         pap_model = None
 
-    [utils.set_color(o, [1, 0, 0]) for o in goal_objs]
     t = time.time()
     np.random.seed(config.planner_seed)
     random.seed(config.planner_seed)

@@ -86,11 +86,9 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
     is_two_arm_domain = 'two_arm_' in action.type
     problem_env = state.problem_env
     if is_two_arm_domain:
-        target_o = action.discrete_parameters['object']
         target_r = action.discrete_parameters['place_region']
     else:
-        target_o = action.discrete_parameters['object'].GetName()
-        target_r = action.discrete_parameters['place_region'].name
+        target_r = action.discrete_parameters['place_region']
 
     nodes, edges, actions, _ = extract_individual_example(state, action)
     nodes = nodes[..., 6:]

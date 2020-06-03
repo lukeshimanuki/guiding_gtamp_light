@@ -92,7 +92,7 @@ class Generator:
 
     def get_motion_plan(self, candidate_parameters):
         motion_plan_goals = [op['q_goal'] for op in candidate_parameters]
-        self.problem_env.motion_planner.algorithm = 'prm'
+        self.problem_env.motion_planner.algorithm = 'rrt'
         motion, status = self.problem_env.motion_planner.get_motion_plan(motion_plan_goals[0],
                                                                          source='sampler',
                                                                          n_iterations=[20, 50, 100, 500, 1000])
