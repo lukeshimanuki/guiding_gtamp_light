@@ -49,7 +49,8 @@ def get_processed_poses_from_state(state, state_data_mode):
         curr_robot_pose = np.array([-9999, -9999, -9999, -9999])
     else:
         curr_robot_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_robot_pose)
-    goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses])
+    #goal_obj_poses = np.hstack([utils.encode_pose_with_sin_and_cos_angle(o) for o in state.abs_goal_obj_poses]):w
+    goal_obj_poses = np.array([-9999, -9999, -9999, -9999])
     """
     elif state_data_mode == 'robot_rel_to_obj':
         obj_pose = utils.encode_pose_with_sin_and_cos_angle(state.abs_obj_pose)
