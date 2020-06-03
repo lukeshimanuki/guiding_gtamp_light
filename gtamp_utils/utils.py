@@ -925,8 +925,12 @@ def get_place_domain(region):
     if type(region) is str:
         if 'loading_region' == region:
             domain = np.array([[-0.7, -8.55, 0.], [4.3, -4.85, 6.28318531]])
-        else:
+        elif 'home_region' == region:
             domain = np.array([[-1.75, -3.16, 0], [5.25, 3.16, 6.28318531]])
+        elif 'rectangular_packing_box1_region' == region:
+            domain = np.array([[2.07094348, 0.06758759, 0.], [2.76927535, 0.78367914, 6.28318531]])
+        else:
+            raise NotImplementedError
     else:
         box = np.array(region.box)
         x_range = np.array([[box[0, 0]], [box[0, 1]]])
