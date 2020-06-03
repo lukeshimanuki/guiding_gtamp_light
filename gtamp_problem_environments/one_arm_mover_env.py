@@ -136,7 +136,7 @@ class PaPOneArmMoverEnv(OneArmMover):
                     continue
 
                 action = Operator('one_arm_pick_one_arm_place',
-                                  {'object': self.env.GetKinBody(o), 'place_region': self.regions[r]})
+                                  {'object': o, 'place_region': r})
 
                 actions.append(action)
         return actions
