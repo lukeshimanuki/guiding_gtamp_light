@@ -223,6 +223,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 else:
                     newstate = statecls(mover, goal, node.state, action)
                     newnode = Node(node, action, newstate)
+                    newnode.generators[(o, r)] = papg # TODO: count iks for final action (which has no node)
+                    nodes.append(newnode)
                     newactions = get_actions(mover, goal, config)
                     update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
 
