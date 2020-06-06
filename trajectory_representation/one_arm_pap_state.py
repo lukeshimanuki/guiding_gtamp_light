@@ -378,6 +378,15 @@ class OneArmPaPState(PaPState):
                 if not nocollision and obj in self.goal_entities and r in self.goal_entities:
                     all_goals_are_reachable = False
 
+                if obj in self.goal_entities and len(self.pick_params[obj]) == 0:
+                    # Previously, self.pick_params could have been empty
+                    # what happens if self.pick_params is empty?
+                    # It computes the predicates incorrectly. More concretely,
+                    #   The object will not be reachable, because  self.nocollision_pick will never be computed
+                    #   InWay(obj_k, target_obj) will never be computed, because obj is not in self.collision_pick is empty
+                    # And similarly for the ternary predicate.
+                    self.pick_params[obj] = self.parent_state.pick_params[obj]
+
                 # if obj in self.goal_entities and r in self.goal_entities:
                 #    print self.pap_params[(obj, r)]
         # print time.time()-stime
