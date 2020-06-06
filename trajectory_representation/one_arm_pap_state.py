@@ -256,6 +256,45 @@ class OneArmPaPState(PaPState):
 
                 before.Restore()
 
+    def sample_new_parameters(self, pick_op, place_op, old_tf, num_iters, num_tries, obj, r):
+        current_region = self.problem_env.get_region_containing(obj).name
+        op_skel = Operator(operator_type='one_arm_pick_one_arm_place',
+                           discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
+                                                'place_region': self.problem_env.regions[r]})
+        papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
+                                         cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
+        self.problem_env.disable_objects()
+        obj_object = self.problem_env.env.GetKinBody(obj)
+        nocollision = False
+        for i in range(num_iters - len(self.pap_params[(obj, r)])):
+            # does the place parameter necessarily have the same arm configa s the pick param?
+            pick_params, place_params, status = papg.sample_next_point(num_tries)
+            if 'HasSolution' in status:
+                self.pap_params[(obj, r)].append((pick_params, place_params))
+                self.pick_params[obj].append(pick_params)
+
+                # print('success')
+
+                self.problem_env.enable_objects()
+                collision = False
+                pick_op.continuous_parameters = pick_params
+                pick_op.execute()
+                if self.problem_env.env.CheckCollision(self.problem_env.robot):
+                    collision = True
+                place_op.continuous_parameters = place_params
+                place_op.execute()
+                if self.problem_env.env.CheckCollision(self.problem_env.robot):
+                    collision = True
+                if self.problem_env.env.CheckCollision(obj_object):
+                    collision = True
+                obj_object.SetTransform(old_tf)
+                self.problem_env.disable_objects()
+                if not collision:
+                    nocollision = True
+                    # print('found nocollision', obj, r)
+                    break
+        return nocollision
+
     def initialize_pap_pick_place_params(self, moved_obj, parent_state):
         self.problem_env.disable_objects()
         stime = time.time()
@@ -290,7 +329,7 @@ class OneArmPaPState(PaPState):
                 place_op = Operator(operator_type='one_arm_place',
                                     discrete_parameters={'object': obj_object, 'region': self.problem_env.regions[r]})
 
-                current_region = self.problem_env.get_region_containing(obj).name
+
 
                 # What are these values?
                 if obj in self.goal_entities and r in self.goal_entities:
@@ -342,50 +381,29 @@ class OneArmPaPState(PaPState):
                 ### end of checking existing pick and place samples
 
                 # No collision-free pick and place exists. Sampling new paps
-                op_skel = Operator(operator_type='one_arm_pick_one_arm_place',
-                                   discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
-                                                        'place_region': self.problem_env.regions[r]})
-                papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
-                                                 cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
-                nocollision = False
-                for _ in range(num_iters - len(self.pap_params[(obj, r)])):
-                    # does the place parameter necessarily have the same arm configa s the pick param?
-                    pick_params, place_params, status = papg.sample_next_point(num_tries)
-                    if 'HasSolution' in status:
-                        self.pap_params[(obj, r)].append((pick_params, place_params))
-                        self.pick_params[obj].append(pick_params)
+                nocollision = self.sample_new_parameters(pick_op, place_op, old_tf, num_iters, num_tries, obj, r)
 
-                        # print('success')
-
-                        self.problem_env.enable_objects()
-                        collision = False
-                        pick_op.continuous_parameters = pick_params
-                        pick_op.execute()
-                        if self.problem_env.env.CheckCollision(self.problem_env.robot):
-                            collision = True
-                        place_op.continuous_parameters = place_params
-                        place_op.execute()
-                        if self.problem_env.env.CheckCollision(self.problem_env.robot):
-                            collision = True
-                        if self.problem_env.env.CheckCollision(obj_object):
-                            collision = True
-                        obj_object.SetTransform(old_tf)
-                        self.problem_env.disable_objects()
-                        if not collision:
-                            nocollision = True
-                            # print('found nocollision', obj, r)
-                            break
                 if not nocollision and obj in self.goal_entities and r in self.goal_entities:
                     all_goals_are_reachable = False
 
                 if obj in self.goal_entities and len(self.pick_params[obj]) == 0:
+                    # We must have at least one pap for goal entitiy
                     # Previously, self.pick_params could have been empty
                     # what happens if self.pick_params is empty?
                     # It computes the predicates incorrectly. More concretely,
                     #   The object will not be reachable, because  self.nocollision_pick will never be computed
                     #   InWay(obj_k, target_obj) will never be computed, because obj is not in self.collision_pick is empty
                     # And similarly for the ternary predicate.
-                    self.pick_params[obj] = self.parent_state.pick_params[obj]
+                    if self.parent_state is None:
+                        stime = time.time()
+                        while len(self.pick_params[obj]) == 0:
+                            nocollision = self.sample_new_parameters(pick_op, place_op, old_tf, num_iters, num_tries, obj, r)
+                            if not nocollision and obj in self.goal_entities and r in self.goal_entities:
+                                all_goals_are_reachable = False
+                            if time.time()-stime > 1000:
+                                break
+                    else:
+                        self.pick_params[obj] = self.parent_state.pick_params[obj]
 
                 # if obj in self.goal_entities and r in self.goal_entities:
                 #    print self.pap_params[(obj, r)]
