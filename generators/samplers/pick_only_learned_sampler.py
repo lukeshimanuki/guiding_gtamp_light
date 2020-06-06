@@ -2,6 +2,7 @@ from sampler import LearnedSampler
 import numpy as np
 from generators.learning.utils import data_processing_utils
 from gtamp_utils import utils
+import time
 
 
 class PickOnlyLearnedSampler(LearnedSampler):
@@ -35,7 +36,8 @@ class PickOnlyLearnedSampler(LearnedSampler):
         return place_smpls
 
     def sample_new_points(self, n_smpls):
-        print "Generating new points"
+        print "Generating new pick points"
+        stime = time.time()
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
         poses = np.tile(poses, (n_smpls, 1))
         if 'rectangular' in self.obj:
@@ -47,4 +49,5 @@ class PickOnlyLearnedSampler(LearnedSampler):
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
         pick_samples = self.sample_picks(poses, collisions)
+        print 'pick prediction time', time.time() - stime
         return pick_samples

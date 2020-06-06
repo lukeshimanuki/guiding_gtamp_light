@@ -15,7 +15,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         else:
             self.pick_abs_base_pose = None
         self.v_manip = None
-        self.samples = self.sample_new_points(self.n_smpl_per_iter)
+        self.samples = self.sample_new_points(200)
         self.curr_smpl_idx = 0
 
     def sample_placements(self, pose_ids, collisions, n_smpls):
@@ -39,7 +39,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 
     def sample_new_points(self, n_smpls):
         # note: this function outputs absolute pick base pose and absolute place base pose
-        print "Generating new points"
+        print "Generating new place points"
         stime = time.time()
 
         collisions = self.smpler_state.pick_collision_vector
