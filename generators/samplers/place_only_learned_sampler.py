@@ -15,7 +15,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         else:
             self.pick_abs_base_pose = None
         self.v_manip = None
-        self.samples = self.sample_new_points(200)
+        self.samples = self.sample_new_points(self.n_smpl_per_iter)
         self.curr_smpl_idx = 0
 
     def sample_placements(self, pose_ids, collisions, n_smpls):
@@ -24,8 +24,8 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
             v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, len(self.key_configs), 2, 1))
             v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
             self.v_manip = v_manip
-
         state_vec = np.concatenate([collisions, self.v_manip], axis=2)
+
         if 'center_shelf' in self.region:
             chosen_sampler = self.samplers['place_obj_region']
             place_samples = chosen_sampler.generate(state_vec, pose_ids)
