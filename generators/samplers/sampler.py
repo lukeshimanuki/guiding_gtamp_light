@@ -41,10 +41,11 @@ class LearnedSampler(Sampler):
         if 'one_arm' in atype:
             self.key_configs = pickle.load(open('one_arm_key_configs.pkl', 'r'))['konfs']
             self.smpler_state = OneArmConcreteNodeState(abstract_state, abstract_action, self.key_configs)
+            self.n_smpl_per_iter = 200
         else:
             self.key_configs = abstract_state.prm_vertices
             self.smpler_state = TwoArmConcreteNodeState(abstract_state, abstract_action)
-        self.n_smpl_per_iter = 2000
+            self.n_smpl_per_iter = 2000
 
     def sample_new_points(self, n_smpls):
         raise NotImplementedError
