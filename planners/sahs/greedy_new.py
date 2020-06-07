@@ -184,10 +184,10 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             else:
                 mover.enable_objects()
                 current_region = mover.get_region_containing(obj).name
-                papg = OneArmPaPUniformGenerator(action, mover, n_iter_limit=config.n_iter_limit,
-                                                 cached_picks=(node.state.iksolutions[current_region],
-                                                               node.state.iksolutions[r]))
-                pick_params, place_params, status = papg.sample_next_point(cont_param_type='cont')
+                papg = OneArmPaPUniformGenerator(action, mover,
+                                                 cached_picks=None)
+                                                 #cached_picks=(node.state.iksolutions[current_region], node.state.iksolutions[r]))
+                pick_params, place_params, status = papg.sample_next_point(200)
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
@@ -223,6 +223,8 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 else:
                     newstate = statecls(mover, goal, node.state, action)
                     newnode = Node(node, action, newstate)
+                    newnode.generators[(o, r)] = papg # TODO: count iks for final action (which has no node)
+                    nodes.append(newnode)
                     newactions = get_actions(mover, goal, config)
                     update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
 

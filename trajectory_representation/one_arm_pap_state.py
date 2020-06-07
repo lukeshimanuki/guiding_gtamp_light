@@ -39,6 +39,7 @@ class OneArmPaPState(PaPState):
         if parent_state is not None:
             self.iksolutions = parent_state.iksolutions
         elif os.path.isfile(ikcachename):
+            print "Loading ik cache from harddrive"
             self.iksolutions = pickle.load(open(ikcachename, 'r'))
         else:
             #self.compute_and_cache_ik_solutions(ikcachename)
@@ -258,8 +259,13 @@ class OneArmPaPState(PaPState):
     def initialize_pap_pick_place_params(self, moved_obj, parent_state):
         self.problem_env.disable_objects()
         stime = time.time()
-        sorted_objects = sorted(self.objects, key=lambda o: o not in self.goal_entities)
-        sorted_regions = sorted(self.regions, key=lambda r: r not in self.goal_entities)
+        #sorted_objects = sorted(self.objects, key=lambda o: o not in self.goal_entities)
+        #sorted_regions = sorted(self.regions, key=lambda r: r not in self.goal_entities)
+        assert len(self.goal_entities) == 2
+        goal_obj = 'c_obst1'
+        goal_region = 'rectangular_packing_box1_region'
+        sorted_objects = [goal_obj] + [o for o in self.objects if o not in self.goal_entities]
+        sorted_regions = [goal_region] + [r for r in self.regions if r not in self.goal_entities]
         all_goals_are_reachable = True
 
         for obj in self.objects:
@@ -280,8 +286,6 @@ class OneArmPaPState(PaPState):
             pick_op = Operator(operator_type='one_arm_pick', discrete_parameters={'object': obj_object})
 
             for r in sorted_regions:
-                # print(obj, r)
-
                 place_op = Operator(operator_type='one_arm_place',
                                     discrete_parameters={'object': obj_object, 'region': self.problem_env.regions[r]})
 
@@ -307,8 +311,7 @@ class OneArmPaPState(PaPState):
 
                 # It easily samples without cached iks?
                 papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
-                                                 cached_picks=(self.iksolutions[current_region], self.iksolutions[r]),
-                                                 n_iter_limit=num_tries)
+                                                 cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
 
                 # check existing solutions
                 if (obj, r) in self.pap_params:
@@ -339,12 +342,12 @@ class OneArmPaPState(PaPState):
                 # I think num_iters is the number of paps for each object
                 nocollision = False
                 for _ in range(num_iters - len(self.pap_params[(obj, r)])):
-                    pick_params, place_params, status = papg.sample_next_point(cont_param_type='cont')
+                    pick_params, place_params, status = papg.sample_next_point(num_tries)
                     if 'HasSolution' in status:
                         self.pap_params[(obj, r)].append((pick_params, place_params))
                         self.pick_params[obj].append(pick_params)
 
-                        # print('success')
+                        #print('success')
 
                         self.problem_env.enable_objects()
                         collision = False
@@ -409,7 +412,7 @@ class OneArmPaPState(PaPState):
         if isobj:
             is_entity_reachable = entity in self.nocollision_pick_op
         else:
-            is_entity_reachable = False
+            is_entity_reachable = True
 
         return [
             0,  # l
@@ -473,7 +476,7 @@ class OneArmPaPState(PaPState):
                 is_place_in_b_reachable_while_holding_a = True
             else:
                 is_place_in_b_reachable_while_holding_a = (a, b) in self.nocollision_place_op or (
-                    a, b) in self.collision_place_op and len(self.collision_place_op[(a, b)][1]) == 0
+                a, b) in self.collision_place_op and len(self.collision_place_op[(a, b)][1]) == 0
             # print 'is_place_in_%s_reachable_while_holding_%s: %d' % (b, a, is_place_in_b_reachable_while_holding_a)
         else:
             is_place_in_b_reachable_while_holding_a = False
