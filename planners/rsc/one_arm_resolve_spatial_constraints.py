@@ -4,7 +4,9 @@ from planners.subplanners.minimum_constraint_planner import MinimumConstraintPla
 from trajectory_representation.swept_volume import PickAndPlaceSweptVolume
 from manipulation.bodies.bodies import set_color, get_color
 from generators.one_arm_pap_uniform_generator import OneArmPaPUniformGenerator
+from generators.one_arm_generators.one_arm_pap_generator import OneArmPaPGenerator
 from gtamp_utils import utils
+from generators.samplers.uniform_sampler import UniformSampler
 
 import numpy as np
 import time
@@ -94,10 +96,11 @@ class OneArmResolveSpatialConstraints:
         # use the following:
         # papg = OneArmPaPUniformGenerator(op_skel, self.problem_env,
         #                                  cached_picks=(self.iksolutions[current_region], self.iksolutions[r]))
-        pick_cont_param, place_cont_param = self.get_pap_pick_place_params(curr_obj.GetName(), region.name, swept_volume)
+        pick_cont_param, place_cont_param = self.get_pap_pick_place_params(curr_obj.GetName(), region.name,
+                                                                           swept_volume)
 
-        #generator = OneArmPaPUniformGenerator(op, self.problem_env, swept_volume)
-        #pick_cont_param, place_cont_param, status = generator.sample_next_point(max_ik_attempts=n_iter)
+        # generator = OneArmPaPUniformGenerator(op, self.problem_env, swept_volume)
+        # pick_cont_param, place_cont_param, status = generator.sample_next_point(max_ik_attempts=n_iter)
 
         if pick_cont_param is not None:
             status = 'HasSolution'
@@ -230,7 +233,7 @@ class OneArmResolveSpatialConstraints:
 
         place_op = Operator(operator_type='one_arm_place', discrete_parameters={'object': obj,
                                                                                 'place_region':
-                                                                                 self.problem_env.regions[r]})
+                                                                                    self.problem_env.regions[r]})
         obj_kinbody = self.problem_env.env.GetKinBody(obj)
         if len(self.pap_params[(obj, r)]) > 0:
             for pick_params, place_params in self.pap_params[(obj, r)]:
@@ -243,11 +246,15 @@ class OneArmResolveSpatialConstraints:
                            discrete_parameters={'object': self.problem_env.env.GetKinBody(obj),
                                                 'place_region': self.problem_env.regions[r]})
 
-        papg = OneArmPaPUniformGenerator(op_skel,
-                                         self.problem_env,
-                                         cached_picks=None)
-                                         #cached_picks=(self.iksolutions[current_region], self.iksolutions[r]),
-        pick_params, place_params, status = papg.sample_next_point(max_ik_attempts=self.config.n_iter_limit)
+        # papg = OneArmPaPUniformGenerator(op_skel,
+        #                                 self.problem_env,
+        #                                 cached_picks=None)
+        sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
+                   'place': UniformSampler(target_region=self.problem_env.regions[r], atype='one_arm_place')}
+        papg = OneArmPaPGenerator(op_skel, n_iter_limit=self.config.n_iter_limit,
+                                  problem_env=self.problem_env,
+                                  pick_sampler=sampler['pick'], place_sampler=sampler['place'])
+        pick_params, place_params, status = papg.sample_next_point()
 
         if 'HasSolution' in status:
             self.pap_params[(obj, r)].append((pick_params, place_params))
@@ -286,4 +293,3 @@ class OneArmResolveSpatialConstraints:
             return True
         obj_object.SetTransform(old_tf)
         return collision
-

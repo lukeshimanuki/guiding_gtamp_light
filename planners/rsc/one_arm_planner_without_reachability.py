@@ -10,7 +10,6 @@ class OneArmPlannerWithoutReachability:
     def __init__(self, problem_env, goal_object_names, goal_region, config):
         self.problem_env = problem_env
         self.goal_objects = [problem_env.env.GetKinBody(o) for o in goal_object_names]
-
         self.goal_region = self.problem_env.regions[goal_region]
         self.config = config
 
