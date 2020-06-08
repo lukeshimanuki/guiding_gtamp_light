@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 from gtamp_utils import utils
 from trajectory_representation.concrete_node_state import TwoArmConcreteNodeState, OneArmConcreteNodeState
@@ -32,20 +33,26 @@ class Sampler:
 
 
 class LearnedSampler(Sampler):
-    def __init__(self, atype, sampler, abstract_state, abstract_action):
+    def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state=None):
         target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
         Sampler.__init__(self, atype,  target_region, sampler)
         self.abstract_state = abstract_state
         self.obj = abstract_action.discrete_parameters['object']
         self.region = abstract_action.discrete_parameters['place_region']
+        stime = time.time()
         if 'one_arm' in atype:
             self.key_configs = pickle.load(open('one_arm_key_configs.pkl', 'r'))['konfs']
-            self.smpler_state = OneArmConcreteNodeState(abstract_state, abstract_action, self.key_configs)
+            if smpler_state is None:
+                self.smpler_state = OneArmConcreteNodeState(abstract_state, abstract_action, self.key_configs)
+            else:
+                # this is because we use separate pick and place samplers in one arm case
+                self.smpler_state = smpler_state
             self.n_smpl_per_iter = 200
         else:
             self.key_configs = abstract_state.prm_vertices
             self.smpler_state = TwoArmConcreteNodeState(abstract_state, abstract_action)
             self.n_smpl_per_iter = 2000
+        print 'Concrete node creation', time.time()-stime
 
     def sample_new_points(self, n_smpls):
         raise NotImplementedError

@@ -8,12 +8,8 @@ from trajectory_representation.one_arm_sampler_trajectory import compute_v_manip
 
 
 class PlaceOnlyLearnedSampler(LearnedSampler):
-    def __init__(self, atype, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
-        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action)
-        if pick_abs_base_pose is not None:
-            self.pick_abs_base_pose = pick_abs_base_pose.reshape((1, 3))
-        else:
-            self.pick_abs_base_pose = None
+    def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state):
+        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action, smpler_state)
         self.v_manip = None
         self.samples = self.sample_new_points(200)
         self.curr_smpl_idx = 0
