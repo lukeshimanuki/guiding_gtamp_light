@@ -40,14 +40,26 @@ class OneArmConcreteNodeState(ConcreteNodeState):
         ConcreteNodeState.__init__(self, abstract_state, abstract_action)
         self.parent_state = parent_state
         self.key_configs = key_configs
-        self.konf_collisions_with_obj_poses = self.get_object_pose_collisions()
-        self.pick_collision_vector = self.get_konf_obstacles(self.konf_collisions_with_obj_poses)
+        init_config = utils.get_rightarm_torso_config(abstract_state.problem_env.robot)
+        self.pick_collision_vector = self.get_konf_obstacles_from_key_configs()
+        #self.konf_collisions_with_obj_poses = self.get_object_pose_collisions()
+        #self.pick_collision_vector = self.get_konf_obstacles(self.konf_collisions_with_obj_poses)
+        utils.set_rightarm_torso(init_config, abstract_state.problem_env.robot)
         self.place_collision_vector = None
 
         # following three variables are used in get_processed_poses_from_state
         self.abs_robot_pose = utils.get_rightarm_torso_config(self.problem_env.robot)
         self.abs_obj_pose = utils.clean_pose_data(utils.get_body_xytheta(self.problem_env.env.GetKinBody(self.obj)))
         self.abs_goal_obj_poses = [np.array([0, 0, 0])]
+
+    def get_konf_obstacles_from_key_configs(self):
+        collision_vec = []
+        for k in self.key_configs:
+            utils.set_rightarm_torso(k, self.abstract_state.problem_env.robot)
+            col = self.problem_env.env.CheckCollision(self.problem_env.robot)
+            collision_vec.append(col)
+        collision_vec = utils.convert_binary_vec_to_one_hot(np.array(collision_vec))
+        return collision_vec.reshape((1, len(collision_vec), 2, 1))
 
     def get_object_pose_collisions(self):
         def in_collision_with_obj(q, obj):
