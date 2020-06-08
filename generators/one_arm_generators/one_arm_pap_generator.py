@@ -56,7 +56,8 @@ class OneArmPaPGenerator:
         n_ik_attempts = 0
         n_base = 0
         stime = time.time()
-        while True:
+        #while True:
+        for i in range(2000):
             pick_cont_params, place_cont_params, status = self.sample_from_continuous_space()
             if status == 'InfeasibleIK':
                 n_ik_attempts += 1
