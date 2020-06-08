@@ -3,7 +3,7 @@ from gtamp_utils.utils import set_robot_config, set_obj_xytheta
 from trajectory_representation.operator import Operator
 from manipulation.regions import AARegion
 from gtamp_utils import utils
-
+import numpy as np
 
 class OneArmMover(Mover):
     def __init__(self, problem_idx):
@@ -17,7 +17,10 @@ class OneArmMover(Mover):
         self.objects[0], self.objects[1] = self.objects[1], self.objects[0]
 
         self.target_box = self.env.GetKinBody('rectangular_packing_box1')
-        utils.randomly_place_region(self.target_box, self.regions['home_region'])
+        # utils.randomly_place_region(self.target_box, self.regions['home_region'])
+        kitchen = AARegion('kitchen', ((1.29, 2.8), (-3.16, 3.16)), z=0.135, color=np.array((1, 1, 0, 0.25)))
+        utils.randomly_place_region(self.target_box, kitchen)
+
         self.regions['rectangular_packing_box1_region'] = self.compute_box_region(self.target_box)
         self.shelf_regions = self.problem_config['shelf_regions']
         self.target_box_region = self.regions['rectangular_packing_box1_region']
