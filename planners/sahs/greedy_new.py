@@ -46,10 +46,13 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
             raise NotImplementedError
     else:
         if 'two_arm' in config.domain:
-            sampler = PickPlaceLearnedSampler('two_arm_pick_and_place', learned_sampler_model, abstract_state, abstract_action)
+            sampler = PickPlaceLearnedSampler('two_arm_pick_and_place', learned_sampler_model, abstract_state,
+                                              abstract_action)
         else:
-            pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state, abstract_action)
-            place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state, abstract_action)
+            pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state,
+                                                  abstract_action)
+            place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state,
+                                                    abstract_action, smpler_state=pick_sampler.smpler_state)
             sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
@@ -105,7 +108,15 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
     print "State computation..."
-    state = statecls(mover, goal)
+
+    if os.path.isfile('tmp.pkl'):
+        state = pickle.load(open('tmp.pkl', 'r'))
+    else:
+        state = statecls(mover, goal)
+        state.make_pklable()
+        pickle.dump(state, open('tmp.pkl', 'wb'))
+
+    state.make_plannable(mover)
 
     initnode = Node(None, None, state)
     actions = get_actions(mover, goal, config)
@@ -188,11 +199,13 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 pap_params = pick_op.continuous_parameters, place_op.continuous_parameters
             else:
                 mover.enable_objects()
-                #papg = OneArmPaPUniformGenerator(action, mover,
+                # papg = OneArmPaPUniformGenerator(action, mover,
                 #                                 cached_picks=None)
-                #pick_params, place_params, status = papg.sample_next_point(200)
+                # pick_params, place_params, status = papg.sample_next_point(200)
+                stime = time.time()
                 pick_params, place_params, status = sample_continuous_parameters(state, action, node,
                                                                                  learned_sampler_model, config)
+                print "Sampling time", time.time()-stime
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
