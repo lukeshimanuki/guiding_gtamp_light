@@ -18,12 +18,17 @@ def filter_runs_already_done(undone, dir):
 def get_yaml_file_name(algorithm, domain):
     if 'rsc' in algorithm:
         if 'one' in domain:
-            yaml_file = 'run_discretized_rsc_one_arm.yaml'
+            yaml_file = 'run_one_arm_rsc.yaml'
         else:
             yaml_file = 'run_rsc_two_arm.yaml'
     else:
         if 'one' in domain:
-            yaml_file = 'run_discretized_uniform_one_arm.yaml'
+            if 'greedy-learn' in algorithm:
+                yaml_file = 'run_learned_one_arm.yaml'
+            elif 'greedy' == algorithm or 'greedy-hcount' == algorithm:
+                yaml_file = 'run_one_arm.yaml'
+            elif 'rsc' == algorithm:
+                yaml_file = 'run_one_arm_rsc.yaml'
         else:
             if 'greedy-learn' in algorithm:
                 yaml_file = 'run_learned_two_arm.yaml'
@@ -35,22 +40,38 @@ def get_yaml_file_name(algorithm, domain):
     return yaml_file
 
 
-def get_s3_path(domain, algorithm, n_objs_pack, commithash):
+def get_s3_path(domain, algorithm, n_objs_pack, commithash, n_iter_limit):
     if 'rsc' in algorithm:
         if 'one' in domain:
             assert n_objs_pack == 1
-            s3_path = 'csail/bkim/guiding-gtamp/test_results/irsc/one_arm_mover/n_objs_pack_1'
+            s3_path = 'csail/bkim/guiding-gtamp/test_results/{}/irsc/one_arm_mover/n_objs_pack_1'.format(commithash)
         else:
             s3_path = 'csail/bkim/guiding-gtamp/test_results/9226036/irsc/two_arm_mover/n_objs_pack_{}'.format(
                 n_objs_pack)
     else:
         if 'one' in domain:
-            s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
-                      'f0cf459f5cb177eaacd17a0fa9b6b89caa96dbe3/' \
-                      'sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/' \
-                      'qlearned_hcount_old_number_in_goal/' \
-                      'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
-                      'n_mp_limit_5_n_iter_limit_500/'
+            if 'greedy-learn' == algorithm:
+                s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
+                          '{}/' \
+                          'sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/' \
+                          'qlearned_hcount_old_number_in_goal/' \
+                          'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                          'using_learned_sampler/' \
+                          'n_mp_limit_5_n_iter_limit_{}/'.format(commithash[0:7], n_iter_limit)
+            elif 'greedy' == algorithm:
+                s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
+                          '{}/' \
+                          'sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/' \
+                          'qlearned_hcount_old_number_in_goal/' \
+                          'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                          'n_mp_limit_5_n_iter_limit_{}/'.format(commithash[0:7], n_iter_limit)
+            elif 'greedy-hcount' == algorithm:
+                s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
+                          '{}/' \
+                          'sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/' \
+                          'hcount_old_number_in_goal/' \
+                          'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                          'n_mp_limit_5_n_iter_limit_{}/'.format(commithash[0:7], n_iter_limit)
         else:
             if 'greedy-learn' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
@@ -93,8 +114,10 @@ def get_s3_path(domain, algorithm, n_objs_pack, commithash):
 
 
 def get_target_pidxs(domain, n_objs_pack):
-    if 'one_arm' in domain:
-        pidxs = range(20000, 20030)
+    if 'one-arm' in domain:
+        pidxs = range(20000, 20100)
+        pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20047, 20051, 20053, 20057, 20061, 20063, 20066, 20069, 20072, 20075, 20084, 20086, 20093, 20094, 20095]
+        #pidxs = [20000, 20001, 20005, 20009, 20011, 20023, 20027, 20030, 20035, 20046, 20060, 20061, 20076]
     else:
         if n_objs_pack == 1:
             pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
@@ -106,8 +129,8 @@ def get_target_pidxs(domain, n_objs_pack):
     return pidxs
 
 
-def get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash):
-    s3_path = get_s3_path(domain, algorithm, n_objs_pack, commithash)
+def get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash, n_iter_limit):
+    s3_path = get_s3_path(domain, algorithm, n_objs_pack, commithash, n_iter_limit)
     try:
         result = subprocess.check_output('mc ls {}'.format(s3_path), shell=True)
     except subprocess.CalledProcessError:
@@ -137,50 +160,66 @@ def get_running_seed_and_pidx_pairs(algorithm, domain):
             continue
         if algorithm not in result:
             continue
-
-        pidx = int(result.split('-')[-2])
-        seed = int(result.split('-')[-1].split(' ')[0])
+        pidx = int(result.split('-')[5])
+        seed = int(result.split('-')[6].split(' ')[0])
         running.append({'pidx': pidx, 'seed': seed})
     return running
 
 
-def main():
-    for algorithm in ['greedy-learn']:
-        for n_objs_pack in [4]:
-            domain = 'two-arm-mover'
-            timelimit = 2000 * n_objs_pack
-
-            if domain == 'two-arm-mover':
-                if n_objs_pack == 1:
-                    if algorithm == 'pure-learning':
-                        commithash = '067e37659b0642bbdb7736ba0ec21151756daddc'
-                    else:
-                        commithash = '934adde3b3df037f5e5b2f9bdd8cd8b3634e78c0'
-                elif n_objs_pack == 4:
-                    if algorithm == 'pure-learning':
-                        commithash = '067e37659b0642bbdb7736ba0ec21151756daddc'
-                    else:
-                        commithash = '9226036991cce39a9315f7d9f06ff3d76d47339b'
-                else:
-                    raise NotImplementedError
+def get_commithash(domain, n_objs_pack, algorithm):
+    if domain == 'two-arm-mover':
+        if n_objs_pack == 1:
+            if algorithm == 'pure-learning':
+                commithash = '067e37659b0642bbdb7736ba0ec21151756daddc'
             else:
-                raise NotImplementedError
+                commithash = '934adde3b3df037f5e5b2f9bdd8cd8b3634e78c0'
+        elif n_objs_pack == 4:
+            if algorithm == 'pure-learning':
+                commithash = '067e37659b0642bbdb7736ba0ec21151756daddc'
+            else:
+                commithash = '9226036991cce39a9315f7d9f06ff3d76d47339b'
+        else:
+            raise NotImplementedError
+    else:
+        if 'rsc' == algorithm:
+            commithash = '3c193cf4e4e9fbb60c45a9ec3e78290cd07e4548'
+        else:
+            #commithash = '2306c1823e4c197806bb948f5934c043fde7ff05'
+            commithash = 'ea42d4ee62c93857d6a2ed0962420f4088344832'
+    return commithash
+
+
+def main():
+    for algorithm in ['greedy', 'greedy-learn']:
+        for n_objs_pack in [1]:
+            domain = 'one-arm-mover'
+            timelimit = 1000 * n_objs_pack
 
             if 'hcount' in algorithm:
                 hoption = 'hcount_old_number_in_goal'
             else:
                 hoption = 'qlearned_hcount_old_number_in_goal'
 
+            if domain == 'one-arm-mover':
+                n_iter_limit = 50
+            else:
+                n_iter_limit = 2000
+
             target_pidxs = get_target_pidxs(domain, n_objs_pack)
             yaml_file = get_yaml_file_name(algorithm, domain)
+            commithash = get_commithash(domain, n_objs_pack, algorithm)
 
-            seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash)
-            #seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
-            seed_pidx_pairs_running=[]
+            seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash, n_iter_limit)
+            if algorithm == 'greedy-learn':
+                seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
+            else:
+                seed_pidx_pairs_running=[]
+
             undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs,
                                                                seed_pidx_pairs_finished + seed_pidx_pairs_running)
 
             print "Remaining runs", len(undone)
+            import pdb;pdb.set_trace()
             consecutive_runs = 0
             for idx, un in enumerate(undone):
                 pidx = un[1]
@@ -193,10 +232,11 @@ def main():
                       'sed \"s/TIMELIMIT/{}/\" |  ' \
                       'sed \"s/NOBJS/{}/\" |  ' \
                       'sed \"s/COMMITHASH/{}/\" |  ' \
+                      'sed \"s/NITERLIMIT/{}/\" |  ' \
                       'kubectl apply -f - -n beomjoon;'.format(yaml_file,
                                                                algorithm, domain, pidx, seed, n_objs_pack,
                                                                pidx, seed,
-                                                               hoption, timelimit, n_objs_pack, commithash)
+                                                               hoption, timelimit, n_objs_pack, commithash, n_iter_limit)
                 print idx, cmd
                 os.system(cmd)
                 time.sleep(2)
