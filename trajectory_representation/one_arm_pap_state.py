@@ -69,6 +69,7 @@ class OneArmPaPState(PaPState):
                 moved_obj = parent_action.discrete_parameters['object'].GetName()
         else:
             moved_obj = None
+        init_robot_config = utils.get_rightarm_torso_config(self.problem_env.robot)
         self.pap_params = {}
         self.pick_params = {}
         self.place_params = {}
@@ -97,6 +98,7 @@ class OneArmPaPState(PaPState):
         self.nodes = self.get_nodes()
         self.binary_edges = self.get_binary_edges()
         self.ternary_edges = self.get_ternary_edges()
+        utils.set_rightarm_torso(init_robot_config, self.problem_env.robot)
 
     def compute_and_cache_ik_solutions(self, ikcachename):
         before = CustomStateSaver(self.problem_env.env)
