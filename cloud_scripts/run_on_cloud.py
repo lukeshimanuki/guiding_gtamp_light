@@ -27,8 +27,8 @@ def get_yaml_file_name(algorithm, domain):
                 yaml_file = 'run_learned_one_arm.yaml'
             elif 'greedy' == algorithm or 'greedy-hcount' == algorithm:
                 yaml_file = 'run_one_arm.yaml'
-            elif 'rsc' == algorithm:
-                yaml_file = 'run_one_arm_rsc.yaml'
+            elif 'pure-learning' == algorithm:
+                yaml_file = 'run_pure_learning_one_arm.yaml'
         else:
             if 'greedy-learn' in algorithm:
                 yaml_file = 'run_learned_two_arm.yaml'
@@ -72,6 +72,15 @@ def get_s3_path(domain, algorithm, n_objs_pack, commithash, n_iter_limit):
                           'hcount_old_number_in_goal/' \
                           'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                           'n_mp_limit_5_n_iter_limit_{}/'.format(commithash[0:7], n_iter_limit)
+            elif 'pure-learning' in algorithm:
+                s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
+                          '{}/' \
+                          'pure_learning/' \
+                          'domain_one_arm_mover/' \
+                          'n_objs_pack_1/' \
+                          'qlearned_hcount_old_number_in_goal/' \
+                          'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                          'using_learned_sampler/n_mp_limit_5_n_iter_limit_{}/'.format(commithash[0:7], n_iter_limit)
         else:
             if 'greedy-learn' in algorithm:
                 s3_path = 'csail/bkim/guiding-gtamp/test_results/' \
@@ -183,6 +192,8 @@ def get_commithash(domain, n_objs_pack, algorithm):
     else:
         if 'rsc' == algorithm:
             commithash = '3c193cf4e4e9fbb60c45a9ec3e78290cd07e4548'
+        elif 'pure-learning' == algorithm:
+            commithash = 'db064f959ff0aef1a5ef7dd6e768c8c82c822b8d'
         else:
             #commithash = '2306c1823e4c197806bb948f5934c043fde7ff05'
             commithash = 'ea42d4ee62c93857d6a2ed0962420f4088344832'
@@ -190,7 +201,9 @@ def get_commithash(domain, n_objs_pack, algorithm):
 
 
 def main():
-    for algorithm in ['greedy', 'greedy-learn']:
+    algos = ['greedy', 'greedy-learn', 'greedy-hcount', 'pure-learning']
+    algos = ['pure-learning']
+    for algorithm in algos:
         for n_objs_pack in [1]:
             domain = 'one-arm-mover'
             timelimit = 1000 * n_objs_pack
@@ -219,7 +232,6 @@ def main():
                                                                seed_pidx_pairs_finished + seed_pidx_pairs_running)
 
             print "Remaining runs", len(undone)
-            import pdb;pdb.set_trace()
             consecutive_runs = 0
             for idx, un in enumerate(undone):
                 pidx = un[1]
