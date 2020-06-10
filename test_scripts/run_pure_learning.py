@@ -22,9 +22,11 @@ def get_max_action_using(pap_model, abstract_state, problem_env, actions_tried=[
     actions = get_actions(problem_env, None, None)
     best_action = None
     best_hval = -np.inf
-    if len(actions_tried) == len(actions):
+    if len(actions_tried) >= len(actions):
         actions_tried = []
-    for a in actions:
+    candidate_actions = [a for a in actions if
+                         (a.discrete_parameters['object'], a.discrete_parameters['place_region']) not in actions_tried]
+    for a in candidate_actions:
         hval = compute_heuristic(abstract_state, a, pap_model, 'qlearned', 1)
         print a.discrete_parameters, hval
         if hval > best_hval:
@@ -32,6 +34,7 @@ def get_max_action_using(pap_model, abstract_state, problem_env, actions_tried=[
             if params not in actions_tried:
                 best_hval = hval
                 best_action = a
+
     return best_action
 
 
