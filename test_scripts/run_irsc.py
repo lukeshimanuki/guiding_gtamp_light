@@ -172,6 +172,7 @@ def find_plan_without_reachability(problem_env, goal_object_names, start_time, p
                                              config=parameters)
         #goal_obj_order_plan, plan = planner.search(start_time, parameters.timelimit)
         goal_obj_order_plan = [problem_env.env.GetKinBody(oname) for oname in problem_env.goal_objects]
+        goal_obj_order_plan = np.random.permutation(goal_obj_order_plan).tolist()
         plan = [-1]*len(goal_obj_order_plan)
     if goal_obj_order_plan is not None:
         goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
