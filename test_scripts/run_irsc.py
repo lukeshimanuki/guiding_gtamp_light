@@ -193,9 +193,6 @@ def main():
         environment = Mover(parameters.pidx)
     else:
         environment = OneArmMover(parameters.pidx)
-    fin = pickle.load(open('cloud_results/9226036/irsc/two_arm_mover/n_objs_pack_4/seed_0_pidx_40321.pkl', 'r'))
-
-
     environment.initial_robot_base_pose = get_body_xytheta(environment.robot)
 
     if parameters.domain == 'two_arm_mover':
@@ -206,19 +203,6 @@ def main():
         else:
             goal_object_names = ['square_packing_box1']
         environment.set_goal(goal_object_names, goal_region)
-        """
-        plan = fin['plan']
-        utils.viewer()
-        import pdb;
-        pdb.set_trace()
-        for p in plan:
-            for q in p.continuous_parameters['motion']:
-                utils.set_robot_config(q)
-                time.sleep(0.1)
-            p.execute()
-        import pdb;
-        pdb.set_trace()
-        """
     elif parameters.domain == 'one_arm_mover':
         goal_region = 'rectangular_packing_box1_region'
         assert parameters.n_objs_pack == 1
