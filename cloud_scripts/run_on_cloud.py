@@ -125,8 +125,9 @@ def get_s3_path(domain, algorithm, n_objs_pack, commithash, n_iter_limit):
 def get_target_pidxs(domain, n_objs_pack):
     if 'one-arm' in domain:
         pidxs = range(20000, 20100)
-        pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20047, 20051, 20053, 20057, 20061, 20063, 20066, 20069, 20072, 20075, 20084, 20086, 20093, 20094, 20095]
-        #pidxs = [20000, 20001, 20005, 20009, 20011, 20023, 20027, 20030, 20035, 20046, 20060, 20061, 20076]
+        pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20047, 20051, 20053,
+                 20057, 20061, 20063, 20066, 20069, 20072, 20075, 20084, 20086, 20093, 20094, 20095]
+        # pidxs = [20000, 20001, 20005, 20009, 20011, 20023, 20027, 20030, 20035, 20046, 20060, 20061, 20076]
     else:
         if n_objs_pack == 1:
             pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
@@ -148,8 +149,9 @@ def get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash, n_i
         runs_finished = re.findall('seed_[0-9]*_pidx_[0-9]*', result)
         seed_pidx_pairs_finished = [{'pidx': fin.split('_')[-1], 'seed': fin.split('_')[1]} for fin in runs_finished]
     else:
-        runs_finished = re.findall('pidx_[0-9]*_planner_seed_[0-9]*', result)
+        runs_finished = re.findall('pidx_[0-9]*_planner_seed_[0-9]*_gnn_seed_[0-9]*', result)
         seed_pidx_pairs_finished = [{'pidx': fin.split('_')[1], 'seed': fin.split('_')[-1]} for fin in runs_finished]
+
     return seed_pidx_pairs_finished
 
 
@@ -193,69 +195,77 @@ def get_commithash(domain, n_objs_pack, algorithm):
         if 'rsc' == algorithm:
             commithash = '3c193cf4e4e9fbb60c45a9ec3e78290cd07e4548'
         elif 'pure-learning' == algorithm:
-            commithash = 'db064f959ff0aef1a5ef7dd6e768c8c82c822b8d'
+            commithash = '3dbf9ca1073de489d7b64e198cd53c6b156e3136'
         else:
-            #commithash = '2306c1823e4c197806bb948f5934c043fde7ff05'
+            # commithash = '2306c1823e4c197806bb948f5934c043fde7ff05'
             commithash = 'ea42d4ee62c93857d6a2ed0962420f4088344832'
     return commithash
 
 
 def main():
-    algos = ['greedy', 'greedy-learn', 'greedy-hcount', 'pure-learning']
+    algos = ['greedy-learn', 'greedy', 'pure-learning']
     algos = ['pure-learning']
     for algorithm in algos:
-        for n_objs_pack in [1]:
-            domain = 'one-arm-mover'
-            timelimit = 1000 * n_objs_pack
+        for absq_seed in [0]:
+            for n_objs_pack in [1]:
+                domain = 'one-arm-mover'
 
-            if 'hcount' in algorithm:
-                hoption = 'hcount_old_number_in_goal'
-            else:
-                hoption = 'qlearned_hcount_old_number_in_goal'
+                if 'hcount' in algorithm:
+                    hoption = 'hcount_old_number_in_goal'
+                else:
+                    hoption = 'qlearned_hcount_old_number_in_goal'
 
-            if domain == 'one-arm-mover':
-                n_iter_limit = 50
-            else:
-                n_iter_limit = 2000
+                if domain == 'one-arm-mover':
+                    timelimit = 1000 * n_objs_pack
+                    n_iter_limit = 50
+                else:
+                    timelimit = 2000 * n_objs_pack
+                    n_iter_limit = 2000
 
-            target_pidxs = get_target_pidxs(domain, n_objs_pack)
-            yaml_file = get_yaml_file_name(algorithm, domain)
-            commithash = get_commithash(domain, n_objs_pack, algorithm)
+                target_pidxs = get_target_pidxs(domain, n_objs_pack)
+                yaml_file = get_yaml_file_name(algorithm, domain)
+                commithash = get_commithash(domain, n_objs_pack, algorithm)
 
-            seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash, n_iter_limit)
-            if algorithm == 'greedy-learn':
-                seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
-            else:
-                seed_pidx_pairs_running=[]
+                """
+                if algorithm == 'greedy-learn':
+                    seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
+                else:
+                    seed_pidx_pairs_running=[]
+                """
+                seed_pidx_pairs_running = []
+                seed_pidx_pairs_finished = []
+                seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(domain, algorithm, n_objs_pack, commithash, n_iter_limit)
 
-            undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs,
-                                                               seed_pidx_pairs_finished + seed_pidx_pairs_running)
+                undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs,
+                                                                   seed_pidx_pairs_finished + seed_pidx_pairs_running)
 
-            print "Remaining runs", len(undone)
-            consecutive_runs = 0
-            for idx, un in enumerate(undone):
-                pidx = un[1]
-                seed = un[0]
+                print "Remaining runs", len(undone)
+                consecutive_runs = 0
+                for idx, un in enumerate(undone):
+                    pidx = un[1]
+                    seed = un[0]
 
-                cmd = 'cat cloud_scripts/{} | ' \
-                      'sed \"s/NAME/{}-{}-{}-{}-n-objs-{}/\" | ' \
-                      'sed \"s/PIDX/{}/\" | sed \"s/PLANSEED/{}/\" |  ' \
-                      'sed \"s/HOPTION/{}/\" |  ' \
-                      'sed \"s/TIMELIMIT/{}/\" |  ' \
-                      'sed \"s/NOBJS/{}/\" |  ' \
-                      'sed \"s/COMMITHASH/{}/\" |  ' \
-                      'sed \"s/NITERLIMIT/{}/\" |  ' \
-                      'kubectl apply -f - -n beomjoon;'.format(yaml_file,
-                                                               algorithm, domain, pidx, seed, n_objs_pack,
-                                                               pidx, seed,
-                                                               hoption, timelimit, n_objs_pack, commithash, n_iter_limit)
-                print idx, cmd
-                os.system(cmd)
-                time.sleep(2)
-                consecutive_runs += 1
-                if consecutive_runs % 100 == 0:
-                    print "Long break"
-                    time.sleep(30)
+                    cmd = 'cat cloud_scripts/{} | ' \
+                          'sed \"s/NAME/{}-{}-{}-{}-n-objs-{}-absqseed-{}/\" | ' \
+                          'sed \"s/PIDX/{}/\" | sed \"s/PLANSEED/{}/\" |  ' \
+                          'sed \"s/HOPTION/{}/\" |  ' \
+                          'sed \"s/TIMELIMIT/{}/\" |  ' \
+                          'sed \"s/NOBJS/{}/\" |  ' \
+                          'sed \"s/COMMITHASH/{}/\" |  ' \
+                          'sed \"s/NITERLIMIT/{}/\" |  ' \
+                          'sed \"s/ABSQSEED/{}/\" |  ' \
+                          'kubectl apply -f - -n beomjoon;'.format(yaml_file,
+                                                                   algorithm, domain, pidx, seed, n_objs_pack, absq_seed,
+                                                                   pidx, seed,
+                                                                   hoption, timelimit, n_objs_pack, commithash,
+                                                                   n_iter_limit, absq_seed)
+                    print idx, cmd
+                    os.system(cmd)
+                    time.sleep(2)
+                    consecutive_runs += 1
+                    if consecutive_runs % 100 == 0:
+                        print "Long break"
+                        time.sleep(30)
 
 
 if __name__ == '__main__':
