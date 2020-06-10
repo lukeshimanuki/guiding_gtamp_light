@@ -170,7 +170,9 @@ def find_plan_without_reachability(problem_env, goal_object_names, start_time, p
     else:
         planner = PlannerWithoutReachability(problem_env, goal_object_names, goal_region='home_region',
                                              config=parameters)
-        goal_obj_order_plan, plan = planner.search(start_time, parameters.timelimit)
+        #goal_obj_order_plan, plan = planner.search(start_time, parameters.timelimit)
+        goal_obj_order_plan = [problem_env.env.GetKinBody(oname) for oname in problem_env.goal_objects]
+        plan = [-1]*len(goal_obj_order_plan)
     if goal_obj_order_plan is not None:
         goal_obj_order_plan = [o.GetName() for o in goal_obj_order_plan]
     return goal_obj_order_plan, plan, (planner.n_mp, planner.n_ik)
@@ -191,6 +193,8 @@ def main():
         environment = Mover(parameters.pidx)
     else:
         environment = OneArmMover(parameters.pidx)
+    fin = pickle.load(open('cloud_results/9226036/irsc/two_arm_mover/n_objs_pack_4/seed_0_pidx_40321.pkl', 'r'))
+
 
     environment.initial_robot_base_pose = get_body_xytheta(environment.robot)
 
@@ -202,6 +206,19 @@ def main():
         else:
             goal_object_names = ['square_packing_box1']
         environment.set_goal(goal_object_names, goal_region)
+        """
+        plan = fin['plan']
+        utils.viewer()
+        import pdb;
+        pdb.set_trace()
+        for p in plan:
+            for q in p.continuous_parameters['motion']:
+                utils.set_robot_config(q)
+                time.sleep(0.1)
+            p.execute()
+        import pdb;
+        pdb.set_trace()
+        """
     elif parameters.domain == 'one_arm_mover':
         goal_region = 'rectangular_packing_box1_region'
         assert parameters.n_objs_pack == 1
