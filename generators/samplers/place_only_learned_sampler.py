@@ -8,12 +8,8 @@ from trajectory_representation.one_arm_sampler_trajectory import compute_v_manip
 
 
 class PlaceOnlyLearnedSampler(LearnedSampler):
-    def __init__(self, atype, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
-        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action)
-        if pick_abs_base_pose is not None:
-            self.pick_abs_base_pose = pick_abs_base_pose.reshape((1, 3))
-        else:
-            self.pick_abs_base_pose = None
+    def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state):
+        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action, smpler_state)
         self.v_manip = None
         self.samples = self.sample_new_points(200)
         self.curr_smpl_idx = 0
@@ -24,8 +20,8 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
             v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, len(self.key_configs), 2, 1))
             v_manip = np.tile(v_manip, (n_smpls, 1, 1, 1))
             self.v_manip = v_manip
-
         state_vec = np.concatenate([collisions, self.v_manip], axis=2)
+
         if 'center_shelf' in self.region:
             chosen_sampler = self.samplers['place_obj_region']
             place_samples = chosen_sampler.generate(state_vec, pose_ids)
@@ -39,7 +35,7 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
 
     def sample_new_points(self, n_smpls):
         # note: this function outputs absolute pick base pose and absolute place base pose
-        print "Generating new points"
+        print "Generating new place points"
         stime = time.time()
 
         collisions = self.smpler_state.pick_collision_vector

@@ -63,7 +63,7 @@ class PlannerWithoutReachability:
                                                                                     'place_region': self.goal_region.name})
             state = None
 
-            sampler = UniformSampler(self.goal_region)
+            sampler = UniformSampler(op.type, self.goal_region)
             generator = TwoArmPaPGenerator(state, op, sampler,
                                            n_parameters_to_try_motion_planning=self.config.n_mp_limit,
                                            n_iter_limit=self.config.n_iter_limit, problem_env=self.problem_env,

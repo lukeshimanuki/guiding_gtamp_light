@@ -5,6 +5,7 @@ import time
 import os
 import torch
 import sys
+from planners.sahs.helper import get_state_class
 
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from planners.sahs.greedy_new import get_generator
@@ -17,22 +18,36 @@ from planners.sahs.helper import get_actions, compute_heuristic
 from test_scripts.run_mcts import get_commit_hash
 
 
-def get_max_action_using(pap_model, abstract_state, problem_env):
+def get_max_action_using(pap_model, abstract_state, problem_env, actions_tried=[]):
     actions = get_actions(problem_env, None, None)
     best_action = None
     best_hval = -np.inf
-    for a in actions:
+    if len(actions_tried) >= len(actions):
+        actions_tried = []
+    candidate_actions = [a for a in actions if
+                         (a.discrete_parameters['object'], a.discrete_parameters['place_region']) not in actions_tried]
+    for a in candidate_actions:
         hval = compute_heuristic(abstract_state, a, pap_model, 'qlearned', 1)
         print a.discrete_parameters, hval
         if hval > best_hval:
-            best_hval = hval
-            best_action = a
+            params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
+            if params not in actions_tried:
+                best_hval = hval
+                best_action = a
 
     return best_action
 
 
 def execute_learned_predictors(pap_model, learned_sampler, problem_env, goal_entities, config):
-    init_abstract_state = ShortestPathPaPState(problem_env, goal_entities)
+    statecls = get_state_class(config.domain)
+
+    if os.path.isfile('tmp.pkl'):
+        init_abstract_state = pickle.load(open('tmp.pkl', 'r'))
+    else:
+        init_abstract_state = statecls(problem_env, goal_entities)
+        init_abstract_state.make_pklable()
+        pickle.dump(init_abstract_state, open('tmp.pkl', 'wb'))
+
     abstract_state = init_abstract_state
     abstract_state.make_plannable(problem_env)
 
@@ -40,26 +55,39 @@ def execute_learned_predictors(pap_model, learned_sampler, problem_env, goal_ent
     n_total_actions = 0
     goal_reached = False
     stime = time.time()
+
+    infeasible_abstract_actions = []
     while time.time() - stime < config.timelimit:
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
             break
 
-        action = get_max_action_using(pap_model, abstract_state, problem_env)
+        action = get_max_action_using(pap_model, abstract_state, problem_env, infeasible_abstract_actions)
         generator = get_generator(abstract_state, action, learned_sampler, config)
-        cont_smpl = generator.sample_next_point()
+        if 'two_arm' in config.domain:
+            cont_smpl = generator.sample_next_point()
+            is_cont_param_feasible = cont_smpl['is_feasible']
+            action.continuous_parameters = cont_smpl
+        else:
+            pick_params, place_params, status = generator.sample_next_point()
+            is_cont_param_feasible = status == 'HasSolution'
+            action.continuous_parameters = {
+                'pick': pick_params,
+                'place': place_params,
+            }
 
         n_total_actions += 1
 
-        if cont_smpl['is_feasible']:
+        if is_cont_param_feasible:
             print "Action executed"
-            action.continuous_parameters = cont_smpl
             action.execute()
             plan_idx += 1
-            abstract_state = ShortestPathPaPState(problem_env, goal_entities,
-                                                  parent_state=abstract_state, parent_action=action)
+            abstract_state = statecls(problem_env, goal_entities, parent_state=abstract_state, parent_action=action)
         else:
             print "No feasible action"
+            if plan_idx == 0:
+                infeasible_abstract_actions.append(
+                    (action.discrete_parameters['object'], action.discrete_parameters['place_region']))
             problem_env.init_saver.Restore()
             plan_idx = 0
 

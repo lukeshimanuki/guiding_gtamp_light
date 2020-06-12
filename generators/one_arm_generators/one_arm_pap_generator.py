@@ -8,6 +8,7 @@ from gtamp_utils.operator_utils import grasp_utils
 from generators.feasibility_checkers.one_arm_pick_feasibility_checker import OneArmPickFeasibilityChecker
 from generators.feasibility_checkers.one_arm_place_feasibility_checker import OneArmPlaceFeasibilityChecker
 
+import time
 
 class OneArmPaPGenerator:
     def __init__(self, operator_skeleton, n_iter_limit, problem_env, pick_sampler=None, place_sampler=None):
@@ -53,15 +54,21 @@ class OneArmPaPGenerator:
     def sample_next_point(self, samples_tried=None, sample_values=None):
         # n_iter refers to the max number of IK attempts on pick
         n_ik_attempts = 0
-        while True:
+        n_base = 0
+        stime = time.time()
+        #while True:
+        for i in range(2000):
             pick_cont_params, place_cont_params, status = self.sample_from_continuous_space()
-            if status == 'InfeasibleIK' or status == 'InfeasibleBase':
+            if status == 'InfeasibleIK':
                 n_ik_attempts += 1
                 self.n_ik_checks += 1
                 if n_ik_attempts == self.n_iter_limit:
                     break
             elif status == 'HasSolution':
                 return pick_cont_params, place_cont_params, 'HasSolution'
+            else:
+                n_base += 1
+        print time.time()-stime
         return None, None, 'NoSolution'
 
     def is_base_feasible(self, base_pose):
@@ -143,40 +150,15 @@ class OneArmPaPGenerator:
         robot_config = self.robot.GetDOFValues()
 
         # sample pick parameters
-        while pick_cont_params is None:
-            pick_cont_params, status = self.sample_pick_cont_parameters()
-            if status == 'InfeasibleBase':
-                n_base_attempts += 1
-            elif status == 'InfeasibleIK':
-                n_ik_attempts += 1
-            elif status == 'HasSolution':
-                n_ik_attempts += 1
-                break
-            if n_ik_attempts == 1 or n_base_attempts == 4:
-                break
+        pick_cont_params, status = self.sample_pick_cont_parameters()
         if status != 'HasSolution':
             utils.set_robot_config(robot_pose)
             return None, None, status
-
         self.pick_op.continuous_parameters = pick_cont_params
         self.pick_op.execute()
 
         # sample place
-        n_ik_attempts = 0
-        n_base_attempts = 0
-        status = "NoSolution"
-        place_cont_params = None
-        while place_cont_params is None:
-            place_cont_params, status = self.sample_place_cont_parameters(pick_cont_params)
-            if status == 'InfeasibleBase':
-                n_base_attempts += 1
-            elif status == 'InfeasibleIK':
-                n_ik_attempts += 1
-            elif status == 'HasSolution':
-                n_ik_attempts += 1
-                break
-            if n_ik_attempts == 1 or n_base_attempts == 1:
-                break
+        place_cont_params, status = self.sample_place_cont_parameters(pick_cont_params)
 
         # reverting back to the state before sampling
         utils.one_arm_place_object(pick_cont_params)
@@ -184,7 +166,7 @@ class OneArmPaPGenerator:
         utils.set_robot_config(robot_pose)
 
         if status != 'HasSolution':
-            return None, None, status
+            return None, None, "InfeasibleIK"
         else:
             self.place_op.continuous_parameters = place_cont_params
             return pick_cont_params, place_cont_params, status
