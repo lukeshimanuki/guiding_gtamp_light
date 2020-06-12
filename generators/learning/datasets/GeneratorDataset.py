@@ -90,9 +90,10 @@ class GeneratorDataset(Dataset):
         all_sum_rewards = []
         all_poses_ids = []
         all_konf_relevance = []
-
+        n_episodes = 0
         for traj_file_idx, traj_file in enumerate(traj_files):
             if 'pidx' not in traj_file:
+                print 'not pkl file'
                 continue
             try:
                 traj = pickle.load(open(traj_dir + traj_file, 'r')) 
@@ -101,6 +102,7 @@ class GeneratorDataset(Dataset):
                 continue
 
             if len(traj.states) == 0:
+                print 'failed instance'
                 continue
 
             states = []
@@ -143,14 +145,17 @@ class GeneratorDataset(Dataset):
             rewards = traj.rewards
             sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
             if len(states) == 0:
+                print "no state"
                 continue
             all_poses_ids.append(poses_ids)
             all_states.append(states)
             all_actions.append(actions)
             all_sum_rewards.append(sum_rewards)
             all_konf_relevance.append(konf_relevance)
+            n_episodes += 1
 
             print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
+            print "N episodes", n_episodes
             n_data = len(np.vstack(all_actions))
             assert len(np.vstack(all_states)) == n_data
 
