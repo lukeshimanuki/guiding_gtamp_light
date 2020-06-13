@@ -290,7 +290,7 @@ def main():
 
     if config.gather_planning_exp:
         assert config.h_option == 'hcount_old_number_in_goal'
-        config.timelimit = 5000
+        #config.timelimit =
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
     print "Goal:", goal_objs, goal_region
