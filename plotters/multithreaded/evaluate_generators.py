@@ -4,6 +4,7 @@ import re
 import numpy as np
 import multiprocessing
 import time
+import sys
 
 from multiprocessing.pool import ThreadPool
 from generators.learning.learning_algorithms.WGANGP import WGANgp
@@ -68,7 +69,8 @@ def main():
                     'atype': parameters.atype,
                     'region': parameters.region,
                     'architecture': parameters.architecture,
-                    'seed': parameters.seed
+                    'seed': parameters.seed,
+                    'domain': parameters.domain
                 }
 
                 configs.append(config)
