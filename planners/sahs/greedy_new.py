@@ -109,12 +109,12 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
     print "State computation..."
 
-    if os.path.isfile('tmp.pkl'):
-        state = pickle.load(open('tmp.pkl', 'r'))
-    else:
-        state = statecls(mover, goal)
-        state.make_pklable()
-        pickle.dump(state, open('tmp.pkl', 'wb'))
+    #if os.path.isfile('tmp.pkl'):
+    #    state = pickle.load(open('tmp.pkl', 'r'))
+    #else:
+    state = statecls(mover, goal)
+    #state.make_pklable()
+    #pickle.dump(state, open('tmp.pkl', 'wb'))
 
     state.make_plannable(mover)
 
@@ -169,6 +169,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             is_goal_achieved = np.all([goal_region.contains(mover.env.GetKinBody(o).ComputeAABB()) for o in goal_objs])
             if is_goal_achieved:
                 print("found successful plan: {}".format(n_objs_pack))
+                nodes.append(node)
                 node.is_goal_traj = True
                 nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
                 plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
