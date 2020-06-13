@@ -3,7 +3,7 @@ import pickle
 import Queue
 import numpy as np
 import os
-
+from gtamp_utils.utils import CustomStateSaver
 from node import Node
 from gtamp_utils import utils
 from trajectory_representation.operator import Operator
@@ -169,9 +169,14 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
             is_goal_achieved = np.all([goal_region.contains(mover.env.GetKinBody(o).ComputeAABB()) for o in goal_objs])
             if is_goal_achieved:
                 print("found successful plan: {}".format(n_objs_pack))
-                nodes.append(node)
                 node.is_goal_traj = True
                 nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
+                if config.gather_planning_exp:
+                    newstate = statecls(mover, goal, node.state, action)
+                    newnode = Node(node, action, newstate)
+                    newnode.is_goal_traj = True
+                    nodes_to_goal.append(newnode)
+                    nodes.append(newnode)
                 plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
                 for plan_action, nd in zip(plan, nodes_to_goal):
                     nd.is_goal_traj = True
