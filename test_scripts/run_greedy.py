@@ -98,7 +98,7 @@ def parse_arguments():
     # planning budget setup
     parser.add_argument('-num_node_limit', type=int, default=3000)
     parser.add_argument('-num_train', type=int, default=5000)
-    parser.add_argument('-timelimit', type=float, default=300)
+    parser.add_argument('-timelimit', type=float, default=2000)
     parser.add_argument('-mse_weight', type=float, default=1.0)
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
@@ -212,11 +212,6 @@ def make_node_pklable(node):
     node.tried_sample_feasibility_labels = {}
     if 'heuristic_vals' in dir(node):
         node.heuristic_vals = None
-    """
-    for k in node.generators.keys():
-        node.tried_samples[k] = node.generators[k].tried_samples
-        node.tried_sample_feasibility_labels[k] = node.generators[k].tried_sample_labels
-    """
     node.generators = None
 
 
@@ -294,7 +289,8 @@ def main():
         sys.exit(-1)
 
     if config.gather_planning_exp:
-        config.timelimit = np.inf
+        assert config.h_option == 'hcount_old_number_in_goal'
+        config.timelimit = 5000
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
     print "Goal:", goal_objs, goal_region
