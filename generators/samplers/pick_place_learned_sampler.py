@@ -13,6 +13,7 @@ def compute_v_manip(abs_state, goal_objs):
     # todo optimize this code
     init_end_times = 0
     path_times = 0
+    original_config = utils.get_robot_xytheta(abs_state.problem_env.robot)
     stime = time.time()
     for goal_obj in goal_objs_not_in_goal:
         prm_path = abs_state.cached_place_paths[(goal_obj, 'home_region')]
@@ -39,6 +40,7 @@ def compute_v_manip(abs_state, goal_objs):
                 v_manip[idx] = 1
         path_times += time.time() - stime2
     print 'v_manip creation time', time.time() - stime
+    utils.set_robot_config(original_config, robot=abs_state.problem_env.robot)
     return v_manip
 
 
