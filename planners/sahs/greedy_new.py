@@ -177,7 +177,9 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                     newnode.is_goal_traj = True
                     nodes_to_goal.append(newnode)
                     nodes.append(newnode)
-                plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
+                    plan = [nd.parent_action for nd in nodes_to_goal[1:]]
+                else:
+                    plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
                 for plan_action, nd in zip(plan, nodes_to_goal):
                     nd.is_goal_traj = True
                     nd.executed_action = plan_action
