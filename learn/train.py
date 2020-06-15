@@ -7,8 +7,9 @@ import numpy as np
 import sys
 import os
 
-from . import data_traj
-from .pap_gnn import PaPGNN
+#from . import data_traj
+from learn import data_traj
+from learn.pap_gnn import PaPGNN
 import csv
 import pickle
 
@@ -55,7 +56,8 @@ def create_gnn_model(config, nodes, edges):
 
 def create_train_data(nodes, edges, actions, costs, num_training):
     training_inputs = [nodes[:num_training], edges[:num_training], actions[:num_training], costs[:num_training]]
-    training_targets = np.zeros(num_training, dtype=np.float32)
+    n_data = len(nodes[:num_training])
+    training_targets = np.zeros(n_data, dtype=np.float32)
     return training_inputs, training_targets
 
 
@@ -69,7 +71,8 @@ def train(config):
         #'./planning_experience/hcount/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
         #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
         #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
-        './planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
+        #'./planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
+        'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
         desired_operator_type=config.operator)
     """
     print "Loading data..."

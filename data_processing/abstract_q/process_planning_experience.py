@@ -6,11 +6,7 @@ import os
 import argparse
 import socket
 
-hostname = socket.gethostname()
-if hostname == 'dell-XPS-15-9560' or hostname == 'phaedra' or hostname == 'shakey' or hostname == 'lab':
-    ROOTDIR = './'
-else:
-    ROOTDIR = '/data/public/rw/pass.port/guiding_gtamp/'
+ROOTDIR = './'
 
 
 def get_save_dir(parameters):
@@ -23,10 +19,11 @@ def get_save_dir(parameters):
 
 def get_raw_dir(parameters):
     if parameters.planner == 'hcount':
-        #raw_dir = ROOTDIR + '/planning_experience/hcount/domain_two_arm_mover/n_objs_pack_1/hcount/'
-        raw_dir = ROOTDIR + '/planning_experience/domain_two_arm_mover/n_objs_pack_1/hcount/'
+        raw_dir = ROOTDIR + '/planning_experience/raw/two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/' \
+                            'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                            'n_mp_limit_5_n_iter_limit_2000/'
     else:
-        raw_dir = ROOTDIR + '/planning_experience/irsc/two_arm_mover/n_objs_pack_1//'
+        raw_dir = ROOTDIR + '/planning_experience/irsc/two_arm_mover/n_objs_pack_1/'
     return raw_dir
 
 
@@ -45,8 +42,6 @@ def process_plan_file(filename, pidx, goal_entities, parameters):
 
     print "Plan file name", filename
     plan_data = pickle.load(open(filename, 'r'))
-    #if plan_data['plan'] is None:
-    #    raise IOError
     if parameters.planner == 'hcount':
         if isinstance(plan_data, dict):
             plan = plan_data['plan']
@@ -68,7 +63,7 @@ def parse_parameters():
     parser.add_argument('-pidx', type=int, default=0)
     parser.add_argument('-pidxs', nargs=2, type=int, default=[0, 1])  # used for threaded runs
     parser.add_argument('-planner', type=str, default="hcount")
-    parser.add_argument('-statetype', type=str, default="mc")
+    parser.add_argument('-statetype', type=str, default="shortest")
     parameters = parser.parse_args()
 
     return parameters
@@ -88,8 +83,7 @@ def get_goal_entities(parameters):
 
 def get_raw_fname(parameters):
     if parameters.planner == 'hcount':
-        #return 'pidx_%d_planner_seed_0.pkl' % parameters.pidx
-        return 'pidx_%d_planner_seed_0_train_seed_0_domain_two_arm_mover.pkl' % parameters.pidx
+        return 'sampling_strategy_uniformpidx_%d_planner_seed_0_gnn_seed_0.pkl' % parameters.pidx
     else:
         return 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
 

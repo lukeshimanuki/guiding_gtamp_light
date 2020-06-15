@@ -128,7 +128,7 @@ class Trajectory:
             parent_action.discrete_parameters['two_arm_place_object'] = parent_action.discrete_parameters['object']
 
         if self.statetype == 'shortest':
-            state = ShortestPathPaPState(problem_env, goal_entities, parent_state, parent_action, 'irsc', paps_used)
+            state = ShortestPathPaPState(problem_env, goal_entities, parent_state, parent_action)
         elif self.statetype == 'mc':
             state = MinimiumConstraintPaPState(problem_env, goal_entities, parent_state, parent_action, paps_used)
         # state.make_pklable()  # removing openrave files to pkl
@@ -153,7 +153,7 @@ class Trajectory:
         paps_used = self.get_pap_used_in_plan(plan)
         pick_used = paps_used[0]
         place_used = paps_used[1]
-        reward_function = ShapedRewardFunction(problem_env, ['square_packing_box1'], 'home_region', 3 * 8)
+        #reward_function = ShapedRewardFunction(problem_env, ['square_packing_box1'], 'home_region', 3 * 8)
         # utils.viewer()
         state = self.compute_state(parent_state, parent_action, goal_entities, problem_env, paps_used, 0)
         for action_idx, action in enumerate(plan):
@@ -179,12 +179,11 @@ class Trajectory:
             state = self.compute_state(parent_state, parent_action, goal_entities, problem_env, paps_used, action_idx)
 
             # execute the pap action
-            reward = reward_function(parent_state, state, parent_action, action_idx)
+            reward = 0 #reward_function(parent_state, state, parent_action, action_idx)
             print "The reward is ", reward
 
             self.add_sar_tuples(parent_state, pap_action, reward)
             print "Executed", action.discrete_parameters
-
         self.add_state_prime()
         openrave_env.Destroy()
         openravepy.RaveDestroy()

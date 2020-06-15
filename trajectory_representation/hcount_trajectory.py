@@ -13,7 +13,7 @@ class HCountExpTrajectory(Trajectory):
 
     def get_pap_used_in_plan(self, plan):
         obj_to_pick = {op.discrete_parameters['object']: [] for op in plan}
-        obj_to_place = {(op.discrete_parameters['object'], op.discrete_parameters['region']): [] for op in plan}
+        obj_to_place = {(op.discrete_parameters['object'], op.discrete_parameters['place_region']): [] for op in plan}
         for op in plan:
             # making obj_to_pick and obj_to_place used in the plan; this can be done once, not every time
             pick_cont_param = op.continuous_parameters['pick']
@@ -25,10 +25,10 @@ class HCountExpTrajectory(Trajectory):
 
             place_cont_param = op.continuous_parameters['place']
             place_disc_param = {'object': op.discrete_parameters['object'],
-                                'region': op.discrete_parameters['region']}
+                                'place_region': op.discrete_parameters['place_region']}
             place_op = Operator('two_arm_pick', place_disc_param, place_cont_param)
             place_op.low_level_motion = place_cont_param['motion']
-            obj_to_place[(op.discrete_parameters['object'], op.discrete_parameters['region'])].append(place_op)
+            obj_to_place[(op.discrete_parameters['object'], op.discrete_parameters['place_region'])].append(place_op)
         return [obj_to_pick, obj_to_place]
 
     def account_for_used_picks_and_places(self, n_times_objs_moved, n_times_obj_region_moved):
@@ -66,7 +66,7 @@ class HCountExpTrajectory(Trajectory):
         parent_action = None
 
         moved_objs = {p.discrete_parameters['object'] for p in plan}
-        moved_obj_regions = {(p.discrete_parameters['object'], p.discrete_parameters['region']) for p in plan}
+        moved_obj_regions = {(p.discrete_parameters['object'], p.discrete_parameters['place_region']) for p in plan}
         n_times_objs_moved = {obj_name: 0 for obj_name in moved_objs}
         n_times_obj_region_moved = {(obj_name, region_name): 0 for obj_name, region_name in moved_obj_regions}
 
@@ -79,7 +79,7 @@ class HCountExpTrajectory(Trajectory):
 
             # mark that a pick or place in the plan has been used
             target_obj_name = action.discrete_parameters['object']
-            target_region_name = action.discrete_parameters['region']
+            target_region_name = action.discrete_parameters['place_region']
             n_times_objs_moved[target_obj_name] += 1
             n_times_obj_region_moved[(target_obj_name, target_region_name)] += 1
 
@@ -99,6 +99,9 @@ class HCountExpTrajectory(Trajectory):
 
             self.add_sar_tuples(parent_state, action, reward)
             print "Executed", action.discrete_parameters
+            if action.discrete_parameters['object'] in goal_entities \
+                and action.discrete_parameters['place_region'] in goal_entities:
+                break
 
         self.add_state_prime()
         openrave_env.Destroy()

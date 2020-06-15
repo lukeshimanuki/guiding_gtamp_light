@@ -10,6 +10,7 @@ import sys
 hostname = socket.gethostname()
 ROOTDIR = './'
 
+
 def get_save_dir(parameters):
     if 'two_arm' in parameters.domain:
         n_objs_pack = 1
@@ -26,9 +27,13 @@ def get_save_dir(parameters):
 
 def get_raw_dir(parameters):
     if parameters.domain == 'two_arm_mover':
-        raw_dir = ROOTDIR + 'planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_10_n_iter_limit_200/'
+        raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_{}/qlearned_hcount_old_number_in_goal/' \
+                            'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                            'n_mp_limit_5_n_iter_limit_2000/'.format(parameters.n_objs_pack)
     elif parameters.domain == 'one_arm_mover':
-        raw_dir = ROOTDIR + 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+        raw_dir = ROOTDIR + 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+                            'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+                            'n_mp_limit_5_n_iter_limit_2000/'
     else:
         raise NotImplementedError
     return raw_dir
@@ -47,17 +52,12 @@ def save_traj(traj, save_fname):
     pickle.dump(traj, open(save_fname, 'wb'))
 
 
-def process_plan_file(filename, pidx):
+def get_sampler_traj_instance(filename, pidx, plan_data):
     print "Plan file name", filename
-    plan_data = pickle.load(open(filename, 'r'))
-    plan = plan_data['plan']
-    if not plan_data['success']:
-        return None
     if 'one_arm_mover' in filename:
         traj = OneArmSAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
     else:
         traj = TwoArmSAHSSamplerTrajectory(pidx, plan_data['n_objs_pack'])
-    traj.add_trajectory(plan)
     return traj
 
 
@@ -66,6 +66,7 @@ def parse_parameters():
     parser.add_argument('-pidx', type=int, default=0)
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
+    parser.add_argument('-n_objs_pack', type=int, default=1)
     parameters = parser.parse_args()
 
     return parameters
@@ -77,12 +78,7 @@ def get_processed_fname(raw_fname):
 
 
 def get_raw_fname(raw_dir, parameters):
-    # fname = 'pidx_%d_planner_seed_0_train_seed_0_domain_two_arm_mover.pkl' % parameters.pidx
-    # fname = 'seed_0_pidx_' + str(parameters.pidx) + '.pkl'
-    if 'one_arm_mover' in raw_dir:
-        fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_0.pkl'.format(parameters.pidx)
-    else:
-        fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % parameters.pidx
+    fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_0.pkl'.format(parameters.pidx)
     return fname
 
 
@@ -95,7 +91,6 @@ def quit_if_already_done(fpath, config):
 def main():
     parameters = parse_parameters()
     raw_dir = get_raw_dir(parameters)
-    # make_key_configs(parameters, raw_dir)
     raw_fname = get_raw_fname(raw_dir, parameters)
     save_dir = get_save_dir(parameters)
     processed_fname = get_processed_fname(raw_fname)
@@ -103,12 +98,15 @@ def main():
     print "Processed fname ", save_dir + processed_fname
     quit_if_already_done(save_dir + processed_fname, parameters)
 
-    # Every second element in the prm - it does not have to be, because state computation checks the collisions
-    # at all configs anyways. todo: reprocess the data using the full prm
-    # key_configs = np.delete(key_configs, 293, axis=0)
-    traj = process_plan_file(raw_dir + raw_fname, parameters.pidx)
-    if traj is not None:
-        save_traj(traj, save_dir + processed_fname)
+    fname = raw_dir + raw_fname
+    plan_data = pickle.load(open(fname, 'r'))
+
+    traj = get_sampler_traj_instance(fname, parameters.pidx, plan_data)
+    nodes = plan_data['nodes']
+    #neutral_data = traj.get_neutral_trajs(nodes, parameters)
+    positive_data, neutral_data = traj.get_data(nodes, parameters)
+    data = {'neutral_data': neutral_data, 'positive_data': positive_data}
+    save_traj(data, save_dir + processed_fname)
 
 
 if __name__ == '__main__':
