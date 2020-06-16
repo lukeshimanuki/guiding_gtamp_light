@@ -52,14 +52,18 @@ class PaPGNN(GNN):
                                        kernel_initializer=self.config.weight_initializer,
                                        bias_initializer=self.config.weight_initializer,
                                        name=name + "_0",
+                                       #activation=self.activation)(input)
                                        activation=self.activation)(input)
+            #h = tf.keras.layers.LeakyReLU(alpha=0.1)(h)
             idx = -1
             for idx in range(n_layers - 2):
                 h = tf.keras.layers.Conv3D(num_latent_features, kernel_size=(1, 1, 1),
                                            kernel_initializer=self.config.weight_initializer,
                                            bias_initializer=self.config.weight_initializer,
                                            name=name + "_" + str(idx + 1),
+                                           #activation=self.activation)(h)
                                            activation=self.activation)(h)
+                #h = tf.keras.layers.LeakyReLU(alpha=0.1)(h)
             h = tf.keras.layers.Conv3D(n_dim_last_layer, kernel_size=(1, 1, 1),
                                        kernel_initializer=self.config.weight_initializer,
                                        bias_initializer=self.config.weight_initializer,
@@ -133,6 +137,20 @@ class PaPGNN(GNN):
         self.aggregation_model = self.make_model(inputs, msg_aggregation_layer, 'value_aggregation')
         return q_layer, value_layer
 
+    def change_sender_dest_into_shape_cancatable_to_edge(self):
+        def layer_defn(sender_r1, dest_r1):
+            n_entities = self.num_entities
+            src_repetitons = [1, 1, n_entities, 1]  # repeat in the columns
+            repeated_srcs = tf.tile(tf.expand_dims(sender_r1, -2), src_repetitons)
+            dest_repetitons = [1, n_entities, 1, 1]  # repeat in the rows
+            repeated_dests = tf.tile(tf.expand_dims(dest_r1, 1), dest_repetitons)
+            src_dest_concatenated = tf.concat([repeated_srcs, repeated_dests], axis=-1)
+            src_dest_concatenated = tf.expand_dims(src_dest_concatenated, -2)
+            return src_dest_concatenated
+
+        layer = tf.keras.layers.Lambda(lambda args: layer_defn(*args), name='')
+        return layer
+
     def create_graph_network_layers_with_same_msg_passing_network(self, config):
         num_latent_features = config.n_hidden
         num_layers = config.n_layers
@@ -164,10 +182,14 @@ class PaPGNN(GNN):
             concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
 
         # The msg model has the same number of dimensions as the sender model
+        # concat layer is 11 x 11 x 2 x 96 dims
+        # msg_model should apply the function region-wise
         msg_network = msg_model(concat_layer)
         msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
         # for testing purpose; delete it later
         inputs = [self.node_input, self.edge_input, self.action_input]
+        self.first_msg_model = self.make_model(inputs, msg_network, 'first_msg_mode')
+
         self.first_msg_agg = self.make_model(inputs, msg_aggregation_layer, 'first_msg_agg')
         # rounds of msg passing
         for i in range(config.n_msg_passing):
@@ -175,7 +197,6 @@ class PaPGNN(GNN):
                 vertex_network = vertex_model(msg_aggregation_layer)
                 concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
             else:
-                region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
                 # todo
                 #   This is conceptually different from what I have written in the paper and needs to be fixed.
                 #   Unfortunately, I do not have time to re-run experiments at the moment, so here I write
@@ -204,11 +225,36 @@ class PaPGNN(GNN):
                 #   for the corresponding region.
 
                 #   That is, sender_network_r1 and sender_networ_r2
+                region_based = False
+                if region_based:
+                    # r1_msg_value is the set of values aggregated for moving object into a particular region
+                    r1_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='r1_msgs')
+                    r2_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='r2_msgs')
+                    msg_val_r1 = r1_msg_value(msg_aggregation_layer)
+                    msg_val_r2 = r2_msg_value(msg_aggregation_layer)
+                    # val = region_agnostic_msg_value(msg_aggregation_layer)
+                    sender_r1 = sender_model(msg_val_r1)
+                    dest_r1 = dest_model(msg_val_r1)
+                    sender_r2 = sender_model(msg_val_r2)
+                    dest_r2 = dest_model(msg_val_r2)
+                    change_sender_dest_into_shape_cancatable_to_edge_layer = self.change_sender_dest_into_shape_cancatable_to_edge()
+                    src_dest_r1 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_r1, dest_r1])
+                    src_dest_r2 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_r2, dest_r2])
 
-                val = region_agnostic_msg_value(msg_aggregation_layer)
-                sender_network = sender_model(val)
-                dest_network = dest_model(val)
-                concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+                    def concat_layer_defn(r1_val, r2_val, edge_val):
+                        r1_r2_concat = tf.concat([r1_val, r2_val], axis=-2)
+                        concat_layer_fn = tf.concat([r1_r2_concat, edge_val], axis=-1)
+                        return concat_layer_fn
+                    concat_layer_fn = tf.keras.layers.Lambda(lambda args: concat_layer_defn(*args), name='concat2')
+                    concat_layer = concat_layer_fn([src_dest_r1, src_dest_r2, edge_network])
+                else:
+                    # It is mixing wrong msgs with the region
+                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='region_agnostic')
+                    val = region_agnostic_msg_value(msg_aggregation_layer)
+                    sender_network = sender_model(val)
+                    dest_network = dest_model(val)
+                    concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+
             msg_network = msg_model(concat_layer)
             msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
             # todo it is saturating here when I use relu?
@@ -216,6 +262,7 @@ class PaPGNN(GNN):
         self.second_msg_agg = self.make_model(inputs, msg_aggregation_layer, 'second_msg_agg')
         self.msg_model = self.make_model(inputs, msg_network, 'msg_model')
         self.concat_model = self.make_model(inputs, concat_layer, 'concat_model')
+
         if same_model_for_sender_and_dest:
             self.sender_model = vertex_model  # sender_model
             self.dest_model = vertex_model  # dest_model
@@ -321,4 +368,3 @@ class PaPGNN(GNN):
         nodes, edges, action = self.make_raw_format(state, op_skeleton)
         val = self.predict_with_raw_input_format(nodes, edges, action)
         return val
-

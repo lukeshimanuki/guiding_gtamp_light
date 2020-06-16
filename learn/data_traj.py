@@ -167,8 +167,8 @@ def extract_file(filename, desired_operator_type='two_arm_pick'):
 
 
 # filename is a directory
-def load_data(dirname, desired_operator_type='two_arm_pick'):
-    cachefile = "{}{}.pkl".format(dirname, desired_operator_type)
+def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
+    cachefile = "{}{}-num_data_{}.pkl".format(dirname, desired_operator_type, num_data)
     #cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
     if os.path.isfile(cachefile):
         print "Loading the cached file:", cachefile
@@ -180,6 +180,7 @@ def load_data(dirname, desired_operator_type='two_arm_pick'):
     actions = []
     costs = []
     edges = []
+    n_traj = 0
     for filename in file_list:
         fnodes, fedges, factions, fcosts = extract_file(filename, desired_operator_type)
         if fnodes is not None:
@@ -187,6 +188,11 @@ def load_data(dirname, desired_operator_type='two_arm_pick'):
             actions.append(factions)
             edges.append(fedges)
             costs.append(fcosts)
+        n_data = len(np.vstack(nodes))
+        print "{}/{} n_data {}".format(n_traj, len(file_list), n_data)
+        if n_data >= num_data:
+            break
+        n_traj += 1
 
     nodes = np.vstack(nodes).squeeze()
     edges = np.vstack(edges).squeeze()
