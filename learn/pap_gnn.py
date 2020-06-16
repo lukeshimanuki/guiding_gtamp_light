@@ -225,8 +225,13 @@ class PaPGNN(GNN):
                 #   for the corresponding region.
 
                 #   That is, sender_network_r1 and sender_networ_r2
-                region_based = False
-                if region_based:
+                if self.config.use_region_agnostic:
+                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
+                    val = region_agnostic_msg_value(msg_aggregation_layer)
+                    sender_network = sender_model(val)
+                    dest_network = dest_model(val)
+                    concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+                else:
                     # r1_msg_value is the set of values aggregated for moving object into a particular region
                     r1_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='r1_msgs')
                     r2_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='r2_msgs')
@@ -247,13 +252,6 @@ class PaPGNN(GNN):
                         return concat_layer_fn
                     concat_layer_fn = tf.keras.layers.Lambda(lambda args: concat_layer_defn(*args), name='concat2')
                     concat_layer = concat_layer_fn([src_dest_r1, src_dest_r2, edge_network])
-                else:
-                    # It is mixing wrong msgs with the region
-                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='region_agnostic')
-                    val = region_agnostic_msg_value(msg_aggregation_layer)
-                    sender_network = sender_model(val)
-                    dest_network = dest_model(val)
-                    concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
 
             msg_network = msg_model(concat_layer)
             msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
