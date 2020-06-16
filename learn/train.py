@@ -23,6 +23,7 @@ def top_k_accuracy(q_model, nodes, edges, actions, k):
     top_zero_accuracy = []
     top_one_accuracy = []
     top_two_accuracy = []
+    import pdb;pdb.set_trace()
     for i in range(n_data):
         n_actions_bigger_than_target = np.sum(q_target_action[i] < q_all_actions[i])
         accuracy.append(n_actions_bigger_than_target <= k)
@@ -73,7 +74,8 @@ def train(config):
         #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
         #'./planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
         'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
-        desired_operator_type=config.operator)
+        desired_operator_type=config.operator,
+        num_data=config.num_train+config.num_test)
     """
     print "Loading data..."
     nodes, edges, actions, rewards = pickle.load(open('tmp.pkl', 'r'))
