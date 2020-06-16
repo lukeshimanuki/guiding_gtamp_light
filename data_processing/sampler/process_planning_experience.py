@@ -27,9 +27,7 @@ def get_save_dir(parameters):
 
 def get_raw_dir(parameters):
     if parameters.domain == 'two_arm_mover':
-        raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_{}/qlearned_hcount_old_number_in_goal/' \
-                            'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
-                            'n_mp_limit_5_n_iter_limit_2000/'.format(parameters.n_objs_pack)
+        raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
     elif parameters.domain == 'one_arm_mover':
         raw_dir = ROOTDIR + 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                             'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
@@ -106,7 +104,7 @@ def main():
     #neutral_data = traj.get_neutral_trajs(nodes, parameters)
     positive_data, neutral_data = traj.get_data(nodes, parameters)
     data = {'neutral_data': neutral_data, 'positive_data': positive_data}
-    save_traj(data, save_dir + processed_fname)
+    pickle.dump(data, open(save_dir + processed_fname, 'wb'))
 
 
 if __name__ == '__main__':
