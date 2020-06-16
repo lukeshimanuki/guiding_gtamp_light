@@ -23,7 +23,6 @@ def top_k_accuracy(q_model, nodes, edges, actions, k):
     top_zero_accuracy = []
     top_one_accuracy = []
     top_two_accuracy = []
-    import pdb;pdb.set_trace()
     for i in range(n_data):
         n_actions_bigger_than_target = np.sum(q_target_action[i] < q_all_actions[i])
         accuracy.append(n_actions_bigger_than_target <= k)
@@ -90,7 +89,7 @@ def train(config):
     config.num_train = num_training
     config.num_test = num_test
 
-    nodes = nodes[:, :, 6:]
+    nodes = nodes[:, :, 6:] # excluding the poses
     model = create_gnn_model(config, nodes, edges)
     callbacks = create_callbacks(model.weight_file_name)
     training_inputs, training_targets = create_train_data(nodes, edges, actions, rewards, num_training)
