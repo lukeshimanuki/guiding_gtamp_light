@@ -70,9 +70,6 @@ class TwoArmSAHSSamplerTrajectory(SamplerTrajectory):
                 n.state.problem_env = problem_env
         positive_data = []
         neutral_data = []
-        # todo:
-        #   test this function
-        utils.viewer()
         for node in nodes_:
             action = node.parent_action
             action_info = self.get_action_info(action)
@@ -103,7 +100,6 @@ class TwoArmSAHSSamplerTrajectory(SamplerTrajectory):
                 positive_data.append(data)
             else:
                 neutral_data.append(data)
-
         for n in nodes: n.state.problem_env = None
         for d in positive_data: d['concrete_state'].problem_env = None
         for d in neutral_data: d['concrete_state'].problem_env = None
