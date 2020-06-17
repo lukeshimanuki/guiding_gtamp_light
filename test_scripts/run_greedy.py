@@ -99,7 +99,7 @@ def parse_arguments():
     parser.add_argument('-num_node_limit', type=int, default=3000)
     parser.add_argument('-num_train', type=int, default=5000)
     parser.add_argument('-timelimit', type=float, default=2000)
-    parser.add_argument('-mse_weight', type=float, default=1.0)
+    parser.add_argument('-mse_weight', type=float, default=0.0)
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
 
@@ -173,7 +173,7 @@ def get_pap_gnn_model(mover, config):
             use_region_agnostic=config.use_region_agnostic
         )
         if config.domain == 'two_arm_mover':
-            num_entities = 11
+            num_entities = 8
             n_regions = 2
         elif config.domain == 'one_arm_mover':
             num_entities = 12
