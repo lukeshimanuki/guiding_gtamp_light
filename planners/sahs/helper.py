@@ -132,6 +132,8 @@ def count_pickable_goal_objs_and_placeable_to_goal_region_not_yet_in_goal_region
 
 def update_search_queue(state, actions, node, action_queue, pap_model, mover, config):
     print "Enqueuing..."
+    best_a = None
+    best_hval = np.inf
     for a in actions:
         hval = compute_heuristic(state, a, pap_model, config.h_option, config.mixrate)
         if config.gather_planning_exp:
@@ -147,11 +149,17 @@ def update_search_queue(state, actions, node, action_queue, pap_model, mover, co
         discrete_params = (a.discrete_parameters['object'], a.discrete_parameters['place_region'])
         node.set_heuristic(discrete_params, hval)
         action_queue.put((hval, float('nan'), a, node))  # initial q
-
+        """
         obj = a.discrete_parameters['object']
         if not (isinstance(obj, str) or  isinstance(obj, unicode)):
             obj = obj.GetName()
         region = a.discrete_parameters['place_region']
         if not (isinstance(region, str)):
             region = region.name
-        print "%35s %35s  hval %.4f" % (obj, region, hval)
+        """
+        state.print_geometric_predicates(a)
+        print "Hval", hval
+        if hval < best_hval:
+            best_a = a
+            best_hval = hval
+    print "Best action", best_a.discrete_parameters['object'], best_a.discrete_parameters['place_region']
