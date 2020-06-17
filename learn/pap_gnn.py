@@ -23,7 +23,7 @@ class PaPGNN(GNN):
 
     def create_inputs(self, num_entities, num_node_features, num_edge_features, dim_action):
         num_regions = self.n_regions
-        node_shape = (num_entities, num_node_features)
+        node_shape = (num_entities, num_regions, num_node_features)
         edge_shape = (num_entities, num_entities, num_regions, num_edge_features)
         dim_action = (num_entities, num_regions)
 
@@ -163,8 +163,18 @@ class PaPGNN(GNN):
         else:
             sender_model = self.create_multilayer_model(self.node_input, num_latent_features, 'src', num_layers)
             dest_model = self.create_multilayer_model(self.node_input, num_latent_features, 'dest', num_layers)
-            sender_network = sender_model(self.node_input)
-            dest_network = dest_model(self.node_input)
+            # todo
+            #   I need to have a different node input shape.
+            #   Node is of shape n_entities x n_regions x dim
+            #   We want to apply the sender model on r1 and r2
+            r1_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='r1_vtx')
+            r2_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='r2_vtx')
+            msg_val_r1 = r1_value(self.node_input)
+            msg_val_r2 = r2_value(self.node_input)
+            sender_network_r1 = sender_model(msg_val_r1)
+            sender_network_r2 = sender_model(msg_val_r2)
+            dest_network_r1 = dest_model(msg_val_r1)
+            dest_network_r2 = dest_model(msg_val_r2)
 
         # create edge networks
         edge_model = self.create_multilayer_model(self.edge_input, num_latent_features, 'edge', num_layers)
@@ -172,18 +182,24 @@ class PaPGNN(GNN):
 
         # create concatenation, msg computation, and aggregation layers
         concat_lambda_layer = self.create_sender_dest_edge_concatenation_lambda_layer()
-
         msg_model = self.create_msg_computation_model(num_latent_features, 'msgs', num_layers)
         aggregation_lambda_layer = self.create_aggregation_lambda_layer()
 
         if same_model_for_sender_and_dest:
             concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
         else:
-            concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+            change_sender_dest_into_shape_cancatable_to_edge_layer = self.change_sender_dest_into_shape_cancatable_to_edge()
+            src_dest_r1 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_network_r1, dest_network_r1])
+            src_dest_r2 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_network_r2, dest_network_r2])
 
-        # The msg model has the same number of dimensions as the sender model
-        # concat layer is 11 x 11 x 2 x 96 dims
-        # msg_model should apply the function region-wise
+            def concat_layer_defn(r1_val, r2_val, edge_val):
+                r1_r2_concat = tf.concat([r1_val, r2_val], axis=-2)
+                concat_layer_fn = tf.concat([r1_r2_concat, edge_val], axis=-1)
+                return concat_layer_fn
+
+            concat_layer_fn = tf.keras.layers.Lambda(lambda args: concat_layer_defn(*args), name='concatfirst')
+            concat_layer = concat_layer_fn([src_dest_r1, src_dest_r2, edge_network])
+
         msg_network = msg_model(concat_layer)
         msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
         # for testing purpose; delete it later

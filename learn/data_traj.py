@@ -135,6 +135,7 @@ def get_nodes(state, entity_names):
     return nodes, region_nodes
 
 
+"""
 def get_nodes_new(state, entity_names):
     objects = [e for e in entity_names if 'region' not in e]
     regions = ['home_region', 'loading_region']
@@ -159,10 +160,8 @@ def get_nodes_new(state, entity_names):
             r_unary = make_one_hot_encoded_node(state.nodes[region_name])[6:]
             nodes[obj_idx, region_idx] = np.hstack([o_unary, r_unary])
     return nodes
-"""
 
 
-"""
 def get_edges_new(state, entity_names):
     objects = [e for e in entity_names if 'region' not in e]
     regions = ['home_region', 'loading_region']
@@ -203,6 +202,7 @@ def get_edges_new(state, entity_names):
                                           ba_binary_edge, ternary_edge1, ternary_edge2])
                 edges[aidx, bidx, ridx, :] = edge_feature
     return edges
+"""
 
 
 def extract_individual_example(state, op_instance, remaining_steps=0):
