@@ -47,7 +47,7 @@ def make_one_hot_encoded_edge(edge):
 def get_edges(state, region_nodes, entity_names):
     # Desired output shape: n_e x n_e x n_r x n_edge
 
-    #regions = [r for r in entity_names if 'region' in r and 'entire' not in r]  # is the region order always fixed?
+    # regions = [r for r in entity_names if 'region' in r and 'entire' not in r]  # is the region order always fixed?
     is_one_arm_env = 'rectangular_packing_box1_region' in region_nodes.keys()
     if is_one_arm_env:
         regions = ['rectangular_packing_box1_region', 'center_shelf_region']
@@ -57,6 +57,8 @@ def get_edges(state, region_nodes, entity_names):
     n_regions = len(regions)
     n_entities = len(entity_names)
     edges = np.zeros((n_entities, n_entities, n_regions, n_edge_features))
+    import pdb;
+    pdb.set_trace()
     for aidx, a in enumerate(entity_names):
         for bidx, b in enumerate(entity_names):
             ab_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, b)])
@@ -73,9 +75,9 @@ def get_edges(state, region_nodes, entity_names):
 
 
 def get_actions(op_skeleton, entity_names):
-    name_to_idx = {name: i for i, name in enumerate(entity_names)}
+    object_names = [e for e in entity_names if 'region' not in e]
+    name_to_idx = {name: i for i, name in enumerate(object_names)}
     regions = [r for r in entity_names if 'region' in r]
-    region_name_to_idx = {name: i for i, name in enumerate(regions)}
 
     if op_skeleton.type == 'two_arm_pick':
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
@@ -86,10 +88,9 @@ def get_actions(op_skeleton, entity_names):
         action = np.array([region_idx])
     elif op_skeleton.type == 'two_arm_pick_two_arm_place':
         # todo if you are processing data, then use the commented lines.
-        #object_idx = name_to_idx[op_skeleton.discrete_parameters['two_arm_place_object']]
-        #region_name = op_skeleton.discrete_parameters['two_arm_place_region']
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
         region_name = op_skeleton.discrete_parameters['place_region']
+        regions = ['home_region', 'loading_region']
         if region_name == 'home_region':
             region_idx = 0
         elif region_name == 'loading_region':
@@ -98,15 +99,15 @@ def get_actions(op_skeleton, entity_names):
             raise NotImplementedError
 
         n_regions = 2
-        n_entities = len(entity_names)
-        action = np.zeros((n_entities, n_regions))
+        n_objects = len(object_names)
+        action = np.zeros((n_objects, n_regions))
         action[object_idx, region_idx] = 1
     elif op_skeleton.type == 'one_arm_pick_one_arm_place':
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
         # todo if you are processing data, then use the commented lines.
         # region_name = op_skeleton.discrete_parameters['region'].name
         region_name = op_skeleton.discrete_parameters['place_region']
-        #region_idx = region_name_to_idx[region_name]
+        # region_idx = region_name_to_idx[region_name]
         if region_name == 'rectangular_packing_box1_region':
             region_idx = 0
         elif region_name == 'center_shelf_region':
@@ -123,18 +124,96 @@ def get_actions(op_skeleton, entity_names):
     return action
 
 
-def extract_individual_example(state, op_instance, remaining_steps=0):
-    entity_names = list(state.nodes.keys())[::-1]
+def get_nodes(state, entity_names):
     nodes = []
     region_nodes = {}
     for name in entity_names:
         onehot = make_one_hot_encoded_node(state.nodes[name])
         nodes.append(onehot)
-        if name.find('region') != -1 and name.find('entire') ==-1:
+        if name.find('region') != -1 and name.find('entire') == -1:
             region_nodes[name] = onehot
+    return nodes, region_nodes
 
+
+def get_nodes_new(state, entity_names):
+    objects = [e for e in entity_names if 'region' not in e]
+    regions = ['home_region', 'loading_region']
+    nodes = []
+    for obj_name in objects:
+        o_unary = make_one_hot_encoded_node(state.nodes[obj_name])
+        nodes.append(o_unary)
+    nodes = np.vstack(nodes)
+    return nodes
+"""
+
+
+def get_nodes_new(state, entity_names):
+    objects = [e for e in entity_names if 'region' not in e]
+    n_objs = len(objects)
+    regions = ['home_region', 'loading_region']
+    dim_nodes = 10
+    nodes = np.zeros((n_objs, len(regions), dim_nodes * 2))
+    for obj_idx, obj_name in enumerate(objects):
+        for region_idx, region_name in enumerate(regions):
+            o_unary = make_one_hot_encoded_node(state.nodes[obj_name])[6:]
+            r_unary = make_one_hot_encoded_node(state.nodes[region_name])[6:]
+            nodes[obj_idx, region_idx] = np.hstack([o_unary, r_unary])
+    return nodes
+"""
+
+
+"""
+def get_edges_new(state, entity_names):
+    objects = [e for e in entity_names if 'region' not in e]
+    regions = ['home_region', 'loading_region']
+    n_edge_features = 28
+    edges = np.zeros((len(objects), len(objects), len(regions), n_edge_features))
+    for aidx, a in enumerate(objects):
+        for bidx, b in enumerate(objects):
+            for ridx, r in enumerate(regions):
+                ab_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, b)])
+                ba_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, b)])
+                ar_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, r)])
+                br_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(b, r)])
+                ternary_edge1 = make_one_hot_encoded_edge(state.ternary_edges[(a, b, r)])
+                ternary_edge2 = make_one_hot_encoded_edge(state.ternary_edges[(b, a, r)])
+                edge_feature = np.hstack([ar_binary_edge, br_binary_edge, ab_binary_edge,
+                                          ba_binary_edge, ternary_edge1, ternary_edge2])
+                edges[aidx, bidx, ridx, :] = edge_feature
+    return edges
+
+
+"""
+def get_edges_new(state, entity_names):
+    objects = [e for e in entity_names if 'region' not in e]
+    regions = ['home_region', 'loading_region']
+    n_edge_features = 44
+    edges = np.zeros((len(objects), len(objects), len(regions), n_edge_features))
+    for aidx, a in enumerate(objects):
+        for bidx, b in enumerate(objects):
+            for ridx, r in enumerate(regions):
+                ab_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, b)])
+                ba_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, b)])
+                ar_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(a, r)])
+                br_binary_edge = make_one_hot_encoded_edge(state.binary_edges[(b, r)])
+                ternary_edge1 = make_one_hot_encoded_edge(state.ternary_edges[(a, b, r)])
+                ternary_edge2 = make_one_hot_encoded_edge(state.ternary_edges[(b, a, r)])
+                region_unary = make_one_hot_encoded_node(state.nodes[r])
+                edge_feature = np.hstack([region_unary, ar_binary_edge, br_binary_edge, ab_binary_edge,
+                                          ba_binary_edge, ternary_edge1, ternary_edge2])
+                edges[aidx, bidx, ridx, :] = edge_feature
+    return edges
+
+
+def extract_individual_example(state, op_instance, remaining_steps=0):
+    entity_names = list(state.nodes.keys())[::-1]
+    """
+    nodes, region_nodes = get_nodes(state, entity_names)
     nodes = np.vstack(nodes)
     edges = get_edges(state, region_nodes, entity_names)
+    """
+    nodes = get_nodes_new(state, entity_names)
+    edges = get_edges_new(state, entity_names)
     actions = get_actions(op_instance, entity_names)
 
     costs = remaining_steps
@@ -169,7 +248,7 @@ def extract_file(filename, desired_operator_type='two_arm_pick'):
 # filename is a directory
 def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
     cachefile = "{}{}-num_data_{}.pkl".format(dirname, desired_operator_type, num_data)
-    #cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
+    # cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
     if os.path.isfile(cachefile):
         print "Loading the cached file:", cachefile
         return pickle.load(open(cachefile, 'rb'))
@@ -202,6 +281,7 @@ def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
     data = (nodes, edges, actions, costs)
     pickle.dump(data, open(cachefile, 'wb'))
     return data
+
 
 """
 def extract_individual_example(state, op_instance):
@@ -291,5 +371,3 @@ def load_data(dirname, desired_operator_type='two_arm_pick'):
     pickle.dump(data, open(cachefile, 'wb'))
     return data
 """
-
-
