@@ -309,7 +309,7 @@ class Mover(ProblemEnvironment):
 
     def get_applicable_ops(self, parent_op=None):
         operator_name = 'two_arm_pick_two_arm_place'
-        applicable_ops = [Operator(operator_name, {'object': o, 'region': r})
+        applicable_ops = [Operator(operator_name, {'object': o, 'place_region': r})
                           for o in self.object_names for r in self.region_names]
 
         return applicable_ops
