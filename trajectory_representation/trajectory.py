@@ -1,4 +1,4 @@
-from gtamp_problem_environments.mover_env import Mover
+from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_utils.utils import visualize_path
 from manipulation.bodies.bodies import set_color, get_color
 from planners.subplanners.motion_planner import BaseMotionPlanner
@@ -36,8 +36,11 @@ class Trajectory:
         self.state_prime = self.states[1:]
 
     def create_environment(self):
-        problem_env = Mover(self.problem_idx)
+        problem_env = PaPMoverEnv(self.problem_idx)
         openrave_env = problem_env.env
+        goal_objs = ['square_packing_box1']
+        goal_region = 'home_region'
+        problem_env.set_goal(goal_objs, goal_region)
         target_object = openrave_env.GetKinBody('square_packing_box1')
         set_color(target_object, [1, 0, 0])
 
