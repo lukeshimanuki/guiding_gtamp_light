@@ -376,7 +376,8 @@ class PaPGNN(GNN):
         nodes = nodes[None, :]
         edges = edges[None, :]
         action = action[None, :]
-        return nodes[:, :, 6:], edges, action
+        #return nodes[:, :, 6:], edges, action
+        return nodes, edges, action
 
     def predict(self, state, op_skeleton):
         nodes, edges, action = self.make_raw_format(state, op_skeleton)

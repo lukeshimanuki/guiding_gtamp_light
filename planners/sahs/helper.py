@@ -104,7 +104,7 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
 
     if h_option == 'qlearned_hcount_old_number_in_goal':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
-        nodes = nodes[..., 6:]
+        #nodes = nodes[..., 6:]
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic - mixrate * q_bonus

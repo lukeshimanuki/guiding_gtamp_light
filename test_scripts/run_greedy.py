@@ -180,8 +180,8 @@ def get_pap_gnn_model(mover, config):
             n_regions = 2
         else:
             raise NotImplementedError
-        num_node_features = 10
-        num_edge_features = 44
+        num_node_features = 20
+        num_edge_features = 28
         entity_names = mover.entity_names
 
         with tf.variable_scope('pap'):
