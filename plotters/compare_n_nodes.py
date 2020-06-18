@@ -20,10 +20,11 @@ def get_n_nodes(target_dir):
     test_files = np.array(test_files)[np.argsort(test_file_pidxs)]
     if 'two_arm' in target_dir:
         if 'n_objs_pack_1' in target_dir:
-            if 'pure_learning' not in target_dir:
-                assert '934adde' in target_dir, 'n objs pack for two arm must use commit 934adde'
+            #if 'pure_learning' not in target_dir:
+            #    assert '934adde' in target_dir, 'n objs pack for two arm must use commit 934adde'
             target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
                             40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+            target_pidxs = range(40000, 40100)
         else:
             target_pidxs = [40321, 40203, 40338, 40089, 40220, 40223, 40352, 40357, 40380, 40253, 40331, 40260, 40353,
                             40393, 40272, 40148, 40149, 40283, 40162, 40292, 40295, 40185, 40314, 40060]
@@ -63,8 +64,11 @@ def get_n_nodes(target_dir):
             continue
         if 'gnn_seed' in filename:
             absqseed = int(filename.split('gnn_seed_')[-1].split('.pkl')[0])
-            if absqseed != 0:
-                continue
+
+            #target_absqseed = 1 if 'a179000' in target_dir else 0
+            #if absqseed != target_absqseed:
+            #    #print filename
+            #    continue
 
         if 'rsc' in target_dir:
             pidx = int(filename.split('pidx_')[1].split('.pkl')[0])
@@ -75,7 +79,7 @@ def get_n_nodes(target_dir):
         if not pidx in target_pidxs:
             continue
         fin = pickle.load(open(target_dir + filename, 'r'))
-        targets.remove((pidx, seed))
+        #targets.remove((pidx, seed))
 
         if 'num_nodes' in fin:
             n_node = fin['num_nodes']
@@ -109,14 +113,14 @@ def get_n_nodes(target_dir):
 
     n_data = len(n_nodes)
     print "*****REMAINING****", len(targets)
-    for pidx in targets:
-        pidx_times[pidx_times.keys()[0]].append(timelimit)
-        successes.append(False)
+    #for pidx in targets:
+    #    pidx_times[pidx_times.keys()[0]].append(timelimit)
+    #    successes.append(False)
 
     print 'n_data', n_data
     print 'success', np.mean(successes), np.sum(successes)
     print 'n nodes', np.mean(n_nodes), np.std(n_nodes) * 1.96 / np.sqrt(n_data)
-    print 'times', np.mean(times), np.std(times) * 1.96 / np.sqrt(n_data)
+    print 'times', np.median(times), np.mean(times), np.std(times) * 1.96 / np.sqrt(n_data)
     return pidx_nodes, pidx_times
 
 
@@ -173,21 +177,27 @@ def plot_one_arm():
 
 
 def plot_two_arm():
-    n_objss = [1, 4]
+    n_objss = [1]
     for n_objs in n_objss:
-        print  "****RSC****"
+        print  "****Hcount****"
         if n_objs == 1:
-            target_dir = 'cloud_results/934adde_two_arm_n_objs_pack_1_results//irsc/two_arm_mover/n_objs_pack_1/'
+            target_dir = 'cloud_results/934adde//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
         else:
-            target_dir = 'cloud_results/9226036/irsc/two_arm_mover/n_objs_pack_4/'
-        _, pidx_times_4 = get_n_nodes(target_dir)
+            target_dir = 'cloud_results/9226036//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+        _, pidx_times_3 = get_n_nodes(target_dir)
 
         print  "****Ranking function****"
         if n_objs == 1:
+            #target_dir = 'cloud_results/c8c5552/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
             target_dir = 'cloud_results/934adde_two_arm_n_objs_pack_1_results/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/8437aa8/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5001_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/a179000/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5002_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/934adde/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/a0866e8/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5002_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
         else:
             target_dir = 'cloud_results/9226036/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
         pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+        import pdb;pdb.set_trace()
 
         print  "****Ranking+sampler****"
         if n_objs == 1:
@@ -205,12 +215,12 @@ def plot_two_arm():
             target_dir = 'cloud_results/067e376/pure_learning/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
         _, pidx_times_5 = get_n_nodes(target_dir)
 
-        print  "****Hcount****"
+        print  "****RSC****"
         if n_objs == 1:
-            target_dir = 'cloud_results/934adde_two_arm_n_objs_pack_1_results//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/934adde_two_arm_n_objs_pack_1_results//irsc/two_arm_mover/n_objs_pack_1/'
         else:
-            target_dir = 'cloud_results/9226036//sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
-        _, pidx_times_3 = get_n_nodes(target_dir)
+            target_dir = 'cloud_results/9226036/irsc/two_arm_mover/n_objs_pack_4/'
+        _, pidx_times_4 = get_n_nodes(target_dir)
 
         plt.figure()
         plt.boxplot(
@@ -226,8 +236,8 @@ def plot_two_arm():
 
 
 def main():
-    plot_one_arm()
-    #plot_two_arm()
+    #plot_one_arm()
+    plot_two_arm()
 
 
 if __name__ == '__main__':
