@@ -28,7 +28,7 @@ spec:
           && mc cp csail/bkim/ik/kinematics.4f95c55204252b6edd6332624a20624c ~/.openrave/ --recursive
           && mc cp csail/bkim/ik/robot.7edbf73fb4fc856e8294d93279d26ff2 ~/.openrave/ --recursive
           && export PYTHONPATH=/guiding_gtamp_light/openrave_wrapper/manipulation:/guiding_gtamp_light/openrave_wrapper:/guiding_gtamp_light:/guiding_gtamp_light/mover_library:/pddlstream
-          && python ./test_scripts/run.irsc.py -pidx PIDX -planner_seed PLANSEED -domain two_arm_mover -gather_planning_exp
+          && python ./test_scripts/run_irsc.py -pidx PIDX -domain two_arm_mover -gather_planning_exp
           && ls ./
           && mc cp -r planning_experience csail/bkim/guiding-gtamp; echo finished'
         envFrom:

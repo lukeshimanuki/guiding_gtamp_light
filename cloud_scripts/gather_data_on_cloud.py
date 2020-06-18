@@ -81,7 +81,7 @@ def main():
 
     target_pidxs = range(5000)
     yaml_file = get_yaml_file_name(algorithm, domain)
-    commithash = '2ee5afd3b2a003572e69ee12b07ca7074eaf7f8e'
+    commithash = '887d1af8b6e1fb712ce2df57b39e6fa00c81b322'
 
     seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
     seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(commithash)
