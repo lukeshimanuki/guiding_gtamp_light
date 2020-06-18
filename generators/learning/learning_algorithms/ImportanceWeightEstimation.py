@@ -38,6 +38,7 @@ class ImportanceWeightEstimation:
             self.device = torch.device('cpu')  # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.config = config
         self.model = FCImportanceRatioEstimator(config)
         if config.atype == 'place':
             self.weight_dir = './generators/learning/learned_weights/{}/{}/{}/importance/{}/seed_{}'.format(
@@ -75,29 +76,25 @@ class ImportanceWeightEstimation:
         return self.model(actions, konf_obsts, poses)
 
     def train(self, data_loader, test_data_loader, n_train):
-        test_data = next(iter(test_data_loader))
-        te_poses = test_data['poses'].float()
-        te_konf_obsts = test_data['konf_obsts'].float()
-        te_actions = test_data['actions'].float()
-        te_labels = test_data['labels'].float()
-        use_cuda = 'cuda' in self.device.type
-        if use_cuda:
-            te_poses = te_poses.cuda()
-            te_konf_obsts = te_konf_obsts.cuda()
-            te_actions = te_actions.cuda()
-            te_labels = te_labels.cuda()
-
         def data_generator():
             while True:
                 for d in data_loader:
                     yield d
         data_gen = data_generator()
 
+        # used to evaluate the w
+        all_poses = torch.from_numpy(data_loader.dataset.poses).float().to(self.device)
+        all_actions = torch.from_numpy(data_loader.dataset.actions).float().to(self.device)
+        all_konf_obsts = torch.from_numpy(data_loader.dataset.konf_obsts).float().to(self.device)
+        all_labels = torch.from_numpy(data_loader.dataset.labels).float().to(self.device)
+
         optimizer = optim.Adam(self.model.parameters(), lr=1e-4, betas=(0.5, 0.9))
         testloss = None
         patience = 0
         patience_limit = 10
         best_loss = 99999
+        use_cuda = 'cuda' in self.device.type
+
         for iteration in range(100000):
             _data = data_gen.next()
             poses = _data['poses'].float()
@@ -120,10 +117,10 @@ class ImportanceWeightEstimation:
             optimizer.step()
 
             if iteration % 100 == 0:
-                testloss = self.evaluate_on_testset(iteration, te_poses, te_konf_obsts, te_actions, te_labels)
+                testloss = self.evaluate_on_testset(iteration, all_poses, all_konf_obsts, all_actions, all_labels)
                 if testloss < best_loss:
                     best_loss = testloss
-                    path = self.weight_dir + '/best_weight.pt'
+                    path = self.weight_dir + '/best_weight_seed_%d.pt' % self.config.seed
                     torch.save(self.model.state_dict(), path)
                     patience = 0
                 else:
@@ -131,4 +128,3 @@ class ImportanceWeightEstimation:
                     if patience == patience_limit:
                         break
                 print "Best loss so far", best_loss
-        import pdb;pdb.set_trace()

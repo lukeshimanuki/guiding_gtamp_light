@@ -43,20 +43,21 @@ def calc_gradient_penalty(discriminator, actions_v, konf_obsts_v, poses_v, fake_
 
 
 class WGANgp:
-    def __init__(self, action_type, region_name, architecture, seed, problem_name):
-        self.action_type = action_type
-        self.n_dim_actions = self.get_dim_action(action_type)
-        self.seed = seed
-        self.architecture = architecture
-        self.region_name = region_name
+    def __init__(self, config):
+        self.config = config
+        self.action_type = config.atype
+        self.n_dim_actions = self.get_dim_action(self.action_type)
+        self.seed = config.seed
+        self.architecture = config.architecture
+        self.region_name = config.region
         if socket.gethostname() == 'lab':
             self.device = torch.device('cpu')  # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.problem_name = problem_name
+        self.problem_name = config.domain
         self.discriminator, self.generator = self.create_models()
-        self.weight_dir = self.get_weight_dir(action_type, region_name)
-        self.domain = self.get_domain(action_type, region_name)
+        self.weight_dir = self.get_weight_dir(self.action_type, self.region_name)
+        self.domain = self.get_domain(self.action_type, self.region_name)
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
@@ -115,13 +116,15 @@ class WGANgp:
 
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/{}/wgangp/{}/seed_{}'.format(self.problem_name,
+            dir = './generators/learning/learned_weights/{}/{}/{}/{}/{}/seed_{}'.format(self.problem_name,
                                                                                             action_type,
                                                                                             region_name,
+                                                                                            self.config.train_type,
                                                                                             self.architecture,
                                                                                             self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}'.format(self.problem_name, action_type,
+            dir = './generators/learning/learned_weights/{}/{}/{}/{}/seed_{}'.format(self.problem_name, action_type,
+                                                                                         self.config.train_type,
                                                                                          self.architecture,
                                                                                          self.seed)
         return dir

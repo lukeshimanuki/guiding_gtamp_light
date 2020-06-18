@@ -46,6 +46,14 @@ def get_data_generator(config):
     return trainloader, testloader, trainset, testset
 
 
+def get_w_data(config):
+    batch_size = 32
+    dataset = ImportanceEstimatorDataset(config, True, is_testing=False)
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=20,
+                                              pin_memory=True)
+    return trainloader, dataset
+
+
 def get_wgandi_data(config, w_model):
     dataset = ImportanceEstimatorDataset(config, True, is_testing=False)
     actions = torch.from_numpy(dataset.actions).float()
@@ -106,14 +114,17 @@ def main():
     torch.manual_seed(config.seed)
     if config.train_type == 'w':
         model = ImportanceWeightEstimation(config)
-        trainloader, testloader, trainset, testset = get_data_generator(config)
+        trainloader, trainset = get_w_data(config)
+        testloader = None
     elif config.train_type == 'wgandi':
         w_model = ImportanceWeightEstimation(config)
-        model = WGANgp(config.atype, config.region, config.architecture, config.seed, config.domain)
+        model = WGANgp(config)
         trainloader, testloader, trainset, testset = get_wgandi_data(config, w_model)
-    else:
-        model = WGANgp(config.atype, config.region, config.architecture, config.seed, config.domain)
+    elif config.traintype == 'wgangp':
+        model = WGANgp(config)
         trainloader, testloader, trainset, testset = get_data_generator(config)
+    else:
+        raise NotImplementedError
 
     n_train = len(trainset)
     model.train(trainloader, testloader, n_train)
