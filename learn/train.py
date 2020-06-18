@@ -88,8 +88,7 @@ def train(config):
     assert num_training > 0
     config.num_train = num_training
     config.num_test = num_test
-
-    nodes = nodes[:, :, 6:] # excluding the poses
+    #nodes = nodes[:, :, 6:] # excluding the poses
     model = create_gnn_model(config, nodes, edges)
     callbacks = create_callbacks(model.weight_file_name)
     training_inputs, training_targets = create_train_data(nodes, edges, actions, rewards, num_training)
@@ -107,7 +106,7 @@ def train(config):
     _, post_top_zero_acc, post_top_one_acc, post_top_two_acc = top_k_accuracy(model, tnodes, tedges, tactions,
                                                                               config.top_k)
 
-    write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
+    #write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
     print "Post-training top-0 accuracy %.2f" % post_top_zero_acc
     print "Post-training top-1 accuracy %.2f" % post_top_one_acc
     print "Post-training top-2 accuracy %.2f" % post_top_two_acc
@@ -128,7 +127,7 @@ def parse_args():
     parser.add_argument('-optimizer', type=str, default='adam')
     parser.add_argument('-batch_size', type=int, default=32)
     parser.add_argument('-num_test', type=int, default=1000)
-    parser.add_argument('-num_train', type=int, default=7000)
+    parser.add_argument('-num_train', type=int, default=5000)
     parser.add_argument('-val_portion', type=float, default=0.1)
     parser.add_argument('-top_k', type=int, default=1)
     parser.add_argument('-donttrain', action='store_true', default=False)
