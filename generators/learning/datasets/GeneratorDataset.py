@@ -94,6 +94,8 @@ class GeneratorDataset(Dataset):
                 continue
 
             traj = pickle.load(open(traj_dir + traj_file, 'r'))
+            if len(traj['positive_data'] + traj['neutral_data']) == 0:
+                continue
             states = []
             poses_ids = []
             actions = []
@@ -129,9 +131,12 @@ class GeneratorDataset(Dataset):
             all_states.append(states)
             all_actions.append(actions)
             all_labels.append(labels)
-            print 'n_data %d progress %d/%d n_pos %d n_neutral %d ' \
-                  % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files), np.sum(np.hstack(all_labels)),
-                     np.sum(np.hstack(all_labels) == 0))
+            try:
+              print 'n_data %d progress %d/%d n_pos %d n_neutral %d ' \
+                    % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files), np.sum(np.hstack(all_labels)),
+                     np.sum(np.hstack(all_labels) == 0))  
+            except:
+              import pdb;pdb.set_trace()
             if traj_file_idx > self.config.num_episode:
                 break
 
