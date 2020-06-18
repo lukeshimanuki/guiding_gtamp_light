@@ -55,7 +55,7 @@ class Trajectory:
         picks = plan[::2]
         places = plan[1::2]
         obj_to_pick = {p.discrete_parameters['object']: p for p in picks}
-        obj_to_place = {(p.discrete_parameters['object'], p.discrete_parameters['region']): p for p in places}
+        obj_to_place = {(p.discrete_parameters['object'], p.discrete_parameters['place_region']): p for p in places}
         return [obj_to_pick, obj_to_place]
 
     def visualize_q_values(self, problem_env):
