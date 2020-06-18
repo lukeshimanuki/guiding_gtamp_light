@@ -32,10 +32,13 @@ from test_scripts.run_mcts import get_commit_hash
 
 
 def make_and_get_save_dir(parameters):
-    commit_hash = get_commit_hash()
-    save_dir = ROOTDIR + '/test_results/' + str(commit_hash) + '/irsc/'
-    save_dir += parameters.domain + '/n_objs_pack_'
-    save_dir += str(parameters.n_objs_pack)
+    if parameters.gather_planning_exp:
+        save_dir = './planning_experience/raw/irsc/'
+    else:
+        commit_hash = get_commit_hash()
+        save_dir = ROOTDIR + '/test_results/' + str(commit_hash) + '/irsc/'
+        save_dir += parameters.domain + '/n_objs_pack_'
+        save_dir += str(parameters.n_objs_pack)
 
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
@@ -63,6 +66,7 @@ def parse_parameters():
     parser.add_argument('-n_iter_limit', type=int, default=2000)
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
+    parser.add_argument('-gather_planning_exp', default=False, action='store_true')
 
     # dummy variables
     parser.add_argument('-loss', type=str, default='asdf')
@@ -189,8 +193,8 @@ def main():
     # for creating problem
     np.random.seed(parameters.pidx)
     random.seed(parameters.pidx)
-    is_one_arm_env = parameters.domain.find('two_arm') != -1
-    if is_one_arm_env:
+    is_two_arm_env = parameters.domain.find('two_arm') != -1
+    if is_two_arm_env:
         environment = Mover(parameters.pidx)
     else:
         environment = OneArmMover(parameters.pidx)
