@@ -15,7 +15,10 @@ class GeneratorDataset(Dataset):
         self.use_filter = use_filter
         self.is_testing = is_testing
         self.config = config
-        self.konf_obsts, self.poses, self.actions = self.get_data()
+        #if self.config.train_type == 'w':
+        self.konf_obsts, self.poses, self.actions, self.labels = self.get_data()
+        #else:
+        #    self.konf_obsts, self.poses, self.actions = self.get_data()
 
     def get_cache_file_name(self, action_data_mode):
         state_data_mode = 'absolute'
@@ -23,18 +26,15 @@ class GeneratorDataset(Dataset):
         desired_region = self.config.region
         use_filter = self.use_filter
         if 'pick' in action_type:
-            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s.pkl' % (state_data_mode, action_data_mode, action_type)
+            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_num_data_%d.pkl' % (
+                state_data_mode, action_data_mode, action_type, self.config.num_episode)
         else:
-            if use_filter:
-                cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered.pkl' % (state_data_mode,
-                                                                                               action_data_mode,
-                                                                                               action_type,
-                                                                                               desired_region)
-            else:
-                cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_unfiltered.pkl' % (state_data_mode,
-                                                                                                 action_data_mode,
-                                                                                                 action_type,
-                                                                                                 desired_region)
+            assert use_filter
+            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (state_data_mode,
+                                                                                                       action_data_mode,
+                                                                                                       action_type,
+                                                                                                       desired_region,
+                                                                                                       self.config.num_episode)
         return cache_file_name
 
     def get_data_dir(self):
@@ -43,7 +43,7 @@ class GeneratorDataset(Dataset):
                 data_dir = 'planning_experience/processed/one_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
                            'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
             else:
-                data_dir = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
+                data_dir = 'planning_experience/processed/two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
                            'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
         else:
             raise NotImplementedError
@@ -55,6 +55,7 @@ class GeneratorDataset(Dataset):
         use_filter = self.use_filter
         if 'place' in action_type:
             is_move_to_goal_region = s.region in s.goal_entities
+            # fix this to include the one that moves the object to the goal
             if reward <= 0 and use_filter:
                 return True
 
@@ -72,6 +73,74 @@ class GeneratorDataset(Dataset):
                     return True
 
         return False
+
+    def load_pos_neu_data(self, action_data_mode):
+        traj_dir = self.get_data_dir()
+        traj_files = os.listdir(traj_dir)
+        cache_file_name = self.get_cache_file_name(action_data_mode)
+        if os.path.isfile(traj_dir + cache_file_name):
+            print "Loading the cache file", traj_dir + cache_file_name
+            f = pickle.load(open(traj_dir + cache_file_name, 'r'))
+            print "Cache data loaded"
+            return f
+        n_episodes = 0
+        all_states = []
+        all_actions = []
+        all_poses_ids = []
+        all_labels = []
+        for traj_file_idx, traj_file in enumerate(traj_files):
+            if 'pidx' not in traj_file:
+                print 'not pkl file'
+                continue
+
+            traj = pickle.load(open(traj_dir + traj_file, 'r'))
+            states = []
+            poses_ids = []
+            actions = []
+            data = traj['positive_data'] + traj['neutral_data']
+            for node in data:
+                reward = node['parent_n_in_way'] - node['n_in_way'] > 0 or node['parent_n_in_way'] == 0
+                s = node['concrete_state']
+                if self.we_should_skip_this_state_and_action(s, reward):
+                    continue
+                else:
+                    collision_vec = s.pick_collision_vector
+                    v_manip_goal = node['parent_v_manip']
+                    if 'two_arm' in self.config.domain:
+                        v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape(
+                            (1, 618, 2, 1))
+                    else:
+                        v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape(
+                            (1, 355, 2, 1))
+                    state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
+                    states.append(state_vec)
+                    poses_from_state = get_processed_poses_from_state(s, 'absolute')
+                    a = node['action_info']
+                    if 'rectangular' in a['object_name']:
+                        object_id = [1, 0]
+                    else:
+                        object_id = [0, 1]
+                    poses_from_state_and_id = np.hstack([poses_from_state, object_id])
+                    poses_ids.append(poses_from_state_and_id)
+                    actions.append(get_processed_poses_from_action(s, a, action_data_mode))
+
+            labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
+            all_poses_ids.append(poses_ids)
+            all_states.append(states)
+            all_actions.append(actions)
+            all_labels.append(labels)
+            print 'n_data %d progress %d/%d n_pos %d n_neutral %d ' \
+                  % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files), np.sum(np.hstack(all_labels)),
+                     np.sum(np.hstack(all_labels) == 0))
+            if traj_file_idx > self.config.num_episode:
+                break
+
+        all_states = np.vstack(all_states).squeeze(axis=1)
+        all_actions = np.vstack(all_actions).squeeze()
+        all_poses_ids = np.vstack(all_poses_ids).squeeze()
+        all_labels = np.hstack(all_labels).squeeze()
+        pickle.dump((all_states, all_poses_ids, all_actions, all_labels), open(traj_dir + cache_file_name, 'wb'))
+        return all_states, all_poses_ids, all_actions, all_labels
 
     def load_data_from_files(self, action_data_mode):
         traj_dir = self.get_data_dir()
@@ -96,7 +165,7 @@ class GeneratorDataset(Dataset):
                 print 'not pkl file'
                 continue
             try:
-                traj = pickle.load(open(traj_dir + traj_file, 'r')) 
+                traj = pickle.load(open(traj_dir + traj_file, 'r'))
             except:
                 print traj_file
                 continue
@@ -114,7 +183,6 @@ class GeneratorDataset(Dataset):
                 rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) > 0
             else:
                 rewards = 1
-
             for s, a, reward, v_manip_goal in zip(traj.states, traj.actions, rewards, traj.prev_v_manip_goal):
                 if self.we_should_skip_this_state_and_action(s, reward):
                     continue
@@ -172,7 +240,8 @@ class GeneratorDataset(Dataset):
         else:
             action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
-        states, poses, actions = self.load_data_from_files(action_data_mode)
+        states, poses, actions, labels = self.load_pos_neu_data(action_data_mode)
+
         if self.config.atype == 'pick':
             actions = actions[:, :-4]
         elif self.config.atype == 'place':
@@ -182,7 +251,7 @@ class GeneratorDataset(Dataset):
         else:
             raise NotImplementedError
 
-        return states, poses, actions
+        return states, poses, actions, labels
 
     def __len__(self):
         return len(self.konf_obsts)
@@ -200,5 +269,19 @@ class StandardDataset(GeneratorDataset):
             'konf_obsts': self.konf_obsts[idx],
             'poses': self.poses[idx],
             'actions': self.actions[idx],
+        }
+        return data
+
+
+class ImportanceEstimatorDataset(GeneratorDataset):
+    def __init__(self, config, use_filter, is_testing):
+        super(ImportanceEstimatorDataset, self).__init__(config, use_filter, is_testing)
+
+    def __getitem__(self, idx):
+        data = {
+            'konf_obsts': self.konf_obsts[idx],
+            'poses': self.poses[idx],
+            'actions': self.actions[idx],
+            'labels': self.labels[idx]
         }
         return data
