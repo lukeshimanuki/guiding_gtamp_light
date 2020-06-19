@@ -21,7 +21,7 @@ def plot(x_data, y_data, title, file_dir):
         os.makedirs(file_dir)
     print "Saving figure...", file_dir + '{}.png'.format(title)
     if 'kernel' in title:
-        plt.ylim(np.mean(y_data)-0.5*np.std(y_data), np.mean(y_data)+np.std(y_data))
+        plt.ylim(np.mean(y_data) - 0.5 * np.std(y_data), np.mean(y_data) + np.std(y_data))
     plt.savefig(file_dir + '{}.png'.format(title))
 
 
@@ -29,10 +29,10 @@ def plot_results(iterations, results, result_dir):
     results = copy.deepcopy(np.array(results))
     iterations = copy.deepcopy(np.array(iterations)[:len(results)])
     in_bound_idxs = results[:, 2] != np.inf
-    #results = results[in_bound_idxs, :]
+    # results = results[in_bound_idxs, :]
     if len(results) == 0:
         return
-    #iterations = iterations[in_bound_idxs]
+    # iterations = iterations[in_bound_idxs]
 
     plot(iterations[1:], results[1:, 0], 'Min MSEs', result_dir)
     plot(iterations[1:], results[1:, 1], 'kernel_density_estimates', result_dir)
@@ -65,6 +65,25 @@ def print_results(results, iterations, plot_dir, result_dir):
     fin.write(to_print)
 
 
+def get_result_summary_dir(config):
+    if 'place' in config.atype:
+        result_dir = './generators/learning/learned_weights/{}/{}/{}/{}/{}/seed_{}/result_summary/'.format(
+            config.domain,
+            config.atype,
+            config.region,
+            config.train_type,
+            config.architecture,
+            config.seed)
+    else:
+        result_dir = './generators/learning/learned_weights/{}/{}/{}/{}/seed_{}/result_summary/'.format(
+            config.domain,
+            config.atype,
+            config.train_type,
+            config.architecture,
+            config.seed)
+    return result_dir
+
+
 def main():
     parser = argparse.ArgumentParser('config')
     parser.add_argument('-atype', type=str, default='place')
@@ -72,6 +91,8 @@ def main():
     parser.add_argument('-iteration', type=int, default=0)
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
+    parser.add_argument('-train_type', type=str, default='wgandi')
+    parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-old', action='store_true', default=False)  # used for threaded runs
     config = parser.parse_args()
     if config.old:
@@ -82,13 +103,8 @@ def main():
         print_results(results, range(len(results)), result_dir)
         return
 
-    if config.atype == 'pick':
-        result_dir = './generators/learning/learned_weights/{}/wgangp/{}/seed_{}/result_summary/'.format(config.atype,
-                                                                                                 config.architecture,config.seed)
-    else:
-        result_dir = './generators/learning/learned_weights/{}/{}/wgangp/{}/seed_{}/result_summary/'.format(config.atype,
-                                                                                                    config.region,
-                                                                                                    config.architecture,config.seed)
+    result_dir = get_result_summary_dir(config)
+
     result_files = os.listdir(result_dir + '/')
     iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
     result_files_sorted = np.array(result_files)[np.argsort(iters)]
@@ -96,8 +112,8 @@ def main():
     result_files_sorted.tolist()
     results = [pickle.load(open(result_dir + result_file, 'r')) for result_file in result_files_sorted]
 
-    plot_dir = './plotters/generator_plots/{}/{}/wgangp/{}/seed_{}/'.format(config.atype, config.region,
-                                                                    config.architecture,config.seed)
+    plot_dir = './plotters/generator_plots/{}/{}/{}/{}/seed_{}/'.format(config.atype, config.region, config.train_type,
+                                                                        config.architecture, config.seed)
     if not os.path.isdir(plot_dir):
         os.makedirs(plot_dir)
 
