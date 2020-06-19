@@ -39,13 +39,13 @@ class Generator:
 
         if operator_type == 'two_arm_pick':
             self.domain = get_pick_domain()
-            self.op_feasibility_checker = TwoArmPickFeasibilityChecker(problem_env)
+            self.op_feasibility_checker = TwoArmPickFeasibilityChecker(problem_env, 'ir_parameters')
         elif operator_type == 'one_arm_pick':
             self.domain = get_pick_domain()
             self.op_feasibility_checker = OneArmPickFeasibilityChecker(problem_env)
         elif operator_type == 'two_arm_place':
             self.domain = get_place_domain(target_region)
-            self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env)
+            self.op_feasibility_checker = TwoArmPlaceFeasibilityChecker(problem_env, 'object_pose')
         elif operator_type == 'one_arm_place':
             self.domain = get_place_domain(target_region)
             self.op_feasibility_checker = OneArmPlaceFeasibilityChecker(problem_env)
