@@ -132,7 +132,7 @@ class PlaceInWay(TernaryPredicate, InWay):
         obj_holding = self.robot.GetGrabbed()[0]
         target_region = self.problem_env.regions[region]
         place_op = Operator(operator_type='two_arm_place', discrete_parameters={'object': obj_holding,
-                                                                                'region': target_region})
+                                                                                'place_region': target_region})
         obj_region_key = (obj_holding.GetName(), region)
         if obj_region_key in self.mc_paths:
             motion = self.mc_paths[(obj_holding.GetName(), region)]
@@ -195,7 +195,7 @@ class PlaceInWay(TernaryPredicate, InWay):
                     status = 'HasSolution'
                     place_op = Operator(operator_type='two_arm_place', discrete_parameters={
                         'object': self.problem_env.env.GetKinBody(a),
-                        'region': self.problem_env.regions[r],
+                        'place_region': self.problem_env.regions[r],
                     })
                     place_op.low_level_motion = path
                     place_op.continuous_parameters = {'q_goal': path[-1]}
