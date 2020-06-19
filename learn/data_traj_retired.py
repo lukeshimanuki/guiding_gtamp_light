@@ -72,54 +72,6 @@ def get_edges(state, region_nodes, entity_names):
     return edges
 
 
-def get_actions_new(op_skeleton, entity_names):
-    object_names = [e for e in entity_names if 'region' not in e]
-    name_to_idx = {name: i for i, name in enumerate(object_names)}
-    regions = [r for r in entity_names if 'region' in r]
-
-    if op_skeleton.type == 'two_arm_pick':
-        object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
-        action = np.array([object_idx])
-    elif op_skeleton.type == 'two_arm_place':
-        region_name = op_skeleton.discrete_parameters['region']
-        region_idx = 0 if region_name == 'home_region' else 1
-        action = np.array([region_idx])
-    elif op_skeleton.type == 'two_arm_pick_two_arm_place':
-        # todo if you are processing data, then use the commented lines.
-        object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
-        region_name = op_skeleton.discrete_parameters['place_region']
-        regions = ['home_region', 'loading_region']
-        if region_name == 'home_region':
-            region_idx = 0
-        elif region_name == 'loading_region':
-            region_idx = 1
-        else:
-            raise NotImplementedError
-
-        n_regions = 2
-        n_objects = len(object_names)
-        action = np.zeros((n_objects, n_regions))
-        action[object_idx, region_idx] = 1
-    elif op_skeleton.type == 'one_arm_pick_one_arm_place':
-        object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
-        # todo if you are processing data, then use the commented lines.
-        # region_name = op_skeleton.discrete_parameters['region'].name
-        region_name = op_skeleton.discrete_parameters['place_region']
-        # region_idx = region_name_to_idx[region_name]
-        if region_name == 'rectangular_packing_box1_region':
-            region_idx = 0
-        elif region_name == 'center_shelf_region':
-            region_idx = 1
-        else:
-            raise NotImplementedError
-
-        n_regions = len(regions)
-        n_entities = len(entity_names)
-        action = np.zeros((n_entities, n_regions))
-        action[object_idx, region_idx] = 1
-    else:
-        raise NotImplementedError
-    return action
 
 
 def get_actions(op_skeleton, entity_names):
@@ -139,7 +91,7 @@ def get_actions(op_skeleton, entity_names):
         #object_idx = name_to_idx[op_skeleton.discrete_parameters['two_arm_place_object']]
         #region_name = op_skeleton.discrete_parameters['two_arm_place_region']
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
-        region_name = op_skeleton.discrete_parameters['place_region']
+        region_name = op_skeleton.discrete_parameters['two_arm_place_place_region'].name
         if region_name == 'home_region':
             region_idx = 0
         elif region_name == 'loading_region':
@@ -155,7 +107,8 @@ def get_actions(op_skeleton, entity_names):
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object'].GetName()]
         # todo if you are processing data, then use the commented lines.
         # region_name = op_skeleton.discrete_parameters['region'].name
-        region_name = op_skeleton.discrete_parameters['place_region'].name
+        region_name = op_skeleton.discrete_parameters['two_arm_place_place_region'].name
+
         #region_idx = region_name_to_idx[region_name]
         if region_name == 'rectangular_packing_box1_region':
             region_idx = 0

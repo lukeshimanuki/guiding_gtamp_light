@@ -1,3 +1,4 @@
+
 from data_traj import extract_individual_example as make_predictable_form
 from gnn import GNN
 
@@ -34,6 +35,14 @@ class PaPGNN(GNN):
         kcosts = tf.keras.Input(shape=[1], dtype=tf.int32)
 
         return knodes, kedges, kactions, koperators, kcosts
+
+    def load_weights(self):
+        self.weight_file_name = './learn/q-function-weights/trained_with_rsc_used_in_corl_submission/' \
+                                'Q_weight_n_msg_passing_1_mse_weight_1.0_optimizer_' \
+                                'adam_seed_%d_lr_0.0001_operator_two_arm_pick_two_arm_place_n_layers_2_n_hidden_32' \
+                                '_top_k_1_num_train_5000_loss_%s.hdf5' % (self.config.seed, self.config.loss)
+        print "Loading weight", self.weight_file_name
+        self.loss_model.load_weights(self.weight_file_name)
 
     def create_msg_computaton_layers(self, input, num_latent_features, name, n_layers):
         n_node_features = self.num_node_features
@@ -321,4 +330,3 @@ class PaPGNN(GNN):
         nodes, edges, action = self.make_raw_format(state, op_skeleton)
         val = self.predict_with_raw_input_format(nodes, edges, action)
         return val
-
