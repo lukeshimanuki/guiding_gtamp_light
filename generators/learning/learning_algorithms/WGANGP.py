@@ -177,7 +177,6 @@ class WGANgp:
         if data_mean is None:
             data_mean = data.mean(axis=0)
             data_std = data.std(axis=0)
-
         data = (data - data_mean) / data_std
         return data, data_mean, data_std
 
@@ -194,6 +193,11 @@ class WGANgp:
             self.load_weights(iteration)
 
         test_data = test_data[:]
+        if type(test_data['poses']) == torch.Tensor:
+            test_data['poses'] = test_data['poses'].numpy()
+            test_data['konf_obsts'] = test_data['konf_obsts'].numpy()
+            test_data['actions'] = test_data['actions'].numpy()
+
         poses = torch.from_numpy(test_data['poses']).float().to(self.device)
         konf_obsts = torch.from_numpy(test_data['konf_obsts']).float().to(self.device)
 
@@ -294,7 +298,7 @@ class WGANgp:
             for p in self.discriminator.parameters():  # reset requires_grad
                 p.requires_grad = True  # they are set to False below in self.generator update
 
-            print "%d / %d" % (iteration, total_iterations)
+            #print "%d / %d" % (iteration, total_iterations)
 
             for iter_d in xrange(CRITIC_ITERS):
                 _data = data_gen.next()

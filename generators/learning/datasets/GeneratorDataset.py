@@ -100,12 +100,20 @@ class GeneratorDataset(Dataset):
             poses_ids = []
             actions = []
             data = traj['positive_data'] + traj['neutral_data']
-            for node in data:
-                reward = node['parent_n_in_way'] - node['n_in_way'] > 0 or node['parent_n_in_way'] == 0
+            temp_labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
+            labels = []
+            assert 'two_arm' in data[0]['action'].type, 'change the reward condition on region for one_arm'
+            for node, temp_label in zip(data, temp_labels):
+                is_neutral_data = temp_label == 0
+                reward = is_neutral_data or\
+                           (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
+                           (node['parent_n_in_way']==0 and node['n_in_way']==0 and\
+                               node['action'].discrete_parameters['place_region'] == 'home_region')
                 s = node['concrete_state']
                 if self.we_should_skip_this_state_and_action(s, reward):
                     continue
                 else:
+                    labels.append(temp_label)
                     collision_vec = s.pick_collision_vector
                     v_manip_goal = node['parent_v_manip']
                     if 'two_arm' in self.config.domain:
@@ -125,12 +133,14 @@ class GeneratorDataset(Dataset):
                     poses_from_state_and_id = np.hstack([poses_from_state, object_id])
                     poses_ids.append(poses_from_state_and_id)
                     actions.append(get_processed_poses_from_action(s, a, action_data_mode))
-
-            labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
+            if len(poses_ids) == 0:
+                continue
             all_poses_ids.append(poses_ids)
             all_states.append(states)
             all_actions.append(actions)
             all_labels.append(labels)
+            assert len(np.hstack(all_labels)) == len(np.vstack(all_poses_ids))
+          
             try:
               print 'n_data %d progress %d/%d n_pos %d n_neutral %d ' \
                     % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files), np.sum(np.hstack(all_labels)),

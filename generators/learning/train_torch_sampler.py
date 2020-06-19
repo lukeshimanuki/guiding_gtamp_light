@@ -69,7 +69,7 @@ def get_wgandi_data(config, w_model):
     # computing importance values of neutral actions
     w_values = w_model.predict(neu_actions, neu_konf_obsts, neu_poses).detach()
     w_values[w_values < 0] = 0
-    prob_of_data = (w_values / torch.sum(w_values)).numpy()
+    prob_of_data = (w_values / torch.sum(w_values)).cpu().numpy()
 
     # sampling neutral data according to their w values
     n_neu_data = len(neu_actions)
@@ -118,9 +118,10 @@ def main():
         testloader = None
     elif config.train_type == 'wgandi':
         w_model = ImportanceWeightEstimation(config)
+        w_model.load_weights()
         model = WGANgp(config)
         trainloader, testloader, trainset, testset = get_wgandi_data(config, w_model)
-    elif config.traintype == 'wgangp':
+    elif config.train_type == 'wgangp':
         model = WGANgp(config)
         trainloader, testloader, trainset, testset = get_data_generator(config)
     else:

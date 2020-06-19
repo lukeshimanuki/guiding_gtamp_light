@@ -40,6 +40,7 @@ class ImportanceWeightEstimation:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.config = config
         self.model = FCImportanceRatioEstimator(config)
+        self.model.to(self.device)
         if config.atype == 'place':
             self.weight_dir = './generators/learning/learned_weights/{}/{}/{}/importance/{}/seed_{}'.format(
                 config.domain,
@@ -66,14 +67,16 @@ class ImportanceWeightEstimation:
         return loss.item()
 
     def load_weights(self):
-        weight_file = self.weight_dir + '/best_weight.pt'
+        weight_file = self.weight_dir + '/best_weight_seed_%d.pt' % self.config.seed
+        print "Loading weight", weight_file
         if 'cpu' in self.device.type:
             self.model.load_state_dict(torch.load(weight_file, map_location=torch.device('cpu')))
         else:
             self.model.load_state_dict(torch.load(weight_file))
+            self.model.to(self.device)
 
     def predict(self, actions, konf_obsts, poses):
-        return self.model(actions, konf_obsts, poses)
+        return self.model(actions.to(self.device), konf_obsts.to(self.device), poses.to(self.device))
 
     def train(self, data_loader, test_data_loader, n_train):
         def data_generator():

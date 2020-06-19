@@ -11,7 +11,7 @@ from generators.learning.learning_algorithms.WGANGP import WGANgp
 
 
 def worker_p(config):
-    command = 'python ./plotters/evaluate_generators.py'
+    command = 'python ./generators/learning/evaluate_generators.py'
 
     for key, value in zip(config.keys(), config.values()):
         option = ' -' + str(key) + ' ' + str(value)
