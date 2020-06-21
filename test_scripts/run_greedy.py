@@ -109,6 +109,7 @@ def parse_arguments():
     parser.add_argument('-absq_seed', type=int, default=0)
     parser.add_argument('-mixrate', type=float, default=1.0)
     parser.add_argument('-use_region_agnostic', action='store_true', default=False)
+    parser.add_argument('-statetype', type=str, default='shortest')
 
     # abstract heuristic function setup
     parser.add_argument('-h_option', type=str, default='qlearned_hcount_old_number_in_goal')
@@ -146,7 +147,7 @@ def get_pap_gnn_model(mover, config):
                                               'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes '
                                               'top_k optimizer lr use_mse batch_size seed num_train val_portion '
                                               'mse_weight diff_weight_msg_passing same_vertex_model '
-                                              'weight_initializer loss use_region_agnostic')
+                                              'weight_initializer loss use_region_agnostic statetype')
 
         pap_mconfig = mconfig_type(
             operator='two_arm_pick_two_arm_place',
@@ -170,7 +171,8 @@ def get_pap_gnn_model(mover, config):
             same_vertex_model=False,
             weight_initializer='glorot_uniform',
             loss=config.loss,
-            use_region_agnostic=config.use_region_agnostic
+            use_region_agnostic=config.use_region_agnostic,
+            statetype=config.statetype
         )
         if config.domain == 'two_arm_mover':
             num_entities = 8
