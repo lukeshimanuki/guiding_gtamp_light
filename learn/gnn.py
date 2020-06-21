@@ -368,6 +368,7 @@ class GNN(object):
             'num_train',
             # 'num_test',
             # 'val_portion',
+            'statetype',
             'use_region_agnostic',
             'loss',
         ])
