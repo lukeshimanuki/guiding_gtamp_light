@@ -371,6 +371,8 @@ class WGANgp:
 
             # Write logs and save samples
             if iteration % 100 == 0:
+                result = self.evaluate_generator(test_set, iteration=iteration)
+
                 print "Iteration %d / %d" % (iteration, total_iterations)
                 path = self.weight_dir + '/disc_iter_%d.pt' % iteration
                 torch.save(self.discriminator.state_dict(), path)
