@@ -178,7 +178,7 @@ def get_pap_gnn_model(mover, config):
             num_entities = 8
             n_regions = 2
         elif config.domain == 'one_arm_mover':
-            num_entities = 12
+            num_entities = 10
             n_regions = 2
         else:
             raise NotImplementedError

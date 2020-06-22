@@ -306,13 +306,7 @@ class ShortestPathPaPState(PaPState):
                 is_b_in_way_of_reaching_r_while_holding_a = self.place_in_way(a, b, r, cached_path=cached_path)
             return [is_b_in_way_of_reaching_r_while_holding_a]
 
-    def print_geometric_predicates(self, action):
-            obj = action.discrete_parameters['object']
-            region = action.discrete_parameters['place_region']
-            print "%25s %15s Reachable? %d  ManipFree? %d IsGoal? %d" \
-                  % (obj, region, self.nodes[obj][-2],
-                     self.binary_edges[(obj, region)][-1],
-                     obj in self.goal_entities)
+
 
     def get_binary_edge_features(self, a, b):
         is_place_in_b_reachable_while_holding_a = (a, b) in self.reachable_regions_while_holding
