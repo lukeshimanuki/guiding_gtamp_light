@@ -71,7 +71,8 @@ def main():
                     'region': parameters.region,
                     'architecture': parameters.architecture,
                     'seed': parameters.seed,
-                    'domain': parameters.domain
+                    'domain': parameters.domain,
+                    'train_type': parameters.train_type
                 }
 
                 configs.append(config)

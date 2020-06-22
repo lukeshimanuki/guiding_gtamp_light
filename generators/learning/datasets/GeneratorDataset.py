@@ -278,6 +278,9 @@ class GeneratorDataset(Dataset):
 class StandardDataset(GeneratorDataset):
     def __init__(self, config, use_filter, is_testing):
         super(StandardDataset, self).__init__(config, use_filter, is_testing)
+        self.konf_obsts = self.konf_obsts[self.labels==1]
+        self.poses = self.poses[self.labels==1]
+        self.actions = self.actions[self.labels==1]
 
     def __getitem__(self, idx):
         data = {
