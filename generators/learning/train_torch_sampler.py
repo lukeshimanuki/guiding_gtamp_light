@@ -32,17 +32,8 @@ def get_data_generator(config):
     n_test = len(testset.indices)
     testloader = torch.utils.data.DataLoader(trainset, batch_size=n_test, shuffle=True, num_workers=20,
                                              pin_memory=True)
+    print "number of training data", n_train
 
-    """
-    test_idx_dir = './generators/datasets/testset_cache_file_idxs/'
-    if not os.path.isdir(test_idx_dir):
-        os.makedirs(test_idx_dir)
-    action_type = config.atype
-    region = config.region
-    seed = config.seed
-    test_idx_file = 'seed_{}_atype_{}_region_{}.pkl'.format(seed, action_type, region)
-    pickle.dump(testset.indices, open(test_idx_dir + test_idx_file, 'wb'))
-    """
     return trainloader, testloader, trainset, testset
 
 
@@ -96,6 +87,7 @@ def get_wgandi_data(config, w_model):
     n_test = len(testset.indices)
     testloader = torch.utils.data.DataLoader(trainset, batch_size=n_test, shuffle=True, num_workers=20,
                                              pin_memory=True)
+    print "number of training data", n_train
     return trainloader, testloader, trainset, testset
 
 
@@ -129,7 +121,7 @@ def main():
 
     n_train = len(trainset)
     model.train(trainloader, testloader, n_train)
-    model.load_weights()
+    #model.load_weights()
 
 
 if __name__ == '__main__':
