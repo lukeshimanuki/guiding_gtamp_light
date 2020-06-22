@@ -170,6 +170,20 @@ class PaPGNN(GNN):
         self.aggregation_model = self.make_model(inputs, msg_aggregation_layer, 'value_aggregation')
         return q_layer, value_layer
 
+    def change_sender_dest_into_shape_cancatable_to_edge(self):
+        def layer_defn(sender_r1, dest_r1):
+            n_entities = self.num_entities
+            src_repetitons = [1, 1, n_entities, 1]  # repeat in the columns
+            repeated_srcs = tf.tile(tf.expand_dims(sender_r1, -2), src_repetitons)
+            dest_repetitons = [1, n_entities, 1, 1]  # repeat in the rows
+            repeated_dests = tf.tile(tf.expand_dims(dest_r1, 1), dest_repetitons)
+            src_dest_concatenated = tf.concat([repeated_srcs, repeated_dests], axis=-1)
+            src_dest_concatenated = tf.expand_dims(src_dest_concatenated, -2)
+            return src_dest_concatenated
+
+        layer = tf.keras.layers.Lambda(lambda args: layer_defn(*args), name='')
+        return layer
+
     def create_graph_network_layers_with_same_msg_passing_network(self, config):
         num_latent_features = config.n_hidden
         num_layers = config.n_layers
@@ -212,40 +226,41 @@ class PaPGNN(GNN):
                 vertex_network = vertex_model(msg_aggregation_layer)
                 concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
             else:
+                if self.config.use_region_agnostic:
+                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
+                    val = region_agnostic_msg_value(msg_aggregation_layer)
+                    sender_network = sender_model(val)
+                    dest_network = dest_model(val)
+                    concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+                else:
+                    # r1_msg_value is the set of values aggregated for moving object into a particular region
+                    r1_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='r1_msgs')
+                    r2_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='r2_msgs')
+                    msg_val_r1 = r1_msg_value(msg_aggregation_layer)
+                    msg_val_r2 = r2_msg_value(msg_aggregation_layer)
+                    # val = region_agnostic_msg_value(msg_aggregation_layer)
+                    sender_r1 = sender_model(msg_val_r1)
+                    dest_r1 = dest_model(msg_val_r1)
+                    sender_r2 = sender_model(msg_val_r2)
+                    dest_r2 = dest_model(msg_val_r2)
+                    change_sender_dest_into_shape_cancatable_to_edge_layer = self.change_sender_dest_into_shape_cancatable_to_edge()
+                    src_dest_r1 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_r1, dest_r1])
+                    src_dest_r2 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_r2, dest_r2])
+
+                    def concat_layer_defn(r1_val, r2_val, edge_val):
+                        r1_r2_concat = tf.concat([r1_val, r2_val], axis=-2)
+                        concat_layer_fn = tf.concat([r1_r2_concat, edge_val], axis=-1)
+                        return concat_layer_fn
+
+                    concat_layer_fn = tf.keras.layers.Lambda(lambda args: concat_layer_defn(*args), name='concat2')
+                    concat_layer = concat_layer_fn([src_dest_r1, src_dest_r2, edge_network])
+                """
                 region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
-                # todo
-                #   This is conceptually different from what I have written in the paper and needs to be fixed.
-                #   Unfortunately, I do not have time to re-run experiments at the moment, so here I write
-                #   how it should have been.
-                #   Our GNN two disconnected graphs, one for each region. In each component of the graph,
-                #   we have the value of moving object to the region. Suppose we have two objects
-                #   and two regions, o1, o2 and r1 and r2. Then, we have two disconnected graphs where one component
-                #   encodes value of moving o1 to r1 and o2 to r1, and the other for o1 to r2 and o2 to r2
-                #   Within each component, the graph is fully connected.
-                #   For each edge between o1 and o2, we encode the unary predicates of o1, o2, and
-                #   its corresponding region, say r1, as well as binary predicates between
-                #   o1 and r1 and o2 and r1. A ternary predicate is also encoded for o1, o2, and r1.
-                #   To compute the messages, we first compute node values at o1 and o2, using f(o;\theta_1).
-                #   We then compute the edges values using f(edge(o1,o2,r1); \theta_2)
-                #   We aggregate the message at node o1 using averaging, which in this case would be just
-                #   agg_msg_o1 = f(edge(o1,o2,r1); theta2)
-                #   A new node value is computed by a new function: new_value_at_o1_for_r = f(agg_msg_o1; \theta_3)
-                # todo
-                #   Unfortunately, this is not what I have. I need to:
-                #   - Create a new node feature for each region. Right now, I use
-                #     new_value_at_o1_for_r1 where it should have been new_value_at_o1_for_r2, using
-                #     region_agnostic_msg_value
-                #   To do this, keep separate values for each region.
-                #   Create a new node input that corresponds to different regions
-                #   Fix L79. It should not repeat the src_dest_concatenated, but use appropriate value
-                #   for the corresponding region.
-
-                #   That is, sender_network_r1 and sender_networ_r2
-
                 val = region_agnostic_msg_value(msg_aggregation_layer)
                 sender_network = sender_model(val)
                 dest_network = dest_model(val)
                 concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+                """
             msg_network = msg_model(concat_layer)
             msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
             # todo it is saturating here when I use relu?
