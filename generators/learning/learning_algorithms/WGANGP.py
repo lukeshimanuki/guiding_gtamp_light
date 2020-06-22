@@ -290,6 +290,8 @@ class WGANgp:
                     yield d
 
         data_gen = data_generator()
+        patience = 0
+        best_kde = -np.inf
         stime = time.time()
         for iteration in xrange(total_iterations):
             ############################
@@ -371,10 +373,18 @@ class WGANgp:
 
             # Write logs and save samples
             if iteration % 100 == 0:
-                print "Iteration %d / %d" % (iteration, total_iterations)
-                path = self.weight_dir + '/disc_iter_%d.pt' % iteration
-                torch.save(self.discriminator.state_dict(), path)
-                path = self.weight_dir + '/gen_iter_%d.pt' % iteration
-                torch.save(self.generator.state_dict(), path)
+                mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
+                print "Best KDE", best_kde
+                if kde > best_kde:
+                    best_kde = kde  
+                    print "Iteration %d / %d" % (iteration, total_iterations)
+                    path = self.weight_dir + '/disc.pt' 
+                    torch.save(self.discriminator.state_dict(), path)
+                    path = self.weight_dir + '/gen.pt' 
+                    torch.save(self.generator.state_dict(), path)
+                else:
+                    patience += 1
+                if patience >= 100:
+                    break
                 print 'Time taken', time.time() - stime
                 stime = time.time()
