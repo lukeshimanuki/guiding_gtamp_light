@@ -91,7 +91,8 @@ def get_actions(op_skeleton, entity_names):
         #object_idx = name_to_idx[op_skeleton.discrete_parameters['two_arm_place_object']]
         #region_name = op_skeleton.discrete_parameters['two_arm_place_region']
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
-        region_name = op_skeleton.discrete_parameters['two_arm_place_place_region'].name
+        #region_name = op_skeleton.discrete_parameters['two_arm_place_place_region'].name
+        region_name = op_skeleton.discrete_parameters['place_region']
         if region_name == 'home_region':
             region_idx = 0
         elif region_name == 'loading_region':
