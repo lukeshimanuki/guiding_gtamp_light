@@ -1,8 +1,8 @@
-from learn.data_traj import extract_individual_example
+from learn.data_traj_retired import extract_individual_example
 from planners.heuristics import compute_hcount_with_action, compute_hcount, get_goal_objs_not_in_goal_region
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
-from learn.data_traj import get_actions as convert_action_to_predictable_form
+from learn.data_traj_retired import get_actions as convert_action_to_predictable_form
 import numpy as np
 import openravepy
 

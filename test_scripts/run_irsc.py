@@ -33,7 +33,7 @@ from test_scripts.run_mcts import get_commit_hash
 
 def make_and_get_save_dir(parameters):
     if parameters.gather_planning_exp:
-        save_dir = './planning_experience/raw/irsc/'
+        save_dir = './planning_experience/raw/irsc_prm/'
     else:
         commit_hash = get_commit_hash()
         save_dir = ROOTDIR + '/test_results/' + str(commit_hash) + '/irsc/'

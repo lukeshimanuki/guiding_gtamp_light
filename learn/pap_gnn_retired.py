@@ -36,6 +36,32 @@ class PaPGNN(GNN):
 
         return knodes, kedges, kactions, koperators, kcosts
 
+
+    def create_weight_file_name(self):
+        filedir = './learn/q-function-weights/'
+        filename = "Q_weight_"
+        filename += '_'.join(arg + "_" + str(getattr(self.config, arg)) for arg in [
+            'n_msg_passing',
+            # 'diff_weight_msg_passing',
+            'mse_weight',
+            'optimizer',
+            # 'batch_size',
+            'seed',
+            'lr',
+            'operator',
+            'n_layers',
+            'n_hidden',
+            'top_k',
+            'num_train',
+            # 'num_test',
+            # 'val_portion',
+            'use_region_agnostic',
+            'loss',
+        ])
+        filename += '.hdf5'
+        print "Config:", filename
+        return filedir + filename
+
     def load_weights(self):
         self.weight_file_name = './learn/q-function-weights/trained_with_rsc_used_in_corl_submission/' \
                                 'Q_weight_n_msg_passing_1_mse_weight_1.0_optimizer_' \

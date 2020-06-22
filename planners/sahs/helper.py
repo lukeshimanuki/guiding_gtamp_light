@@ -90,18 +90,6 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
     else:
         target_r = action.discrete_parameters['place_region']
 
-    nodes, edges, actions, _ = extract_individual_example(state, action)
-    nodes = nodes[..., 6:]
-
-    region_is_goal = state.nodes[target_r][8]
-
-    if 'two_arm' in problem_env.name:
-        goal_objs = [tmp_o for tmp_o in state.goal_entities if 'box' in tmp_o]
-        goal_region = 'home_region'
-    else:
-        goal_objs = [tmp_o for tmp_o in state.goal_entities if 'region' not in tmp_o]
-        goal_region = 'rectangular_packing_box1_region'
-
     if h_option == 'qlearned_hcount_old_number_in_goal':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         #nodes = nodes[..., 6:]

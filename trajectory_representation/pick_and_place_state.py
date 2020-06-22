@@ -44,6 +44,14 @@ class PaPState(State):
 
         self.prm_vertices, self.prm_edges = pickle.load(open('./prm.pkl', 'rb'))
 
+    def print_geometric_predicates(self, action):
+            obj = action.discrete_parameters['object']
+            region = action.discrete_parameters['place_region']
+            print "%25s %15s Reachable? %d  ManipFree? %d IsGoal? %d" \
+                  % (obj, region, self.nodes[obj][-2],
+                     self.binary_edges[(obj, region)][-1],
+                     obj in self.goal_entities)
+
     def update_collisions_at_prm_vertices(self, parent_collides):
         # global prm_vertices
         # global prm_edges

@@ -10,7 +10,7 @@ ROOTDIR = './'
 
 
 def get_save_dir(parameters):
-    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/%s/trajectory_data/%s/' \
+    save_dir = ROOTDIR + '/planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/%s_prm/trajectory_data/%s/' \
                 %(parameters.planner, parameters.statetype)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
@@ -23,7 +23,7 @@ def get_raw_dir(parameters):
                             'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
                             'n_mp_limit_5_n_iter_limit_2000/'
     else:
-        raw_dir = ROOTDIR + '/planning_experience/raw/irsc/n_objs_pack_1/'
+        raw_dir = ROOTDIR + '/planning_experience/raw/irsc_prm/n_objs_pack_1/'
     return raw_dir
 
 
