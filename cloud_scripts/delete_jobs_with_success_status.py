@@ -7,7 +7,7 @@ while True:
     result = subprocess.check_output(cmd, shell=True)
     for done_job in result.split(' '):
         cmd = 'kubectl delete job ' + done_job + ' -n beomjoon'
-        time.sleep(0.5)
+        time.sleep(0.05)
         os.system(cmd)
     print "Sleeping..."
     time.sleep(120)

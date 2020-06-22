@@ -79,12 +79,12 @@ def main():
     n_objs_pack = 1
     absq_seed = 0
 
-    target_pidxs = range(5000)
+    target_pidxs = range(1501, 3000)
     yaml_file = get_yaml_file_name(algorithm, domain)
-    commithash = '887d1af8b6e1fb712ce2df57b39e6fa00c81b322'
+    commithash = '9399178e4d84dd6756d45556e2865e89d89a923d'
 
-    seed_pidx_pairs_running = get_running_seed_and_pidx_pairs(domain, algorithm)
-    seed_pidx_pairs_finished = get_done_seed_and_pidx_pairs(commithash)
+    seed_pidx_pairs_running = []# get_running_seed_and_pidx_pairs(domain, algorithm)
+    seed_pidx_pairs_finished = []# get_done_seed_and_pidx_pairs(commithash)
     undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs, seed_pidx_pairs_finished + seed_pidx_pairs_running)
     print "Remaining runs", len(undone)
     consecutive_runs = 0
@@ -108,7 +108,7 @@ def main():
                                                        n_iter_limit, absq_seed)
         print idx, cmd
         os.system(cmd)
-
+        import pdb;pdb.set_trace()
         time.sleep(2)
         consecutive_runs += 1
         if consecutive_runs % 100 == 0:
