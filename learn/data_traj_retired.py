@@ -91,8 +91,10 @@ def get_actions(op_skeleton, entity_names):
         #object_idx = name_to_idx[op_skeleton.discrete_parameters['two_arm_place_object']]
         #region_name = op_skeleton.discrete_parameters['two_arm_place_region']
         object_idx = name_to_idx[op_skeleton.discrete_parameters['object']]
-        #region_name = op_skeleton.discrete_parameters['two_arm_place_place_region'].name
-        region_name = op_skeleton.discrete_parameters['place_region']
+        if 'two_arm_place_place_region' in op_skeleton.discrete_parameters:
+            region_name = op_skeleton.discrete_parameters['two_arm_place_place_region'].name
+        else:
+            region_name = op_skeleton.discrete_parameters['place_region']
         if region_name == 'home_region':
             region_idx = 0
         elif region_name == 'loading_region':
@@ -250,7 +252,7 @@ def extract_file(filename, desired_operator_type='two_arm_pick'):
 
 # filename is a directory
 def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
-    cachefile = "{}{}-num_data_{}.pkl".format(dirname, desired_operator_type, num_data)
+    cachefile = "{}{}-num_data_{}_retired.pkl".format(dirname, desired_operator_type, num_data)
     # cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
     if os.path.isfile(cachefile):
         print "Loading the cached file:", cachefile
