@@ -47,7 +47,6 @@ def create_callbacks(q_weight_file):
 # def create_gnn_model(nodes, edges, config):
 def create_gnn_model(config, nodes, edges):
     num_entities = nodes.shape[1]
-    import pdb;pdb.set_trace()
     m = PaPGNN(num_entities, nodes.shape[-1], edges.shape[-1], config)
     if os.path.isfile(m.weight_file_name) and not config.donttrain and not config.f:
         print "Quitting because we've already trained with the given configuration"
@@ -74,6 +73,7 @@ def train(config):
         #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
         #'./planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
         #'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
+        #'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc_prm/trajectory_data/shortest/',
         'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/',
         desired_operator_type=config.operator,
         num_data=config.num_train+config.num_test)
