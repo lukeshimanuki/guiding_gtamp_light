@@ -1,8 +1,5 @@
 import os
 import sys
-import numpy as np
-import pickle
-
 
 
 def download_from_s3():
@@ -13,23 +10,29 @@ def download_from_s3():
 
 def send_to_s3(domain):
     weight_dir = './generators/learning/learned_weights/{}/'.format(domain)
-    algos = ['wgandi','wgangp','importance']
+    algos = ['wgandi', 'wgangp', 'importance']
     seeds = range(4)
-    atypes = ['place','pick']
-    
+    atypes = ['place', 'pick']
+
     for algo in algos:
         for seed in seeds:
-            for atype in atypes:  
+            for atype in atypes:
                 if atype == 'pick':
-                    fdir  = './generators/learning/learned_weights/{}/{}/{}/fc/seed_{}/'.format(domain,atype,algo,seed)
+                    fdir = './generators/learning/learned_weights/{}/{}/{}/fc/seed_{}/'.format(domain, atype, algo,
+                                                                                               seed)
                     command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/sampler_weights/')
                     os.system(command)
                 else:
-                    fdir  = './generators/learning/learned_weights/{}/{}/'.format(domain,atype)
+                    fdir = './generators/learning/learned_weights/{}/{}/'.format(domain, atype)
                     regions = os.listdir(fdir)
                     for region in regions:
-                        fdir  = './generators/learning/learned_weights/{}/{}/{}/{}/fc/seed_{}/'.format(domain,atype,region,algo,seed)
+                        if algo == 'wgandi' or algo=='importance' and region == 'home_region':
+                            continue
+                        fdir = './generators/learning/learned_weights/{}/{}/{}/{}/fc/seed_{}/'.format(domain, atype,
+                                                                                                      region, algo,
+                                                                                                      seed)
                         command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/sampler_weights/')
+                        print command
                         os.system(command)
 
 
