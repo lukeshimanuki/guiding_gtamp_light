@@ -10,5 +10,5 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
 
-for ((BATCHIDX=0;BATCHIDX<$NUMBATCHES;BATCHIDX++)); do cat ${DIR}/${SOLVER}.yaml | sed "s/COMMIT/$COMMIT/" | sed "s/DOMAINS/$DOMAINS/" | sed "s/PIDX_RANGE/{$((${BASEPIDX} + ${BATCHIDX}*${BATCHSIZE}))..$((${BASEPIDX} + (${BATCHIDX}+1)*${BATCHSIZE} - 1))}/" | sed "s/NUMOBJ_RANGE/$NUMOBJ_RANGE/" | sed "s/SEEDS/$SEEDS/" | sed "s/NAME/guiding-gtamp-$BATCHIDX/" | sed "s/OPENSTACKSECRETSREF/$OPENSTACKSECRETSREF/" |  kubectl $ACTION -f - -n $NAMESPACE; done
+for ((BATCHIDX=0;BATCHIDX<$NUMBATCHES;BATCHIDX++)); do cat ${DIR}/${SOLVER}.yaml | sed "s/COMMIT/$COMMIT/g" | sed "s/DOMAINS/$DOMAINS/g" | sed "s/PIDX_RANGE/{$((${BASEPIDX} + ${BATCHIDX}*${BATCHSIZE}))..$((${BASEPIDX} + (${BATCHIDX}+1)*${BATCHSIZE} - 1))}/g" | sed "s/NUMOBJ_RANGE/$NUMOBJ_RANGE/g" | sed "s/SEEDS/$SEEDS/g" | sed "s/NAME/guiding-gtamp-$BATCHIDX/g" | sed "s/OPENSTACKSECRETSREF/$OPENSTACKSECRETSREF/g" |  sed "s/TIMELIMIT/$TIMELIMIT/g" | kubectl $ACTION -f - -n $NAMESPACE; done
 
