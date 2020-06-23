@@ -142,10 +142,7 @@ class PaPGNN(GNN):
         return h_model
 
     def create_value_function_layers(self, config):
-        if config.diff_weight_msg_passing:
-            msg_aggregation_layer = self.create_graph_network_layers_with_different_msg_passing_network(config)
-        else:
-            msg_aggregation_layer = self.create_graph_network_layers_with_same_msg_passing_network(config)
+        msg_aggregation_layer = self.create_graph_network_layers_with_same_msg_passing_network(config)
         value_layer = tf.keras.layers.Conv2D(1, kernel_size=(1, 1),
                                              kernel_initializer=self.config.weight_initializer,
                                              bias_initializer=self.config.weight_initializer,
@@ -227,7 +224,9 @@ class PaPGNN(GNN):
                 concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
             else:
                 if self.config.use_region_agnostic:
-                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
+                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=2), name='region_agnostic')
+                    # You are just taking the aggregated messages at the goal node.
+                    # Would the same thing happen if I use index 1?
                     val = region_agnostic_msg_value(msg_aggregation_layer)
                     sender_network = sender_model(val)
                     dest_network = dest_model(val)
