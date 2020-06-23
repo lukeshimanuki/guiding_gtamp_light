@@ -242,7 +242,8 @@ class PaPGNN(GNN):
 
                 #   That is, sender_network_r1 and sender_networ_r2
                 if self.config.use_region_agnostic:
-                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
+                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=2),
+                                                                       name='region_agnostic')
                     val = region_agnostic_msg_value(msg_aggregation_layer)
                     sender_network = sender_model(val)
                     dest_network = dest_model(val)

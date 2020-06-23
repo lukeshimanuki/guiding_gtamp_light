@@ -20,7 +20,7 @@ from generators.samplers.place_only_learned_sampler import PlaceOnlyLearnedSampl
 from generators.samplers.uniform_sampler import UniformSampler
 from generators.samplers.voo_sampler import VOOSampler
 
-from helper_retired import get_actions, get_state_class, update_search_queue
+from helper import get_actions, get_state_class, update_search_queue
 
 prm_vertices, prm_edges = pickle.load(open('prm.pkl', 'rb'))
 prm_vertices = list(prm_vertices)  # TODO: needs to be a list rather than ndarray

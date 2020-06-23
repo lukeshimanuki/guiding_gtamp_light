@@ -71,8 +71,7 @@ def train(config):
         # './planning_experience/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
         # './planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
         # './planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
-        'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc_prm/trajectory_data/{}/'.format(
-            config.statetype),
+        'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/',
         desired_operator_type=config.operator,
         num_data=config.num_train + config.num_test)
     """
