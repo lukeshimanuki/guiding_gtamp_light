@@ -20,7 +20,8 @@ def send_to_s3(domain):
                 if atype == 'pick':
                     fdir = './generators/learning/learned_weights/{}/{}/{}/fc/seed_{}/'.format(domain, atype, algo,
                                                                                                seed)
-                    command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/sampler_weights/')
+                    command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/guiding-gtamp/sampler_weights/')
+                    print command
                     os.system(command)
                 else:
                     fdir = './generators/learning/learned_weights/{}/{}/'.format(domain, atype)
@@ -31,7 +32,7 @@ def send_to_s3(domain):
                         fdir = './generators/learning/learned_weights/{}/{}/{}/{}/fc/seed_{}/'.format(domain, atype,
                                                                                                       region, algo,
                                                                                                       seed)
-                        command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/sampler_weights/')
+                        command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/guiding-gtamp/sampler_weights/')
                         print command
                         os.system(command)
 
