@@ -1,3 +1,4 @@
+
 from data_traj import extract_individual_example as make_predictable_form
 from gnn import GNN
 
@@ -23,7 +24,7 @@ class PaPGNN(GNN):
 
     def create_inputs(self, num_entities, num_node_features, num_edge_features, dim_action):
         num_regions = self.n_regions
-        node_shape = (num_entities, num_regions, num_node_features)
+        node_shape = (num_entities, num_node_features)
         edge_shape = (num_entities, num_entities, num_regions, num_edge_features)
         dim_action = (num_entities, num_regions)
 
@@ -34,6 +35,42 @@ class PaPGNN(GNN):
         kcosts = tf.keras.Input(shape=[1], dtype=tf.int32)
 
         return knodes, kedges, kactions, koperators, kcosts
+
+
+    def create_weight_file_name(self):
+        filedir = './learn/q-function-weights/'
+        filename = "Q_weight_"
+        filename += '_'.join(arg + "_" + str(getattr(self.config, arg)) for arg in [
+            'n_msg_passing',
+            # 'diff_weight_msg_passing',
+            'mse_weight',
+            'optimizer',
+            # 'batch_size',
+            'seed',
+            'lr',
+            'operator',
+            'n_layers',
+            'n_hidden',
+            'top_k',
+            'num_train',
+            # 'num_test',
+            # 'val_portion',
+            'use_region_agnostic',
+            'loss',
+        ])
+        filename += '.hdf5'
+        print "Config:", filename
+        return filedir + filename
+
+    def load_weights(self):
+        """
+        self.weight_file_name = './learn/q-function-weights/trained_with_rsc_used_in_corl_submission/' \
+                                'Q_weight_n_msg_passing_1_mse_weight_1.0_optimizer_' \
+                                'adam_seed_%d_lr_0.0001_operator_two_arm_pick_two_arm_place_n_layers_2_n_hidden_32' \
+                                '_top_k_1_num_train_5000_loss_%s.hdf5' % (self.config.seed, self.config.loss)
+        """
+        print "Loading weight", self.weight_file_name
+        self.loss_model.load_weights(self.weight_file_name)
 
     def create_msg_computaton_layers(self, input, num_latent_features, name, n_layers):
         n_node_features = self.num_node_features
@@ -52,18 +89,14 @@ class PaPGNN(GNN):
                                        kernel_initializer=self.config.weight_initializer,
                                        bias_initializer=self.config.weight_initializer,
                                        name=name + "_0",
-                                       #activation=self.activation)(input)
                                        activation=self.activation)(input)
-            #h = tf.keras.layers.LeakyReLU(alpha=0.1)(h)
             idx = -1
             for idx in range(n_layers - 2):
                 h = tf.keras.layers.Conv3D(num_latent_features, kernel_size=(1, 1, 1),
                                            kernel_initializer=self.config.weight_initializer,
                                            bias_initializer=self.config.weight_initializer,
                                            name=name + "_" + str(idx + 1),
-                                           #activation=self.activation)(h)
                                            activation=self.activation)(h)
-                #h = tf.keras.layers.LeakyReLU(alpha=0.1)(h)
             h = tf.keras.layers.Conv3D(n_dim_last_layer, kernel_size=(1, 1, 1),
                                        kernel_initializer=self.config.weight_initializer,
                                        bias_initializer=self.config.weight_initializer,
@@ -109,10 +142,7 @@ class PaPGNN(GNN):
         return h_model
 
     def create_value_function_layers(self, config):
-        if config.diff_weight_msg_passing:
-            msg_aggregation_layer = self.create_graph_network_layers_with_different_msg_passing_network(config)
-        else:
-            msg_aggregation_layer = self.create_graph_network_layers_with_same_msg_passing_network(config)
+        msg_aggregation_layer = self.create_graph_network_layers_with_same_msg_passing_network(config)
         value_layer = tf.keras.layers.Conv2D(1, kernel_size=(1, 1),
                                              kernel_initializer=self.config.weight_initializer,
                                              bias_initializer=self.config.weight_initializer,
@@ -163,18 +193,8 @@ class PaPGNN(GNN):
         else:
             sender_model = self.create_multilayer_model(self.node_input, num_latent_features, 'src', num_layers)
             dest_model = self.create_multilayer_model(self.node_input, num_latent_features, 'dest', num_layers)
-            # todo
-            #   I need to have a different node input shape.
-            #   Node is of shape n_entities x n_regions x dim
-            #   We want to apply the sender model on r1 and r2
-            r1_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='r1_vtx')
-            r2_value = tf.keras.layers.Lambda(lambda x: x[:, :, 1, :], name='r2_vtx')
-            msg_val_r1 = r1_value(self.node_input)
-            msg_val_r2 = r2_value(self.node_input)
-            sender_network_r1 = sender_model(msg_val_r1)
-            sender_network_r2 = sender_model(msg_val_r2)
-            dest_network_r1 = dest_model(msg_val_r1)
-            dest_network_r2 = dest_model(msg_val_r2)
+            sender_network = sender_model(self.node_input)
+            dest_network = dest_model(self.node_input)
 
         # create edge networks
         edge_model = self.create_multilayer_model(self.edge_input, num_latent_features, 'edge', num_layers)
@@ -182,30 +202,20 @@ class PaPGNN(GNN):
 
         # create concatenation, msg computation, and aggregation layers
         concat_lambda_layer = self.create_sender_dest_edge_concatenation_lambda_layer()
+
         msg_model = self.create_msg_computation_model(num_latent_features, 'msgs', num_layers)
         aggregation_lambda_layer = self.create_aggregation_lambda_layer()
 
         if same_model_for_sender_and_dest:
             concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
         else:
-            change_sender_dest_into_shape_cancatable_to_edge_layer = self.change_sender_dest_into_shape_cancatable_to_edge()
-            src_dest_r1 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_network_r1, dest_network_r1])
-            src_dest_r2 = change_sender_dest_into_shape_cancatable_to_edge_layer([sender_network_r2, dest_network_r2])
+            concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
 
-            def concat_layer_defn(r1_val, r2_val, edge_val):
-                r1_r2_concat = tf.concat([r1_val, r2_val], axis=-2)
-                concat_layer_fn = tf.concat([r1_r2_concat, edge_val], axis=-1)
-                return concat_layer_fn
-
-            concat_layer_fn = tf.keras.layers.Lambda(lambda args: concat_layer_defn(*args), name='concatfirst')
-            concat_layer = concat_layer_fn([src_dest_r1, src_dest_r2, edge_network])
-
+        # The msg model has the same number of dimensions as the sender model
         msg_network = msg_model(concat_layer)
         msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
         # for testing purpose; delete it later
         inputs = [self.node_input, self.edge_input, self.action_input]
-        self.first_msg_model = self.make_model(inputs, msg_network, 'first_msg_mode')
-
         self.first_msg_agg = self.make_model(inputs, msg_aggregation_layer, 'first_msg_agg')
         # rounds of msg passing
         for i in range(config.n_msg_passing):
@@ -213,37 +223,10 @@ class PaPGNN(GNN):
                 vertex_network = vertex_model(msg_aggregation_layer)
                 concat_layer = concat_lambda_layer([vertex_network, vertex_network, edge_network])
             else:
-                # todo
-                #   This is conceptually different from what I have written in the paper and needs to be fixed.
-                #   Unfortunately, I do not have time to re-run experiments at the moment, so here I write
-                #   how it should have been.
-                #   Our GNN two disconnected graphs, one for each region. In each component of the graph,
-                #   we have the value of moving object to the region. Suppose we have two objects
-                #   and two regions, o1, o2 and r1 and r2. Then, we have two disconnected graphs where one component
-                #   encodes value of moving o1 to r1 and o2 to r1, and the other for o1 to r2 and o2 to r2
-                #   Within each component, the graph is fully connected.
-                #   For each edge between o1 and o2, we encode the unary predicates of o1, o2, and
-                #   its corresponding region, say r1, as well as binary predicates between
-                #   o1 and r1 and o2 and r1. A ternary predicate is also encoded for o1, o2, and r1.
-                #   To compute the messages, we first compute node values at o1 and o2, using f(o;\theta_1).
-                #   We then compute the edges values using f(edge(o1,o2,r1); \theta_2)
-                #   We aggregate the message at node o1 using averaging, which in this case would be just
-                #   agg_msg_o1 = f(edge(o1,o2,r1); theta2)
-                #   A new node value is computed by a new function: new_value_at_o1_for_r = f(agg_msg_o1; \theta_3)
-                # todo
-                #   Unfortunately, this is not what I have. I need to:
-                #   - Create a new node feature for each region. Right now, I use
-                #     new_value_at_o1_for_r1 where it should have been new_value_at_o1_for_r2, using
-                #     region_agnostic_msg_value
-                #   To do this, keep separate values for each region.
-                #   Create a new node input that corresponds to different regions
-                #   Fix L79. It should not repeat the src_dest_concatenated, but use appropriate value
-                #   for the corresponding region.
-
-                #   That is, sender_network_r1 and sender_networ_r2
                 if self.config.use_region_agnostic:
-                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=2),
-                                                                       name='region_agnostic')
+                    region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=2), name='region_agnostic')
+                    # You are just taking the aggregated messages at the goal node.
+                    # Would the same thing happen if I use index 1?
                     val = region_agnostic_msg_value(msg_aggregation_layer)
                     sender_network = sender_model(val)
                     dest_network = dest_model(val)
@@ -267,9 +250,16 @@ class PaPGNN(GNN):
                         r1_r2_concat = tf.concat([r1_val, r2_val], axis=-2)
                         concat_layer_fn = tf.concat([r1_r2_concat, edge_val], axis=-1)
                         return concat_layer_fn
+
                     concat_layer_fn = tf.keras.layers.Lambda(lambda args: concat_layer_defn(*args), name='concat2')
                     concat_layer = concat_layer_fn([src_dest_r1, src_dest_r2, edge_network])
-
+                """
+                region_agnostic_msg_value = tf.keras.layers.Lambda(lambda x: x[:, :, 0, :], name='region_agnostic')
+                val = region_agnostic_msg_value(msg_aggregation_layer)
+                sender_network = sender_model(val)
+                dest_network = dest_model(val)
+                concat_layer = concat_lambda_layer([sender_network, dest_network, edge_network])
+                """
             msg_network = msg_model(concat_layer)
             msg_aggregation_layer = aggregation_lambda_layer(msg_network)  # aggregates msgs from neighbors
             # todo it is saturating here when I use relu?
@@ -277,7 +267,6 @@ class PaPGNN(GNN):
         self.second_msg_agg = self.make_model(inputs, msg_aggregation_layer, 'second_msg_agg')
         self.msg_model = self.make_model(inputs, msg_network, 'msg_model')
         self.concat_model = self.make_model(inputs, concat_layer, 'concat_model')
-
         if same_model_for_sender_and_dest:
             self.sender_model = vertex_model  # sender_model
             self.dest_model = vertex_model  # dest_model
@@ -377,8 +366,7 @@ class PaPGNN(GNN):
         nodes = nodes[None, :]
         edges = edges[None, :]
         action = action[None, :]
-        #return nodes[:, :, 6:], edges, action
-        return nodes, edges, action
+        return nodes[:, :, 6:], edges, action
 
     def predict(self, state, op_skeleton):
         nodes, edges, action = self.make_raw_format(state, op_skeleton)
