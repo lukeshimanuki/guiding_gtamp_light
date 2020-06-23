@@ -22,32 +22,37 @@ from gtamp_utils import utils
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
-    parser.add_argument('-pidx', type=int, default=20000)
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-use_learning', action='store_true', default=False)
-    parser.add_argument('-atype', type=str, default="place")
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
     parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-train_type', type=str, default='wgandi')
+    parser.add_argument('-num_episode', type=int, default=1000)
+    parser.add_argument('-target_pidx_idx', type=int, default=0)
     config = parser.parse_args()
     return config
 
 
 def load_planning_experience_data(config):
     if 'two_arm' in config.domain:
-        raw_dir = './planning_experience/raw/two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/' \
-                  'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
-    else:
-        raw_dir = 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
-                  'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+        raw_dir = 'planning_experience/for_testing_generators/16653e7/' \
+                  'sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+                  'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/' \
                   'n_mp_limit_5_n_iter_limit_2000/'
+        target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
+                        40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+    else:
+        raise NotImplementedError
 
-    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % config.pidx
+    pidx = target_pidxs[config.target_pidx_idx]
+    config.pidx = pidx
+
+    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % pidx
     try:
         plan_data = pickle.load(open(raw_dir + fname, 'r'))
     except:
@@ -115,6 +120,7 @@ def execute_policy(plan, problem_env, goal_entities, config):
 
         action = plan[plan_idx]
         generator = get_generator(abstract_state, action, learned_sampler_model, config)
+        print action.discrete_parameters
         if 'two_arm' in config.domain:
             cont_smpl = generator.sample_next_point(samples_tried[plan_idx], sample_values[plan_idx])
         else:
@@ -136,7 +142,6 @@ def execute_policy(plan, problem_env, goal_entities, config):
             print "Action executed"
             action.continuous_parameters = cont_smpl
             action.execute()
-            import pdb;pdb.set_trace()
             plan_idx += 1
             abstract_state = make_abstract_state(problem_env, goal_entities,
                                                  parent_state=abstract_state,
@@ -145,16 +150,9 @@ def execute_policy(plan, problem_env, goal_entities, config):
             print "No feasible action"
             problem_env.init_saver.Restore()
             plan_idx = 0
-            """
-            for s in cont_smpl['samples']:
-                samples_tried[plan_idx].append(s)
-                sample_values[plan_idx].append(generator.sampler.infeasible_action_value)
-            """
             abstract_state = init_abstract_state
         goal_reached = plan_idx == len(plan)
         print "Total IK checks {} Total actions {}".format(total_ik_checks, n_total_actions)
-    import pdb;
-    pdb.set_trace()
     print time.time() - stime
     return total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
            total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
@@ -173,18 +171,9 @@ def get_logfile_name(config):
         os.makedirs(logfile_dir)
 
     if config.use_learning:
-        if 'pick' in config.atype and 'place' in config.atype:
-            logfile = open(logfile_dir + 'pap_pick_%s_place_%s.txt' % (
-                config.pick_architecture, config.place_architecture), 'a')
-        elif 'pick' in config.atype:
-            logfile = open(logfile_dir + '%s_pick_%s.txt' % (config.atype, config.pick_architecture), 'a')
-        elif 'place' in config.atype:
-            logfile = open(logfile_dir + '%s_place_%s.txt' % (config.atype, config.place_architecture), 'a')
-        else:
-            raise NotImplementedError
+        logfile = open(logfile_dir + '{}_sampler_seed_{}.txt'.format(config.train_type, config.sampler_seed), 'a')
     else:
-        logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit,
-                       'a')
+        logfile = open(logfile_dir + config.sampling_strategy + '.txt', 'a')
     return logfile
 
 
@@ -200,13 +189,13 @@ def main():
 
     set_seeds(config.seed)
 
+    logfile = get_logfile_name(config)
     total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
     total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
         execute_policy(plan, problem_env, goal_objs + [goal_region], config)
 
-    logfile = get_logfile_name(config)
     result_log = "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
-        config.pidx, config.seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
+        config.target_pidx_idx, config.seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
         total_place_mp_checks,
         total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
     )

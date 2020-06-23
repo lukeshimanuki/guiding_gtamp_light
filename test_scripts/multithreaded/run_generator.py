@@ -24,21 +24,11 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def main():
-    raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
-    all_plan_exp_files = os.listdir(raw_dir)
+    target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
+                    40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
 
-    pidxs = []
-    for f in all_plan_exp_files:
-        if '.pkl' not in f:
-            continue
-        if 'sampling_strategy' in f:
-            pidx = int(f.split('_')[3])
-        else:
-            pidx = int(f.split('_')[1])
-        if pidx >= 60000:
-            pidxs.append(pidx)    
-    pidxs = range(60000,60100)
-    seeds = range(0, 5)
+    target_pidx_idxs = range(len(target_pidxs))
+    sampler_seeds = range(4)
 
     setup = parse_arguments()
     target_file = open(get_logfile_name(setup).name,'r')
@@ -48,13 +38,12 @@ def main():
         pidx = int(l.split(',')[0])
         seed = int(l.split(',')[1])
         pidx_seed_already_exist.append((pidx,seed))
-    print np.all([(pidx,seed) in pidx_seed_already_exist for seed in seeds for pidx in pidxs])
+    print np.all([(idx,seed) in pidx_seed_already_exist for seed in sampler_seeds for idx in target_pidx_idxs])
 
-    print [(pidx,seed) for seed in seeds for pidx in pidxs if (pidx,seed) not in pidx_seed_already_exist]
     configs = []
-    for seed in seeds:
-        for pidx in pidxs:
-            if (pidx,seed) in pidx_seed_already_exist:
+    for seed in sampler_seeds:
+        for idx in target_pidx_idxs:
+            if (idx,seed) in pidx_seed_already_exist:
                 continue
             config = {}
             for k,v in setup._get_kwargs():
@@ -62,8 +51,8 @@ def main():
                     config[k] = ''
                 elif type(v) is not bool:
                     config[k] = v
-            config['pidx'] = pidx
-            config['seed'] = seed
+            config['target_pidx_idx'] = idx
+            config['sampler_seed'] = seed
             if setup.use_learning:
                 config['use_learning'] = ''
 
