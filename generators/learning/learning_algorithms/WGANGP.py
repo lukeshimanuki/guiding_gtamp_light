@@ -63,6 +63,15 @@ class WGANgp:
             os.makedirs(self.weight_dir)
 
     def load_best_weights(self):
+        weight_file = 'gen.pt'
+        print "Loading", self.weight_dir + '/' + weight_file
+        if 'cpu' in self.device.type:
+            self.generator.load_state_dict(
+                torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
+        else:
+            self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
+
+        """
         if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey':
             result_dir = self.weight_dir + '/result_summary/'
             assert os.path.isdir(result_dir), "Did you run plotters/evaluate_generators.py?"
@@ -94,6 +103,7 @@ class WGANgp:
                     torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
             else:
                 self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
+        """
 
     def create_models(self):
         if self.architecture == 'fc':

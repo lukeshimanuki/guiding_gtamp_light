@@ -14,11 +14,9 @@ from manipulation.primitives.savers import DynamicEnvironmentStateSaver
 from gtamp_problem_environments.mover_env import PaPMoverEnv
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
-# from generators.learning.utils.model_creation_utils import create_policy
 from gtamp_utils import utils
 from test_scripts.run_mcts import get_commit_hash
 
-# from test_scripts.visualize_learned_sampler import create_policy
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
 from generators.learning.learning_algorithms.WGANGP import WGANgp
@@ -118,11 +116,15 @@ def parse_arguments():
     parser.add_argument('-atype', type=str, default='place')
     parser.add_argument('-use_learning', action='store_true', default=False)
     parser.add_argument('-explr_p', type=float, default=0.3)
-    parser.add_argument('-pick_architecture', type=str, default='fc')
-    parser.add_argument('-place_architecture', type=str, default='fc')
+    parser.add_argument('-architecture', type=str, default='fc')
+    parser.add_argument('-train_type', type=str, default='wgandi')
+
+    """
     parser.add_argument('-pick_sampler_seed', type=int, default=2)  # used for threaded runs
     parser.add_argument('-loading_sampler_seed', type=int, default=3)  # used for threaded runs
     parser.add_argument('-home_sampler_seed', type=int, default=3)  # used for threaded runs
+    """
+    parser.add_argument('-sampler_seed', type=int, default=0)  # used for threaded runs
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
@@ -227,31 +229,32 @@ def get_total_n_feasibility_checks(nodes):
     return {'mp': total_mp_checks, 'ik': total_ik_checks}
 
 
-def make_sampler_model_and_load_weights(action_type, region, seed, config):
-    model = WGANgp(action_type, region, architecture=config.place_architecture, seed=seed, problem_name=config.domain)
+def make_sampler_model_and_load_weights(config):
+    #model = WGANgp(action_type, region, architecture=config.place_architecture, seed=seed, problem_name=config.domain)
+    model = WGANgp(config)
     model.load_best_weights()
     return model
 
 
 def get_learned_sampler_models(config):
-    goal_region_place_model = None
-    obj_region_place_model = None
-    pick_model = None
-
     if not config.use_learning:
         return None
-
-    #if 'place' in config.atype:
     if 'two_arm' in config.domain:
-        goal_region_place_model = make_sampler_model_and_load_weights('place', 'home_region', seed=3, config=config)
-        obj_region_place_model = make_sampler_model_and_load_weights('place', 'loading_region', seed=3, config=config)
-        pick_model = make_sampler_model_and_load_weights('pick', '', seed=2, config=config)
+        train_type = config.train_type
+        config.atype = 'place'; config.region = 'home_region'; config.seed = config.sampler_seed; config.train_type='wgangp'
+        goal_region_place_model = make_sampler_model_and_load_weights(config)
+        config.train_type = train_type
+        config.atype = 'place'; config.region = 'loading_region'; config.seed = config.sampler_seed
+        obj_region_place_model = make_sampler_model_and_load_weights(config)
+        config.atype = 'pick'; config.region = ''; config.seed = config.sampler_seed
+        pick_model = make_sampler_model_and_load_weights(config)
     else:
         goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
                                                  atype='one_arm_place') # I don't think we need to learn sampler for this
-        obj_region_place_model = make_sampler_model_and_load_weights('place', 'center_shelf_region', seed=0, config=config)
-        pick_model = make_sampler_model_and_load_weights('pick', '', seed=0, config=config)
-
+        config.atype = 'place'; config.region = 'center_shelf_region'; config.seed = config.sampler_seed
+        obj_region_place_model = make_sampler_model_and_load_weights(config)
+        config.atype = 'pick'; config.region = ''; config.seed = config.sampler_seed
+        pick_model = make_sampler_model_and_load_weights(config)
     model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model, 'pick': pick_model}
     return model
 

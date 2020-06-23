@@ -23,28 +23,25 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-pidx', type=int, default=20000)
-    parser.add_argument('-pick_architecture', type=str, default='fc')
-    parser.add_argument('-place_architecture', type=str, default='fc')
+    parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-use_learning', action='store_true', default=False)
     parser.add_argument('-atype', type=str, default="place")
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
-    parser.add_argument('-pick_sampler_seed', type=int, default=2)
-    parser.add_argument('-loading_sampler_seed', type=int, default=1)
-    parser.add_argument('-home_sampler_seed', type=int, default=0)
-    parser.add_argument('-domain', type=str, default='one_arm_mover')
+    parser.add_argument('-sampler_seed', type=int, default=0)
+    parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-n_objs_pack', type=int, default=1)
+    parser.add_argument('-train_type', type=str, default='wgandi')
     config = parser.parse_args()
     return config
 
 
 def load_planning_experience_data(config):
     if 'two_arm' in config.domain:
-        raw_dir = './planning_experience/raw/uses_rrt/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
-                  'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
-                  'n_mp_limit_5_n_iter_limit_2000/'
+        raw_dir = './planning_experience/raw/two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/' \
+                  'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
     else:
         raw_dir = 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                   'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
@@ -83,11 +80,11 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
 
 def execute_policy(plan, problem_env, goal_entities, config):
     try:
-        init_abstract_state = pickle.load(open('temp111.pkl','r'))
+        init_abstract_state = pickle.load(open('temp111.pkl', 'r'))
     except:
         init_abstract_state = make_abstract_state(problem_env, goal_entities)
         init_abstract_state.make_pklable()
-        pickle.dump(init_abstract_state, open('temp111.pkl','wb'))
+        pickle.dump(init_abstract_state, open('temp111.pkl', 'wb'))
 
     init_abstract_state.make_plannable(problem_env)
 
@@ -108,6 +105,7 @@ def execute_policy(plan, problem_env, goal_entities, config):
     sample_values = {i: [] for i in range(len(plan))}
 
     learned_sampler_model = get_learned_sampler_models(config)
+    problem_env.set_motion_planner(BaseMotionPlanner(problem_env, 'rrt'))
     while plan_idx < len(plan):
         goal_reached = problem_env.is_goal_reached()
         if goal_reached:
@@ -138,6 +136,7 @@ def execute_policy(plan, problem_env, goal_entities, config):
             print "Action executed"
             action.continuous_parameters = cont_smpl
             action.execute()
+            import pdb;pdb.set_trace()
             plan_idx += 1
             abstract_state = make_abstract_state(problem_env, goal_entities,
                                                  parent_state=abstract_state,
@@ -154,7 +153,8 @@ def execute_policy(plan, problem_env, goal_entities, config):
             abstract_state = init_abstract_state
         goal_reached = plan_idx == len(plan)
         print "Total IK checks {} Total actions {}".format(total_ik_checks, n_total_actions)
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
     print time.time() - stime
     return total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
            total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
