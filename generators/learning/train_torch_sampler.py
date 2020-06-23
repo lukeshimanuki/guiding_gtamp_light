@@ -1,8 +1,5 @@
-import socket
 import torch
 import argparse
-import os
-import pickle
 
 from datasets.GeneratorDataset import StandardDataset, ImportanceEstimatorDataset
 from generators.learning.learning_algorithms.WGANGP import WGANgp
@@ -10,13 +7,6 @@ from learning_algorithms.ImportanceWeightEstimation import ImportanceWeightEstim
 import numpy as np
 
 ROOTDIR = './'
-
-
-def save_weights(net, epoch, action_type, seed, region):
-    net_name = net.__class__._get_name(net)
-    PATH = './learning/torch_weights/atype_%s_%s_region_%s_seed_%d_epoch_%d.pt' % (
-        action_type, net_name, region, seed, epoch)
-    torch.save(net.state_dict(), PATH)
 
 
 def get_data_generator(config):
@@ -121,7 +111,6 @@ def main():
 
     n_train = len(trainset)
     model.train(trainloader, testloader, n_train)
-    #model.load_weights()
 
 
 if __name__ == '__main__':

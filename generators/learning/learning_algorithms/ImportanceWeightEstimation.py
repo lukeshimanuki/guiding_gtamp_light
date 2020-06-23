@@ -4,33 +4,6 @@ import torch
 import torch.optim as optim
 import os
 
-"""
-def f_loss(y, w_pred):
-    y_labels = y
-    neg_mask = tf.equal(y_labels, 0)
-    w_neg = tf.boolean_mask(w_pred, neg_mask)
-    pos_mask = tf.equal(y_labels, 1)
-    w_pos = tf.boolean_mask(w_pred, pos_mask)
-
-    weight_sum_sqred_neg = tf.reduce_sum(tf.square(w_neg))
-    loss1 = tf.cond(tf.equal(weight_sum_sqred_neg, 0), \
-                    lambda: weight_sum_sqred_neg, \
-                    lambda: (1 / 2.0) * tf.reduce_mean(tf.square(w_neg)))
-
-    weight_sum_pos = tf.reduce_sum(w_pos)
-    loss2 = tf.cond(tf.equal(weight_sum_pos, 0), \
-                    lambda: weight_sum_pos, \
-                    lambda: tf.reduce_mean(w_pos))
-
-    loss3 = tf.maximum(-w_pred, 0)
-    loss3 = tf.cond(tf.equal(tf.reduce_sum(loss3), 0), \
-                    lambda: tf.reduce_sum(loss3), \
-                    lambda: tf.reduce_mean(loss3))
-
-    loss = loss1 - loss2
-    return loss
-"""
-
 
 class ImportanceWeightEstimation:
     def __init__(self, config):
@@ -42,15 +15,17 @@ class ImportanceWeightEstimation:
         self.model = FCImportanceRatioEstimator(config)
         self.model.to(self.device)
         if config.atype == 'place':
-            self.weight_dir = './generators/learning/learned_weights/{}/{}/{}/importance/{}/seed_{}'.format(
+            self.weight_dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/importance/{}/seed_{}'.format(
                 config.domain,
+                config.num_episode,
                 config.atype,
                 config.region,
                 config.architecture,
                 config.seed)
         else:
-            self.weight_dir = './generators/learning/learned_weights/{}/{}//importance/{}/seed_{}'.format(
+            self.weight_dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}//importance/{}/seed_{}'.format(
                 config.domain,
+                config.num_episode,
                 config.atype,
                 config.architecture,
                 config.seed)

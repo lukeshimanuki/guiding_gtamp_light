@@ -71,40 +71,6 @@ class WGANgp:
         else:
             self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
 
-        """
-        if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey':
-            result_dir = self.weight_dir + '/result_summary/'
-            assert os.path.isdir(result_dir), "Did you run plotters/evaluate_generators.py?"
-            result_files = os.listdir(result_dir)
-            assert len(result_files) > 0, "Did you run plotters/evaluate_generators.py?"
-            iters = [int(f.split('_')[-1].split('.')[0]) for f in result_files]
-            results = np.array([pickle.load(open(result_dir + result_file, 'r')) for result_file in result_files])
-
-            max_kde_idx = np.argsort(results[:, 1])[::-1][0]
-            max_kde_iteration = iters[max_kde_idx]
-            self.load_weights(max_kde_iteration)
-        else:
-            print "On cloud. Loading the only weight"
-            # todo don't commit the below
-            if 'one_arm_mover/place/center_shelf_region/' in self.weight_dir:
-                weight_file = 'gen_iter_13600.pt'
-            elif 'one_arm_mover/pick/' in self.weight_dir:
-                weight_file = 'gen_iter_26900.pt'
-            elif 'two_arm_mover/pick/' in self.weight_dir:
-                weight_file = 'gen_iter_106700.pt'
-            elif 'two_arm_mover/place/home_region' in self.weight_dir:
-                weight_file = 'gen_iter_35900.pt'
-            elif 'two_arm_mover/place/loading_region' in self.weight_dir:
-                weight_file = 'gen_iter_16500.pt'
-            else:
-                weight_file = os.listdir(self.weight_dir)[0]
-            if 'cpu' in self.device.type:
-                self.generator.load_state_dict(
-                    torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
-            else:
-                self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
-        """
-
     def create_models(self):
         if self.architecture == 'fc':
             discriminator = Discriminator(self.n_dim_actions, self.action_type, self.region_name,
@@ -126,17 +92,21 @@ class WGANgp:
 
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/{}/{}/{}/{}/seed_{}'.format(self.problem_name,
-                                                                                            action_type,
-                                                                                            region_name,
-                                                                                            self.config.train_type,
-                                                                                            self.architecture,
-                                                                                            self.seed)
+            dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/{}/seed_{}'.format(
+                self.problem_name,
+                self.config.num_episode,
+                action_type,
+                region_name,
+                self.config.train_type,
+                self.architecture,
+                self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/{}/{}/{}/seed_{}'.format(self.problem_name, action_type,
-                                                                                         self.config.train_type,
-                                                                                         self.architecture,
-                                                                                         self.seed)
+            dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/seed_{}'.format(self.problem_name,
+                                                                                                     self.config.num_episode,
+                                                                                                     action_type,
+                                                                                                     self.config.train_type,
+                                                                                                     self.architecture,
+                                                                                                     self.seed)
         return dir
 
     def get_domain(self, action_type, region_name):
@@ -310,7 +280,7 @@ class WGANgp:
             for p in self.discriminator.parameters():  # reset requires_grad
                 p.requires_grad = True  # they are set to False below in self.generator update
 
-            #print "%d / %d" % (iteration, total_iterations)
+            # print "%d / %d" % (iteration, total_iterations)
 
             for iter_d in xrange(CRITIC_ITERS):
                 _data = data_gen.next()
@@ -386,11 +356,11 @@ class WGANgp:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 print "Best KDE", best_kde
                 if kde > best_kde:
-                    best_kde = kde  
+                    best_kde = kde
                     print "Iteration %d / %d" % (iteration, total_iterations)
-                    path = self.weight_dir + '/disc.pt' 
+                    path = self.weight_dir + '/disc.pt'
                     torch.save(self.discriminator.state_dict(), path)
-                    path = self.weight_dir + '/gen.pt' 
+                    path = self.weight_dir + '/gen.pt'
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
