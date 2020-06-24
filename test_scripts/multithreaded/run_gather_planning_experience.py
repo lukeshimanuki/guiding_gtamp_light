@@ -14,6 +14,7 @@ def worker_p(config):
         command += option
     #command += ' -qlearned_hcount_old_number_in_goal'
     command += ' -gather_planning_exp'
+    command += ' -use_region_agnostic'
 
     print command
     os.system(command)

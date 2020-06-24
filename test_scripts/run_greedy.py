@@ -118,6 +118,7 @@ def parse_arguments():
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-train_type', type=str, default='wgandi')
     parser.add_argument('-sampler_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-num_episode', type=int, default=1000)
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
@@ -286,8 +287,9 @@ def main():
         sys.exit(-1)
 
     if config.gather_planning_exp:
-        assert config.h_option == 'hcount_old_number_in_goal'
-        #config.timelimit =
+        #assert config.h_option == 'hcount_old_number_in_goal'
+        pass
+
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
     print "Goal:", goal_objs, goal_region
