@@ -287,8 +287,9 @@ def main():
         sys.exit(-1)
 
     if config.gather_planning_exp:
-        assert config.h_option == 'hcount_old_number_in_goal'
-        #config.timelimit =
+        #assert config.h_option == 'hcount_old_number_in_goal'
+        pass
+
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
     print "Goal:", goal_objs, goal_region
