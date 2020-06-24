@@ -27,7 +27,11 @@ def get_save_dir(parameters):
 
 def get_raw_dir(parameters):
     if parameters.domain == 'two_arm_mover':
-        raw_dir = ROOTDIR + 'planning_experience/raw/two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+        if parameters.planner == 'greedy':
+            raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+        elif parameters.planner == 'rsc':
+            raise NotImplementedError
+            #raw_dir = ROOTDIR + 'planning_experience/raw/irsc/n_objs_pack_1/'
     elif parameters.domain == 'one_arm_mover':
         raw_dir = ROOTDIR + 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                             'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
@@ -65,6 +69,7 @@ def parse_parameters():
     parser.add_argument('-f', action='store_true', default=False)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-n_objs_pack', type=int, default=1)
+    parser.add_argument('-planner', type=str, default='rsc')
     parameters = parser.parse_args()
 
     return parameters
@@ -76,7 +81,10 @@ def get_processed_fname(raw_fname):
 
 
 def get_raw_fname(raw_dir, parameters):
-    fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_0.pkl'.format(parameters.pidx)
+    if 'rsc' in raw_dir:
+        fname = 'seed_0_pidx_{}.pkl'.format(parameters.pidx)
+    else:
+        fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_0.pkl'.format(parameters.pidx)
     return fname
 
 
@@ -100,9 +108,14 @@ def main():
     plan_data = pickle.load(open(fname, 'r'))
 
     traj = get_sampler_traj_instance(fname, parameters.pidx, plan_data)
-    nodes = plan_data['nodes']
-    #neutral_data = traj.get_neutral_trajs(nodes, parameters)
-    positive_data, neutral_data = traj.get_data(nodes, parameters)
+    if parameters.planner == 'greedy':
+        nodes = plan_data['nodes']
+        positive_data, neutral_data = traj.get_greedy_data(nodes, parameters)
+    else:
+        plan = plan_data['plan']
+        positive_data = traj.get_rsc_data(plan, parameters)
+        neutral_data = None
+
     data = {'neutral_data': neutral_data, 'positive_data': positive_data}
     pickle.dump(data, open(save_dir + processed_fname, 'wb'))
 
