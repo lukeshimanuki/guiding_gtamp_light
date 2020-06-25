@@ -100,7 +100,10 @@ def main():
         testloader = None
     elif config.train_type == 'wgandi':
         w_model = ImportanceWeightEstimation(config)
+        trainloader, trainset = get_w_data(config)
+        w_model.train(trainloader, None, len(trainset))
         w_model.load_weights()
+        print "Finished training w_model! Training WGANDI..."
         model = WGANgp(config)
         trainloader, testloader, trainset, testset = get_wgandi_data(config, w_model)
     elif config.train_type == 'wgangp':

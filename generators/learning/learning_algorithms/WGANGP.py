@@ -356,7 +356,7 @@ class WGANgp:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 print "Best KDE", best_kde
                 if kde > best_kde:
-                    open('mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
+                    open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                     best_kde = kde
                     print "Iteration %d / %d" % (iteration, total_iterations)
                     path = self.weight_dir + '/disc.pt'

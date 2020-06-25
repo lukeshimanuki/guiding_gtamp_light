@@ -18,7 +18,7 @@ def send_to_s3(domain):
         for seed in seeds:
             for atype in atypes:
                 if atype == 'pick':
-                    fdir = './generators/learning/learned_weights/{}/{}/{}/fc/seed_{}/'.format(domain, atype, algo,
+                    fdir = './generators/learning/learned_weights/{}/{}/{}/fc/seed_{}/gen.pt'.format(domain, atype, algo,
                                                                                                seed)
                     command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/guiding-gtamp/sampler_weights/')
                     print command
@@ -30,7 +30,7 @@ def send_to_s3(domain):
                         if algo == 'wgandi' and region == 'home_region':
                             continue
                         
-                        fdir = './generators/learning/learned_weights/{}/{}/{}/{}/fc/seed_{}/'.format(domain, atype,
+                        fdir = './generators/learning/learned_weights/{}/{}/{}/{}/fc/seed_{}/gen.pt'.format(domain, atype,
                                                                                                       region, algo,
                                                                                                       seed)
                         command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/guiding-gtamp/sampler_weights/')
