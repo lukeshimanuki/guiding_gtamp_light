@@ -169,7 +169,7 @@ def get_pap_gnn_model(mover, config):
             use_region_agnostic=config.use_region_agnostic
         )
         if config.domain == 'two_arm_mover':
-            num_entities = 11 #8
+            num_entities = 11  # 8
             n_regions = 2
         elif config.domain == 'one_arm_mover':
             num_entities = 12
@@ -229,26 +229,73 @@ def make_sampler_model_and_load_weights(config):
     return model
 
 
+def get_best_seeds(atype, region, config):
+    if atype == 'pick':
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          config.train_type)
+    else:
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          region,
+                                                                                                          config.train_type)
+
+    seed_dirs = os.listdir(sampler_weight_path)
+    max_kde = -np.inf
+    for sd_dir in seed_dirs:
+        logfiles = [p for p in os.listdir(sampler_weight_path + sd_dir) if '.pt' not in p]
+        kde = np.max([float(logfile.split('_kde_')[1].split('_')[0]) for logfile in logfiles])
+        if kde > max_kde:
+            max_kde = kde
+            best_seed = int(sd_dir.split('_')[1])
+    print sampler_weight_path
+    print "Best seed for {} {}".format(atype, region), best_seed, max_kde
+    return best_seed
+
+
 def get_learned_sampler_models(config):
     if not config.use_learning:
         return None
     if 'two_arm' in config.domain:
         train_type = config.train_type
-        config.atype = 'place'; config.region = 'home_region'; config.seed = config.sampler_seed; config.train_type='wgangp'
+
+        # place home region
+        config.atype = 'place'
+        config.region = 'home_region'
+        config.train_type = 'wgangp'
+        best_seed = get_best_seeds('place', 'home_region', config)
+        config.seed = best_seed
         goal_region_place_model = make_sampler_model_and_load_weights(config)
+
+        # place load region
+        config.atype = 'place'
+        config.region = 'loading_region'
         config.train_type = train_type
-        config.atype = 'place'; config.region = 'loading_region'; config.seed = config.sampler_seed
+        best_seed = get_best_seeds('place', 'loading_region', config)
+        config.seed = best_seed
         obj_region_place_model = make_sampler_model_and_load_weights(config)
-        config.atype = 'pick'; config.region = ''; config.seed = config.sampler_seed
+
+        # pick
+        config.atype = 'pick'
+        config.region = ''
+        best_seed = get_best_seeds('pick', '', config)
+        config.seed = best_seed
         pick_model = make_sampler_model_and_load_weights(config)
     else:
         goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
-                                                 atype='one_arm_place') # I don't think we need to learn sampler for this
-        config.atype = 'place'; config.region = 'center_shelf_region'; config.seed = config.sampler_seed
+                                                 atype='one_arm_place')  # I don't think we need to learn sampler for this
+        config.atype = 'place';
+        config.region = 'center_shelf_region';
+        config.seed = config.sampler_seed
         obj_region_place_model = make_sampler_model_and_load_weights(config)
-        config.atype = 'pick'; config.region = ''; config.seed = config.sampler_seed
+        config.atype = 'pick';
+        config.region = '';
+        config.seed = config.sampler_seed
         pick_model = make_sampler_model_and_load_weights(config)
-    model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model, 'pick': pick_model}
+    model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model,
+             'pick': pick_model}
     return model
 
 
@@ -287,9 +334,8 @@ def main():
         sys.exit(-1)
 
     if config.gather_planning_exp:
-        #assert config.h_option == 'hcount_old_number_in_goal'
+        # assert config.h_option == 'hcount_old_number_in_goal'
         pass
-
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
     print "Goal:", goal_objs, goal_region
