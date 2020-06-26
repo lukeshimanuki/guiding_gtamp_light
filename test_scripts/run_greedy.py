@@ -63,7 +63,9 @@ def get_solution_file_name(config):
     solution_file_dir += q_config
 
     if config.use_learning:
-        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}/{}'.format(config.num_episode, config.sampler_seed, config.train_type)
+        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}/{}'.format(config.num_episode,
+                                                                                   config.sampler_seed,
+                                                                                   config.train_type)
 
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
@@ -236,11 +238,12 @@ def get_best_seeds(atype, region, config):
                                                                                                           atype,
                                                                                                           config.train_type)
     else:
-        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(config.domain,
-                                                                                                          config.num_episode,
-                                                                                                          atype,
-                                                                                                          region,
-                                                                                                          config.train_type)
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
+            config.domain,
+            config.num_episode,
+            atype,
+            region,
+            config.train_type)
 
     seed_dirs = os.listdir(sampler_weight_path)
     max_kde = -np.inf
@@ -252,6 +255,24 @@ def get_best_seeds(atype, region, config):
             best_seed = int(sd_dir.split('_')[1])
     print sampler_weight_path
     print "Best seed for {} {}".format(atype, region), best_seed, max_kde
+    if atype == 'place':
+        s3_weight_file = 'csail/bkim/guiding-gtamp/sampler_weights/two_arm_mover/' \
+                         'num_episodes_{}/{}/{}/wgangp/fc/seed_{}/gen.pt'.format(config.num_episode,
+                                                                                 atype, region, best_seed)
+        local_dir = 'generators/learning/learned_weights/{}/' \
+                    'num_episodes_{}/{}/{}/wgangp/fc/seed_{}/'.format(config.domain, config.num_episode,
+                                                                            atype, region, best_seed)
+    else:
+        s3_weight_file = 'csail/bkim/guiding-gtamp/sampler_weights/two_arm_mover/' \
+                         'num_episodes_{}/{}/wgangp/fc/seed_{}/gen.pt'.format(config.num_episode,
+                                                                              atype, best_seed)
+        local_dir = 'generators/learning/learned_weights/{}/' \
+                    'num_episodes_{}/{}/wgangp/fc/seed_{}/'.format(config.domain, config.num_episode,
+                                                                         atype, best_seed)
+    command = 'mc cp ' + s3_weight_file + ' ' + local_dir + ' --recursive'
+    print command
+    os.system(command)
+
     return best_seed
 
 
@@ -335,6 +356,7 @@ def main():
 
     if config.gather_planning_exp:
         # assert config.h_option == 'hcount_old_number_in_goal'
+        config.timelimit = np.inf
         pass
 
     goal_objs, goal_region = get_goal_obj_and_region(config)
