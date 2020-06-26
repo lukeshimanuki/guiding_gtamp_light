@@ -9,7 +9,9 @@ def download_from_s3():
 
 
 def send_to_s3(domain):
-    weight_dir = './generators/learning/learned_weights/{}/'.format(domain)
+    cmd = 'mc cp generators/learning/learned_weights/ csail/bkim/guiding-gtamp/sampler_weights/ --recursive'
+    os.system(cmd)
+    return
     algos = ['wgandi', 'wgangp']
     seeds = range(4)
     atypes = ['place', 'pick']
@@ -18,19 +20,19 @@ def send_to_s3(domain):
         for seed in seeds:
             for atype in atypes:
                 if atype == 'pick':
-                    fdir = './generators/learning/learned_weights/{}/{}/{}/fc/seed_{}/gen.pt'.format(domain, atype, algo,
+                    fdir = './generators/learning/learned_weights/{}/num_episodes_4900/{}/{}/fc/seed_{}/gen.pt'.format(domain, atype, algo,
                                                                                                seed)
                     command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/guiding-gtamp/sampler_weights/')
                     print command
                     os.system(command)
                 else:
-                    fdir = './generators/learning/learned_weights/{}/{}/'.format(domain, atype)
+                    fdir = './generators/learning/learned_weights/{}/num_episodes_4900//{}/'.format(domain, atype)
                     regions = os.listdir(fdir)
                     for region in regions:
                         if algo == 'wgandi' and region == 'home_region':
                             continue
                         
-                        fdir = './generators/learning/learned_weights/{}/{}/{}/{}/fc/seed_{}/gen.pt'.format(domain, atype,
+                        fdir = './generators/learning/learned_weights/{}/num_episodes_4900/{}/{}/{}/fc/seed_{}/gen.pt'.format(domain, atype,
                                                                                                       region, algo,
                                                                                                       seed)
                         command = 'mc cp {} {} --recursive'.format(fdir, 'csail/bkim/guiding-gtamp/sampler_weights/')
