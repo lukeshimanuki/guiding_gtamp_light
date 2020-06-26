@@ -13,7 +13,7 @@ ROOTDIR = './'
 
 def get_save_dir(parameters):
     if 'two_arm' in parameters.domain:
-        n_objs_pack = 1
+        n_objs_pack = parameters.n_objs_pack
     else:
         n_objs_pack = 1
 
@@ -28,7 +28,7 @@ def get_save_dir(parameters):
 def get_raw_dir(parameters):
     if parameters.domain == 'two_arm_mover':
         if parameters.planner == 'greedy':
-            raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+            raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_{}/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'.format(parameters.n_objs_pack)
         elif parameters.planner == 'rsc':
             raise NotImplementedError
             #raw_dir = ROOTDIR + 'planning_experience/raw/irsc/n_objs_pack_1/'
@@ -70,6 +70,7 @@ def parse_parameters():
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-planner', type=str, default='rsc')
+    parser.add_argument('-absq_seed', type=int, default=0)
     parameters = parser.parse_args()
 
     return parameters
@@ -84,7 +85,7 @@ def get_raw_fname(raw_dir, parameters):
     if 'rsc' in raw_dir:
         fname = 'seed_0_pidx_{}.pkl'.format(parameters.pidx)
     else:
-        fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_0.pkl'.format(parameters.pidx)
+        fname = 'sampling_strategy_uniformpidx_{}_planner_seed_0_gnn_seed_{}.pkl'.format(parameters.pidx,parameters.absq_seed)
     return fname
 
 

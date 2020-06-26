@@ -3,7 +3,7 @@ import sys
 
 
 def download_from_s3():
-    command = 'mc cp csail/bkim/guiding-gtamp/sampler_weights/ ./ --recursive'
+    command = 'mc cp csail/bkim/guiding-gtamp/sampler_weights/ ./generators/learning/learned_weights/ --recursive'
     print command
     os.system(command)
 
