@@ -255,26 +255,6 @@ def get_best_seeds(atype, region, config):
             best_seed = int(sd_dir.split('_')[1])
     print sampler_weight_path
     print "Best seed for {} {}".format(atype, region), best_seed, max_kde
-    if atype == 'place':
-        s3_weight_file = 'csail/bkim/guiding-gtamp/sampler_weights/two_arm_mover/' \
-                         'num_episodes_{}/{}/{}/wgangp/fc/seed_{}/gen.pt'.format(config.num_episode,
-                                                                                 atype, region, best_seed)
-        local_dir = 'generators/learning/learned_weights/{}/' \
-                    'num_episodes_{}/{}/{}/wgangp/fc/seed_{}/'.format(config.domain, config.num_episode,
-                                                                            atype, region, best_seed)
-    else:
-        s3_weight_file = 'csail/bkim/guiding-gtamp/sampler_weights/two_arm_mover/' \
-                         'num_episodes_{}/{}/wgangp/fc/seed_{}/gen.pt'.format(config.num_episode,
-                                                                              atype, best_seed)
-        local_dir = 'generators/learning/learned_weights/{}/' \
-                    'num_episodes_{}/{}/wgangp/fc/seed_{}/'.format(config.domain, config.num_episode,
-                                                                         atype, best_seed)
-    if not os.path.isdir(local_dir):
-        os.makedirs(local_dir)
-    command = 'mc cp ' + s3_weight_file + ' ' + local_dir + ' --recursive'
-    print command
-    os.system(command)
-
     return best_seed
 
 
