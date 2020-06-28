@@ -7,10 +7,10 @@ from test_scripts.run_greedy import parse_arguments
 
 
 def worker_p(config):
-    command = 'python ./test_scripts/run_greedy.py -num_episode 4000 -use_learning -use_region_agnostic  -domain two_arm_mover -n_mp_limit 5 -num_node_limit 3000  -n_iter_limit 2000 -num_train 5000 ' \
+    command = 'python ./test_scripts/run_greedy.py -num_episode {} -use_learning -use_region_agnostic  -domain two_arm_mover -n_mp_limit 5 -num_node_limit 3000  -n_iter_limit 2000 -num_train 5000 ' \
               '-pidx {} -planner_seed {} -train_type {} -sampler_seed {} ' \
               '-n_objs_pack {} -timelimit {} -absq_seed {}'. \
-        format(config['pidx'], config['planner_seed'], config['train_type'], config['sampler_seed'],
+        format(config['num_episode'], config['pidx'], config['planner_seed'], config['train_type'], config['sampler_seed'],
                config['n_objs_pack'], config['timelimit'], config['absq_seed'])
 
     print command
