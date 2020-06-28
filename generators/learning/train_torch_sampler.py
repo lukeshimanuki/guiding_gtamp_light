@@ -23,7 +23,6 @@ def get_data_generator(config):
     testloader = torch.utils.data.DataLoader(trainset, batch_size=n_test, shuffle=True, num_workers=20,
                                              pin_memory=True)
     print "number of training data", n_train
-
     return trainloader, testloader, trainset, testset
 
 
@@ -92,28 +91,30 @@ def main():
     parser.add_argument('-train_type', type=str, default='wgandi')
     config = parser.parse_args()
 
-    torch.cuda.manual_seed_all(config.seed)
-    torch.manual_seed(config.seed)
-    if config.train_type == 'w':
-        model = ImportanceWeightEstimation(config)
-        trainloader, trainset = get_w_data(config)
-        testloader = None
-    elif config.train_type == 'wgandi':
-        w_model = ImportanceWeightEstimation(config)
-        trainloader, trainset = get_w_data(config)
-        w_model.train(trainloader, None, len(trainset))
-        w_model.load_weights()
-        print "Finished training w_model! Training WGANDI..."
-        model = WGANgp(config)
-        trainloader, testloader, trainset, testset = get_wgandi_data(config, w_model)
-    elif config.train_type == 'wgangp':
-        model = WGANgp(config)
-        trainloader, testloader, trainset, testset = get_data_generator(config)
-    else:
-        raise NotImplementedError
+    for seed in range(0, 4):
+        config.seed = seed
+        torch.cuda.manual_seed_all(config.seed)
+        torch.manual_seed(config.seed)
+        if config.train_type == 'w':
+            model = ImportanceWeightEstimation(config)
+            trainloader, trainset = get_w_data(config)
+            testloader = None
+        elif config.train_type == 'wgandi':
+            w_model = ImportanceWeightEstimation(config)
+            trainloader, trainset = get_w_data(config)
+            w_model.train(trainloader, None, len(trainset))
+            w_model.load_weights()
+            print "Finished training w_model! Training WGANDI..."
+            model = WGANgp(config)
+            trainloader, testloader, trainset, testset = get_wgandi_data(config, w_model)
+        elif config.train_type == 'wgangp':
+            model = WGANgp(config)
+            trainloader, testloader, trainset, testset = get_data_generator(config)
+        else:
+            raise NotImplementedError
 
-    n_train = len(trainset)
-    model.train(trainloader, testloader, n_train)
+        n_train = len(trainset)
+        model.train(trainloader, testloader, n_train)
 
 
 if __name__ == '__main__':
