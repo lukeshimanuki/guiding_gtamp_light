@@ -43,7 +43,7 @@ class GeneratorDataset(Dataset):
                 data_dir = 'planning_experience/processed/one_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
                            'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
             else:
-                data_dir = 'planning_experience/processed/two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
+                data_dir = 'planning_experience/processed/two_arm_mover/n_objs_pack_4/sahs/uses_rrt/' \
                            'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
         else:
             raise NotImplementedError
