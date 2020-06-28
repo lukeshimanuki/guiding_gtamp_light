@@ -5,6 +5,7 @@ from datasets.GeneratorDataset import StandardDataset, ImportanceEstimatorDatase
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 from learning_algorithms.ImportanceWeightEstimation import ImportanceWeightEstimation
 import numpy as np
+import os
 
 ROOTDIR = './'
 
@@ -41,7 +42,7 @@ def get_wgandi_data(config, w_model):
     poses = torch.from_numpy(dataset.poses).float()
 
     # Compute data of positive and neutral data
-    w_values = w_model.predict(actions, konf_obsts, konf_obsts).detach()
+    w_values = w_model.predict(actions, konf_obsts, poses).detach()
     w_values[w_values < 0] = 0
     prob_of_data = (w_values / torch.sum(w_values)).cpu().numpy()
 
@@ -52,6 +53,12 @@ def get_wgandi_data(config, w_model):
     chosen_actions = actions[chosen]
     chosen_konf_obsts = konf_obsts[chosen]
     chosen_poses = poses[chosen]
+    pos_idxs = np.array(data_idxs)[dataset.labels==1]
+    neu_idxs = np.array(data_idxs)[dataset.labels!=1]
+    print 'n pos chosen', len([c for c in chosen if c in pos_idxs])
+    print 'n neu chosen', len([c for c in chosen if c in neu_idxs])
+    print 'n unique pos', len(np.unique([c for c in chosen if c in pos_idxs]))
+    print 'n unique neg', len(np.unique([c for c in chosen if c in neu_idxs]))
 
     dataset.actions = chosen_actions
     dataset.poses = chosen_poses
@@ -90,8 +97,9 @@ def main():
             testloader = None
         elif config.train_type == 'wgandi':
             w_model = ImportanceWeightEstimation(config)
-            trainloader, trainset = get_w_data(config)
-            w_model.train(trainloader, None, len(trainset))
+            if len(os.listdir(w_model.weight_dir)) == 0:
+                trainloader, trainset = get_w_data(config)
+                w_model.train(trainloader, None, len(trainset))
             w_model.load_weights()
             print "Finished training w_model! Training WGANDI..."
             model = WGANgp(config)
