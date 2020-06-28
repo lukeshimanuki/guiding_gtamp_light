@@ -21,7 +21,7 @@ spec:
           && git config --global user.email "beomjoon.kim0@gmail.com"
           && git fetch --all
           && git reset --hard origin/beomjoon
-          && git checkout b80b809066c2d54258cbc05083ef64cf0bada01e
+          && git checkout 09b00bc431df662a2caca688d5bd4c68ac540941
           && git log --pretty=format:%h -n 1
           && mc config host add csail https://ceph.csail.mit.edu 119df3538de4475aaf3f0737600003b4 7e0b2e1e15004eafb75f49d1f265baf7
           && mkdir -p ./planning_experience/raw/n_objs_pack_1/irsc/

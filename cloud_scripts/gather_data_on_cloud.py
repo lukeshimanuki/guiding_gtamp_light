@@ -79,41 +79,37 @@ def main():
     n_objs_pack = 1
     absq_seed = 0
 
-    target_pidxs = range(1501, 3000)
+    target_pidxs = range(0, 5000)
     yaml_file = get_yaml_file_name(algorithm, domain)
-    commithash = '9399178e4d84dd6756d45556e2865e89d89a923d'
+    commithash = '8db0c370a4c8fb4b85d6884f9ce367793f7b7f86'
 
-    seed_pidx_pairs_running = []# get_running_seed_and_pidx_pairs(domain, algorithm)
-    seed_pidx_pairs_finished = []# get_done_seed_and_pidx_pairs(commithash)
+    seed_pidx_pairs_running = []# get_running_seed_and_pidx_pairs(domain, algorithm
+    seed_pidx_pairs_finished = []
     undone = get_seed_and_pidx_pairs_that_needs_to_run(target_pidxs, seed_pidx_pairs_finished + seed_pidx_pairs_running)
     print "Remaining runs", len(undone)
     consecutive_runs = 0
-    for idx, un in enumerate(undone):
-        pidx = un[1]
-        seed = un[0]
-        cmd = 'cat cloud_scripts/{} | ' \
-              'sed \"s/NAME/plan-exp-{}-{}-{}-{}-n-objs-{}-absqseed-{}/\" | ' \
-              'sed \"s/PIDX/{}/\" | sed \"s/PLANSEED/{}/\" |  ' \
-              'sed \"s/HOPTION/{}/\" |  ' \
-              'sed \"s/TIMELIMIT/{}/\" |  ' \
-              'sed \"s/NOBJS/{}/\" |  ' \
-              'sed \"s/COMMITHASH/{}/\" |  ' \
-              'sed \"s/NITERLIMIT/{}/\" |  ' \
-              'sed \"s/ABSQSEED/{}/\" |  ' \
-              'kubectl apply -f - -n beomjoon;'.format(yaml_file,
-                                                       algorithm, domain, pidx, seed, n_objs_pack,
-                                                       absq_seed,
-                                                       pidx, seed,
-                                                       hoption, timelimit, n_objs_pack, commithash,
-                                                       n_iter_limit, absq_seed)
-        print idx, cmd
-        os.system(cmd)
-        import pdb;pdb.set_trace()
-        time.sleep(2)
-        consecutive_runs += 1
-        if consecutive_runs % 100 == 0:
-            print "Long break"
-            time.sleep(30)
+    algo = 'greedy'
+    for n_objs_pack in [2,4]:
+        for idx, un in enumerate(undone):
+            pidx = un[1]
+            if algo == 'rsc':
+                yaml_file = 'run_gather_planning_exp.yaml'
+            else:
+                yaml_file = 'run_gather_sampler_planning_exp.yaml'
+
+            cmd = 'cat cloud_scripts/{} | ' \
+                  'sed \"s/NAME/plan-exp-{}-{}/\" |  ' \
+                  'sed \"s/PIDX/{}/\" |  ' \
+                  'sed \"s/COMMITHASH/{}/\" |  ' \
+                  'sed \"s/NOBJSPACK/{}/\" |  ' \
+                  'kubectl apply -f - -n beomjoon;'.format(yaml_file, pidx, n_objs_pack, pidx, commithash, n_objs_pack)
+            print idx, cmd
+            os.system(cmd)
+            time.sleep(2)
+            consecutive_runs += 1
+            if consecutive_runs % 100 == 0:
+                print "Long break"
+                time.sleep(30)
 
 
 if __name__ == '__main__':
