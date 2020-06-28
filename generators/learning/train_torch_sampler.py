@@ -41,33 +41,22 @@ def get_wgandi_data(config, w_model):
     konf_obsts = torch.from_numpy(dataset.konf_obsts).float()
     poses = torch.from_numpy(dataset.poses).float()
 
-    # getting neutral dataset
-    neu_idxs = dataset.labels != 1
-    neu_actions = actions[neu_idxs]
-    neu_konf_obsts = konf_obsts[neu_idxs]
-    neu_poses = poses[neu_idxs]
-
-    # computing importance values of neutral actions
-    w_values = w_model.predict(neu_actions, neu_konf_obsts, neu_poses).detach()
+    # Compute data of positive and neutral data
+    w_values = w_model.predict(actions, konf_obsts, konf_obsts).detach()
     w_values[w_values < 0] = 0
     prob_of_data = (w_values / torch.sum(w_values)).cpu().numpy()
 
-    # sampling neutral data according to their w values
-    n_neu_data = len(neu_actions)
-    data_idxs = range(n_neu_data)
-    chosen = np.random.choice(data_idxs, n_neu_data, p=prob_of_data.squeeze())
-    chosen_neu_actions = neu_actions[chosen]
-    chosen_neu_konf_obsts = neu_konf_obsts[chosen]
-    chosen_neu_poses = neu_poses[chosen]
+    # sampling data according to their w values
+    n_data = len(actions)
+    data_idxs = range(n_data)
+    chosen = np.random.choice(data_idxs, n_data, p=prob_of_data.squeeze())
+    chosen_actions = actions[chosen]
+    chosen_konf_obsts = konf_obsts[chosen]
+    chosen_poses = poses[chosen]
 
-    # concatenating the sampled neutral data with positive data
-    pos_idxs = dataset.labels == 1
-    pos_actions = actions[pos_idxs]
-    pos_konf_obsts = konf_obsts[pos_idxs]
-    pos_poses = poses[pos_idxs]
-    dataset.actions = torch.cat([pos_actions, chosen_neu_actions])
-    dataset.poses = torch.cat([pos_poses, chosen_neu_poses])
-    dataset.konf_obsts = torch.cat([pos_konf_obsts, chosen_neu_konf_obsts])
+    dataset.actions = chosen_actions
+    dataset.poses = chosen_poses
+    dataset.konf_obsts = chosen_konf_obsts
 
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
