@@ -13,6 +13,8 @@ def download_from_s3():
 
 
 def send_to_s3(domain):
+    cmd = 'mc rm csail/bkim/guiding-gtamp/sampler_weights/learned_weights.zip'
+    os.system(cmd)
     cmd = 'zip -r learned_weights.zip generators/learning/learned_weights'
     os.system(cmd)
     cmd = 'mc cp learned_weights.zip csail/bkim/guiding-gtamp/sampler_weights/ --recursive'
