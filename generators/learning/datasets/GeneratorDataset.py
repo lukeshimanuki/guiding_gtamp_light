@@ -34,9 +34,9 @@ class GeneratorDataset(Dataset):
         self.use_filter = use_filter
         self.is_testing = is_testing
         self.config = config
-        #if self.config.train_type == 'w':
+        # if self.config.train_type == 'w':
         self.konf_obsts, self.poses, self.actions, self.labels = self.get_data()
-        #else:
+        # else:
         #    self.konf_obsts, self.poses, self.actions = self.get_data()
 
     def get_cache_file_name(self, action_data_mode):
@@ -49,11 +49,12 @@ class GeneratorDataset(Dataset):
                 state_data_mode, action_data_mode, action_type, self.config.num_episode)
         else:
             assert use_filter
-            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (state_data_mode,
-                                                                                                       action_data_mode,
-                                                                                                       action_type,
-                                                                                                       desired_region,
-                                                                                                       self.config.num_episode)
+            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (
+            state_data_mode,
+            action_data_mode,
+            action_type,
+            desired_region,
+            self.config.num_episode)
         return cache_file_name
 
     def get_data_dir(self):
@@ -61,12 +62,15 @@ class GeneratorDataset(Dataset):
             if 'one_arm' in self.config.domain:
                 data_dir = 'planning_experience/processed/one_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
                            'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+                return [data_dir]
             else:
-                data_dir = 'planning_experience/processed/two_arm_mover/n_objs_pack_4/sahs/uses_rrt/' \
-                           'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+                data_dir_4_objs = 'planning_experience/processed/two_arm_mover/n_objs_pack_4/sahs/uses_rrt/' \
+                                  'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+                data_dir_1_obj = 'planning_experience/processed/two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
+                                 'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
+                return [data_dir_4_objs, data_dir_1_obj]
         else:
             raise NotImplementedError
-        return data_dir
 
     def we_should_skip_this_state_and_action(self, s, reward):
         action_type = self.config.atype
@@ -93,8 +97,8 @@ class GeneratorDataset(Dataset):
 
         return False
 
-    def load_pos_neu_data(self, action_data_mode):
-        traj_dir = self.get_data_dir()
+    def get_data_from_traj_dir(self, traj_dir, action_data_mode):
+        # todo fix this;
         traj_files = os.listdir(traj_dir)
         cache_file_name = self.get_cache_file_name(action_data_mode)
         if os.path.isfile(traj_dir + cache_file_name):
@@ -124,10 +128,10 @@ class GeneratorDataset(Dataset):
             assert 'two_arm' in data[0]['action'].type, 'change the reward condition on region for one_arm'
             for node, temp_label in zip(data, temp_labels):
                 is_neutral_data = temp_label == 0
-                reward = is_neutral_data or\
-                           (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
-                           (node['parent_n_in_way']==0 and node['n_in_way']==0 and\
-                               node['action'].discrete_parameters['place_region'] == 'home_region')
+                reward = is_neutral_data or \
+                         (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
+                         (node['parent_n_in_way'] == 0 and node['n_in_way'] == 0 and \
+                          node['action'].discrete_parameters['place_region'] == 'home_region')
                 s = node['concrete_state']
                 if self.we_should_skip_this_state_and_action(s, reward):
                     continue
@@ -159,14 +163,15 @@ class GeneratorDataset(Dataset):
             all_actions.append(actions)
             all_labels.append(labels)
             assert len(np.hstack(all_labels)) == len(np.vstack(all_poses_ids))
-          
+
             try:
-              print 'n_data %d progress %d/%d n_pos %d n_neutral %d ' \
-                    % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files), np.sum(np.hstack(all_labels)),
-                     np.sum(np.hstack(all_labels) == 0))  
+                print 'n_data %d progress %d/%d n_pos %d n_neutral %d ' \
+                      % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files), np.sum(np.hstack(all_labels)),
+                         np.sum(np.hstack(all_labels) == 0))
             except:
-              import pdb;pdb.set_trace()
-            if traj_file_idx > self.config.num_episode:
+                import pdb;
+                pdb.set_trace()
+            if traj_file_idx >= self.config.num_episode:
                 break
 
         all_states = np.vstack(all_states).squeeze(axis=1)
@@ -174,6 +179,25 @@ class GeneratorDataset(Dataset):
         all_poses_ids = np.vstack(all_poses_ids).squeeze()
         all_labels = np.hstack(all_labels).squeeze()
         pickle.dump((all_states, all_poses_ids, all_actions, all_labels), open(traj_dir + cache_file_name, 'wb'))
+        return all_states, all_actions, all_poses_ids, all_labels
+
+    def load_pos_neu_data(self, action_data_mode):
+        traj_dirs = self.get_data_dir()
+        all_states = []
+        all_actions = []
+        all_poses_ids = []
+        all_labels = []
+        for traj_dir in traj_dirs:
+            states, actions, poses_ids, labels = self.get_data_from_traj_dir(traj_dir, action_data_mode)
+            all_states.append(states)
+            all_actions.append(actions)
+            all_poses_ids.append(poses_ids)
+            all_labels.append(labels)
+
+        all_states = np.vstack(all_states)
+        all_actions = np.vstack(all_actions)
+        all_poses_ids = np.vstack(all_poses_ids)
+        all_labels = np.hstack(all_labels)
         return all_states, all_poses_ids, all_actions, all_labels
 
     def load_data_from_files(self, action_data_mode):
@@ -297,9 +321,9 @@ class GeneratorDataset(Dataset):
 class StandardDataset(GeneratorDataset):
     def __init__(self, config, use_filter, is_testing):
         super(StandardDataset, self).__init__(config, use_filter, is_testing)
-        self.konf_obsts = self.konf_obsts[self.labels==1]
-        self.poses = self.poses[self.labels==1]
-        self.actions = self.actions[self.labels==1]
+        self.konf_obsts = self.konf_obsts[self.labels == 1]
+        self.poses = self.poses[self.labels == 1]
+        self.actions = self.actions[self.labels == 1]
 
     def __getitem__(self, idx):
         data = {

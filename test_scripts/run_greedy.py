@@ -267,7 +267,7 @@ def get_learned_sampler_models(config):
         # place home region
         config.atype = 'place'
         config.region = 'home_region'
-        config.train_type = 'wgangp'
+        config.train_type = train_type
         best_seed = get_best_seeds('place', 'home_region', config)
         config.seed = best_seed
         goal_region_place_model = make_sampler_model_and_load_weights(config)

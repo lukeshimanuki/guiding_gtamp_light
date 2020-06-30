@@ -24,21 +24,22 @@ def get_n_nodes(target_dir):
             #    assert '934adde' in target_dir, 'n objs pack for two arm must use commit 934adde'
             target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
                             40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
-            target_pidxs = range(40000, 40100)
+            #target_pidxs = range(40000, 40100)
+
         else:
             target_pidxs = [40321, 40203, 40338, 40089, 40220, 40223, 40352, 40357, 40380, 40253, 40331, 40260, 40353,
                             40393, 40272, 40148, 40149, 40283, 40162, 40292, 40295, 40185, 40314, 40060]
             target_pidxs = range(40000,40300)
             target_pidxs = [40000, 40002, 40003, 40004, 40005, 40007, 40008, 40010, 40012, 40014, 40015, 40016, 40017, 40019, 40021, 40023, 40024, 40025, 40026, 40028, 40030, 40031, 40033, 40035, 40036, 40037, 40038, 40039, 40040, 40044, 40045, 40046, 40049, 40050, 40053, 40054, 40055, 40056, 40057, 40060, 40061, 40062, 40064, 40066, 40069, 40073, 40074, 40076, 40078, 40083, 40084, 40085, 40086, 40089, 40093, 40094, 40095, 40097, 40099, 40100, 40104, 40105, 40108, 40109, 40110, 40112, 40117, 40119, 40120, 40124, 40128, 40133, 40135, 40138, 40141, 40142, 40143, 40144, 40146, 40147, 40148, 40150, 40151, 40154, 40159, 40163, 40165, 40166, 40167, 40170, 40174, 40175, 40176, 40177, 40178, 40180, 40182, 40184, 40185, 40186, 40187, 40190, 40191, 40196, 40198, 40202, 40205, 40206, 40208, 40209, 40210, 40212, 40217, 40218, 40220, 40221, 40223, 40227, 40228, 40230, 40232, 40233, 40234, 40238, 40240, 40243, 40244, 40246, 40247, 40249, 40251, 40252, 40258, 40262, 40264, 40265, 40267, 40268, 40269, 40271, 40274, 40275, 40276, 40281, 40283, 40284, 40285, 40286, 40287, 40288, 40290, 40291, 40292, 40294, 40295, 40296, 40297, 40298]
             target_pidxs =[40000, 40002, 40003, 40004, 40005, 40007, 40008, 40010, 40012, 40014, 40015, 40016, 40017, 40019, 40021, 40023, 40024, 40025, 40026, 40028, 40030, 40031, 40033, 40035, 40036, 40037, 40038, 40039, 40040, 40044, 40045, 40046, 40049, 40050, 40053, 40054, 40055, 40056, 40057, 40060, 40061, 40062, 40064, 40066, 40069, 40073, 40074, 40076, 40078, 40083, 40084, 40085, 40086, 40089, 40093, 40094, 40095, 40097, 40099, 40100, 40104, 40105, 40108, 40109, 40110, 40112, 40117, 40119, 40120, 40124, 40128, 40133, 40135, 40138, 40141, 40142, 40143, 40144, 40146, 40147, 40148, 40150, 40151, 40154, 40159, 40163, 40165, 40166, 40167, 40170, 40174, 40175, 40176, 40177, 40178, 40180, 40182, 40184, 40185, 40186, 40187, 40190, 40191, 40196, 40198, 40202, 40205, 40206, 40208, 40209, 40210, 40212, 40217, 40218, 40220, 40221, 40223, 40227, 40228, 40230, 40232, 40233, 40234, 40238, 40240, 40243, 40244, 40246, 40247, 40249, 40251, 40252, 40258, 40262, 40264, 40265, 40267, 40268, 40269, 40271, 40274, 40275, 40276, 40281, 40283, 40284, 40285, 40286, 40287, 40288, 40290, 40291, 40292, 40294, 40295, 40296, 40297, 40298]
-            #target_pidxs = target_pidxs[0:25]
+            target_pidxs = target_pidxs[0:25]
     else:
         target_pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20015, 20019, 20021, 20023, 20024, 20035,
                         20046, 20047, 20051, 20053, 20056, 20057, 20061, 20063, 20066, 20067, 20069, 20072, 20075,
                         20080, 20083, 20084, 20086, 20093, 20094, 20095]
         target_pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20047, 20051,
                         20053, 20057, 20061, 20063, 20066, 20069, 20072, 20075, 20084, 20086, 20093, 20094, 20095]
-
+        target_pidxs = range(20000,20100)
 
         # target_pidxs = [20002, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20051, 20061, 20063, 20066, 20069, 20072, 20075,
         # 20093]
@@ -66,9 +67,10 @@ def get_n_nodes(target_dir):
             absqseed = int(filename.split('gnn_seed_')[-1].split('.pkl')[0])
 
             #target_absqseed = 1 if 'a179000' in target_dir else 0
-            #if absqseed != target_absqseed:
-            #    #print filename
-            #    continue
+            target_absqseed = 0
+            if absqseed != target_absqseed:
+                #print filename
+                continue
 
         if 'rsc' in target_dir:
             pidx = int(filename.split('pidx_')[1].split('.pkl')[0])
@@ -152,6 +154,12 @@ def get_target_dir(algo, n_objs_pack, domain):
 
 
 def plot_one_arm():
+    target_dir = 'cloud_results/240c6f4/sahs_results/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_50/'
+    pidx_nodes_3, pidx_times_3 = get_n_nodes(target_dir)
+    target_dir = 'cloud_results/ea42d4e/sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_50/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
+
     target_dir = 'cloud_results/ea42d4e/sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_50/'
     pidx_nodes_1, pidx_times_1 = get_n_nodes(target_dir)
     target_dir = 'cloud_results/ea42d4e/sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_50/'
@@ -163,6 +171,7 @@ def plot_one_arm():
 
     target_dir = 'cloud_results/3c193cf/irsc/one_arm_mover/n_objs_pack_1/'
     pidx_nodes_4, pidx_times_4 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
 
     plt.figure()
     plt.boxplot([np.hstack(pidx_times_1.values()), np.hstack(pidx_times_2.values()), np.hstack(pidx_times_3.values()),
@@ -178,6 +187,95 @@ def plot_one_arm():
 
 def plot_two_arm():
     n_objss = [1]
+    print  "****Ranking function****"
+    target_dir = 'cloud_results/1533b3c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print  "****WGANGP 1000 data points****"
+    target_dir = 'cloud_results/8db0c37/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/1000/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print  "****WGANGP 4000 data points****"
+    target_dir = 'cloud_results/8db0c37/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/4000/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print  "****WGANGP 1 packing obj training 4900 data points****"
+    target_dir = 'cloud_results/92d0985/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/4900/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
+
+    print '****n objs pack 4****'
+    print '****n objs pack 4****'
+    print '****n objs pack 4****'
+    print '****n objs pack 4****'
+    print  "****Ranking function****"
+    target_dir = 'cloud_results/1533b3c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print  "****WGANGP 4000 data points****"
+    target_dir = 'cloud_results/8db0c37/sahs_results/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/4000/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print  "****WGANGP 1000 data points****"
+    target_dir = 'cloud_results/8db0c37/sahs_results/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/1000/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print  "****WGANGP 1 packing obj training 4900 data points****"
+    target_dir = 'cloud_results/92d0985/sahs_results/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/4900/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;
+    pdb.set_trace()
+
+
+
+
+
+    target_dir = 'cloud_results/1533b3c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    target_dir = 'cloud_results/92d0985/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/4900/sampler_seed_0/wgandi/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    target_dir = 'cloud_results/92d0985/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/4900/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
+
+    #target_dir = 'cloud_results/1533b3c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    #pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    #import pdb;pdb.set_trace()
+
+
+
+
+
+    target_dir ='cloud_results/16653e7/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+
+    """
+    target_dir = 'cloud_results/c40c7ab/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    target_dir = 'cloud_results/f3138bf/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
+    print '***Using CORL weight'
+    target_dir = 'cloud_results/9123ee0/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    """
+    target_dir = 'cloud_results/934adde/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+
+
+    print "***Using RSC data, shortest statetype"
+    target_dir = 'cloud_results/0559f0c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
+    print "***Using RSC data, mc statetype"
+    target_dir = 'cloud_results/7fb3872/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    print "***Using HCountGreedy data, shortest statetype"
+    target_dir = 'cloud_results/a179000/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5002_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    import pdb;pdb.set_trace()
+
+    target_dir = 'cloud_results/2353673/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
+    target_dir = 'cloud_results/9226036/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+    _, pidx_times_3 = get_n_nodes(target_dir)
+
+    import pdb;pdb.set_trace()
+
     for n_objs in n_objss:
         print  "****Hcount****"
         if n_objs == 1:
@@ -189,11 +287,12 @@ def plot_two_arm():
         print  "****Ranking function****"
         if n_objs == 1:
             #target_dir = 'cloud_results/c8c5552/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
-            target_dir = 'cloud_results/934adde_two_arm_n_objs_pack_1_results/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
             target_dir = 'cloud_results/8437aa8/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5001_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
             target_dir = 'cloud_results/a179000/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5002_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
             target_dir = 'cloud_results/934adde/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
             target_dir = 'cloud_results/a0866e8/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5002_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/934adde_two_arm_n_objs_pack_1_results/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
+            target_dir = 'cloud_results/0559f0c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
         else:
             target_dir = 'cloud_results/9226036/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_4/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
         pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
