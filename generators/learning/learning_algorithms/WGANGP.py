@@ -7,7 +7,7 @@ import pickle
 
 import socket
 
-if socket.gethostname() == 'phaedra':
+if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey':
     from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
@@ -294,7 +294,6 @@ class WGANgp:
                 poses_v = autograd.Variable(poses)
                 konf_obsts_v = autograd.Variable(konf_obsts)
                 actions_v = autograd.Variable(actions)
-
                 self.discriminator.zero_grad()
 
                 # train with real
@@ -356,6 +355,7 @@ class WGANgp:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 print "Best KDE", best_kde
                 if kde > best_kde:
+                    patience = 0
                     open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                     best_kde = kde
                     print "Iteration %d / %d" % (iteration, total_iterations)
@@ -365,7 +365,7 @@ class WGANgp:
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if patience >= 100:
+                if patience >= 20:
                     break
                 print 'Time taken', time.time() - stime
                 stime = time.time()
