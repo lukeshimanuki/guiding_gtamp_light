@@ -1,7 +1,7 @@
 import torch
 import argparse
 
-from datasets.GeneratorDataset import StandardDataset, ImportanceEstimatorDataset
+from datasets.GeneratorDataset import StandardDataset, ImportanceEstimatorDataset, GivenDataset
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 from learning_algorithms.ImportanceWeightEstimation import ImportanceWeightEstimation
 import numpy as np
@@ -40,6 +40,30 @@ def get_wgandi_data(config, w_model):
     actions = torch.from_numpy(dataset.actions).float()
     konf_obsts = torch.from_numpy(dataset.konf_obsts).float()
     poses = torch.from_numpy(dataset.poses).float()
+    labels = torch.from_numpy(dataset.labels).float()
+
+    # split the positive data into train and test sets
+    pos_set = GivenDataset(actions[labels==1], konf_obsts[labels==1], poses[labels==1])
+    n_train = int(len(pos_set) * 0.9)
+    trainset, testset = torch.utils.data.random_split(pos_set, [n_train, len(pos_set) - n_train])
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=True, num_workers=20,
+                                             pin_memory=True)
+
+    # get only the positive dataset, and merge with neutral dataset
+    pos_actions = trainset.dataset[trainset.indices]
+    neu_idxs = labels!=1
+    tr_actions = torch.cat([actions[neu_idxs], trainset.dataset[trainset.indices]['actions']])
+    tr_konf_obsts = torch.cat([konf_obsts[neu_idxs], trainset.dataset[trainset.indices]['konf_obsts']])
+    tr_poses = torch.cat([poses[neu_idxs], trainset.dataset[trainset.indices]['poses']])
+    tr_labels = torch.cat([torch.zeros(poses[neu_idxs].shape[0],1), torch.ones(len(trainset.indices),1)])
+
+    dataset.actions = tr_actions.numpy()
+    dataset.konf_obsts = tr_konf_obsts.numpy()
+    dataset.poses = tr_poses.numpy()
+    dataset.labels = tr_labels.numpy()
+    actions = torch.from_numpy(dataset.actions).float()
+    konf_obsts = torch.from_numpy(dataset.konf_obsts).float()
+    poses = torch.from_numpy(dataset.poses).float()
 
     # Compute data of positive and neutral data
     w_values = w_model.predict(actions, konf_obsts, poses).detach()
@@ -53,26 +77,30 @@ def get_wgandi_data(config, w_model):
     chosen_actions = actions[chosen]
     chosen_konf_obsts = konf_obsts[chosen]
     chosen_poses = poses[chosen]
-    pos_idxs = np.array(data_idxs)[dataset.labels==1]
-    neu_idxs = np.array(data_idxs)[dataset.labels!=1]
+    pos_idxs = np.array(data_idxs)[dataset.labels.squeeze()==1]
+    neu_idxs = np.array(data_idxs)[dataset.labels.squeeze()!=1]
     print 'n pos chosen', len([c for c in chosen if c in pos_idxs])
     print 'n neu chosen', len([c for c in chosen if c in neu_idxs])
     print 'n unique pos', len(np.unique([c for c in chosen if c in pos_idxs]))
     print 'n unique neg', len(np.unique([c for c in chosen if c in neu_idxs]))
 
-    dataset.actions = chosen_actions
-    dataset.poses = chosen_poses
-    dataset.konf_obsts = chosen_konf_obsts
+    pos_w_values = w_model.predict(actions, konf_obsts, poses)[pos_idxs].detach().cpu().numpy()
+    neu_w_values = w_model.predict(actions, konf_obsts, poses)[neu_idxs].detach().cpu().numpy()
+    print 'num pos data', len(pos_idxs)
+    print 'num pos data with neg w vals', len(pos_w_values[pos_w_values<=0])
 
-    n_train = int(len(dataset) * 0.9)
-    trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
-    batch_size = 32
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=20,
+    excluded_pos_idxs = [i for i in pos_idxs if i not in chosen] 
+    print 'n excluded pos data', len(excluded_pos_idxs)
+    to_add = chosen_actions
+
+    dataset.actions = torch.cat([chosen_actions, actions[excluded_pos_idxs]])
+    dataset.poses = torch.cat([chosen_poses, poses[excluded_pos_idxs]])
+    dataset.konf_obsts = torch.cat([chosen_konf_obsts, konf_obsts[excluded_pos_idxs]])
+    dataset.labels = torch.ones(dataset.poses.shape[0],1)
+    trainset = dataset
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True, num_workers=20,
                                               pin_memory=True)
-    n_test = len(testset.indices)
-    testloader = torch.utils.data.DataLoader(trainset, batch_size=n_test, shuffle=True, num_workers=20,
-                                             pin_memory=True)
-    print "number of training data", n_train
+    print "number of training data", len(dataset)
     return trainloader, testloader, trainset, testset
 
 
@@ -85,6 +113,7 @@ def main():
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-num_episode', type=int, default=1000)
     parser.add_argument('-train_type', type=str, default='wgandi')
+    parser.add_argument('-f', action='store_true', default=False)
     config = parser.parse_args()
 
     for seed in range(0, 4):
@@ -97,7 +126,7 @@ def main():
             testloader = None
         elif config.train_type == 'wgandi':
             w_model = ImportanceWeightEstimation(config)
-            if len(os.listdir(w_model.weight_dir)) == 0:
+            if len(os.listdir(w_model.weight_dir)) == 0 or config.f:
                 trainloader, trainset = get_w_data(config)
                 w_model.train(trainloader, None, len(trainset))
             w_model.load_weights()
