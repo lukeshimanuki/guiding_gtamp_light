@@ -152,6 +152,7 @@ class GeneratorDataset(Dataset):
             except:
                 import pdb;
                 pdb.set_trace()
+            print 'action shape', np.vstack(all_actions).shape
             if traj_file_idx >= self.config.num_episode:
                 break
 
@@ -160,7 +161,7 @@ class GeneratorDataset(Dataset):
         all_poses_ids = np.vstack(all_poses_ids).squeeze()
         all_labels = np.hstack(all_labels).squeeze()
         pickle.dump((all_states, all_poses_ids, all_actions, all_labels), open(traj_dir + cache_file_name, 'wb'))
-        return all_states, all_actions, all_poses_ids, all_labels
+        return all_states, all_poses_ids, all_actions, all_labels
 
     def load_pos_neu_data(self, action_data_mode):
         traj_dirs = self.get_data_dir()
@@ -169,109 +170,16 @@ class GeneratorDataset(Dataset):
         all_poses_ids = []
         all_labels = []
         for traj_dir in traj_dirs:
-            states, actions, poses_ids, labels = self.get_data_from_traj_dir(traj_dir, action_data_mode)
+            states, poses_ids, actions, labels = self.get_data_from_traj_dir(traj_dir, action_data_mode)
             all_states.append(states)
             all_actions.append(actions)
             all_poses_ids.append(poses_ids)
             all_labels.append(labels)
-
         all_states = np.vstack(all_states)
         all_actions = np.vstack(all_actions)
         all_poses_ids = np.vstack(all_poses_ids)
         all_labels = np.hstack(all_labels)
         return all_states, all_poses_ids, all_actions, all_labels
-
-    def load_data_from_files(self, action_data_mode):
-        traj_dir = self.get_data_dir()
-        print "Loading data from", traj_dir
-        traj_files = os.listdir(traj_dir)
-        cache_file_name = self.get_cache_file_name(action_data_mode)
-        if os.path.isfile(traj_dir + cache_file_name):
-            print "Loading the cache file", traj_dir + cache_file_name
-            f = pickle.load(open(traj_dir + cache_file_name, 'r'))
-            print "Cache data loaded"
-            return f
-
-        print 'caching file...%s' % cache_file_name
-        all_states = []
-        all_actions = []
-        all_sum_rewards = []
-        all_poses_ids = []
-        all_konf_relevance = []
-        n_episodes = 0
-        for traj_file_idx, traj_file in enumerate(traj_files):
-            if 'pidx' not in traj_file:
-                print 'not pkl file'
-                continue
-            try:
-                traj = pickle.load(open(traj_dir + traj_file, 'r'))
-            except:
-                print traj_file
-                continue
-
-            if len(traj.states) == 0:
-                print 'failed instance'
-                continue
-
-            states = []
-            poses_ids = []
-            actions = []
-            konf_relevance = []
-
-            if self.use_filter:
-                rewards = np.array(traj.prev_n_in_way) - np.array(traj.n_in_way) > 0
-            else:
-                rewards = 1
-            for s, a, reward, v_manip_goal in zip(traj.states, traj.actions, rewards, traj.prev_v_manip_goal):
-                if self.we_should_skip_this_state_and_action(s, reward):
-                    continue
-
-                collision_vec = s.pick_collision_vector
-                if 'two_arm' in self.config.domain:
-                    v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 618, 2, 1))
-                else:
-                    v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape((1, 355, 2, 1))
-                state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
-
-                states.append(state_vec)
-
-                # note that this is not used in one arm domain
-                if 'rectangular' in a['object_name']:
-                    object_id = [1, 0]
-                else:
-                    object_id = [0, 1]
-                poses_from_state = get_processed_poses_from_state(s, 'absolute')
-                poses_from_state_and_id = np.hstack([poses_from_state, object_id])
-                poses_ids.append(poses_from_state_and_id)
-                actions.append(get_processed_poses_from_action(s, a, action_data_mode))
-
-            states = np.array(states)
-            poses_ids = np.array(poses_ids)
-            actions = np.array(actions)
-
-            rewards = traj.rewards
-            sum_rewards = np.array([np.sum(traj.rewards[t:]) for t in range(len(rewards))])
-            if len(states) == 0:
-                print "no state"
-                continue
-            all_poses_ids.append(poses_ids)
-            all_states.append(states)
-            all_actions.append(actions)
-            all_sum_rewards.append(sum_rewards)
-            all_konf_relevance.append(konf_relevance)
-            n_episodes += 1
-
-            print 'n_data %d progress %d/%d' % (len(np.vstack(all_actions)), traj_file_idx, len(traj_files))
-            print "N episodes", n_episodes
-            n_data = len(np.vstack(all_actions))
-            assert len(np.vstack(all_states)) == n_data
-
-        all_states = np.vstack(all_states).squeeze(axis=1)
-        all_actions = np.vstack(all_actions).squeeze()
-        all_poses_ids = np.vstack(all_poses_ids).squeeze()
-        pickle.dump((all_states, all_poses_ids, all_actions), open(traj_dir + cache_file_name, 'wb'))
-
-        return all_states, all_poses_ids, all_actions
 
     def get_data(self):
         if self.config.atype == 'pick':
