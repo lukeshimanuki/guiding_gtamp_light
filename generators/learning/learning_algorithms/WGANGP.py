@@ -367,5 +367,5 @@ class WGANgp:
                     patience += 1
                 if patience >= 20:
                     break
-                print 'Time taken', time.time() - stime
+                print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
