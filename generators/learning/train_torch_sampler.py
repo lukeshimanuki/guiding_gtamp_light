@@ -21,7 +21,7 @@ def get_data_generator(config):
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=20,
                                               pin_memory=True)
     n_test = len(testset.indices)
-    testloader = torch.utils.data.DataLoader(trainset, batch_size=n_test, shuffle=True, num_workers=20,
+    testloader = torch.utils.data.DataLoader(testset, batch_size=n_test, shuffle=True, num_workers=20,
                                              pin_memory=True)
     print "number of training data", n_train
     return trainloader, testloader, trainset, testset
@@ -114,6 +114,7 @@ def main():
     parser.add_argument('-num_episode', type=int, default=1000)
     parser.add_argument('-train_type', type=str, default='wgandi')
     parser.add_argument('-f', action='store_true', default=False)
+    parser.add_argument('-patience', type=int, default=20)
     config = parser.parse_args()
 
     for seed in range(0, 4):

@@ -365,7 +365,7 @@ class WGANgp:
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if patience >= 20:
+                if patience >= self.config.patience:
                     break
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
