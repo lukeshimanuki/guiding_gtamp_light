@@ -10,6 +10,25 @@ from gtamp_utils import utils
 import os
 
 
+class GivenDataset(Dataset):
+    def __init__(self, actions, konf_obsts, poses):
+        self.actions = actions
+        self.konf_obsts = konf_obsts
+        self.poses = poses
+
+    def __len__(self):
+        return len(self.konf_obsts)
+    
+    def __getitem__(self, idx):
+        data = {
+            'konf_obsts': self.konf_obsts[idx],
+            'poses': self.poses[idx],
+            'actions': self.actions[idx],
+        }
+        return data
+
+
+
 class GeneratorDataset(Dataset):
     def __init__(self, config, use_filter, is_testing):
         self.use_filter = use_filter
