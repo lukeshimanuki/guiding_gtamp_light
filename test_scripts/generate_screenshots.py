@@ -286,7 +286,7 @@ def main():
     problem_env = get_problem_env(config, goal_region, goal_objs)
     set_problem_env_config(problem_env, config)
     if config.v:
-        utils.viewer()
+        problem_env.env.SetViewer('qtcoin')
 
     if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
@@ -349,6 +349,8 @@ def main():
 
     problem_env.reset_to_init_state_stripstream()
 
+    color = get_color_of(problem_env.objects[0])
+
     for obj in problem_env.objects:
         utils.set_color(obj, [0.0, 0.7, 0.0])
 
@@ -375,7 +377,7 @@ def main():
         # visualize_path calls raw_input and remove_drawn_configs
         op.execute_pick()
         raw_input('continue?')
-        utils.set_color(obj, [0.0, 0.7, 0.0])
+        utils.set_color(obj, color)
         utils.release_obj()
         op.execute()
         raw_input('continue?')
