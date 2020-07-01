@@ -32,6 +32,7 @@ class ImportanceWeightEstimation:
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
+        open(self.weight_dir+'/clip_{}'.format(config.wclip), 'wb')
 
     def evaluate_on_testset(self, iteration, te_poses, te_konf_obsts, te_actions, te_labels):
         w_values = self.model(te_actions, te_konf_obsts, te_poses)
@@ -86,9 +87,10 @@ class ImportanceWeightEstimation:
                 labels = labels.cuda()
 
             w_values = self.model(actions, konf_obsts, poses)
+            w_values = torch.clamp(w_values, max=self.config.wclip)
             pos_w_values = w_values[labels == 1]
             neg_w_values = w_values[labels == 0]
-
+            
             loss = torch.mean(neg_w_values ** 2) - 2 * torch.mean(pos_w_values)
             self.model.zero_grad()
             loss.backward()
