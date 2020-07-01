@@ -351,7 +351,8 @@ class WGANgp:
             optimizerG.step()
 
             # Write logs and save samples
-            if iteration % 100 == 0:
+            save_iter = min(len(data_loader.dataset), 100)
+            if iteration % save_iter == 0:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 print "Best KDE", best_kde
                 if kde > best_kde:

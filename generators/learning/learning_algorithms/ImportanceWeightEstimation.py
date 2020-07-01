@@ -3,6 +3,7 @@ import socket
 import torch
 import torch.optim as optim
 import os
+import time
 
 
 class ImportanceWeightEstimation:
@@ -74,6 +75,7 @@ class ImportanceWeightEstimation:
         best_loss = 99999
         use_cuda = 'cuda' in self.device.type
 
+        stime=time.time()
         for iteration in range(100000):
             _data = data_gen.next()
             poses = _data['poses'].float()
@@ -96,7 +98,8 @@ class ImportanceWeightEstimation:
             loss.backward()
             optimizer.step()
 
-            if iteration % 100 == 0:
+            save_iter = min(len(data_loader.dataset), 100)
+            if iteration % save_iter == 0:
                 testloss = self.evaluate_on_testset(iteration, all_poses, all_konf_obsts, all_actions, all_labels)
                 if testloss < best_loss:
                     best_loss = testloss
@@ -107,4 +110,5 @@ class ImportanceWeightEstimation:
                     patience += 1
                     if patience == patience_limit:
                         break
-                print "Best loss so far", best_loss
+                print "Best loss so far", best_loss, time.time()-stime
+                stime=time.time()

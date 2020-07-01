@@ -28,9 +28,11 @@ def get_data_generator(config):
 
 
 def get_w_data(config):
-    batch_size = 32
     dataset = ImportanceEstimatorDataset(config, True, is_testing=False)
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=20,
+    batch_size = min(32, int(0.1*len(dataset)))
+    num_workers = 1 if batch_size < 10 else 10
+    print 'Batch size', batch_size
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                                               pin_memory=True)
     return trainloader, dataset
 
@@ -98,7 +100,10 @@ def get_wgandi_data(config, w_model):
     dataset.konf_obsts = torch.cat([chosen_konf_obsts, konf_obsts[excluded_pos_idxs]])
     dataset.labels = torch.ones(dataset.poses.shape[0],1)
     trainset = dataset
-    trainloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True, num_workers=20,
+    batch_size = min(32, int(0.1*len(dataset)))
+    num_workers = 1 if batch_size < 10 else 10
+    print "Batch size {} num workers {}".format(batch_size, num_workers)
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                                               pin_memory=True)
     print "number of training data", len(dataset)
     return trainloader, testloader, trainset, testset
@@ -118,7 +123,7 @@ def main():
     parser.add_argument('-wclip', type=int, default=10)
     config = parser.parse_args()
 
-    for num_episode in [5, 10, 50, 200, 500, 2000]:
+    for num_episode in [10, 50, 200, 500, 2000]:
         config.num_episode = num_episode
         for seed in range(0, 4):
             print "****NUM EPISODE {} SEED {}*****".format(num_episode, seed)
