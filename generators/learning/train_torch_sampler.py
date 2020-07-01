@@ -18,10 +18,14 @@ def get_data_generator(config):
     n_train = int(len(dataset) * 0.9)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     batch_size = 32
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=20,
+
+    batch_size = min(32, int(0.1*len(trainset)))
+    num_workers = 1 if batch_size < 10 else 10
+    print "Batch size {} num workers {}".format(batch_size, num_workers)
+    trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                                               pin_memory=True)
     n_test = len(testset.indices)
-    testloader = torch.utils.data.DataLoader(testset, batch_size=n_test, shuffle=True, num_workers=20,
+    testloader = torch.utils.data.DataLoader(testset, batch_size=n_test, shuffle=True, num_workers=num_workers,
                                              pin_memory=True)
     print "number of training data", n_train
     return trainloader, testloader, trainset, testset
