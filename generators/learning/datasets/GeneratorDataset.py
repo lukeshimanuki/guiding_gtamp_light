@@ -127,9 +127,8 @@ class GeneratorDataset(Dataset):
             labels = []
             assert 'two_arm' in data[0]['action'].type, 'change the reward condition on region for one_arm'
             for node, temp_label in zip(data, temp_labels):
-                is_neutral_data = temp_label == 0
-                reward = is_neutral_data or \
-                         (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
+                #is_neutral_data = temp_label == 0
+                reward = (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
                          (node['parent_n_in_way'] == 0 and node['n_in_way'] == 0 and \
                           node['action'].discrete_parameters['place_region'] == 'home_region')
                 s = node['concrete_state']
