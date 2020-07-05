@@ -247,15 +247,31 @@ def get_best_seeds(atype, region, config):
 
     seed_dirs = os.listdir(sampler_weight_path)
     max_kde = -np.inf
+    candidate_seeds = []
+    candidate_seed_kdes = []
     for sd_dir in seed_dirs:
         logfiles = [p for p in os.listdir(sampler_weight_path + sd_dir) if '.pt' not in p]
-        kde = np.max([float(logfile.split('_kde_')[1].split('_')[0]) for logfile in logfiles])
-        if kde > max_kde:
-            max_kde = kde
-            best_seed = int(sd_dir.split('_')[1])
-    print sampler_weight_path
-    print "Best seed for {} {}".format(atype, region), best_seed, max_kde
-    return best_seed
+        best_kde_for_sd = np.max([float(logfile.split('_kde_')[1].split('_')[0]) for logfile in logfiles])
+        print best_kde_for_sd
+        is_pick = 'pick' in sampler_weight_path
+        if 'two_arm_mover' in sampler_weight_path:
+            if is_pick:
+                target_kde = -150
+            else:
+                if 'home_region' in sampler_weight_path:
+                    target_kde = -40
+                else:
+                    target_kde = -70
+        else:
+            raise NotImplementedError
+
+        if best_kde_for_sd > target_kde:
+            candidate_seeds.append(int(sd_dir.split('_')[1]))
+            candidate_seed_kdes.append(best_kde_for_sd)
+    print "N qualified seeds for {} {}".format(atype, region), len(candidate_seeds)
+    print "Qualified seeds for {} {}".format(atype, region), candidate_seeds[config.sampler_seed], \
+        candidate_seed_kdes[config.sampler_seed]
+    return candidate_seeds[config.sampler_seed]
 
 
 def get_learned_sampler_models(config):
@@ -305,8 +321,7 @@ def get_learned_sampler_models(config):
 def get_goal_obj_and_region(config):
     if config.domain == 'two_arm_mover':
         if config.n_objs_pack == 4:
-            goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3',
-                         'rectangular_packing_box4']
+            goal_objs = ['square_packing_box1', 'square_packing_box2', 'rectangular_packing_box3', 'rectangular_packing_box4']
             goal_region = 'home_region'
         else:
             goal_objs = ['square_packing_box1']
