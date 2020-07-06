@@ -40,7 +40,7 @@ def get_problem_env(config, goal_region, goal_objs):
     return problem_env
 
 
-def get_solution_file_name(config):
+def get_solution_file_name(config, pick_seed, home_seed, loading_seed):
     root_dir = './'
     # if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
     #    root_dir = './'
@@ -63,8 +63,8 @@ def get_solution_file_name(config):
     solution_file_dir += q_config
 
     if config.use_learning:
-        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}/{}'.format(config.num_episode,
-                                                                                   config.sampler_seed,
+        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}_{}_{}/{}'.format(config.num_episode,
+                                                                                   pick_seed, home_seed, loading_seed,
                                                                                    config.train_type)
 
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
@@ -271,6 +271,9 @@ def get_best_seeds(atype, region, config):
     print "N qualified seeds for {} {}".format(atype, region), len(candidate_seeds)
     print "Qualified seeds for {} {}".format(atype, region), candidate_seeds[config.sampler_seed], \
         candidate_seed_kdes[config.sampler_seed]
+    print "Selected KDE",candidate_seed_kdes[config.sampler_seed]
+
+    # ordering on the cloud
     return candidate_seeds[config.sampler_seed]
 
 
@@ -286,6 +289,7 @@ def get_learned_sampler_models(config):
         config.train_type = train_type
         best_seed = get_best_seeds('place', 'home_region', config)
         config.seed = best_seed
+        home_seed = best_seed
         goal_region_place_model = make_sampler_model_and_load_weights(config)
 
         # place load region
@@ -293,6 +297,7 @@ def get_learned_sampler_models(config):
         config.region = 'loading_region'
         config.train_type = train_type
         best_seed = get_best_seeds('place', 'loading_region', config)
+        loading_seed = best_seed
         config.seed = best_seed
         obj_region_place_model = make_sampler_model_and_load_weights(config)
 
@@ -300,6 +305,7 @@ def get_learned_sampler_models(config):
         config.atype = 'pick'
         config.region = ''
         best_seed = get_best_seeds('pick', '', config)
+        pick_seed = best_seed
         config.seed = best_seed
         pick_model = make_sampler_model_and_load_weights(config)
     else:
@@ -315,7 +321,7 @@ def get_learned_sampler_models(config):
         pick_model = make_sampler_model_and_load_weights(config)
     model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model,
              'pick': pick_model}
-    return model
+    return model, pick_seed, home_seed, loading_seed
 
 
 def get_goal_obj_and_region(config):
@@ -337,7 +343,8 @@ def get_goal_obj_and_region(config):
 
 def main():
     config = parse_arguments()
-    solution_file_name = get_solution_file_name(config)
+    learned_sampler_model, pick_seed, home_seed, loading_seed = get_learned_sampler_models(config)
+    solution_file_name = get_solution_file_name(config, pick_seed, home_seed, loading_seed)
     is_problem_solved_before = os.path.isfile(solution_file_name)
     if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
@@ -372,7 +379,6 @@ def main():
     t = time.time()
     np.random.seed(config.planner_seed)
     random.seed(config.planner_seed)
-    learned_sampler_model = get_learned_sampler_models(config)
     nodes_to_goal, plan, num_nodes, nodes = search(problem_env, config, pap_model, goal_objs,
                                                    goal_region, learned_sampler_model)
     tottime = time.time() - t
