@@ -231,6 +231,67 @@ def make_sampler_model_and_load_weights(config):
     return model
 
 
+
+def get_best_seeds__(atype, region, config):
+    if atype == 'pick':
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          config.train_type)
+    else:
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
+            config.domain,
+            config.num_episode,
+            atype,
+            region,
+            config.train_type)
+
+    seed_dirs = os.listdir(sampler_weight_path)
+    max_kde = -np.inf
+    candidate_seeds = []
+    candidate_seed_kdes = []
+    for sd_dir in seed_dirs:
+        logfiles = [p for p in os.listdir(sampler_weight_path + sd_dir) if '.pt' not in p]
+        kdes = [float(logfile.split('_kde_')[1].split('_')[0]) for logfile in logfiles]
+        entropies = [float(logfile.split('_entropy_')[1].split('_')[0]) for logfile in logfiles]
+        sorted_idxs = np.argsort(kdes)[::-1]
+        kdes = np.array(kdes)[sorted_idxs]
+        entropies = np.array(entropies)[sorted_idxs]
+        best_kde_for_sd = kdes[0]
+        is_pick = 'pick' in sampler_weight_path
+        if 'two_arm_mover' in sampler_weight_path:
+            if is_pick:
+                target_kde = -150
+                target_entropy = 3.8
+            else:
+                if 'home_region' in sampler_weight_path:
+                    target_kde = -40
+                    target_entropy = 3.53
+                else:
+                    target_kde = -70
+                    target_entropy = 3.15
+        else:
+            raise NotImplementedError
+        print "*******Seed*******",int(sd_dir.split('_')[1])
+        for kde, entropy in zip(kdes, entropies):
+            print 'best kde, entropies, seed', kde, entropy, int(sd_dir.split('_')[1])
+
+            if kde > target_kde and entropy > target_entropy:
+                candidate_seeds.append(int(sd_dir.split('_')[1]))
+                candidate_seed_kdes.append(best_kde_for_sd)
+                break
+    import pdb;pdb.set_trace()
+    print "N qualified seeds for {} {}".format(atype, region), len(candidate_seeds)
+    print "Qualified seeds for {} {}".format(atype, region), candidate_seeds[config.sampler_seed], \
+        candidate_seed_kdes[config.sampler_seed]
+    print "Selected KDE", candidate_seed_kdes[config.sampler_seed]
+    import pdb;pdb.set_trace()
+    # ordering on the cloud
+    if 'loading_region' in sampler_weight_path:
+        return 3
+    else:
+        return candidate_seeds[config.sampler_seed]
+
 def get_best_seeds(atype, region, config):
     if atype == 'pick':
         sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
@@ -275,7 +336,7 @@ def get_best_seeds(atype, region, config):
 
     # ordering on the cloud
     if 'loading_region' in sampler_weight_path:
-        return 3
+        return 0
     else:
         return candidate_seeds[config.sampler_seed]
 
