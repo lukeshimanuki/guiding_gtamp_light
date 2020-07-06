@@ -274,7 +274,10 @@ def get_best_seeds(atype, region, config):
     print "Selected KDE",candidate_seed_kdes[config.sampler_seed]
 
     # ordering on the cloud
-    return candidate_seeds[config.sampler_seed]
+    if 'loading_region' in sampler_weight_path:
+        return 3
+    else:
+        return candidate_seeds[config.sampler_seed]
 
 
 def get_learned_sampler_models(config):
