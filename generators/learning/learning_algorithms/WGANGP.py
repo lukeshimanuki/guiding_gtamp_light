@@ -378,7 +378,6 @@ class WGANgp:
                 print "Best KDE {} Entropy {}".format(best_kde, best_entropy)
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
-                # I want to save only if both KDE and entropy are higher
                 if kde >= best_kde: # and (abs(best_entropy) == np.inf or entropy >= best_entropy - 0.1):
                     patience = 0
                     best_kde = kde
