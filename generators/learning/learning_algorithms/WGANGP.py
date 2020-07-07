@@ -262,7 +262,7 @@ class WGANgp:
 
         n_data_dim = self.n_dim_actions
         total_n_data = n_train
-        total_iterations = 1000 * (total_n_data + 1)
+        total_iterations = 1000 * (total_n_data + 1) # 1000 epochs
 
         def data_generator():
             while True:
@@ -351,13 +351,13 @@ class WGANgp:
             optimizerG.step()
 
             # Write logs and save samples
-            save_iter = min(len(data_loader.dataset), 100)
+            save_iter = min(int(len(data_loader.dataset)/batch_size), 100) # I should divide by the batch size, but w/e
             if iteration % save_iter == 0:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
+                open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                 print "Best KDE", best_kde
                 if kde > best_kde:
                     patience = 0
-                    open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                     best_kde = kde
                     print "Iteration %d / %d" % (iteration, total_iterations)
                     path = self.weight_dir + '/disc.pt'
