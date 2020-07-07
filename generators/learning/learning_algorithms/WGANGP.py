@@ -391,3 +391,5 @@ class WGANgp:
                     return best_kde > target_kde and best_entropy > target_entropy
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
+
+        return best_kde > target_kde and best_entropy > target_entropy
