@@ -372,7 +372,8 @@ class WGANgp:
 
             # Write logs and save samples
             save_iter = min(int(len(data_loader.dataset)/batch_size), 100) # I should divide by the batch size, but w/e
-            if iteration % save_iter == 0:
+            #if iteration % save_iter == 0:
+            if True:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                 print "Best KDE {} Entropy {}".format(best_kde, best_entropy)
