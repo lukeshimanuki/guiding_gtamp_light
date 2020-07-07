@@ -376,7 +376,7 @@ class WGANgp:
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                 print "Best KDE", best_kde
                 # I want to save only if both KDE and entropy are higher
-                if kde >= best_kde and abs(best_entropy-entropy) > 0.1:
+                if kde >= best_kde and entropy >= best_entropy - 0.1:
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
