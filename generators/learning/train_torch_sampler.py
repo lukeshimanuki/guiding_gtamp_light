@@ -129,18 +129,15 @@ def main():
     parser.add_argument('-wclip', type=int, default=10)
     config = parser.parse_args()
 
+    achieved_counter = 0
     for num_episode in [100]:
         config.num_episode = num_episode
-        for seed in range(1, 16):
+        for seed in range(100):
             print "****NUM EPISODE {} SEED {}*****".format(num_episode, seed)
             config.seed = seed
             torch.cuda.manual_seed_all(config.seed)
             torch.manual_seed(config.seed)
-            if config.train_type == 'w':
-                model = ImportanceWeightEstimation(config)
-                trainloader, trainset = get_w_data(config)
-                testloader = None
-            elif config.train_type == 'wgandi':
+            if config.train_type == 'wgandi':
                 w_model = ImportanceWeightEstimation(config)
                 if len(os.listdir(w_model.weight_dir)) == 1 or config.f:
                     trainloader, trainset = get_w_data(config)
@@ -156,7 +153,16 @@ def main():
                 raise NotImplementedError
 
             n_train = len(trainset)
-            model.train(trainloader, testloader, n_train)
+
+            achieved_target_kde_and_entropy = model.train(trainloader, testloader, n_train)
+            if achieved_target_kde_and_entropy:
+                achieved_counter += 1
+
+            if achieved_counter >= 4:
+                break
+
+
+
 
 
 if __name__ == '__main__':

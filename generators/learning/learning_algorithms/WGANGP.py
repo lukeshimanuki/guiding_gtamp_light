@@ -245,6 +245,23 @@ class WGANgp:
 
         return np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies)
 
+    def get_target_kde_and_entropy(self):
+        is_pick = 'pick' in self.weight_dir
+        if 'two_arm_mover' in self.weight_dir:
+            if is_pick:
+                target_kde = -150
+                target_entropy = 3.8
+            else:
+                if 'home_region' in self.weight_dir:
+                    target_kde = -40
+                    target_entropy = 3.53
+                else:
+                    target_kde = -70
+                    target_entropy = 3.15
+        else:
+            raise NotImplementedError
+        return target_kde, target_entropy
+
     def train(self, data_loader, test_set, n_train):
         batch_size = 32  # Batch size
 
@@ -272,6 +289,8 @@ class WGANgp:
         data_gen = data_generator()
         patience = 0
         best_kde = -np.inf
+        best_entropy = -np.inf
+        target_kde, target_entropy = self.get_target_kde_and_entropy()
         stime = time.time()
         for iteration in xrange(total_iterations):
             ############################
@@ -356,9 +375,11 @@ class WGANgp:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                 print "Best KDE", best_kde
-                if kde > best_kde:
+                # I want to save only if both KDE and entropy are higher
+                if kde >= best_kde and abs(best_entropy-entropy) > 0.1:
                     patience = 0
                     best_kde = kde
+                    best_entropy = entropy
                     print "Iteration %d / %d" % (iteration, total_iterations)
                     path = self.weight_dir + '/disc.pt'
                     torch.save(self.discriminator.state_dict(), path)
@@ -367,6 +388,6 @@ class WGANgp:
                 else:
                     patience += 1
                 if patience >= self.config.patience:
-                    break
+                    return best_kde > target_kde and best_entropy > target_entropy
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
