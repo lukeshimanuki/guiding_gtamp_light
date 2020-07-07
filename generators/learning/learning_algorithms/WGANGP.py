@@ -374,9 +374,10 @@ class WGANgp:
             if iteration % save_iter == 0:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
-                print "Best KDE", best_kde
+                print "Best KDE {} Entropy {}".format(best_kde, best_entropy)
+                print "Current KDE {} Entropy {}".format(kde, entropy)
                 # I want to save only if both KDE and entropy are higher
-                if kde >= best_kde and entropy >= best_entropy - 0.1:
+                if kde >= best_kde and (abs(best_entropy) == np.inf or entropy >= best_entropy - 0.1):
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
