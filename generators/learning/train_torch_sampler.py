@@ -34,7 +34,7 @@ def get_data_generator(config):
 def get_w_data(config):
     dataset = ImportanceEstimatorDataset(config, True, is_testing=False)
     batch_size = min(32, int(0.1*len(dataset)))
-    num_workers = 1 if batch_size < 10 else 10
+    num_workers = 1 if batch_size < 32 else 10
     print 'Batch size', batch_size
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                                               pin_memory=True)
@@ -52,7 +52,7 @@ def get_wgandi_data(config, w_model):
     pos_set = GivenDataset(actions[labels==1], konf_obsts[labels==1], poses[labels==1])
     n_train = int(len(pos_set) * 0.9)
     trainset, testset = torch.utils.data.random_split(pos_set, [n_train, len(pos_set) - n_train])
-    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=True, num_workers=20,
+    testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=True, num_workers=1,
                                              pin_memory=True)
 
     # get only the positive dataset, and merge with neutral dataset
@@ -105,8 +105,10 @@ def get_wgandi_data(config, w_model):
     dataset.labels = torch.ones(dataset.poses.shape[0],1)
     trainset = dataset
     batch_size = min(32, int(0.1*len(dataset)))
-    num_workers = 1 if batch_size < 10 else 10
+    num_workers = 1 if batch_size < 32 else 10
+    num_workers = 1
     print "Batch size {} num workers {}".format(batch_size, num_workers)
+    
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                                               pin_memory=True)
     print "number of training data", len(dataset)
@@ -127,9 +129,9 @@ def main():
     parser.add_argument('-wclip', type=int, default=10)
     config = parser.parse_args()
 
-    for num_episode in [10, 50, 200, 500, 2000]:
+    for num_episode in [100]:
         config.num_episode = num_episode
-        for seed in range(0, 4):
+        for seed in range(1, 16):
             print "****NUM EPISODE {} SEED {}*****".format(num_episode, seed)
             config.seed = seed
             torch.cuda.manual_seed_all(config.seed)
