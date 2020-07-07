@@ -387,7 +387,7 @@ class WGANgp:
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if best_kde > target_kde and best_entropy > target_entropy or patience >= config.patience:
+                if best_kde > target_kde and best_entropy > target_entropy or patience >= self.config.patience:
                     return best_kde > target_kde and best_entropy > target_entropy
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
