@@ -379,13 +379,13 @@ class WGANgp:
                 print "Best KDE {} Entropy {}".format(best_kde, best_entropy)
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
-                #if kde >= best_kde: # and (abs(best_entropy) == np.inf or entropy >= best_entropy - 0.1):
-                if kde >= best_kde or (kde >= target_kde and kde >= target_entropy):
+                cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
+                if kde >= best_kde or cond_satisfied:
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
                     if kde >= best_kde:
-                        if kde >= target_kde and kde >= target_entropy:
+                        if cond_satisfied:
                             path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                         else:
                             path = self.weight_dir + '/gen_best_kde.pt'
@@ -394,7 +394,7 @@ class WGANgp:
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if best_kde >= target_kde and best_entropy >= target_entropy or patience >= self.config.patience:
+                if cond_satisfied or patience >= self.config.patience:
                     return best_kde >= target_kde and best_entropy >= target_entropy
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
