@@ -280,7 +280,7 @@ class WGANgp:
 
         n_data_dim = self.n_dim_actions
         total_n_data = n_train
-        total_iterations = 15000 #100 * (total_n_data + 1)/batch_size # 100 epochs
+        total_iterations = 10000 * (total_n_data + 1)/batch_size # 100 epochs
 
         def data_generator():
             while True:
@@ -291,6 +291,7 @@ class WGANgp:
         patience = 0
         best_kde = -np.inf
         best_entropy = -np.inf
+        best_mse = -np.inf
         target_kde, target_entropy = self.get_target_kde_and_entropy()
         stime = time.time()
         for iteration in xrange(total_iterations):
@@ -376,13 +377,14 @@ class WGANgp:
             if True:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
-                print "Best KDE {} Entropy {}".format(best_kde, best_entropy)
+                print "Best MSE {} KDE {} Entropy {}".format(best_mse, best_kde, best_entropy)
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
                 if kde >= best_kde: # and (abs(best_entropy) == np.inf or entropy >= best_entropy - 0.1):
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
+                    best_mse = mse
                     path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                     torch.save(self.generator.state_dict(), path)
                 else:
