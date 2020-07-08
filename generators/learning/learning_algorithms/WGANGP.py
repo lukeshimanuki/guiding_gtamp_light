@@ -294,6 +294,7 @@ class WGANgp:
         best_mse = -np.inf
         target_kde, target_entropy = self.get_target_kde_and_entropy()
         stime = time.time()
+        there_exists_cond_satisfied = False
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -381,6 +382,8 @@ class WGANgp:
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
                 cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
+                if cond_satisfied:
+                    there_exists_cond_satisfied = True
                 if kde >= best_kde or cond_satisfied:
                     patience = 0
                     best_kde = kde
@@ -396,9 +399,9 @@ class WGANgp:
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if cond_satisfied or patience >= self.config.patience:
-                    return best_kde >= target_kde and best_entropy >= target_entropy
+                #if cond_satisfied or patience >= self.config.patience:
+                #    return best_kde >= target_kde and best_entropy >= target_entropy
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
 
-        return best_kde > target_kde and best_entropy > target_entropy
+        return there_exists_cond_satisfied
