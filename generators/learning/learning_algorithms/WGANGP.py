@@ -386,7 +386,13 @@ class WGANgp:
                     best_kde = kde
                     best_entropy = entropy
                     best_mse = mse
-                    path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
+                    if kde >= best_kde:
+                        if kde >= target_kde and kde >= target_entropy:
+                            path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
+                        else:
+                            path = self.weight_dir + '/gen_best_kde.pt'
+                    else:
+                        path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
