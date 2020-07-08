@@ -257,7 +257,7 @@ class WGANgp:
                     target_kde = -40
                     target_entropy = 3.53
                 else:
-                    target_kde = -70
+                    target_kde = -42
                     target_entropy = 3.15
         else:
             raise NotImplementedError
