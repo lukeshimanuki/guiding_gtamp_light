@@ -274,16 +274,16 @@ def get_best_seeds(atype, region, config):
             raise NotImplementedError
         print "*******Seed*******", int(sd_dir.split('_')[1]), len(kdes), len(entropies)
         ones_that_satisfy = []
+        seed = int(sd_dir.split('_')[1])
         for kde, entropy, epoch in zip(kdes, entropies, epochs):
-            seed = int(sd_dir.split('_')[1])
             if kde > target_kde and (entropy > target_entropy and entropy != np.inf):
                 print 'best kde, entropies, seed', kde, entropy, int(sd_dir.split('_')[1])
                 ones_that_satisfy.append([epoch, kde, entropy])
-            if len(ones_that_satisfy) >= 1:
-                one_with_highest_kde = np.argmax(np.array(ones_that_satisfy)[:, 1])
-                epoch = np.array(ones_that_satisfy)[one_with_highest_kde, 0]
-                candidate_seeds.append([seed, epoch])
-                candidate_seed_kdes.append(kde)
+        if len(ones_that_satisfy) >= 1:
+            one_with_highest_kde = np.argmax(np.array(ones_that_satisfy)[:, 1])
+            epoch = np.array(ones_that_satisfy)[one_with_highest_kde, 0]
+            candidate_seeds.append([seed, epoch])
+            candidate_seed_kdes.append(np.max(np.array(ones_that_satisfy)[:, 1]))
     print "N qualified seeds for {} {}".format(atype, region), len(candidate_seeds)
     print "Qualified seeds for {} {}".format(atype, region), candidate_seeds[config.sampler_seed], \
         candidate_seed_kdes[config.sampler_seed]
