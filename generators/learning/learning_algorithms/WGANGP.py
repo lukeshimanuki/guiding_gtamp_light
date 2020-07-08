@@ -142,8 +142,8 @@ class WGANgp:
         samples = self.generator(konf_obsts, poses, noise).cpu().data.numpy()
         return samples
 
-    def load_weights(self, iteration, verbose=True):
-        weight_file = self.weight_dir + '/gen_iter_%d.pt' % iteration
+    def load_weights(self, verbose=True):
+        weight_file = self.weight_dir + '/gen_epoch_%d.pt' % self.config.epoch
         if verbose:
             print "Loading weight file", weight_file
         if 'cpu' in self.device.type:
