@@ -250,6 +250,8 @@ def get_best_seeds(atype, region, config):
     candidate_seeds = []
     candidate_seed_kdes = []
     for sd_dir in seed_dirs:
+        if 'seed_6' in sd_dir and 'loading_region' in sampler_weight_path:
+            continue
         logfiles = [p for p in os.listdir(sampler_weight_path + sd_dir) if '.pt' not in p]
         kdes = [float(logfile.split('_kde_')[1].split('_')[0]) for logfile in logfiles]
         entropies = [float(logfile.split('_entropy_')[1].split('_')[0]) for logfile in logfiles]
