@@ -67,6 +67,7 @@ def get_solution_file_name(config, pick_seed, home_seed, loading_seed):
                                                                                          pick_seed, home_seed,
                                                                                          loading_seed,
                                                                                          config.train_type)
+    import pdb;pdb.set_trace()
 
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
@@ -270,7 +271,7 @@ def get_best_seeds(atype, region, config):
                     target_kde = -40
                     target_entropy = 3.53
                 else:
-                    target_kde = -70
+                    target_kde = -42
                     target_entropy = 3.15
         else:
             raise NotImplementedError
@@ -291,6 +292,7 @@ def get_best_seeds(atype, region, config):
         candidate_seed_kdes[config.sampler_seed]
     print "Selected KDE", candidate_seed_kdes[config.sampler_seed]
     # ordering on the cloud
+    import pdb;pdb.set_trace()
     return candidate_seeds[config.sampler_seed]
 
 
