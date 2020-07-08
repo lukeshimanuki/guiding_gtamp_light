@@ -12,6 +12,7 @@ def download_from_s3():
     print command
     os.system(command)
 
+    """
     command = 'mc cp csail/bkim/guiding-gtamp/sampler_weights/learned_weights_shakey.zip ./ --recursive'
     print command
     os.system(command)
@@ -19,6 +20,7 @@ def download_from_s3():
     command = 'unzip -o learned_weights_shakey.zip -d ./'
     print command
     os.system(command)
+    """
 
 
 def send_to_s3(domain):
