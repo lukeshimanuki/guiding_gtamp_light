@@ -8,7 +8,7 @@ def download_from_s3():
     print command
     os.system(command)
 
-    command = 'unzip learned_weights_phaedra.zip -d ./'
+    command = 'unzip -o learned_weights_phaedra.zip -d ./'
     print command
     os.system(command)
 
@@ -16,7 +16,7 @@ def download_from_s3():
     print command
     os.system(command)
 
-    command = 'unzip learned_weights_shakey.zip -d ./'
+    command = 'unzip -o learned_weights_shakey.zip -d ./'
     print command
     os.system(command)
 
