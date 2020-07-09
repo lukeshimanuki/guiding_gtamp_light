@@ -28,7 +28,7 @@ spec:
           && mc cp csail/bkim/ik/kinematics.4f95c55204252b6edd6332624a20624c ~/.openrave/ --recursive
           && mc cp csail/bkim/ik/robot.7edbf73fb4fc856e8294d93279d26ff2 ~/.openrave/ --recursive
           && export PYTHONPATH=/guiding_gtamp_light/openrave_wrapper/manipulation:/guiding_gtamp_light/openrave_wrapper:/guiding_gtamp_light:/guiding_gtamp_light/mover_library:/pddlstream
-          && python ./test_scripts/run_greedy.py -n_objs_pack NOBJSPACK -pidx PIDX -domain two_arm_mover -gather_planning_exp -use_region_agnostic -absq_seed 2
+          && python ./test_scripts/run_greedy.py -n_objs_pack NOBJSPACK -pidx PIDX -domain one_arm_mover -gather_planning_exp -use_region_agnostic -absq_seed 2
           && python ./data_processing/sampler/process_planning_experience.py -pidx PIDX -planner greedy -n_objs_pack NOBJSPACK -absq_seed 2
           && ls ./
           && mc cp -r planning_experience csail/bkim/guiding-gtamp; echo finished'

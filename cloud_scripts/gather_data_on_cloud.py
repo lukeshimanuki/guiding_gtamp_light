@@ -79,7 +79,7 @@ def main():
     n_objs_pack = 1
     absq_seed = 0
 
-    target_pidxs = range(0, 5000)
+    target_pidxs = range(41000, 46000)
     yaml_file = get_yaml_file_name(algorithm, domain)
     commithash = '8db0c370a4c8fb4b85d6884f9ce367793f7b7f86'
 
@@ -89,7 +89,7 @@ def main():
     print "Remaining runs", len(undone)
     consecutive_runs = 0
     algo = 'greedy'
-    for n_objs_pack in [2,4]:
+    for n_objs_pack in [1]:
         for idx, un in enumerate(undone):
             pidx = un[1]
             if algo == 'rsc':
