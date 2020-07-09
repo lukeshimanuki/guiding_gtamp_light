@@ -8,7 +8,7 @@ def download_from_s3():
     print command
     os.system(command)
 
-    command = 'unzip -o learned_weights_phaedra.zip -d ./'
+    command = 'unzip -o -qq learned_weights_phaedra.zip -d ./'
     print command
     os.system(command)
 
@@ -23,7 +23,7 @@ def download_from_s3():
     """
 
 
-def send_to_s3(domain):
+def send_to_s3():
     file_name = 'learned_weights_{}.zip'.format(socket.gethostname())
 
     cmd = 'mc rm ./{}'.format(file_name)
@@ -34,7 +34,7 @@ def send_to_s3(domain):
     print cmd
     os.system(cmd)
 
-    cmd = 'zip -r {} generators/learning/learned_weights'.format(file_name)
+    cmd = 'zip -r -qq {} generators/learning/learned_weights'.format(file_name)
     print cmd
     os.system(cmd)
 
@@ -46,7 +46,7 @@ def send_to_s3(domain):
 
 def main():
     if sys.argv[1] == 'upload':
-        send_to_s3(sys.argv[2])
+        send_to_s3()
     elif sys.argv[1] == 'download':
         download_from_s3()
 
