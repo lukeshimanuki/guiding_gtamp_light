@@ -280,7 +280,7 @@ class WGANgp:
 
         n_data_dim = self.n_dim_actions
         total_n_data = n_train
-        total_iterations = 15000 #100 * (total_n_data + 1)/batch_size # 100 epochs
+        total_iterations = 10000 * (total_n_data + 1)/batch_size # 100 epochs
 
         def data_generator():
             while True:
@@ -291,8 +291,10 @@ class WGANgp:
         patience = 0
         best_kde = -np.inf
         best_entropy = -np.inf
+        best_mse = -np.inf
         target_kde, target_entropy = self.get_target_kde_and_entropy()
         stime = time.time()
+        there_exists_cond_satisfied = False
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -376,15 +378,18 @@ class WGANgp:
             if True:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
-                print "Best KDE {} Entropy {}".format(best_kde, best_entropy)
+                print "Best MSE {} KDE {} Entropy {}".format(best_mse, best_kde, best_entropy)
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
                 cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
+                if cond_satisfied:
+                    there_exists_cond_satisfied = True
                 if kde >= best_kde or cond_satisfied:
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
-                    if kde >= best_kde:
+                    best_mse = mse
+                    if kde >= best_kde and entropy != np.inf:
                         if cond_satisfied:
                             path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                         else:
@@ -394,9 +399,11 @@ class WGANgp:
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if cond_satisfied or patience >= self.config.patience:
-                    return best_kde >= target_kde and best_entropy >= target_entropy
+                #if cond_satisfied or patience >= self.config.patience:
+                #    return best_kde >= target_kde and best_entropy >= target_entropy
+                if patience >= self.config.patience:
+                    return there_exists_cond_satisfied
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
 
-        return best_kde > target_kde and best_entropy > target_entropy
+        return there_exists_cond_satisfied
