@@ -297,7 +297,7 @@ def get_best_seeds(atype, region, config):
 
 def get_learned_sampler_models(config):
     if not config.use_learning:
-        return None
+        return None, None, None, None
     if 'two_arm' in config.domain:
         train_type = config.train_type
 
