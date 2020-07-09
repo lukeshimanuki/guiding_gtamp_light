@@ -67,7 +67,6 @@ def get_solution_file_name(config, pick_seed, home_seed, loading_seed):
                                                                                          pick_seed, home_seed,
                                                                                          loading_seed,
                                                                                          config.train_type)
-    import pdb;pdb.set_trace()
 
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
