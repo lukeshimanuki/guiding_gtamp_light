@@ -21,6 +21,7 @@ def get_data_generator(config):
 
     batch_size = min(32, int(0.1*len(trainset)))
     num_workers = 1 if batch_size < 10 else 10
+    num_workers = 1
     print "Batch size {} num workers {}".format(batch_size, num_workers)
     trainloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                                               pin_memory=True)
