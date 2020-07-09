@@ -389,7 +389,7 @@ class WGANgp:
                     best_kde = kde
                     best_entropy = entropy
                     best_mse = mse
-                    if kde >= best_kde:
+                    if kde >= best_kde and entropy != np.inf:
                         if cond_satisfied:
                             path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                         else:
@@ -401,6 +401,8 @@ class WGANgp:
                     patience += 1
                 #if cond_satisfied or patience >= self.config.patience:
                 #    return best_kde >= target_kde and best_entropy >= target_entropy
+                if patience >= self.config.patience:
+                    return there_exists_cond_satisfied
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
 

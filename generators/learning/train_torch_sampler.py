@@ -132,7 +132,7 @@ def main():
     achieved_counter = 0
     for num_episode in [config.num_episode]:
         config.num_episode = num_episode
-        for seed in range(10):
+        for seed in range(1, 100):
             print "****NUM EPISODE {} SEED {}*****".format(num_episode, seed)
             config.seed = seed
             torch.cuda.manual_seed_all(config.seed)
@@ -158,7 +158,7 @@ def main():
             if achieved_target_kde_and_entropy:
                 achieved_counter += 1
 
-            if achieved_counter >= 1:
+            if achieved_counter >= 4:
                 break
 
 
