@@ -15,9 +15,11 @@ def worker_p(config):
     #command += ' -qlearned_hcount_old_number_in_goal'
     command += ' -gather_planning_exp'
     command += ' -use_region_agnostic'
+    command += ' -absq_seed 2'
 
     print command
-    os.system(command)
+  
+    #os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
