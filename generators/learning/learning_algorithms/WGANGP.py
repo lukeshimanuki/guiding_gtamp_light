@@ -384,7 +384,7 @@ class WGANgp:
                 cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
                 if cond_satisfied:
                     there_exists_cond_satisfied = True
-                if kde >= best_kde or cond_satisfied:
+                if (kde >= best_kde and entropy != np.inf) or cond_satisfied:
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
@@ -394,9 +394,8 @@ class WGANgp:
                             path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                         else:
                             path = self.weight_dir + '/gen_best_kde.pt'
-                    else:
+                        torch.save(self.generator.state_dict(), path)
                         path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
-                    torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
                 #if cond_satisfied or patience >= self.config.patience:
