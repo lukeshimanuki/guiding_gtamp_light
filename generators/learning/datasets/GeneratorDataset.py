@@ -45,11 +45,11 @@ class GeneratorDataset(Dataset):
         desired_region = self.config.region
         use_filter = self.use_filter
         if 'pick' in action_type:
-            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_num_data_%d.pkl' % (
+            cache_file_name = 'hard_cache_smode_%s_amode_%s_atype_%s_num_data_%d.pkl' % (
                 state_data_mode, action_data_mode, action_type, self.config.num_episode)
         else:
             assert use_filter
-            cache_file_name = 'cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (
+            cache_file_name = 'hard_cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (
             state_data_mode,
             action_data_mode,
             action_type,
@@ -111,12 +111,20 @@ class GeneratorDataset(Dataset):
         all_actions = []
         all_poses_ids = []
         all_labels = []
+        n_episodes_included = 0
         for traj_file_idx, traj_file in enumerate(traj_files):
             if 'pidx' not in traj_file:
                 print 'not pkl file'
                 continue
-
-            traj = pickle.load(open(traj_dir + traj_file, 'r'))
+            pidx = int(traj_file.split('pidx_')[1].split('_')[0])
+            if pidx < 40000:
+                continue
+            try:
+                traj = pickle.load(open(traj_dir + traj_file, 'r'))
+            except:
+                cmd = 'python data_processing/sampler/process_planning_experience.py -n_objs_pack 1 -pidx {} -domain two_arm_mover -planner greedy -absq_seed 2 -f'.format(pidx)
+                os.system(cmd)
+                traj = pickle.load(open(traj_dir + traj_file, 'r'))
             if len(traj['positive_data'] + traj['neutral_data']) == 0:
                 continue
             states = []
@@ -126,6 +134,7 @@ class GeneratorDataset(Dataset):
             temp_labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
             labels = []
             assert 'two_arm' in data[0]['action'].type, 'change the reward condition on region for one_arm'
+            print "traj file:", traj_file
             for node, temp_label in zip(data, temp_labels):
                 #is_neutral_data = temp_label == 0
                 reward = (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
@@ -171,7 +180,9 @@ class GeneratorDataset(Dataset):
                 import pdb;
                 pdb.set_trace()
             print 'action shape', np.vstack(all_actions).shape
-            if traj_file_idx >= self.config.num_episode:
+            n_episodes_included += 1
+            print 'n_episodes included %d/%d' %(n_episodes_included, self.config.num_episode)
+            if n_episodes_included >= self.config.num_episode:
                 break
 
         all_states = np.vstack(all_states).squeeze(axis=1)
