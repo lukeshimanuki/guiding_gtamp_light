@@ -44,6 +44,8 @@ def load_planning_experience_data(config):
                   'sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                   'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/' \
                   'n_mp_limit_5_n_iter_limit_2000/'
+        #raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/'\
+        #           'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
         target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
                         40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
     else:
@@ -84,14 +86,8 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
 
 
 def execute_policy(plan, problem_env, goal_entities, config):
-    try:
-        init_abstract_state = pickle.load(open('temp111.pkl', 'r'))
-    except:
-        init_abstract_state = make_abstract_state(problem_env, goal_entities)
-        init_abstract_state.make_pklable()
-        pickle.dump(init_abstract_state, open('temp111.pkl', 'wb'))
-
-    init_abstract_state.make_plannable(problem_env)
+    learned_sampler_model, sd1, sd2, sd3 = get_learned_sampler_models(config)
+    init_abstract_state = make_abstract_state(problem_env, goal_entities)
 
     abstract_state = init_abstract_state
     total_ik_checks = 0
@@ -109,7 +105,6 @@ def execute_policy(plan, problem_env, goal_entities, config):
     samples_tried = {i: [] for i in range(len(plan))}
     sample_values = {i: [] for i in range(len(plan))}
 
-    learned_sampler_model = get_learned_sampler_models(config)
     problem_env.set_motion_planner(BaseMotionPlanner(problem_env, 'rrt'))
     while plan_idx < len(plan):
         goal_reached = problem_env.is_goal_reached()
@@ -183,10 +178,10 @@ def main():
     plan, problem_env = load_planning_experience_data(config)
     goal_objs = problem_env.goal_objects
     goal_region = problem_env.goal_region
+    planning_seed = config.seed
 
     if config.v:
         utils.viewer()
-
     set_seeds(config.seed)
 
     logfile = get_logfile_name(config)
@@ -195,11 +190,13 @@ def main():
         execute_policy(plan, problem_env, goal_objs + [goal_region], config)
 
     result_log = "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
-        config.target_pidx_idx, config.seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
+        config.target_pidx_idx, planning_seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
         total_place_mp_checks,
         total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
     )
+    import pdb;pdb.set_trace()
     logfile.write(result_log)
+    logfile.close()
 
 
 if __name__ == '__main__':

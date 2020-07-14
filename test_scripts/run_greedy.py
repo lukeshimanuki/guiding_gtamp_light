@@ -279,7 +279,7 @@ def get_best_seeds(atype, region, config):
         seed = int(sd_dir.split('_')[1])
         for kde, entropy, epoch in zip(kdes, entropies, epochs):
             if kde > target_kde and (entropy > target_entropy and entropy != np.inf):
-                print 'best kde, entropies, seed', kde, entropy, int(sd_dir.split('_')[1])
+                print 'satisfied, best kde, entropies, seed', kde, entropy, int(sd_dir.split('_')[1])
                 ones_that_satisfy.append([epoch, kde, entropy])
         if len(ones_that_satisfy) >= 1:
             one_with_highest_kde = np.argmax(np.array(ones_that_satisfy)[:, 1])
@@ -291,7 +291,6 @@ def get_best_seeds(atype, region, config):
         candidate_seed_kdes[config.sampler_seed]
     print "Selected KDE", candidate_seed_kdes[config.sampler_seed]
     # ordering on the cloud
-    import pdb;pdb.set_trace()
     return candidate_seeds[config.sampler_seed]
 
 
