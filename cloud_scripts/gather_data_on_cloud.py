@@ -70,7 +70,7 @@ def get_running_seed_and_pidx_pairs(algorithm, domain):
 
 
 def main():
-    domain = 'two-arm-mover'
+    domain = 'two_arm_mover'
     hoption = 'hcount_old_number_in_goal'
     algorithm = 'greedy-hcount'
 
@@ -79,9 +79,13 @@ def main():
     n_objs_pack = 1
     absq_seed = 0
 
-    target_pidxs = range(41000, 46000)
+    if domain == 'two_arm_mover':
+        target_pidxs = range(41000, 42000)
+    else:
+        target_pidxs = range(1000)
+
     yaml_file = get_yaml_file_name(algorithm, domain)
-    commithash = '8db0c370a4c8fb4b85d6884f9ce367793f7b7f86'
+    commithash = '669634c699ac3f0a4628feae4d489fa226504039'
 
     seed_pidx_pairs_running = []# get_running_seed_and_pidx_pairs(domain, algorithm
     seed_pidx_pairs_finished = []
@@ -102,9 +106,11 @@ def main():
                   'sed \"s/PIDX/{}/\" |  ' \
                   'sed \"s/COMMITHASH/{}/\" |  ' \
                   'sed \"s/NOBJSPACK/{}/\" |  ' \
-                  'kubectl apply -f - -n beomjoon;'.format(yaml_file, pidx, n_objs_pack, pidx, commithash, n_objs_pack)
+                  'sed \"s/DOMAIN/{}/\" |  ' \
+                  'kubectl apply -f - -n beomjoon;'.format(yaml_file, pidx, n_objs_pack, pidx, commithash, n_objs_pack, domain)
             print idx, cmd
             os.system(cmd)
+            import pdb;pdb.set_trace()
             time.sleep(2)
             consecutive_runs += 1
             if consecutive_runs % 100 == 0:
