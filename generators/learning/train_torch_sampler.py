@@ -15,7 +15,7 @@ def get_data_generator(config):
         dataset = ImportanceEstimatorDataset(config, True, is_testing=False)
     else:
         dataset = StandardDataset(config, True, is_testing=False)
-    n_train = int(len(dataset) * 0.9)
+    n_train = int(len(dataset) * 0.7)
     trainset, testset = torch.utils.data.random_split(dataset, [n_train, len(dataset) - n_train])
     batch_size = 32
 
@@ -29,6 +29,7 @@ def get_data_generator(config):
     testloader = torch.utils.data.DataLoader(testset, batch_size=n_test, shuffle=True, num_workers=num_workers,
                                              pin_memory=True)
     print "number of training data", n_train
+    print "number of test data", n_test
     return trainloader, testloader, trainset, testset
 
 
@@ -51,7 +52,7 @@ def get_wgandi_data(config, w_model):
 
     # split the positive data into train and test sets
     pos_set = GivenDataset(actions[labels==1], konf_obsts[labels==1], poses[labels==1])
-    n_train = int(len(pos_set) * 0.9)
+    n_train = int(len(pos_set) * 0.7)
     trainset, testset = torch.utils.data.random_split(pos_set, [n_train, len(pos_set) - n_train])
     testloader = torch.utils.data.DataLoader(testset, batch_size=len(testset), shuffle=True, num_workers=1,
                                              pin_memory=True)
@@ -133,7 +134,7 @@ def main():
     achieved_counter = 0
     for num_episode in [config.num_episode]:
         config.num_episode = num_episode
-        for seed in range(1, 100):
+        for seed in range(100):
             print "****NUM EPISODE {} SEED {}*****".format(num_episode, seed)
             config.seed = seed
             torch.cuda.manual_seed_all(config.seed)
