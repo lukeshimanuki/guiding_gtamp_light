@@ -194,7 +194,6 @@ def main():
         total_place_mp_checks,
         total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
     )
-    import pdb;pdb.set_trace()
     logfile.write(result_log)
     logfile.close()
 
