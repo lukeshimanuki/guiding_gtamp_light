@@ -124,7 +124,10 @@ class GeneratorDataset(Dataset):
             except:
                 cmd = 'python data_processing/sampler/process_planning_experience.py -n_objs_pack 1 -pidx {} -domain two_arm_mover -planner greedy -absq_seed 2 -f'.format(pidx)
                 os.system(cmd)
-                traj = pickle.load(open(traj_dir + traj_file, 'r'))
+                try:
+                    traj = pickle.load(open(traj_dir + traj_file, 'r'))
+                except:
+                    continue
             if len(traj['positive_data'] + traj['neutral_data']) == 0:
                 continue
             states = []
