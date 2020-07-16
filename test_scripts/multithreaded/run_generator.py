@@ -16,7 +16,7 @@ def worker_p(config):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     print command
-    #os.system(command)
+    os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -32,7 +32,7 @@ def main():
     setup = parse_arguments()
     if setup.use_learning:
         sampler_seeds = range(3)
-        planning_seeds = range(1,4)
+        planning_seeds = range(0,1)
     else:
         planning_seeds = range(4)
         sampler_seeds = [0]
