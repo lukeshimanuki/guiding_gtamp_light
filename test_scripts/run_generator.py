@@ -40,7 +40,6 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
         if len(weight_files) > 1:
             seed = int(sd_dir.split('_')[1])
             candidate_seeds.append(seed)
-
     seed = int(candidate_seeds[config.sampler_seed_idx])
     epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
     epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
@@ -119,9 +118,21 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
 
 
 def setup_seed_and_epoch(config):
-    pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)
-    place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'loading_region', config)
-    place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'home_region', config)
+    if config.learned_sampler_atype == 'pick':
+        pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)  
+    else:
+        pick_seed, pick_epoch = -1, -1
+
+    if config.learned_sampler_atype == 'place_loading':
+        place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'loading_region', config) 
+    else:
+        place_obj_region_seed, place_obj_region_epoch = -1, -1
+
+    if config.learned_sampler_atype == 'place_home':
+        place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'home_region', config)
+    else:
+        place_goal_region_seed, place_goal_region_epoch = -1, -1
+
     config.pick_seed = pick_seed
     config.pick_epoch = pick_epoch
     config.place_obj_region_seed = place_obj_region_seed
