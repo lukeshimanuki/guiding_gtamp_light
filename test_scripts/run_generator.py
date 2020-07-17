@@ -19,7 +19,7 @@ from run_greedy import get_problem_env, get_goal_obj_and_region
 from gtamp_utils import utils
 
 
-def get_seed_and_epochs(atype, region, config):
+def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     if atype == 'pick':
         sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
                                                                                                           config.num_episode,
@@ -117,9 +117,9 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
 
 
 def setup_seed_and_epoch(config):
-    pick_seed, pick_epoch, _ = get_seed_and_epochs('pick', '', config)
-    place_obj_region_seed, place_obj_region_epoch, _ = get_seed_and_epochs('place', 'loading_region', config)
-    place_goal_region_seed, place_goal_region_epoch, _ = get_seed_and_epochs('place', 'home_region', config)
+    pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)
+    place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'loading_region', config)
+    place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'home_region', config)
     config.pick_seed = pick_seed
     config.pick_epoch = pick_epoch
     config.place_obj_region_seed = place_obj_region_seed
