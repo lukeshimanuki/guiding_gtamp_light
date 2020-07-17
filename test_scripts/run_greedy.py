@@ -120,8 +120,14 @@ def parse_arguments():
     parser.add_argument('-explr_p', type=float, default=0.3)
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-train_type', type=str, default='wgandi')
-    parser.add_argument('-sampler_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-num_episode', type=int, default=1000)
+
+    parser.add_argument('-pick_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-place_obj_region_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-place_goal_region_seed', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-pick_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-place_obj_region_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-place_goal_region_epoch', type=int, default=0)  # used for threaded runs
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
@@ -232,47 +238,17 @@ def make_sampler_model_and_load_weights(config):
     return model
 
 
-def get_seed_and_epochs(atype, region, config):
-    if atype == 'pick':
-        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
-                                                                                                          config.num_episode,
-                                                                                                          atype,
-                                                                                                          config.train_type)
-    else:
-        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
-            config.domain,
-            config.num_episode,
-            atype,
-            region,
-            config.train_type)
-
-    seed_dirs = os.listdir(sampler_weight_path)
-    candidate_seeds = []
-    for sd_dir in seed_dirs:
-        weight_files = [f for f in os.listdir(sampler_weight_path + sd_dir) if 'epoch' in f and '.pt' in f]
-        if len(weight_files) > 1:
-            seed = int(sd_dir.split('_')[1])
-            candidate_seeds.append(seed)
-
-    seed = int(candidate_seeds[config.sampler_seed])
-    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
-    epoch = int(epochs[config.sampler_epoch].split('_')[-1].split('.pt')[0])
-    return seed, epoch, candidate_seeds, epochs
-
-
 def get_learned_sampler_models(config):
     if not config.use_learning:
         return None, None, None, None
     if 'two_arm' in config.domain:
         train_type = config.train_type
-
         if 'place_home' in config.learned_sampler_atype:
             config.atype = 'place'
             config.region = 'home_region'
             config.train_type = train_type
-            seed, epoch, _, _ = get_seed_and_epochs(config.atype, config.region, config)
-            config.seed = seed
-            config.epoch = epoch
+            config.seed = config.place_goal_region_seed
+            config.sampler_epoch = config.place_goal_region_seed
             goal_region_place_model = make_sampler_model_and_load_weights(config)
         else:
             goal_region_place_model = None
@@ -281,9 +257,8 @@ def get_learned_sampler_models(config):
             config.atype = 'place'
             config.region = 'loading_region'
             config.train_type = train_type
-            seed, epoch, _, _ = get_seed_and_epochs(config.atype, config.region, config)
-            config.seed = seed
-            config.epoch = epoch
+            config.seed = config.place_obj_region_seed
+            config.epoch = config.place_obj_region_epoch
             obj_region_place_model = make_sampler_model_and_load_weights(config)
         else:
             obj_region_place_model = None
@@ -291,16 +266,15 @@ def get_learned_sampler_models(config):
         if 'pick' in config.learned_sampler_atype:
             config.atype = 'pick'
             config.region = ''
-            seed, epoch, _, _ = get_seed_and_epochs(config.atype, config.region, config)
-            config.seed = seed
-            config.epoch = epoch
+            config.seed = config.pick_seed
+            config.epoch = config.pick_epoch
             pick_model = make_sampler_model_and_load_weights(config)
         else:
             pick_model = None
 
     else:
         goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
-                                                 atype='one_arm_place') # how does this actually get used?
+                                                 atype='one_arm_place')  # how does this actually get used?
         config.atype = 'place';
         config.region = 'center_shelf_region';
         config.seed = config.sampler_seed
