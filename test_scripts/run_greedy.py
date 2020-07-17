@@ -257,7 +257,7 @@ def get_seed_and_epochs(atype, region, config):
     seed = int(candidate_seeds[config.sampler_seed])
     epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
     epoch = int(epochs[config.sampler_epoch].split('_')[-1].split('.pt')[0])
-    return seed, epoch, epochs
+    return seed, epoch, candidate_seeds, epochs
 
 
 def get_learned_sampler_models(config):
@@ -270,7 +270,7 @@ def get_learned_sampler_models(config):
             config.atype = 'place'
             config.region = 'home_region'
             config.train_type = train_type
-            seed, epoch, _ = get_seed_and_epochs(config.atype, config.region, config)
+            seed, epoch, _, _ = get_seed_and_epochs(config.atype, config.region, config)
             config.seed = seed
             config.epoch = epoch
             goal_region_place_model = make_sampler_model_and_load_weights(config)
@@ -281,7 +281,7 @@ def get_learned_sampler_models(config):
             config.atype = 'place'
             config.region = 'loading_region'
             config.train_type = train_type
-            seed, epoch, _ = get_seed_and_epochs(config.atype, config.region, config)
+            seed, epoch, _, _ = get_seed_and_epochs(config.atype, config.region, config)
             config.seed = seed
             config.epoch = epoch
             obj_region_place_model = make_sampler_model_and_load_weights(config)
@@ -291,7 +291,7 @@ def get_learned_sampler_models(config):
         if 'pick' in config.learned_sampler_atype:
             config.atype = 'pick'
             config.region = ''
-            seed, epoch, _ = get_seed_and_epochs(config.atype, config.region, config)
+            seed, epoch, _, _ = get_seed_and_epochs(config.atype, config.region, config)
             config.seed = seed
             config.epoch = epoch
             pick_model = make_sampler_model_and_load_weights(config)
