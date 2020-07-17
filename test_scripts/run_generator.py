@@ -28,12 +28,17 @@ def parse_arguments():
     parser.add_argument('-use_learning', action='store_true', default=False)
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
-    parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-train_type', type=str, default='wgandi')
     parser.add_argument('-num_episode', type=int, default=1000)
     parser.add_argument('-target_pidx_idx', type=int, default=0)
+    parser.add_argument('-atype', type=str, default='UsedOnlyByWGANGP')
+
+    parser.add_argument('-learned_sampler_atype', type=str, default='all')
+    parser.add_argument('-sampler_seed', type=int, default=0)
+    parser.add_argument('-sampler_epoch', type=int, default=0)
+
     config = parser.parse_args()
     return config
 
@@ -44,7 +49,7 @@ def load_planning_experience_data(config):
                   'sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                   'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/' \
                   'n_mp_limit_5_n_iter_limit_2000/'
-        #raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/'\
+        # raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/'\
         #           'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
         target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
                         40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
@@ -86,7 +91,7 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
 
 
 def execute_policy(plan, problem_env, goal_entities, config):
-    learned_sampler_model, sd1, sd2, sd3 = get_learned_sampler_models(config)
+    learned_sampler_model = get_learned_sampler_models(config)
     init_abstract_state = make_abstract_state(problem_env, goal_entities)
 
     abstract_state = init_abstract_state
@@ -170,6 +175,7 @@ def get_logfile_name(config):
     else:
         logfile = open(logfile_dir + config.sampling_strategy + '.txt', 'a')
     return logfile
+
 
 
 def main():
