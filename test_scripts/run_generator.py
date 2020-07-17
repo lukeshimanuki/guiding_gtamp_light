@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument('-target_pidx_idx', type=int, default=0)
     parser.add_argument('-atype', type=str, default='UsedOnlyByWGANGP')
 
-    parser.add_argument('-learned_sampler_atype', type=str, default='all')
+    parser.add_argument('-learned_sampler_atype', type=str, default='pick_place_home_place_loading')
     parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-sampler_epoch', type=int, default=0)
 
@@ -166,16 +166,17 @@ def set_seeds(seed):
 
 
 def get_logfile_name(config):
-    logfile_dir = 'generators/sampler_performances/{}/'.format(socket.gethostname())
+    logfile_dir = 'generators/sampler_performances/{}/{}/'.format(socket.gethostname(), config.learned_sampler_atype)
     if not os.path.isdir(logfile_dir):
         os.makedirs(logfile_dir)
 
     if config.use_learning:
-        logfile = open(logfile_dir + '{}_sampler_seed_{}.txt'.format(config.train_type, config.sampler_seed), 'a')
+        logfile = open(logfile_dir + '{}_sampler_seed_{}_epoch_{}.txt'.format(config.train_type,
+                                                                              config.sampler_seed,
+                                                                              config.sampler_epoch), 'a')
     else:
         logfile = open(logfile_dir + config.sampling_strategy + '.txt', 'a')
     return logfile
-
 
 
 def main():
