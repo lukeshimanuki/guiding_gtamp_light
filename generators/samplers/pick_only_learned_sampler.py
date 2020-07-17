@@ -8,7 +8,7 @@ import time
 class PickOnlyLearnedSampler(LearnedSampler):
     def __init__(self, atype, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
         LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action)
-        self.samples = self.sample_new_points(200)
+        self.samples = self.sample_new_points(self.n_smpl_per_iter)
         """
         ### Debugging purpose
         obj_kinbody = self.abstract_state.problem_env.env.GetKinBody(self.obj)
@@ -20,7 +20,6 @@ class PickOnlyLearnedSampler(LearnedSampler):
         ####
         import pdb;pdb.set_trace()
         """
-        self.curr_smpl_idx = 0
 
     def sample_picks(self, poses, collisions):
         pick_samples = self.samplers['pick'].generate(collisions, poses)

@@ -30,7 +30,23 @@ class Sampler:
         else:
             raise NotImplementedError
         self.domain = np.vstack([mins, maxes])
+        if 'one_arm' in atype:
+            self.n_smpl_per_iter = 200
+        else:
+            self.n_smpl_per_iter = 2000
+        self.curr_smpl_idx = 0
 
+    def sample(self):
+        # prepare input to the network
+        if self.curr_smpl_idx >= len(self.samples):
+            self.samples = self.sample_new_points(self.n_smpl_per_iter)
+            self.curr_smpl_idx = 0
+        new_sample = self.samples[self.curr_smpl_idx]
+        self.curr_smpl_idx += 1
+        return new_sample
+
+    def sample_new_points(self, n_smpls):
+        raise NotImplementedError
 
 class LearnedSampler(Sampler):
     def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state=None):
@@ -47,24 +63,10 @@ class LearnedSampler(Sampler):
             else:
                 # this is because we use separate pick and place samplers in one arm case
                 self.smpler_state = smpler_state
-            self.n_smpl_per_iter = 200
         else:
             self.key_configs = abstract_state.prm_vertices
             self.smpler_state = TwoArmConcreteNodeState(abstract_state, abstract_action)
-            self.n_smpl_per_iter = 2000
         print 'Concrete node creation', time.time()-stime
-
-    def sample_new_points(self, n_smpls):
-        raise NotImplementedError
-
-    def sample(self):
-        # prepare input to the network
-        if self.curr_smpl_idx >= len(self.samples):
-            self.samples = self.sample_new_points(self.n_smpl_per_iter)
-            self.curr_smpl_idx = 0
-        new_sample = self.samples[self.curr_smpl_idx]
-        self.curr_smpl_idx += 1
-        return new_sample
 
     def decode_base_angle_encoding(self, pick_samples):
         base_angles = pick_samples[:, 4:6]

@@ -33,26 +33,52 @@ MAX_DISTANCE = 1.0
 
 def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     if not config.use_learning:
-        if 'uniform' in config.sampling_strategy:
-            target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
-            if 'two_arm' in config.domain:
-                sampler = UniformSampler(atype='two_arm_pick_and_place', target_region=target_region)
-            else:
-                sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
-                           'place': UniformSampler(target_region=target_region, atype='one_arm_place')}
-        elif 'voo' in config.sampling_strategy:
-            raise NotImplementedError
+        target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+        if 'two_arm' in config.domain:
+            sampler = {'pick': UniformSampler(target_region=None, atype='two_arm_pick'),
+                       'place': UniformSampler(target_region=target_region, atype='two_arm_place')}
         else:
-            raise NotImplementedError
+            sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
+                       'place': UniformSampler(target_region=target_region, atype='one_arm_place')}
     else:
         if 'two_arm' in config.domain:
-            sampler = PickPlaceLearnedSampler('two_arm_pick_and_place', learned_sampler_model, abstract_state,
-                                              abstract_action)
+            target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+            if config.learned_sampler_atype == 'all':
+                pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
+                                                      abstract_action)
+                place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
+                                                        abstract_action, smpler_state=pick_sampler.smpler_state,
+                                                        pick_sampler=pick_sampler)
+                sampler = {'pick': pick_sampler, 'place': place_sampler}
+            elif config.learned_sampler_atype == 'pick':
+                pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
+                                                      abstract_action)
+                place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
+                sampler = {'pick': pick_sampler, 'place': place_sampler}
+            elif config.learned_sampler_atype == 'place_home':
+                pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+                if 'home' in target_region.name:
+                    place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
+                                                            abstract_action, smpler_state=None,
+                                                            pick_sampler=None)
+                else:
+                    place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
+                sampler = {'pick': pick_sampler, 'place': place_sampler}
+            elif config.learned_sampler_atype == 'place_loading':
+                pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+                if 'loading' in target_region.name:
+                    place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
+                                                            abstract_action, smpler_state=None,
+                                                            pick_sampler=pick_sampler)
+                else:
+                    place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
+                sampler = {'pick': pick_sampler, 'place': place_sampler}
         else:
             pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state,
                                                   abstract_action)
             place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state,
-                                                    abstract_action, smpler_state=pick_sampler.smpler_state)
+                                                    abstract_action, smpler_state=pick_sampler.smpler_state,
+                                                    pick_sampler = pick_sampler)
             sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
@@ -61,7 +87,6 @@ def get_generator(abstract_state, action, sampler_model, config):
     sampler = get_sampler(config, abstract_state, action, sampler_model)
     if 'unif' in config.sampling_strategy:
         if 'two_arm' in config.domain:
-            sampler.infeasible_action_value = -9999
             generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                            n_parameters_to_try_motion_planning=config.n_mp_limit,
                                            n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
@@ -109,12 +134,12 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
     print "State computation..."
 
-    #if os.path.isfile('tmp.pkl'):
+    # if os.path.isfile('tmp.pkl'):
     #    state = pickle.load(open('tmp.pkl', 'r'))
-    #else:
+    # else:
     state = statecls(mover, goal)
-    #state.make_pklable()
-    #pickle.dump(state, open('tmp.pkl', 'wb'))
+    # state.make_pklable()
+    # pickle.dump(state, open('tmp.pkl', 'wb'))
 
     state.make_plannable(mover)
 
@@ -213,7 +238,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 stime = time.time()
                 pick_params, place_params, status = sample_continuous_parameters(state, action, node,
                                                                                  learned_sampler_model, config)
-                print "Sampling time", time.time()-stime
+                print "Sampling time", time.time() - stime
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
