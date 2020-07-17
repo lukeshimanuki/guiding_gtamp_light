@@ -232,7 +232,7 @@ def make_sampler_model_and_load_weights(config):
     return model
 
 
-def get_best_seeds(atype, region, config):
+def get_seed_and_epochs(atype, region, config):
     if atype == 'pick':
         sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
                                                                                                           config.num_episode,
@@ -248,50 +248,16 @@ def get_best_seeds(atype, region, config):
 
     seed_dirs = os.listdir(sampler_weight_path)
     candidate_seeds = []
-    candidate_seed_kdes = []
     for sd_dir in seed_dirs:
-        if 'seed_6' in sd_dir and 'loading_region' in sampler_weight_path:
-            continue
-        logfiles = [p for p in os.listdir(sampler_weight_path + sd_dir) if '.pt' not in p]
-        kdes = [float(logfile.split('_kde_')[1].split('_')[0]) for logfile in logfiles]
-        entropies = [float(logfile.split('_entropy_')[1].split('_')[0]) for logfile in logfiles]
-        epochs = [int(logfile.split('_epoch_')[1].split('_')[0]) for logfile in logfiles]
-        sorted_idxs = np.argsort(kdes)[::-1]
-        kdes = np.array(kdes)[sorted_idxs]
-        entropies = np.array(entropies)[sorted_idxs]
-        epochs = np.array(epochs)[sorted_idxs]
-        is_pick = 'pick' in sampler_weight_path
-        if 'two_arm_mover' in sampler_weight_path:
-            if is_pick:
-                target_kde = -150
-                target_entropy = 3.8
-            else:
-                if 'home_region' in sampler_weight_path:
-                    target_kde = -40
-                    target_entropy = 3.53
-                else:
-                    target_kde = -42
-                    target_entropy = 3.15
-        else:
-            raise NotImplementedError
-        print "*******Seed*******", int(sd_dir.split('_')[1]), len(kdes), len(entropies)
-        ones_that_satisfy = []
-        seed = int(sd_dir.split('_')[1])
-        for kde, entropy, epoch in zip(kdes, entropies, epochs):
-            if kde > target_kde and (entropy > target_entropy and entropy != np.inf):
-                print 'satisfied, best kde, entropies, seed', kde, entropy, int(sd_dir.split('_')[1])
-                ones_that_satisfy.append([epoch, kde, entropy])
-        if len(ones_that_satisfy) >= 1:
-            one_with_highest_kde = np.argmax(np.array(ones_that_satisfy)[:, 1])
-            epoch = np.array(ones_that_satisfy)[one_with_highest_kde, 0]
-            candidate_seeds.append([seed, epoch])
-            candidate_seed_kdes.append(np.max(np.array(ones_that_satisfy)[:, 1]))
-    print "N qualified seeds for {} {}".format(atype, region), len(candidate_seeds)
-    print "Qualified seeds for {} {}".format(atype, region), candidate_seeds[config.sampler_seed], \
-        candidate_seed_kdes[config.sampler_seed]
-    print "Selected KDE", candidate_seed_kdes[config.sampler_seed]
-    # ordering on the cloud
-    return candidate_seeds[config.sampler_seed]
+        weight_files = [f for f in os.listdir(sampler_weight_path + sd_dir) if 'epoch' in f and '.pt' in f]
+        if len(weight_files) > 1:
+            seed = int(sd_dir.split('_')[1])
+            candidate_seeds.append(seed)
+
+    seed = int(candidate_seeds[config.sampler_seed])
+    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
+    epoch = int(epochs[config.sampler_epoch].split('_')[-1].split('.pt')[0])
+    return seed, epoch
 
 
 def get_learned_sampler_models(config):
@@ -300,37 +266,31 @@ def get_learned_sampler_models(config):
     if 'two_arm' in config.domain:
         train_type = config.train_type
 
-        # place home region
         config.atype = 'place'
         config.region = 'home_region'
         config.train_type = train_type
-        best_seed = get_best_seeds('place', 'home_region', config)
-        config.seed = best_seed[0]
-        home_seed = best_seed[0]
-        config.epoch = best_seed[1]
+        seed, epoch = get_seed_and_epochs(config.atype, config.region, config)
+        config.seed = seed
+        config.epoch = epoch
         goal_region_place_model = make_sampler_model_and_load_weights(config)
 
-        # place load region
         config.atype = 'place'
         config.region = 'loading_region'
         config.train_type = train_type
-        best_seed = get_best_seeds('place', 'loading_region', config)
-        loading_seed = best_seed[0]
-        config.seed = best_seed[0]
-        config.epoch = best_seed[1]
+        seed, epoch = get_seed_and_epochs(config.atype, config.region, config)
+        config.seed = seed
+        config.epoch = epoch
         obj_region_place_model = make_sampler_model_and_load_weights(config)
 
-        # pick
         config.atype = 'pick'
         config.region = ''
-        best_seed = get_best_seeds('pick', '', config)
-        pick_seed = best_seed[0]
-        config.seed = best_seed[0]
-        config.epoch = best_seed[1]
+        seed, epoch = get_seed_and_epochs(config.atype, config.region, config)
+        config.seed = seed
+        config.epoch = epoch
         pick_model = make_sampler_model_and_load_weights(config)
     else:
         goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
-                                                 atype='one_arm_place')  # I don't think we need to learn sampler for this
+                                                 atype='one_arm_place') # how does this actually get used?
         config.atype = 'place';
         config.region = 'center_shelf_region';
         config.seed = config.sampler_seed
@@ -339,9 +299,10 @@ def get_learned_sampler_models(config):
         config.region = '';
         config.seed = config.sampler_seed
         pick_model = make_sampler_model_and_load_weights(config)
+
     model = {'place_goal_region': goal_region_place_model, 'place_obj_region': obj_region_place_model,
              'pick': pick_model}
-    return model, pick_seed, home_seed, loading_seed
+    return model
 
 
 def get_goal_obj_and_region(config):
