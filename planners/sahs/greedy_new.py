@@ -43,7 +43,8 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     else:
         if 'two_arm' in config.domain:
             target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
-            if config.learned_sampler_atype == 'all':
+            if 'pick' in config.learned_sampler_atype and 'place_loading' in config.learned_sampler_type\
+                    and 'place_home' in config.learned_sampler_type:
                 pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
                                                       abstract_action)
                 place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
