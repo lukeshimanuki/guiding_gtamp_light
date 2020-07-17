@@ -250,15 +250,15 @@ class WGANgp:
         # do these values data-dependent?
         if 'two_arm_mover' in self.weight_dir:
             if is_pick:
-                target_kde = -150
-                target_entropy = 3.8
+                target_kde = -200
+                target_entropy = -np.inf
             else:
                 if 'home_region' in self.weight_dir:
-                    target_kde = -40
-                    target_entropy = 3.53
+                    target_kde = -80
+                    target_entropy = -np.inf
                 else:
-                    target_kde = -42
-                    target_entropy = 3.15
+                    target_kde = -80
+                    target_entropy = -np.inf
         else:
             raise NotImplementedError
         return target_kde, target_entropy
@@ -292,7 +292,7 @@ class WGANgp:
         best_kde = -np.inf
         best_entropy = -np.inf
         best_mse = -np.inf
-        target_kde, target_entropy = self.get_target_kde_and_entropy()
+        target_kde, _ = self.get_target_kde_and_entropy()
         stime = time.time()
         there_exists_cond_satisfied = False
         for iteration in xrange(total_iterations):
@@ -373,35 +373,31 @@ class WGANgp:
             optimizerG.step()
 
             # Write logs and save samples
-            save_iter = min(int(len(data_loader.dataset)/batch_size), 100) # I should divide by the batch size, but w/e
-            #if iteration % save_iter == 0:
             if True:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
                 open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                 print "Best MSE {} KDE {} Entropy {}".format(best_mse, best_kde, best_entropy)
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
-                cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
+
+                cond_satisfied = kde >= target_kde and entropy != np.inf
                 if cond_satisfied:
+                    # save everything that satisfies the condition
                     there_exists_cond_satisfied = True
-                if (kde >= best_kde and entropy != np.inf) or cond_satisfied:
+                    path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
+                    torch.save(self.generator.state_dict(), path)
+
+                if kde >= best_kde:
                     patience = 0
                     best_kde = kde
                     best_entropy = entropy
                     best_mse = mse
-                    if kde >= best_kde and entropy != np.inf:
-                        if cond_satisfied:
-                            path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
-                        else:
-                            path = self.weight_dir + '/gen_best_kde.pt'
-                        torch.save(self.generator.state_dict(), path)
-                        path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
                 else:
                     patience += 1
-                #if cond_satisfied or patience >= self.config.patience:
-                #    return best_kde >= target_kde and best_entropy >= target_entropy
+
                 if patience >= self.config.patience:
                     return there_exists_cond_satisfied
+
                 print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
 
