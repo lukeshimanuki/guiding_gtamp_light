@@ -23,7 +23,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
     parser.add_argument('-architecture', type=str, default='fc')
-    parser.add_argument('-seed', type=int, default=0)
+    parser.add_argument('-planner_seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-use_learning', action='store_true', default=False)
     parser.add_argument('-n_mp_limit', type=int, default=5)
@@ -185,11 +185,11 @@ def main():
     plan, problem_env = load_planning_experience_data(config)
     goal_objs = problem_env.goal_objects
     goal_region = problem_env.goal_region
-    planning_seed = config.seed
+    planning_seed = config.planner_seed
 
     if config.v:
         utils.viewer()
-    set_seeds(config.seed)
+    set_seeds(config.planner_seed)
 
     logfile = get_logfile_name(config)
     total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
