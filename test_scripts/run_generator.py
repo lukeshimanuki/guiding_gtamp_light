@@ -19,6 +19,35 @@ from run_greedy import get_problem_env, get_goal_obj_and_region
 from gtamp_utils import utils
 
 
+def get_seed_and_epochs(atype, region, config):
+    if atype == 'pick':
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          config.train_type)
+    else:
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
+            config.domain,
+            config.num_episode,
+            atype,
+            region,
+            config.train_type)
+
+    seed_dirs = os.listdir(sampler_weight_path)
+    candidate_seeds = []
+    for sd_dir in seed_dirs:
+        weight_files = [f for f in os.listdir(sampler_weight_path + sd_dir) if 'epoch' in f and '.pt' in f]
+        if len(weight_files) > 1:
+            seed = int(sd_dir.split('_')[1])
+            candidate_seeds.append(seed)
+
+    seed = int(candidate_seeds[config.sampler_seed_idx])
+    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
+    epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
+    print "Selected seed {} epoch {}".format(seed, epoch)
+    return seed, epoch, epochs
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
@@ -36,8 +65,8 @@ def parse_arguments():
     parser.add_argument('-atype', type=str, default='UsedOnlyByWGANGP')
 
     parser.add_argument('-learned_sampler_atype', type=str, default='pick_place_home_place_loading')
-    parser.add_argument('-sampler_seed', type=int, default=0)
-    parser.add_argument('-sampler_epoch', type=int, default=0)
+    parser.add_argument('-sampler_seed_idx', type=int, default=0)
+    parser.add_argument('-sampler_epoch_idx', type=int, default=0)
 
     config = parser.parse_args()
     return config
@@ -49,10 +78,7 @@ def load_planning_experience_data(config):
                   'sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                   'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/' \
                   'n_mp_limit_5_n_iter_limit_2000/'
-        # raw_dir = 'planning_experience/raw/two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/'\
-        #           'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
-        target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
-                        40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+        target_pidxs = range(40200, 40210)
     else:
         raise NotImplementedError
 
@@ -90,8 +116,19 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
     return abstract_state
 
 
-def execute_policy(plan, problem_env, goal_entities, config):
-    learned_sampler_model = get_learned_sampler_models(config)
+def setup_seed_and_epoch(config):
+    pick_seed, pick_epoch, _ = get_seed_and_epochs('pick', '', config)
+    place_obj_region_seed, place_obj_region_epoch, _ = get_seed_and_epochs('place', 'loading_region', config)
+    place_goal_region_seed, place_goal_region_epoch, _ = get_seed_and_epochs('place', 'home_region', config)
+    config.pick_seed = pick_seed
+    config.pick_epoch = pick_epoch
+    config.place_obj_region_seed = place_obj_region_seed
+    config.place_obj_region_epoch = place_obj_region_epoch
+    config.place_goal_region_seed = place_goal_region_seed
+    config.place_goal_region_epoch = place_goal_region_epoch
+
+
+def execute_policy(plan, learned_sampler_model, problem_env, goal_entities, config):
     init_abstract_state = make_abstract_state(problem_env, goal_entities)
 
     abstract_state = init_abstract_state
@@ -170,12 +207,26 @@ def get_logfile_name(config):
     if not os.path.isdir(logfile_dir):
         os.makedirs(logfile_dir)
 
+    # todo save the log file using true epoch and true seed, instead of indices
+
     if config.use_learning:
-        logfile = open(logfile_dir + '{}_sampler_seed_{}_epoch_{}.txt'.format(config.train_type,
-                                                                              config.sampler_seed,
-                                                                              config.sampler_epoch), 'a')
+        if config.learned_sampler_atype == 'pick':
+            sampler_seed = config.pick_seed
+            sampler_epoch = config.pick_epoch
+        elif config.learned_sampler_atype == 'place_loading':
+            sampler_seed = config.place_obj_region_seed
+            sampler_epoch = config.place_obj_region_epoch
+        else:
+            sampler_seed = config.place_goal_region_seed
+            sampler_epoch = config.place_goal_region_epoch
+
+        logfile_dir += '/sampler_seed_{}/{}'.format(sampler_seed, config.train_type)
+        if not os.path.isdir(logfile_dir):
+            os.makedirs(logfile_dir)
+        logfile = open(logfile_dir + '/epoch_{}.txt'.format(sampler_epoch), 'a')
     else:
         logfile = open(logfile_dir + config.sampling_strategy + '.txt', 'a')
+
     return logfile
 
 
@@ -191,10 +242,13 @@ def main():
         utils.viewer()
     set_seeds(config.planner_seed)
 
+    setup_seed_and_epoch(config)
+    learned_sampler_model = get_learned_sampler_models(config)
     logfile = get_logfile_name(config)
+
     total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
     total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
-        execute_policy(plan, problem_env, goal_objs + [goal_region], config)
+        execute_policy(plan, learned_sampler_model, problem_env, goal_objs + [goal_region], config)
 
     result_log = "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
         config.target_pidx_idx, planning_seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
