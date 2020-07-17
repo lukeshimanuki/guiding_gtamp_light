@@ -27,6 +27,7 @@ def worker_wrapper_multi_input(multi_args):
 def main():
     target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
                     40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+    target_pidxs = target_pidxs[0:10]
 
     target_pidx_idxs = range(len(target_pidxs))
 
