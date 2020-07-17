@@ -44,6 +44,8 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     seed = int(candidate_seeds[config.sampler_seed_idx])
     epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
     epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
+    print sampler_weight_path
+    print "Candidate seeds {}".format(candidate_seeds)
     print "Selected seed {} epoch {}".format(seed, epoch)
     return seed, epoch, epochs
 
@@ -74,18 +76,18 @@ def parse_arguments():
 
 def load_planning_experience_data(config):
     if 'two_arm' in config.domain:
-        raw_dir = 'planning_experience/for_testing_generators/16653e7/' \
+        raw_dir = 'planning_experience/for_testing_generators//' \
                   'sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
                   'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/' \
                   'n_mp_limit_5_n_iter_limit_2000/'
-        target_pidxs = range(40200, 40210)
+        target_pidxs = [40200,40201,40202,40204,40205,40206,40207,40208,40209]
     else:
         raise NotImplementedError
 
     pidx = target_pidxs[config.target_pidx_idx]
     config.pidx = pidx
 
-    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % pidx
+    fname = 'pidx_%d_planner_seed_0_gnn_seed_2.pkl' % pidx
     try:
         plan_data = pickle.load(open(raw_dir + fname, 'r'))
     except:
