@@ -7,7 +7,7 @@ import numpy as np
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 from threaded_test_utils import get_sahs_configs
 from test_scripts.run_generator import get_logfile_name, parse_arguments
-from test_scripts.run_generator import get_seed_and_epochs
+from test_scripts.run_generator import convert_seed_epoch_idxs_to_seed_and_epoch
 
 
 def worker_p(config):
@@ -25,12 +25,16 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def get_all_configs(target_pidx_idxs, setup):
-    if 'pick' in setup.learned_sampler_atype:
-        _, _, total_epochs = get_seed_and_epochs('pick', '', setup)
+    if setup.use_learning:
+        if 'pick' in setup.learned_sampler_atype:
+            _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', setup)
+        else:
+            region = setup.learned_sampler_atype.split('_')[1]
+            _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('place', region + '_region', setup)
+        total_epochs = range(len(total_epochs))
     else:
-        region = setup.learned_sampler_atype.split('_')[1]
-        _, _, total_epochs = get_seed_and_epochs('place', region + '_region', setup)
-    total_epochs = range(len(total_epochs))
+        total_epochs = [0]
+        
     configs = []
     for epoch in total_epochs:
         for idx in target_pidx_idxs:
@@ -47,7 +51,8 @@ def get_all_configs(target_pidx_idxs, setup):
 
 
 def main():
-    target_pidxs = range(40200, 40210)
+    target_pidxs = [40200,40201,40202,40204,40205,40206,40207,40208,40209]
+    target_pidxs = [40201]
     target_pidx_idxs = range(len(target_pidxs))
     setup = parse_arguments()
 
