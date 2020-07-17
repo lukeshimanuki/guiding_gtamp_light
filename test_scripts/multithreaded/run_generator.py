@@ -7,6 +7,7 @@ import numpy as np
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 from threaded_test_utils import get_sahs_configs
 from test_scripts.run_generator import get_logfile_name, parse_arguments
+from test_scripts.run_greedy import get_seed_and_epochs
 
 
 def worker_p(config):
@@ -30,41 +31,32 @@ def main():
     target_pidx_idxs = range(len(target_pidxs))
 
     setup = parse_arguments()
-    if setup.use_learning:
-        sampler_seeds = range(3)
-        planning_seeds = range(0,1)
-    else:
-        planning_seeds = range(4)
-        sampler_seeds = [0]
-    target_file = open(get_logfile_name(setup).name,'r')
-    existing_results = target_file.read().splitlines()
-    pidx_seed_already_exist = []
-    for l in existing_results:
-        pidx = int(l.split(',')[0])
-        seed = int(l.split(',')[1])
-        pidx_seed_already_exist.append((pidx,seed))
-    pidx_seed_already_exist = []
-    print np.all([(idx,seed) in pidx_seed_already_exist for seed in sampler_seeds for idx in target_pidx_idxs])
+    sampler_seeds = range(3)
     configs = []
-    for planning_seed in planning_seeds:
-        for seed in sampler_seeds:
-            for idx in target_pidx_idxs:
-                if (idx,seed) in pidx_seed_already_exist:
-                    continue
-                config = {}
-                for k,v in setup._get_kwargs():
-                    if type(v) is bool and v is True:
-                        config[k] = ''
-                    elif type(v) is not bool:
-                        config[k] = v
-                config['target_pidx_idx'] = idx
-                config['sampler_seed'] = seed
-                config['seed'] = planning_seed
-                if setup.use_learning:
-                    config['use_learning'] = ''
 
-                configs.append(config)
-
+    action_types = ['place_loading']
+    for action_type in action_types:
+        for sampler_seed in sampler_seeds:
+            setup.sampler_seed = sampler_seed
+            if 'pick' in action_type:
+                _, _, total_epochs = get_seed_and_epochs('pick', '', setup)
+            else:
+                region = action_type.split('_')[1]
+                _, _, total_epochs = get_seed_and_epochs('place', region+'_region', setup)
+            total_epochs = range(len(total_epochs))
+            for epoch in total_epochs:
+                for idx in target_pidx_idxs:
+                    config = {}
+                    for k, v in setup._get_kwargs():
+                        if type(v) is bool and v is True:
+                            config[k] = ''
+                        elif type(v) is not bool:
+                            config[k] = v
+                    config['sampler_epoch'] = epoch
+                    config['sampler_seed'] = sampler_seed
+                    config['target_pidx_idx'] = idx
+                    config['learned_sampler_atype'] = action_type
+                    configs.append(config)
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
