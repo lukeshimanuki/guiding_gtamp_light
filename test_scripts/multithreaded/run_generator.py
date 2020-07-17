@@ -36,6 +36,7 @@ def get_all_configs(target_pidx_idxs, setup):
         total_epochs = [0]
         
     configs = []
+    print "Total number of epochs", len(total_epochs)
     for epoch in total_epochs:
         for idx in target_pidx_idxs:
             config = {}
@@ -52,7 +53,6 @@ def get_all_configs(target_pidx_idxs, setup):
 
 def main():
     target_pidxs = [40200,40201,40202,40204,40205,40206,40207,40208,40209]
-    target_pidxs = [40201]
     target_pidx_idxs = range(len(target_pidxs))
     setup = parse_arguments()
 
