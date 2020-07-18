@@ -61,6 +61,9 @@ def main():
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
+    pool.close()
+    pool.join()
+    print results
 
 
 if __name__ == '__main__':
