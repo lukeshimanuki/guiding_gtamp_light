@@ -2,6 +2,8 @@ import os
 import socket
 import time
 
+print "Inside the upload generator"
+
 while True:
     print "inside the loop for uploading files"
     time.sleep(600)
