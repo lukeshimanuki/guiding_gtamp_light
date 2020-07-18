@@ -61,6 +61,8 @@ def main():
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
+    cmd = 'python upload_generator_results.py'
+    os.system(cmd)
     pool.close()
     pool.join()
     print results
