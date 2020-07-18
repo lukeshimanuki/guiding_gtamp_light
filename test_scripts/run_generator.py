@@ -40,6 +40,8 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
         if len(weight_files) > 1:
             seed = int(sd_dir.split('_')[1])
             candidate_seeds.append(seed)
+    # todo sort the candidate seeds in order
+    candidate_seeds = np.sort(candidate_seeds)
     seed = int(candidate_seeds[config.sampler_seed_idx])
     epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
     epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
