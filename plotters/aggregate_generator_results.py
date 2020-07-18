@@ -36,7 +36,7 @@ def get_results(fin_list):
 def print_results(results, result_file):
     iks = results['iks']
     n_data = len(iks)
-    if n_data < 10:
+    if n_data < 9:
         return
     print 'n data',n_data
     #print "****Summary****"
@@ -69,7 +69,10 @@ def main():
 
     print '============================================================'
 
-    file_list = ['/phaedra/place_loading/sampler_seed_4/wgandi/' + f for f in os.listdir('generators/sampler_performances/phaedra/place_loading/sampler_seed_4/wgandi/')]
+
+    res_path = '//37bf3df09590//place_loading/sampler_seed_5/wgandi/'
+    file_list = [res_path+ f for f in os.listdir('generators/sampler_performances/'+res_path)]
+    #file_list = ['/phaedra/place_loading/sampler_seed_4/wgandi/' + f for f in os.listdir('generators/sampler_performances/phaedra/place_loading/sampler_seed_4/wgandi/')]
     epoch_n_actions =  []
 
 
@@ -78,7 +81,7 @@ def main():
       results = get_results([f])
       iks = results['iks']
       n_data = len(iks)
-      if n_data < 1:
+      if n_data < 9:
           continue
       print_results(results, [f])
       epoch_n_actions.append([epoch, np.mean(results['actions'])])
