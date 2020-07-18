@@ -16,4 +16,4 @@ while True:
 
     cmd = 'mc cp {} csail/bkim/guiding-gtamp/ --recursive'.format(file_name)
     os.system(cmd)
-    time.sleep(60)
+    time.sleep(300)
