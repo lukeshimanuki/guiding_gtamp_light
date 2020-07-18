@@ -1,9 +1,9 @@
 import multiprocessing
 import time
+import os
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 from test_scripts.run_generator import parse_arguments
 from test_scripts.run_generator import convert_seed_epoch_idxs_to_seed_and_epoch
-
 
 def worker_p(config):
     command = 'python ./test_scripts/run_generator.py'
@@ -12,8 +12,7 @@ def worker_p(config):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     print command
-    time.sleep(10)
-    # os.system(command)
+    os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -52,8 +51,7 @@ def main():
     target_pidx_idxs = range(len(target_pidxs))
     setup = parse_arguments()
 
-    # configs = get_all_configs(target_pidx_idxs, setup)
-    configs = [{'a': 'b'}] * 10
+    configs = get_all_configs(target_pidx_idxs, setup)
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
