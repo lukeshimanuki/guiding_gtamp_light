@@ -15,7 +15,7 @@ def worker_p(config):
         print "Running upload generator results"
         cmd = 'python upload_generator_results.py'
         print cmd
-        #os.system(cmd)
+        os.system(cmd)
     else:
         command = 'python ./test_scripts/run_generator.py'
 
@@ -64,7 +64,7 @@ def main():
     setup = parse_arguments()
 
     #configs = get_all_configs(target_pidx_idxs, setup)
-    configs = [{'do_uploading'}]+[{'a':'b'}]*10
+    configs = [{'a':'b'}]*10 + [{'do_uploading'}]
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
