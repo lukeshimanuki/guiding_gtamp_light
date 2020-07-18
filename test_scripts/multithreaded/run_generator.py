@@ -8,7 +8,7 @@ from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocess
 from threaded_test_utils import get_sahs_configs
 from test_scripts.run_generator import get_logfile_name, parse_arguments
 from test_scripts.run_generator import convert_seed_epoch_idxs_to_seed_and_epoch
-
+import time
 
 def worker_p(config):
     command = 'python ./test_scripts/run_generator.py'
@@ -17,7 +17,8 @@ def worker_p(config):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     print command
-    os.system(command)
+    time.sleep(10)
+    #os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -65,7 +66,7 @@ def main():
     os.system(cmd)
     pool.close()
     pool.join()
-    print results
+    #print results
 
 
 if __name__ == '__main__':
