@@ -2,7 +2,7 @@ import os
 import sys
 from test_scripts.run_generator import parse_arguments
 import time
-cmd = 'python upload_generator_results.py'
+cmd = 'python upload_generator_results.py &'
 os.system(cmd)
 print "DID I RUN THIS?"
 """
