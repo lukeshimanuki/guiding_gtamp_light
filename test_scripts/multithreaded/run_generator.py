@@ -11,13 +11,19 @@ from test_scripts.run_generator import convert_seed_epoch_idxs_to_seed_and_epoch
 import time
 
 def worker_p(config):
-    command = 'python ./test_scripts/run_generator.py'
+    if 'do_uploading' in config:
+        print "Running upload generator results"
+        cmd = 'python upload_generator_results.py'
+        print cmd
+        os.system(cmd)
+    else:
+        command = 'python ./test_scripts/run_generator.py'
 
-    for key, value in zip(config.keys(), config.values()):
-        option = ' -' + str(key) + ' ' + str(value)
-        command += option
-    print command
-    time.sleep(10)
+        for key, value in zip(config.keys(), config.values()):
+            option = ' -' + str(key) + ' ' + str(value)
+            command += option
+        print command
+    #time.sleep(10)
     #os.system(command)
 
 
@@ -58,13 +64,10 @@ def main():
     setup = parse_arguments()
 
     #configs = get_all_configs(target_pidx_idxs, setup)
-    configs = [{'a':'b'}]*10
-
+    configs = [{'do_uploading'}]+[{'a':'b'}]*10
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
-    cmd = 'python upload_generator_results.py'
-    os.system(cmd)
     pool.close()
     pool.join()
     #print results
