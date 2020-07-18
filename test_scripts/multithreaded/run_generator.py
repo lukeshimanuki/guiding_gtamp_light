@@ -57,7 +57,8 @@ def main():
     target_pidx_idxs = range(len(target_pidxs))
     setup = parse_arguments()
 
-    configs = get_all_configs(target_pidx_idxs, setup)
+    #configs = get_all_configs(target_pidx_idxs, setup)
+    configs = [{'a':'b'}]*10
 
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
