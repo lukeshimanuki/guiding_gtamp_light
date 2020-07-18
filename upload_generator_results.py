@@ -3,6 +3,7 @@ import socket
 import time
 
 while True:
+    print "inside the loop for uploading files"
     time.sleep(600)
 
     file_name = 'sampler_performances_{}.zip'.format(socket.gethostname())
