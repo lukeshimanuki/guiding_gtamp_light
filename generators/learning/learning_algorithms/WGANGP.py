@@ -250,15 +250,15 @@ class WGANgp:
         # do these values data-dependent?
         if 'two_arm_mover' in self.weight_dir:
             if is_pick:
-                target_kde = -200
-                target_entropy = -np.inf
+                target_kde = -150
+                target_entropy = 3.8
             else:
                 if 'home_region' in self.weight_dir:
-                    target_kde = -80
-                    target_entropy = -np.inf
+                    target_kde = -40
+                    target_entropy = 3.53
                 else:
-                    target_kde = -80
-                    target_entropy = -np.inf
+                    target_kde = -42
+                    target_entropy = 3.15
         else:
             raise NotImplementedError
         return target_kde, target_entropy
@@ -292,7 +292,7 @@ class WGANgp:
         best_kde = -np.inf
         best_entropy = -np.inf
         best_mse = -np.inf
-        target_kde, _ = self.get_target_kde_and_entropy()
+        target_kde, target_entropy = self.get_target_kde_and_entropy()
         stime = time.time()
         there_exists_cond_satisfied = False
         for iteration in xrange(total_iterations):
@@ -380,7 +380,8 @@ class WGANgp:
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
 
-                cond_satisfied = kde >= target_kde and entropy != np.inf
+                cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
+
                 if cond_satisfied:
                     # save everything that satisfies the condition
                     there_exists_cond_satisfied = True
