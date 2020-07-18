@@ -15,7 +15,7 @@ def worker_p(config):
         print "Running upload generator results"
         cmd = 'python upload_generator_results.py'
         print cmd
-        os.system(cmd)
+        #os.system(cmd)
     else:
         command = 'python ./test_scripts/run_generator.py'
 
