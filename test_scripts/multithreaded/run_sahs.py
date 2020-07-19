@@ -1,6 +1,6 @@
 import os
 import multiprocessing
-
+import numpy as np
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 import argparse
 from test_scripts.run_greedy import parse_arguments
@@ -13,7 +13,7 @@ def worker_p(config):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     print command
-    os.system(command)
+    #os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
@@ -27,6 +27,8 @@ def main():
     setup.place_goal_region_epoch = 'best'
     setup.place_obj_region_epoch = 'best'
     setup.pick_epoch = 'best'
+    setup.timelimit = np.inf
+    setup.num_node_limit = 100
 
     pidxs = [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
 
