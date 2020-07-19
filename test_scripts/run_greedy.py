@@ -125,9 +125,9 @@ def parse_arguments():
     parser.add_argument('-pick_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_obj_region_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_goal_region_seed', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-pick_epoch', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-place_obj_region_epoch', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-place_goal_region_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-pick_epoch', type=str, default='0')  # used for threaded runs
+    parser.add_argument('-place_obj_region_epoch', type=str, default='0')  # used for threaded runs
+    parser.add_argument('-place_goal_region_epoch', type=str, default='0')  # used for threaded runs
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
