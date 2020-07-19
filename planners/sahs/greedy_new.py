@@ -43,6 +43,7 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     else:
         if 'two_arm' in config.domain:
             target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+            """
             if 'pick' in config.learned_sampler_atype and 'place_loading' in config.learned_sampler_atype\
                     and 'place_home' in config.learned_sampler_atype:
                 pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
@@ -50,37 +51,33 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
                 place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
                                                         abstract_action, smpler_state=pick_sampler.smpler_state,
                                                         pick_sampler=pick_sampler)
-                sampler = {'pick': pick_sampler, 'place': place_sampler}
-            elif config.learned_sampler_atype == 'pick':
+            """
+            pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+            place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
+
+            if 'pick' in config.learned_sampler_atype:
                 pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
                                                       abstract_action)
-                place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
-                sampler = {'pick': pick_sampler, 'place': place_sampler}
-            elif config.learned_sampler_atype == 'place_home':
+
+            if 'place_home' in config.learned_sampler_atype:
                 pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
                 if 'home' in target_region.name:
                     place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
                                                             abstract_action, smpler_state=None,
                                                             pick_sampler=None)
-                else:
-                    place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
-                sampler = {'pick': pick_sampler, 'place': place_sampler}
-            elif config.learned_sampler_atype == 'place_loading':
-                pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+
+            if 'place_loading' in config.learned_sampler_atype:
                 if 'loading' in target_region.name:
                     place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
                                                             abstract_action, smpler_state=None,
                                                             pick_sampler=pick_sampler)
-                else:
-                    place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
-                sampler = {'pick': pick_sampler, 'place': place_sampler}
         else:
             pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state,
                                                   abstract_action)
             place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state,
                                                     abstract_action, smpler_state=pick_sampler.smpler_state,
                                                     pick_sampler = pick_sampler)
-            sampler = {'pick': pick_sampler, 'place': place_sampler}
+    sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
 
