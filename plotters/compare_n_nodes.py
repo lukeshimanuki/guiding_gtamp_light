@@ -24,6 +24,7 @@ def get_n_nodes(target_dir):
             #    assert '934adde' in target_dir, 'n objs pack for two arm must use commit 934adde'
             target_pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018,
                             40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+            target_pidxs =  [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
             #target_pidxs = range(40000, 40100)
 
         else:
@@ -68,9 +69,9 @@ def get_n_nodes(target_dir):
 
             #target_absqseed = 1 if 'a179000' in target_dir else 0
             target_absqseed = 0
-            if absqseed != target_absqseed:
+            #if absqseed != target_absqseed:
                 #print filename
-                continue
+            #    continue
 
         if 'rsc' in target_dir:
             pidx = int(filename.split('pidx_')[1].split('.pkl')[0])
@@ -121,7 +122,7 @@ def get_n_nodes(target_dir):
 
     print 'n_data', n_data
     print 'success', np.mean(successes), np.sum(successes)
-    print 'n nodes', np.mean(n_nodes), np.std(n_nodes) * 1.96 / np.sqrt(n_data)
+    print 'n nodes median {} mean {} std {}'.format(np.median(n_nodes), np.mean(n_nodes), np.std(n_nodes) * 1.96 / np.sqrt(n_data))
     print 'times', np.median(times), np.mean(times), np.std(times) * 1.96 / np.sqrt(n_data)
     return pidx_nodes, pidx_times
 
@@ -333,10 +334,15 @@ def plot_two_arm():
         plt.savefig("./plotters/plots/{}_arm_{}_obj.eps".format('two_arm_mover', n_objs))
         plt.savefig("../IJRR_GTAMP/figures/{}_arm_{}_obj.eps".format('two_arm_mover', n_objs))
 
+def print_epoch_test_results():
+    target_dir = 'test_results/dc0094f/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+    pidx_nodes, pidx_times = get_n_nodes(target_dir)
+    print pidx_nodes, pidx_times
 
 def main():
+    print_epoch_test_results()
     #plot_one_arm()
-    plot_two_arm()
+    #plot_two_arm()
 
 
 if __name__ == '__main__':
