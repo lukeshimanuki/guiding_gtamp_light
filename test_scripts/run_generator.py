@@ -48,6 +48,7 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     print sampler_weight_path
     print "Candidate seeds {}".format(candidate_seeds)
     print "Selected seed {} epoch {}".format(seed, epoch)
+
     return seed, epoch, epochs
 
 
