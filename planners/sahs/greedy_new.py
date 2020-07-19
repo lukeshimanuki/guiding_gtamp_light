@@ -35,8 +35,8 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     if not config.use_learning:
         target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
         if 'two_arm' in config.domain:
-            sampler = {'pick': UniformSampler(target_region=None, atype='two_arm_pick'),
-                       'place': UniformSampler(target_region=target_region, atype='two_arm_place')}
+            pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+            place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
         else:
             sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
                        'place': UniformSampler(target_region=target_region, atype='one_arm_place')}
