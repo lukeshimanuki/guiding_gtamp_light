@@ -59,6 +59,7 @@ def parse_arguments():
     parser.add_argument('-planner_seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-use_learning', action='store_true', default=False)
+    parser.add_argument('-test_multiple_epochs', action='store_true', default=False)
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
@@ -232,10 +233,15 @@ def get_logfile_name(config):
         elif config.learned_sampler_atype == 'place_loading':
             sampler_seed = config.place_obj_region_seed
             sampler_epoch = config.place_obj_region_epoch
-        else:
+        elif config.learned_sampler_atype == 'place_home':
             sampler_seed = config.place_goal_region_seed
             sampler_epoch = config.place_goal_region_epoch
+        elif config.learned_sampler_atype == 'pick_place_loading':
+            sampler_seed = '{}_{}'.format(config.pick_seed, config.place_obj_region_seed)
+            sampler_epoch = '{}_{}'.format(config.pick_epoch, config.place_obj_region_epoch)
+            
 
+        sampler_epoch = 'best'
         logfile_dir += '/sampler_seed_{}/{}'.format(sampler_seed, config.train_type)
         if not os.path.isdir(logfile_dir):
             os.makedirs(logfile_dir)
@@ -259,6 +265,12 @@ def main():
     set_seeds(config.planner_seed)
 
     setup_seed_and_epoch(config)
+    #config.pick_seed = 2
+    #config.pick_epoch = 26607
+    #config.place_obj_region_seed = 4
+    #config.place_obj_region_epoch = 8787
+    # currently running: seed3, epoch 10294
+
     learned_sampler_model = get_learned_sampler_models(config)
     logfile = get_logfile_name(config)
 
