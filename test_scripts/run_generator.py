@@ -122,17 +122,17 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
 
 
 def setup_seed_and_epoch(config):
-    if config.learned_sampler_atype == 'pick':
+    if 'pick' in config.learned_sampler_atype:
         pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)  
     else:
         pick_seed, pick_epoch = -1, -1
 
-    if config.learned_sampler_atype == 'place_loading':
+    if 'place_loading' in config.learned_sampler_atype:
         place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'loading_region', config) 
     else:
         place_obj_region_seed, place_obj_region_epoch = -1, -1
 
-    if config.learned_sampler_atype == 'place_home':
+    if 'place_home' in config.learned_sampler_atype:
         place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'home_region', config)
     else:
         place_goal_region_seed, place_goal_region_epoch = -1, -1
@@ -239,6 +239,13 @@ def get_logfile_name(config):
         elif config.learned_sampler_atype == 'pick_place_loading':
             sampler_seed = '{}_{}'.format(config.pick_seed, config.place_obj_region_seed)
             sampler_epoch = '{}_{}'.format(config.pick_epoch, config.place_obj_region_epoch)
+        elif config.learned_sampler_atype == 'pick_place_loading_place_home':
+            sampler_seed = '{}_{}_{}'.format(config.pick_seed, config.place_obj_region_seed, config.place_goal_region_seed)
+            sampler_epoch = '{}_{}'.format(config.pick_epoch, config.place_obj_region_epoch, config.place_goal_region_epoch)
+        elif config.learned_sampler_atype == 'place_loading_place_home':
+            sampler_seed = '{}_{}'.format(config.place_obj_region_seed, config.place_goal_region_seed)
+            sampler_epoch = '{}_{}'.format(config.place_obj_region_epoch, config.place_goal_region_epoch)
+            
             
 
         sampler_epoch = 'best'

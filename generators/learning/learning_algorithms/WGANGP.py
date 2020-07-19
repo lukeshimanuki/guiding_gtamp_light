@@ -143,7 +143,8 @@ class WGANgp:
         return samples
 
     def load_weights(self, verbose=True):
-        weight_file = self.weight_dir + '/gen_epoch_%d.pt' % self.config.epoch
+        #weight_file = self.weight_dir + '/gen_epoch_%d.pt' % self.config.epoch
+        weight_file = self.weight_dir + '/gen_best_kde.pt'
         if verbose:
             print "Loading weight file", weight_file
         if 'cpu' in self.device.type:

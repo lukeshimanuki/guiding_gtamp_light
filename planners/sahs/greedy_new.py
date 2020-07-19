@@ -60,11 +60,10 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
                                                       abstract_action)
 
             if 'place_home' in config.learned_sampler_atype:
-                pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
                 if 'home' in target_region.name:
                     place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
                                                             abstract_action, smpler_state=None,
-                                                            pick_sampler=None)
+                                                            pick_sampler=pick_sampler)
 
             if 'place_loading' in config.learned_sampler_atype:
                 if 'loading' in target_region.name:
