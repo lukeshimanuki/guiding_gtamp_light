@@ -40,7 +40,7 @@ def get_problem_env(config, goal_region, goal_objs):
     return problem_env
 
 
-def get_solution_file_name(config, pick_seed, home_seed, loading_seed):
+def get_solution_file_name(config):
     root_dir = './'
     # if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
     #    root_dir = './'
@@ -64,10 +64,10 @@ def get_solution_file_name(config, pick_seed, home_seed, loading_seed):
 
     if config.use_learning:
         solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}_{}_{}/{}'.format(config.num_episode,
-                                                                                         pick_seed, home_seed,
-                                                                                         loading_seed,
+                                                                                         config.pick_seed,
+                                                                                         config.place_goal_region_seed,
+                                                                                         config.place_obj_region_seed,
                                                                                          config.train_type)
-
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
     solution_file_name = 'pidx_' + str(config.pidx) + \
@@ -309,8 +309,8 @@ def get_goal_obj_and_region(config):
 
 def main():
     config = parse_arguments()
-    learned_sampler_model, pick_seed, home_seed, loading_seed = get_learned_sampler_models(config)
-    solution_file_name = get_solution_file_name(config, pick_seed, home_seed, loading_seed)
+    learned_sampler_model = get_learned_sampler_models(config)
+    solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
     if is_problem_solved_before and not config.f:
         print "***************Already solved********************"
