@@ -1,7 +1,6 @@
 import pickle
 import os
 import numpy as np
-from matplotlib import pyplot as plt
 
 
 def get_n_nodes(target_dir):
