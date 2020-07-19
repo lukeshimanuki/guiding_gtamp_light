@@ -334,7 +334,12 @@ def plot_two_arm():
         plt.savefig("../IJRR_GTAMP/figures/{}_arm_{}_obj.eps".format('two_arm_mover', n_objs))
 
 def print_epoch_test_results():
-    target_dir = 'test_results/dc0094f/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+    try:
+      target_dir = 'test_results/dc0094f/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+      pidx_nodes, pidx_times = get_n_nodes(target_dir)
+    except:
+      pass
+    target_dir = 'test_results/dc0094f/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/n_mp_limit_5_n_iter_limit_2000/'
     pidx_nodes, pidx_times = get_n_nodes(target_dir)
     print pidx_nodes, pidx_times
 
