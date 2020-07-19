@@ -20,7 +20,7 @@ def worker_wrapper_multi_input(multi_args):
 
 
 def get_all_configs(target_pidx_idxs, setup):
-    if setup.use_learning:
+    if setup.use_learning and setup.test_multiple_epochs:
         if 'pick' in setup.learned_sampler_atype:
             _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', setup)
         else:
