@@ -338,6 +338,7 @@ def print_epoch_test_results():
       target_dir = 'test_results/dc0094f/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
       pidx_nodes, pidx_times = get_n_nodes(target_dir)
     except:
+      pass
     target_dir = 'test_results/dc0094f/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/1000/sampler_seed_2_2_3/wgandi/n_mp_limit_5_n_iter_limit_2000/'
     pidx_nodes, pidx_times = get_n_nodes(target_dir)
     print pidx_nodes, pidx_times
