@@ -62,15 +62,6 @@ class WGANgp:
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
 
-    def load_best_weights(self):
-        weight_file = 'gen.pt'
-        print "Loading", self.weight_dir + '/' + weight_file
-        if 'cpu' in self.device.type:
-            self.generator.load_state_dict(
-                torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
-        else:
-            self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
-
     def create_models(self):
         if self.architecture == 'fc':
             discriminator = Discriminator(self.n_dim_actions, self.action_type, self.region_name,
@@ -142,9 +133,17 @@ class WGANgp:
         samples = self.generator(konf_obsts, poses, noise).cpu().data.numpy()
         return samples
 
+    def load_best_weights(self):
+        weight_file = 'gen_best_kde.pt'
+        print "Loading", self.weight_dir + '/' + weight_file
+        if 'cpu' in self.device.type:
+            self.generator.load_state_dict(
+                torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
+        else:
+            self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
+
     def load_weights(self, verbose=True):
-        #weight_file = self.weight_dir + '/gen_epoch_%d.pt' % self.config.epoch
-        weight_file = self.weight_dir + '/gen_best_kde.pt'
+        weight_file = self.weight_dir + '/gen_epoch_%d.pt' % self.config.epoch
         if verbose:
             print "Loading weight file", weight_file
         if 'cpu' in self.device.type:
