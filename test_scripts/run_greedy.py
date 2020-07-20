@@ -198,9 +198,9 @@ def parse_arguments():
     parser.add_argument('-pick_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_obj_region_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_goal_region_seed', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-pick_epoch', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-place_obj_region_epoch', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-place_goal_region_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-pick_epoch', type=int, default=-1)  # used for threaded runs
+    parser.add_argument('-place_obj_region_epoch', type=int, default=-1)  # used for threaded runs
+    parser.add_argument('-place_goal_region_epoch', type=int, default=-1)  # used for threaded runs
     parser.add_argument('-learned_sampler_atype', type=str,
                         default='pick_place_loading_place_home')  # used for threaded runs
     parser.add_argument('-use_best_kde_sampler', action='store_true', default=False)
