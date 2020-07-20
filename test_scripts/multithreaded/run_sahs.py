@@ -5,6 +5,8 @@ from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocess
 import argparse
 from test_scripts.run_greedy import parse_arguments
 
+pidxs = [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
+
 
 def worker_p(config):
     command = 'python ./test_scripts/run_greedy.py'
@@ -20,35 +22,83 @@ def worker_wrapper_multi_input(multi_args):
     return worker_p(multi_args)
 
 
+def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
+    if atype == 'pick':
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          config.train_type)
+    else:
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
+            config.domain,
+            config.num_episode,
+            atype,
+            region,
+            config.train_type)
+
+    seed_dirs = os.listdir(sampler_weight_path)
+    candidate_seeds = []
+    for sd_dir in seed_dirs:
+        weight_files = [f for f in os.listdir(sampler_weight_path + sd_dir) if 'epoch' in f and '.pt' in f]
+        if len(weight_files) > 1:
+            seed = int(sd_dir.split('_')[1])
+            candidate_seeds.append(seed)
+    # todo sort the candidate seeds in order
+    candidate_seeds = np.sort(candidate_seeds)
+    seed = int(candidate_seeds[config.sampler_seed_idx])
+    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
+    epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
+    print sampler_weight_path
+    print "Candidate seeds {}".format(candidate_seeds)
+    print "Selected seed {} epoch {}".format(seed, epoch)
+
+    return seed, epoch, epochs
+
+
+def get_all_configs(target_pidx_idxs, setup):
+    if setup.use_learning and setup.test_multiple_epochs:
+        if 'pick' in setup.learned_sampler_atype:
+            _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', setup)
+        else:
+            region = setup.learned_sampler_atype.split('_')[1]
+            _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('place', region + '_region', setup)
+        total_epochs = range(len(total_epochs))
+    else:
+        total_epochs = [0]
+
+    configs = []
+    print "Total number of epochs", len(total_epochs)
+    for epoch in total_epochs:
+        for idx in target_pidx_idxs:
+            config = {}
+            for k, v in setup._get_kwargs():
+                if type(v) is bool and v is True:
+                    config[k] = ''
+                elif type(v) is not bool:
+                    config[k] = v
+            config['sampler_epoch_idx'] = epoch
+            config['pidx'] = idx
+            configs.append(config)
+    return configs
+
+
 def main():
+    # specify configs.sampler_seed_idx and configs.planner_seed and test_multiple_epochs for testing across epochs
+    # specify a particular epoch, or use use_best_kde_sampler option for choosing an epoch to run across problems
     setup = parse_arguments()
     setup.use_region_agnostic = True
     setup.absq_seed = 2
-    setup.place_goal_region_epoch = 'best'
-    setup.place_obj_region_epoch = 'best'
-    setup.pick_epoch = 'best'
+
     setup.timelimit = np.inf
     setup.num_node_limit = 100
 
-    pidxs = [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
-
-    pidx_and_seeds = [(pidx, seed) for pidx in pidxs for seed in range(4)]
-    configs = []
-    print "total runs", len(pidxs) * len(range(4))
-    for pidx_seed in pidx_and_seeds:
-        config = {}
-        for k, v in setup._get_kwargs():
-            if type(v) is bool and v is True:
-                config[k] = ''
-            elif type(v) is not bool:
-                config[k] = v
-        config['pidx'] = pidx_seed[0]
-        config['planner_seed'] = pidx_seed[1]
-        configs.append(config)
+    configs = get_all_configs(pidxs, setup)
 
     n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
+    pool.close()
+    pool.join()
 
 
 if __name__ == '__main__':

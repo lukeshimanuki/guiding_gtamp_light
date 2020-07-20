@@ -63,11 +63,15 @@ def get_solution_file_name(config):
     solution_file_dir += q_config
 
     if config.use_learning:
-        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}_{}_{}/{}'.format(config.num_episode,
-                                                                                         config.pick_seed,
-                                                                                         config.place_goal_region_seed,
-                                                                                         config.place_obj_region_seed,
-                                                                                         config.train_type)
+        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}_{}_{}/sampler_epoch_{}_{}_{}/{}'.format(
+            config.num_episode,
+            config.pick_seed,
+            config.place_goal_region_seed,
+            config.place_obj_region_seed,
+            config.pick_epoch,
+            config.place_goal_region_epoch,
+            config.place_obj_region_epoch,
+            config.train_type)
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
     solution_file_name = 'pidx_' + str(config.pidx) + \
@@ -79,6 +83,67 @@ def get_solution_file_name(config):
     solution_file_dir += '/sampling_strategy_' + config.sampling_strategy
     solution_file_name = solution_file_dir + solution_file_name
     return solution_file_name
+
+
+def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
+    if atype == 'pick':
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          config.train_type)
+    else:
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
+            config.domain,
+            config.num_episode,
+            atype,
+            region,
+            config.train_type)
+
+    seed_dirs = os.listdir(sampler_weight_path)
+    candidate_seeds = []
+    for sd_dir in seed_dirs:
+        weight_files = [f for f in os.listdir(sampler_weight_path + sd_dir) if 'epoch' in f and '.pt' in f]
+        if len(weight_files) > 1:
+            seed = int(sd_dir.split('_')[1])
+            candidate_seeds.append(seed)
+    # todo sort the candidate seeds in order
+    candidate_seeds = np.sort(candidate_seeds)
+    seed = int(candidate_seeds[config.sampler_seed_idx])
+    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
+    epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
+    print sampler_weight_path
+    print "Candidate seeds {}".format(candidate_seeds)
+    print "Selected seed {} epoch {}".format(seed, epoch)
+
+    return seed, epoch, epochs
+
+
+def setup_seed_and_epoch(config):
+    if 'pick' in config.learned_sampler_atype:
+        pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)
+    else:
+        pick_seed, pick_epoch = -1, -1
+
+    if 'place_loading' in config.learned_sampler_atype:
+        place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place',
+                                                                                                     'loading_region',
+                                                                                                     config)
+    else:
+        place_obj_region_seed, place_obj_region_epoch = -1, -1
+
+    if 'place_home' in config.learned_sampler_atype:
+        place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place',
+                                                                                                       'home_region',
+                                                                                                       config)
+    else:
+        place_goal_region_seed, place_goal_region_epoch = -1, -1
+
+    config.pick_seed = pick_seed
+    config.pick_epoch = pick_epoch
+    config.place_obj_region_seed = place_obj_region_seed
+    config.place_obj_region_epoch = place_obj_region_epoch
+    config.place_goal_region_seed = place_goal_region_seed
+    config.place_goal_region_epoch = place_goal_region_epoch
 
 
 def parse_arguments():
@@ -125,10 +190,15 @@ def parse_arguments():
     parser.add_argument('-pick_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_obj_region_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_goal_region_seed', type=int, default=0)  # used for threaded runs
-    parser.add_argument('-pick_epoch', type=str, default='0')  # used for threaded runs
-    parser.add_argument('-place_obj_region_epoch', type=str, default='0')  # used for threaded runs
-    parser.add_argument('-place_goal_region_epoch', type=str, default='0')  # used for threaded runs
-    parser.add_argument('-learned_sampler_atype', type=str, default='pick_place_loading_place_home')  # used for threaded runs
+    parser.add_argument('-pick_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-place_obj_region_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-place_goal_region_epoch', type=int, default=0)  # used for threaded runs
+    parser.add_argument('-learned_sampler_atype', type=str,
+                        default='pick_place_loading_place_home')  # used for threaded runs
+    parser.add_argument('-use_best_kde_sampler', action='store_true', default=False)
+    parser.add_argument('-sampler_seed_idx', type=int, default=-1)
+    parser.add_argument('-sampler_epoch_idx', type=int, default=-1)
+    parser.add_argument('-test_multiple_epochs', action='store_true', default=False)
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
@@ -235,7 +305,10 @@ def get_total_n_feasibility_checks(nodes):
 
 def make_sampler_model_and_load_weights(config):
     model = WGANgp(config)
-    model.load_weights()
+    if config.use_best_kde_sampler:
+        model.load_best_weights()
+    else:
+        model.load_weights()
     return model
 
 
@@ -310,7 +383,11 @@ def get_goal_obj_and_region(config):
 
 def main():
     config = parse_arguments()
+    if config.use_learning:
+        if config.sampler_seed_idx != -1:
+            setup_seed_and_epoch(config)
     learned_sampler_model = get_learned_sampler_models(config)
+
     solution_file_name = get_solution_file_name(config)
     is_problem_solved_before = os.path.isfile(solution_file_name)
     if is_problem_solved_before and not config.f:
