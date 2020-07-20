@@ -87,6 +87,8 @@ def main():
     # specify a particular epoch, or use use_best_kde_sampler option for choosing an epoch to run across problems
     cmd = 'python upload_greedy_results.py &'
     os.system(cmd)
+    cmd = 'python delete_openrave_tmp_files.py &'
+    os.system(cmd)
     setup = parse_arguments()
     setup.use_region_agnostic = True
     setup.absq_seed = 2
