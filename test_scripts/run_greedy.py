@@ -121,6 +121,8 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
 def setup_seed_and_epoch(config):
     if 'pick' in config.learned_sampler_atype:
         pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)
+        if config.pick_epoch != -1:
+            pick_epoch = config.pick_epoch
     else:
         pick_seed, pick_epoch = -1, -1
 
@@ -128,6 +130,9 @@ def setup_seed_and_epoch(config):
         place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place',
                                                                                                      'loading_region',
                                                                                                      config)
+        if config.place_obj_region_epoch != -1:
+            place_obj_region_epoch = config.place_obj_region_epoch
+            
     else:
         place_obj_region_seed, place_obj_region_epoch = -1, -1
 
@@ -135,6 +140,8 @@ def setup_seed_and_epoch(config):
         place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place',
                                                                                                        'home_region',
                                                                                                        config)
+        if config.place_goal_region_epoch != -1:
+            place_goal_region_epoch = config.place_goal_region_epoch
     else:
         place_goal_region_seed, place_goal_region_epoch = -1, -1
 
