@@ -11,20 +11,18 @@ fdir = './generators/sampler_performances/'
 
 def get_results(fin_list):
     result = {'iks': [], 'actions': [], 'pick_mps': [], 'pick_infeasible_mps': [], 'place_mps': [],
-              'place_infeasible_mps': [], 'success': []}
+              'place_infeasible_mps': [], 'success': [], 'pidx': []}
     target_pidxs = range(9)
 
     for fin in fin_list:
         data = open(fdir + fin, 'r').read().splitlines()
 
         for l in data:
-            try:
-                pidx = int(l.split(',')[0])
-            except:
-                import pdb;pdb.set_trace()
+            pidx = int(l.split(',')[0])
 
             # if pidx not in target_pidxs:
             #    continue
+            result['pidx'].append(pidx)
             result['iks'].append(int(l.split(',')[2]))
             result['pick_mps'].append(int(l.split(',')[3]))
             result['pick_infeasible_mps'].append(int(l.split(',')[4]))
@@ -66,20 +64,21 @@ def average_over_problems(fin_list):
 
 
 def main():
-    unif_file = 'phaedra//pick_place_home_place_loading//uniform.txt'.format(socket.gethostname())
-    unif_results = get_results([unif_file])
-    print_results(unif_results, unif_file)
+    #unif_file = 'phaedra//pick_place_home_place_loading//uniform.txt'.format(socket.gethostname())
+    #unif_results = get_results([unif_file])
+    #print_results(unif_results, unif_file)
 
-    print "Uniform {} number of actions with {} success rate".format(np.mean(unif_results['actions']), np.mean(unif_results['success']))
+    #print "Uniform {} number of actions with {} success rate".format(np.mean(unif_results['actions']), np.mean(unif_results['success']))
+    # Uniform is 23
     print '============================================================'
 
-    atype = 'place_loading'
+    atype = 'pick'
     if atype == 'place_loading':
         seeds = [3, 4, 5, 12]
     elif atype == 'place_home':
         raise NotImplementedError
     else:
-        raise NotImplementedError
+        seeds = [2]
 
     for seed in seeds:
         target_path = '{}/sampler_seed_{}/wgandi/'.format(atype, seed)
@@ -91,17 +90,22 @@ def main():
             results = get_results([f])
             iks = results['iks']
             n_data = len(iks)
-            if n_data < 9:
+            n_probs_covered = len(np.unique(results['pidx']))
+            # I need to make sure all problems have been covered
+            if n_probs_covered < 9 or n_data < 9:
                 continue
-            epoch_n_actions.append([epoch, np.mean(results['actions']), np.mean(results['success'])])
+            epoch_n_actions.append([epoch, np.mean(results['actions']), np.mean(results['success']), n_data])
             avg_n_data.append(n_data)
+        if len(epoch_n_actions) == 0:
+            continue
 
         epoch_n_actions = np.array(epoch_n_actions)
         epoch_n_actions = epoch_n_actions[np.argsort(epoch_n_actions[:, 1]), :]
         best_epoch = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 0]
         n_actions = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 1]
         success_rate = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 2]
-        print "Average n data {}".format(np.mean(avg_n_data))
+        n_data = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 3]
+        print "best_epoch n data {}".format(n_data)
         print "Best epoch for seed {} is {} with {} number of actions and {} success rate".format(seed, best_epoch, n_actions, success_rate)
     import pdb;
     pdb.set_trace()

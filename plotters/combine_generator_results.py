@@ -20,7 +20,7 @@ def main():
 
     save_path_root = 'generators/sampler_performances/'
     for machine_name in results_by_machines:
-        if machine_name == atype or machine_name == 'with_goal_object_poses':
+        if machine_name == atype or machine_name == 'with_goal_object_poses' or machine_name == 'pick':
             continue
         machine_path = smpler_result_path + machine_name + '/' + atype
         save_path = save_path_root + '/' + atype

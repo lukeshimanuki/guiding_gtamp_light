@@ -2,7 +2,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
-target_dir = 'generators/learning/learned_weights/two_arm_mover/num_episodes_200/place/loading_region/wgandi/fc'
+target_dir = 'generators/learning/learned_weights/two_arm_mover/num_episodes_1000/place/loading_region/wgandi/fc'
 is_pick = 'pick' in target_dir
 # do these values data-dependent?
 if 'two_arm_mover' in target_dir:
@@ -57,7 +57,7 @@ for seed in seeds:
 
     plt.figure()
     plt.plot(stats[:, 1])
-    plt.ylim(bottom=-50)
+    plt.ylim(bottom=-300)
     plt.savefig('./plotters/{}.png'.format(seed))
 
     plt.close('all')
