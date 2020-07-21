@@ -207,6 +207,7 @@ def parse_arguments():
     parser.add_argument('-sampler_seed_idx', type=int, default=-1)
     parser.add_argument('-sampler_epoch_idx', type=int, default=-1)
     parser.add_argument('-test_multiple_epochs', action='store_true', default=False)
+    parser.add_argument('-use_test_pidxs', action='store_true', default=False)
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
