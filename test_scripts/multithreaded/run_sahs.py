@@ -5,7 +5,6 @@ from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocess
 import argparse
 from test_scripts.run_greedy import parse_arguments
 
-pidxs = [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
 
 
 def worker_p(config):
@@ -95,6 +94,11 @@ def main():
 
     setup.timelimit = np.inf
     setup.num_node_limit = 100
+
+    if setup.use_test_pidxs:
+        pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018, 40020, 40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+    else:
+        pidxs = [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
 
     configs = get_all_configs(pidxs, setup)
 
