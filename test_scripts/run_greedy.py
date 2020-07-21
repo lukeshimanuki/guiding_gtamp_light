@@ -330,7 +330,7 @@ def get_learned_sampler_models(config):
             config.region = 'home_region'
             config.train_type = train_type
             config.seed = config.place_goal_region_seed
-            config.sampler_epoch = config.place_goal_region_seed
+            config.epoch = config.place_goal_region_epoch
             goal_region_place_model = make_sampler_model_and_load_weights(config)
         else:
             goal_region_place_model = None
