@@ -22,9 +22,9 @@ def get_yaml_file_name(algorithm, domain):
 
 def main():
     yaml_file = 'run_generator.yaml'
-    atype = 'place_loading'
+    atype = 'place_home'
 
-    for planner_seed in [1, 2, 3]:
+    for planner_seed in [0]:
         for sampler_seed in [0, 1, 2, 3]:
             cmd = 'cat cloud_scripts/{} | ' \
                   'sed \"s/NAME/run-gen-plan-seed-{}-smpl-seed-{}/\" |  ' \
@@ -32,7 +32,7 @@ def main():
                   'sed \"s/SAMPLERSEED/{}/\" |  ' \
                   'sed \"s/PLANNERSEED/{}/\" |  ' \
                   'kubectl apply -f - -n beomjoon;'.format(yaml_file, planner_seed, sampler_seed,
-                                                         atype, sampler_seed, planner_seed)
+                                                           atype, sampler_seed, planner_seed)
             print cmd
             os.system(cmd)
 

@@ -28,20 +28,20 @@ spec:
           && mc cp csail/bkim/ik/kinematics.4f95c55204252b6edd6332624a20624c ~/.openrave/ --recursive
           && mc cp csail/bkim/ik/robot.7edbf73fb4fc856e8294d93279d26ff2 ~/.openrave/ --recursive
           && python move_best_weights_on_s3.py download two_arm_mover
-          && python move_testing_purpose_data.py
           && export PYTHONPATH=/guiding_gtamp_light/openrave_wrapper/manipulation:/guiding_gtamp_light/openrave_wrapper:/guiding_gtamp_light:/guiding_gtamp_light/mover_library:/pddlstream
-          && python test_scripts/multithreaded/run_multithreaded_generator_on_cloud.py -use_learning -learned_sampler_atype ATYPE -sampler_seed SAMPLERSEED -planner_seed PLANNERSEED'
+          && export CUDA_VISIBLE_DEVICES=""
+          && python test_scripts/multithreaded/run_sahs.py -use_learning -learned_sampler_atype ATYPE -sampler_seed SAMPLERSEED -planner_seed PLANNERSEED -test_multiple_epochs -n_objs_pack 1'
           envFrom:
             - secretRef:
                 name: openstack-s3
           resources:
             limits:
-              cpu: 7
-              memory: 12Gi
+              cpu: 49
+              memory: 100Gi
               nvidia.com/gpu: 0
             requests:
-              cpu: 7
-              memory: 12Gi
+              cpu: 49
+              memory: 100Gi
               nvidia.com/gpu: 0
       restartPolicy: Never
 
