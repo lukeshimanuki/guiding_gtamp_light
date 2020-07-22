@@ -46,8 +46,10 @@ def get_solution_file_name(config):
     #    root_dir = './'
     # else:
     #    root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
-    commit_hash = get_commit_hash()
-    commit_hash = ''
+    if config.timelimit == np.inf:
+        commit_hash = ''
+    else:
+        commit_hash = get_commit_hash()
 
     if config.gather_planning_exp:
         root_dir = root_dir + '/planning_experience/raw/'
