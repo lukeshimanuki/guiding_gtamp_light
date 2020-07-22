@@ -63,7 +63,7 @@ def create_train_data(nodes, edges, actions, costs, num_training):
 
 def train(config):
     seed = config.seed
-    nodes, edges, actions, rewards = data_traj.load_data(
+    nodes, edges, actions, costs = data_traj.load_data(
         # './planning_experience/irsc/two_arm_mover/n_objs_pack_1/trajectory_data/',
         # './planning_experience/hcount/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
         # './planning_experience/irsc/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
@@ -90,7 +90,7 @@ def train(config):
     # nodes = nodes[:, :, 6:] # excluding the poses
     model = create_gnn_model(config, nodes, edges)
     callbacks = create_callbacks(model.weight_file_name)
-    training_inputs, training_targets = create_train_data(nodes, edges, actions, rewards, num_training)
+    training_inputs, training_targets = create_train_data(nodes, edges, actions, costs, num_training)
     tnodes = nodes[-num_test:]
     tedges = edges[-num_test:]
     tactions = actions[-num_test:]

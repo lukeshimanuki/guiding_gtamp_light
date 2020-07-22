@@ -232,14 +232,17 @@ def extract_file(filename, desired_operator_type='two_arm_pick'):
     if len(traj.actions) == 0:
         print filename, 'was not solvable'
         return None, None, None, None
-
+    step_idx = 0
     for state, action, reward in zip(traj.states, traj.actions, traj.rewards):
         if action.type == desired_operator_type:
-            node, edge, action, cost = extract_individual_example(state, action, reward)
+            node, edge, action, _ = extract_individual_example(state, action, reward)
+            remaining_steps = len(traj.actions) - step_idx
+            cost = remaining_steps
             nodes.append(node)
             edges.append(edge)
             actions.append(action)
             costs.append(cost)
+        step_idx += 1
     nodes = np.stack(nodes, axis=0)
     edges = np.stack(edges, axis=0)
     actions = np.stack(actions, axis=0)
@@ -269,11 +272,11 @@ def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
             actions.append(factions)
             edges.append(fedges)
             costs.append(fcosts)
+            n_traj += 1
         n_data = len(np.vstack(nodes))
-        print "{}/{} n_data {}".format(n_traj, len(file_list), n_data)
+        print "n episodes included {}/{} n_data {}".format(n_traj, len(file_list), n_data)
         if n_data >= num_data:
             break
-        n_traj += 1
 
     nodes = np.vstack(nodes).squeeze()
     edges = np.vstack(edges).squeeze()
