@@ -48,6 +48,7 @@ def create_callbacks(q_weight_file):
 def create_gnn_model(config, nodes, edges):
     num_entities = nodes.shape[1]
     m = PaPGNN(num_entities, nodes.shape[-1], edges.shape[-1], config)
+    #pap_model = PaPGNN(num_entities, num_node_features, num_edge_features, pap_mconfig, entity_names, n_regions)
     if os.path.isfile(m.weight_file_name) and not config.donttrain and not config.f:
         print "Quitting because we've already trained with the given configuration"
         sys.exit(-1)
@@ -61,19 +62,23 @@ def create_train_data(nodes, edges, actions, costs, num_training):
     return training_inputs, training_targets
 
 
+
 def train(config):
     seed = config.seed
-    nodes, edges, actions, costs = data_traj.load_data(
-        # './planning_experience/irsc/two_arm_mover/n_objs_pack_1/trajectory_data/',
-        # './planning_experience/hcount/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
-        # './planning_experience/irsc/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
-        # './planning_experience/hcount/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
-        # './planning_experience/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
-        # './planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
-        # './planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
+
+    nodes, edges, actions, rewards = data_traj.load_data(
+        #'./planning_experience/irsc/two_arm_mover/n_objs_pack_1/trajectory_data/',
+        #'./planning_experience/hcount/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
+        #'./planning_experience/irsc/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
+        #'./planning_experience/hcount/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
+        #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
+        #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
+        #'./planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
+        #'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
+        #'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc_prm/trajectory_data/shortest/',
         'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/',
         desired_operator_type=config.operator,
-        num_data=config.num_train + config.num_test)
+        num_data=config.num_train+config.num_test)
     """
     print "Loading data..."
     nodes, edges, actions, rewards = pickle.load(open('tmp.pkl', 'r'))
@@ -87,10 +92,10 @@ def train(config):
     assert num_training > 0
     config.num_train = num_training
     config.num_test = num_test
-    # nodes = nodes[:, :, 6:] # excluding the poses
+    nodes = nodes[:, :, 6:] # excluding the poses
     model = create_gnn_model(config, nodes, edges)
     callbacks = create_callbacks(model.weight_file_name)
-    training_inputs, training_targets = create_train_data(nodes, edges, actions, costs, num_training)
+    training_inputs, training_targets = create_train_data(nodes, edges, actions, rewards, num_training)
     tnodes = nodes[-num_test:]
     tedges = edges[-num_test:]
     tactions = actions[-num_test:]
@@ -105,7 +110,7 @@ def train(config):
     _, post_top_zero_acc, post_top_one_acc, post_top_two_acc = top_k_accuracy(model, tnodes, tedges, tactions,
                                                                               config.top_k)
 
-    # write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
+    #write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
     print "Post-training top-0 accuracy %.2f" % post_top_zero_acc
     print "Post-training top-1 accuracy %.2f" % post_top_one_acc
     print "Post-training top-2 accuracy %.2f" % post_top_two_acc

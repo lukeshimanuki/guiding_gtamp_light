@@ -252,6 +252,7 @@ def extract_file(filename, desired_operator_type='two_arm_pick'):
 
 # filename is a directory
 def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
+    # the *_retired is a legacy from previous code
     cachefile = "{}{}-num_data_{}_retired.pkl".format(dirname, desired_operator_type, num_data)
     # cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
     if os.path.isfile(cachefile):
