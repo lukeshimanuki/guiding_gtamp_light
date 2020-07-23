@@ -393,6 +393,8 @@ class WGANgp:
                     best_kde = kde
                     best_entropy = entropy
                     best_mse = mse
+                    path = self.weight_dir + '/gen_best_kde.pt'.format(iteration)
+                    torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
 
