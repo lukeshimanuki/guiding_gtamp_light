@@ -113,7 +113,7 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         hval = analytical_heuristic
     elif h_option == 'qlearned':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
-        #nodes = nodes[..., 6:]
+        nodes = nodes[..., 6:]
         hval = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
 
     return hval
