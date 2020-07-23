@@ -66,15 +66,16 @@ def get_solution_file_name(config):
     solution_file_dir += q_config
 
     if config.use_learning:
-        solution_file_dir += '/using_learned_sampler/{}/sampler_seed_{}_{}_{}/sampler_epoch_{}_{}_{}/{}'.format(
+        solution_file_dir += '/using_learned_sampler/{}/{}/sampler_seed_{}_{}_{}/sampler_epoch_{}_{}_{}/'.format(
             config.num_episode,
+            config.train_type,
             config.pick_seed,
             config.place_goal_region_seed,
             config.place_obj_region_seed,
             config.pick_epoch,
             config.place_goal_region_epoch,
-            config.place_obj_region_epoch,
-            config.train_type)
+            config.place_obj_region_epoch
+            )
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
     solution_file_name = 'pidx_' + str(config.pidx) + \
