@@ -213,17 +213,11 @@ def get_commithash(domain, n_objs_pack, algorithm):
             if algorithm == 'pure-learning':
                 commithash = '067e37659b0642bbdb7736ba0ec21151756daddc'
             elif algorithm == 'greedy-learn':
-                commithash = '8db0c370a4c8fb4b85d6884f9ce367793f7b7f86'
-                commithash = '5474a248214538464b33e70e264e3260cec73a12'
-                commithash = 'dd3a4d85b8482cb1c3a06d515f435872da2dc1b4'
-                commithash = '9766e58e443182469885723fc251960eb6a7a2ca'
-                commithash = '9687b7dd7f692f700bdba438c98147c68b31bb3e'
-                commithash = '3c599d703a26fd7ad9ee48fa09f6e0071af7e300'
-                commithash = '3e5ce70c9ada5599e40289af7df6398247ccf4db'
-                commithash = '6377a4c1bab85c480c5d49c4245f00a7287f7155'
                 commithash = '6ad90368c210cf2faaea593d664a2bbaf97f1605'
+            elif algorithm == 'greedy-qlearned':
+                commithash = 'ac2e0481e0eaf8f714fba5c2faae2eb0dc781c6c'
             else:
-                commithash = '1533b3cdb3c77631128662a605c5ced62759ef08'
+                commithash = 'ac2e0481e0eaf8f714fba5c2faae2eb0dc781c6c'
         elif n_objs_pack == 4:
             if algorithm == 'pure-learning':
                 commithash = '067e37659b0642bbdb7736ba0ec21151756daddc'
@@ -252,13 +246,16 @@ def get_commithash(domain, n_objs_pack, algorithm):
 
 
 def main():
+    cmd = 'cp ~/.kube/azure_config ~/.kube/config'
+    os.system(cmd)
+
     algos = ['greedy-learn', 'greedy', 'rsc', 'pure-learning']
-    algos = ['greedy-learn']
-    sampler_seeds = [0,1,2,3]
+    algos = ['greedy-qlearned']
     sampler_types = ['wgandi']
     n_objs_packs = [1]
-    sampler_train_data = 100
     domain = 'two-arm-mover'
+    abs_q_loss = 'mse'
+    sampler_seeds = [0]
     for sampler_train_data in [200]:  # [10, 50, 200]:
         for algorithm in algos:
             if algorithm == 'rsc':
@@ -271,6 +268,8 @@ def main():
                         for n_objs_pack in n_objs_packs:
                             if 'hcount' in algorithm:
                                 hoption = 'hcount_old_number_in_goal'
+                            elif algorithm == 'greedy-qlearned':
+                                hoption = 'qlearned'
                             else:
                                 hoption = 'qlearned_hcount_old_number_in_goal'
 
@@ -314,6 +313,7 @@ def main():
                                       'sed \"s/SAMPLERSEED/{}/\" |  ' \
                                       'sed \"s/TRAINTYPE/{}/\" |  ' \
                                       'sed \"s/NUMEPISODE/{}/\" |  ' \
+                                      'sed \"s/ABSQLOSS/{}/\" |  ' \
                                       'kubectl apply -f - -n beomjoon;'.format(yaml_file, commithash[0:7],
                                                                                algorithm, domain, pidx, seed,
                                                                                n_objs_pack,
@@ -324,7 +324,7 @@ def main():
                                                                                hoption, timelimit, n_objs_pack,
                                                                                commithash,
                                                                                n_iter_limit, absq_seed, sampler_seed,
-                                                                               sampler_type, sampler_train_data)
+                                                                               sampler_type, sampler_train_data, abs_q_loss)
                                 print idx, cmd
                                 os.system(cmd)
 

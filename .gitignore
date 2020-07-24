@@ -33,3 +33,4 @@ generators/learning/learned_weights/*
 *.png
 generators/sampler_performances/*/*
 plotters/plots/*
+*.zip
