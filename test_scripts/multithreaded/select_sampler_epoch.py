@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pickle
 import re
+import sys
 
 from plotters.compare_n_nodes import get_n_nodes
 
@@ -54,7 +55,7 @@ def get_top_k_epochs(weight_dir, k):
     return top_k_epochs
 
 
-def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs):
+def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, algo_name):
     if atype == 'pick':
         learned_sampler_atype = 'pick'
     elif atype == 'place':
@@ -72,7 +73,9 @@ def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs):
           '-use_learning ' \
           '-learned_sampler_atype {} ' \
           '-sampler_seed_idx {} ' \
-          '-epochs {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd)
+          '-planner_seeds_to_run {} '\
+          '-train_type {} '\
+          '-epochs {}'.format(learned_sampler_atype, sampler_seed_idx, 0, algo_name, top_k_epoch_cmd)
     print cmd
     os.system(cmd)
 
@@ -112,7 +115,7 @@ def get_epoch_dir(atype, region, target_dir):
 def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_objs):
     test_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_{}/' \
                'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True' \
-               '/using_learned_sampler/{}/'.format(n_objs, num_episode)
+               '/using_learned_sampler/{}/{}/'.format(n_objs, num_episode, algo_name)
     seed_dirs = get_action_seed_dirs(atype, region, test_dir)
     seeds = [np.max([int(i) for i in sd_dir.split('sampler_seed_')[1].split('_')]) for sd_dir in seed_dirs]
     sorted_seed_idxs = np.argsort(seeds)
@@ -133,7 +136,7 @@ def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_obj
     return best_epoch
 
 
-def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch):
+def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, algo_name):
     if atype == 'pick':
         learned_sampler_atype = 'pick'
     elif atype == 'place':
@@ -152,7 +155,8 @@ def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch):
           '-sampler_seed_idx {} ' \
           '-epochs {} ' \
           '-use_test_pidxs ' \
-          '-planner_seeds_to_run {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd, planner_seeds)
+          '-train_type {} ' \
+          '-planner_seeds_to_run {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd, algo_name, planner_seeds)
     print cmd
     os.system(cmd)
 
@@ -163,10 +167,13 @@ def upload_test_results():
 
 def main():
     # this scripts evaluates top 100 epochs on validation idxs, determines the best one, and run it on top epochs
-    atype = 'place'
-    region = 'loading_region'
+    atype = sys.argv[1] #'place'
+    region = sys.argv[2] #'loading_region'
     num_episode = 1000
-    n_objs = 1
+    if 'home' in region:  
+        n_objs = 4
+    else:
+        n_objs = 1
     train_type = 'wgangp'
     domain = 'two_arm_mover'
     sampler_seed_idxs = [0, 1, 2, 3]
@@ -174,7 +181,7 @@ def main():
     for sampler_seed_idx in sampler_seed_idxs:
         weight_dir = get_weight_dir(atype, region, num_episode, train_type, sampler_seed_idx, domain)
         top_k_epochs = get_top_k_epochs(weight_dir, k)
-        evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs)
+        evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, train_type)
         top_epoch = get_top_epoch(atype, region, sampler_seed_idx, train_type, num_episode, n_objs)
         evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch)
 

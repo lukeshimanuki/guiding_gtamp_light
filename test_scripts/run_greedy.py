@@ -338,7 +338,6 @@ def make_sampler_model_and_load_weights(config):
         model.load_best_weights()
     else:
         model.load_weights()
-    import pdb;pdb.set_trace()
     return model
 
 

@@ -134,7 +134,7 @@ def main():
     achieved_counter = 0
     for num_episode in [config.num_episode]:
         config.num_episode = num_episode
-        for seed in range(100):
+        for seed in range(30, 40):
             print "****NUM EPISODE {} SEED {}*****".format(num_episode, seed)
             config.seed = seed
             torch.cuda.manual_seed_all(config.seed)
