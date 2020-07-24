@@ -117,7 +117,7 @@ def main():
 
     configs = get_all_configs(pidxs, setup)
 
-    n_workers = 1  # multiprocessing.cpu_count()
+    n_workers = multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
     pool.close()

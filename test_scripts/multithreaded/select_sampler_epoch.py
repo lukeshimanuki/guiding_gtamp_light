@@ -109,13 +109,10 @@ def get_epoch_dir(atype, region, target_dir):
     return action_epoch_dirs
 
 
-def get_top_epoch(atype, region, sampler_seed_idx):
-    n_objs = 1
-    n_train = 1000
-    algo_name = 'wgandi'
+def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_objs):
     test_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_{}/' \
                'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True' \
-               '/using_learned_sampler/{}/'.format(n_objs, n_train)
+               '/using_learned_sampler/{}/'.format(n_objs, num_episode)
     seed_dirs = get_action_seed_dirs(atype, region, test_dir)
     seeds = [np.max([int(i) for i in sd_dir.split('sampler_seed_')[1].split('_')]) for sd_dir in seed_dirs]
     sorted_seed_idxs = np.argsort(seeds)
@@ -132,7 +129,6 @@ def get_top_epoch(atype, region, sampler_seed_idx):
         if condition:
             best_epoch_dir = epoch_dir
             min_n_nodes = np.median(n_nodes)
-        break
     best_epoch = np.max([int(i) for i in best_epoch_dir.split('sampler_epoch_')[1].split('_')])
     return best_epoch
 
@@ -166,9 +162,11 @@ def upload_test_results():
 
 
 def main():
+    # this scripts evaluates top 100 epochs on validation idxs, determines the best one, and run it on top epochs
     atype = 'place'
     region = 'loading_region'
     num_episode = 1000
+    n_objs = 1
     train_type = 'wgangp'
     domain = 'two_arm_mover'
     sampler_seed_idxs = [0, 1, 2, 3]
@@ -177,7 +175,7 @@ def main():
         weight_dir = get_weight_dir(atype, region, num_episode, train_type, sampler_seed_idx, domain)
         top_k_epochs = get_top_k_epochs(weight_dir, k)
         evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs)
-        top_epoch = get_top_epoch(atype, region, sampler_seed_idx)
+        top_epoch = get_top_epoch(atype, region, sampler_seed_idx, train_type, num_episode, n_objs)
         evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch)
 
     upload_test_results()
