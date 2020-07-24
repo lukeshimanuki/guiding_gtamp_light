@@ -112,8 +112,21 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     # todo sort the candidate seeds in order
     candidate_seeds = np.sort(candidate_seeds)
     seed = int(candidate_seeds[config.sampler_seed_idx])
-    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
-    epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
+
+    if config.sampler_epoch_idx == -1:
+        if atype =='pick':
+            epoch = config.pick_epoch
+        elif atype == 'place':
+            if 'home' in region:
+                epoch = config.place_goal_region_epoch
+            elif 'loading' in region:
+                epoch = config.place_obj_region_epoch
+            else:
+                raise NotImplementedError
+        epochs = []
+    else:
+        epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
+        epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
     print sampler_weight_path
     print "Candidate seeds {}".format(candidate_seeds)
     print "Selected seed {} epoch {}".format(seed, epoch)
@@ -209,10 +222,14 @@ def parse_arguments():
     parser.add_argument('-sampler_seed_idx', type=int, default=-1)
     parser.add_argument('-sampler_epoch_idx', type=int, default=-1)
     parser.add_argument('-test_multiple_epochs', action='store_true', default=False)
-    parser.add_argument('-use_test_pidxs', action='store_true', default=False)
 
     # whether to use the learned sampler and the reachability
     parser.add_argument('-use_reachability_clf', action='store_true', default=False)
+
+    ## used for evaluating samplers
+    parser.add_argument('-use_test_pidxs', action='store_true', default=False)
+    parser.add_argument('-epochs_to_evaluate', nargs='+')
+    parser.add_argument('-planner_seeds_to_run', nargs='+')
 
     config = parser.parse_args()
     return config
@@ -320,6 +337,7 @@ def make_sampler_model_and_load_weights(config):
         model.load_best_weights()
     else:
         model.load_weights()
+    import pdb;pdb.set_trace()
     return model
 
 
@@ -356,7 +374,6 @@ def get_learned_sampler_models(config):
             pick_model = make_sampler_model_and_load_weights(config)
         else:
             pick_model = None
-
     else:
         goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
                                                  atype='one_arm_place')  # how does this actually get used?

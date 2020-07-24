@@ -53,40 +53,51 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     return seed, epoch, epochs
 
 
-def get_all_configs(target_pidx_idxs, setup):
-    if setup.use_learning and setup.test_multiple_epochs:
-        if 'pick' in setup.learned_sampler_atype:
-            _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', setup)
+def determine_action_name(config):
+    if 'pick' in config.learned_sampler_atype:
+        return 'pick'
+    elif 'place' in config.learned_sampler_atype:
+        if 'loading' in config.learned_sampler_atype:
+            return 'place_obj_region'
+        elif 'home' in config.learned_sampler_atype:
+            return 'place_goal_region'
         else:
-            region = setup.learned_sampler_atype.split('_')[1]
-            _, _, total_epochs = convert_seed_epoch_idxs_to_seed_and_epoch('place', region + '_region', setup)
-        total_epochs = range(len(total_epochs))
-    else:
-        total_epochs = [0]
+            raise NotImplementedError
 
+
+def get_all_configs(target_pidx_idxs, setup):
     configs = []
-    print "Total number of epochs", len(total_epochs)
-    for epoch in total_epochs:
-        for idx in target_pidx_idxs:
-            config = {}
-            for k, v in setup._get_kwargs():
-                if type(v) is bool and v is True:
-                    config[k] = ''
-                elif type(v) is not bool:
-                    config[k] = v
-            config['sampler_epoch_idx'] = epoch
-            config['pidx'] = idx
-            configs.append(config)
+    epochs_to_run = setup.epochs_to_evaluate
+    print "Total number of epochs", len(epochs_to_run)
+    sampler_seed_idx_to_run = setup.sampler_seed_idx
+    planner_seeds_to_run = [int(i) for i in setup.planner_seeds_to_run]
+    for epoch in epochs_to_run:
+        for planner_seed in planner_seeds_to_run:
+            for idx in target_pidx_idxs:
+                config = {}
+                for k, v in setup._get_kwargs():
+                    if type(v) is bool and v is True:
+                        config[k] = ''
+                    elif type(v) is not bool:
+                        config[k] = v
+                action_name = determine_action_name(setup)
+                config[action_name+'_epoch'] = int(epoch)
+                config['sampler_seed_idx'] = sampler_seed_idx_to_run
+                config['pidx'] = idx
+                config['planner_seed'] = planner_seed
+                configs.append(config)
     return configs
 
 
 def main():
     # specify configs.sampler_seed_idx and configs.planner_seed and test_multiple_epochs for testing across epochs
     # specify a particular epoch, or use use_best_kde_sampler option for choosing an epoch to run across problems
+    """
     cmd = 'python upload_greedy_results.py &'
     os.system(cmd)
     cmd = 'python delete_openrave_tmp_files.py &'
     os.system(cmd)
+    """
     setup = parse_arguments()
     setup.use_region_agnostic = True
     setup.absq_seed = 2
@@ -106,7 +117,7 @@ def main():
 
     configs = get_all_configs(pidxs, setup)
 
-    n_workers = multiprocessing.cpu_count()
+    n_workers = 1  # multiprocessing.cpu_count()
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
     pool.close()
