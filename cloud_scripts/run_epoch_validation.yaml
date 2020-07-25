@@ -30,18 +30,18 @@ spec:
           && python move_best_weights_on_s3.py download two_arm_mover
           && export PYTHONPATH=/guiding_gtamp_light/openrave_wrapper/manipulation:/guiding_gtamp_light/openrave_wrapper:/guiding_gtamp_light:/guiding_gtamp_light/mover_library:/pddlstream
           && export CUDA_VISIBLE_DEVICES=""
-          && python test_scripts/multithreaded/run_sahs.py -use_learning -learned_sampler_atype ATYPE -sampler_seed SAMPLERSEED -planner_seed PLANNERSEED -test_multiple_epochs -n_objs_pack 1'
+          && python test_scripts/multithreaded/run_sahs.py -use_learning -learned_sampler_atype ATYPE -sampler_seed_idx SAMPLERSEEDIDX -planner_seed PLANNERSEED TESTMULTIPLEEPOCHS -n_objs_pack NOBJS EPOCH USETESTPIDXS'
           envFrom:
             - secretRef:
                 name: openstack-s3
           resources:
             limits:
-              cpu: 49
-              memory: 100Gi
+              cpu: CPUS
+              memory: MEMORY
               nvidia.com/gpu: 0
             requests:
-              cpu: 49
-              memory: 100Gi
+              cpu: CPUS
+              memory: MEMORY
               nvidia.com/gpu: 0
       restartPolicy: Never
 
