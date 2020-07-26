@@ -73,21 +73,27 @@ def get_all_configs(target_pidx_idxs, setup):
     print "Total number of epochs", len(epochs_to_run)
     sampler_seed_idx_to_run = setup.sampler_seed_idx
     planner_seeds_to_run = [int(i) for i in setup.planner_seeds_to_run]
-    for epoch in epochs_to_run:
-        for planner_seed in planner_seeds_to_run:
-            for idx in target_pidx_idxs:
-                config = {}
-                for k, v in setup._get_kwargs():
-                    if type(v) is bool and v is True:
-                        config[k] = ''
-                    elif type(v) is not bool:
-                        config[k] = v
-                action_name = determine_action_name(setup)
-                config[action_name+'_epoch'] = int(epoch)
-                config['sampler_seed_idx'] = sampler_seed_idx_to_run
-                config['pidx'] = idx
-                config['planner_seed'] = planner_seed
-                configs.append(config)
+    if setup.num_trains_to_run is None:
+        num_trains_to_run = [5000]
+    else:
+        num_trains_to_run = [int(i) for i in setup.num_trains_to_run]
+    for num_train in num_trains_to_run:
+        for epoch in epochs_to_run:
+            for planner_seed in planner_seeds_to_run:
+                for idx in target_pidx_idxs:
+                    config = {}
+                    for k, v in setup._get_kwargs():
+                        if type(v) is bool and v is True:
+                            config[k] = ''
+                        elif type(v) is not bool:
+                            config[k] = v
+                    action_name = determine_action_name(setup)
+                    config[action_name+'_epoch'] = int(epoch)
+                    config['sampler_seed_idx'] = sampler_seed_idx_to_run
+                    config['pidx'] = idx
+                    config['planner_seed'] = planner_seed
+                    config['num_train'] = num_train
+                    configs.append(config)
     return configs
 
 

@@ -196,6 +196,7 @@ def parse_arguments():
 
     # abstract Q setup
     parser.add_argument('-num_train', type=int, default=5000)
+    parser.add_argument('-num_trains_to_run', nargs='+')
     parser.add_argument('-dontsimulate', action='store_true', default=False)
     parser.add_argument('-loss', type=str, default='largemargin')
     parser.add_argument('-absq_seed', type=int, default=0)
