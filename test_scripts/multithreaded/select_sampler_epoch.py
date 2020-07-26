@@ -180,7 +180,7 @@ def main():
         n_objs = 4
     else:
         n_objs = 1
-    train_type = 'wgangp'
+    train_type = sys.argv[3]
     domain = 'two_arm_mover'
     sampler_seed_idxs = [0, 1, 2, 3]
     k = 100
