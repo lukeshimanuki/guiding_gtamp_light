@@ -36,7 +36,7 @@ def get_weight_dir(atype, region, num_episode, train_type, sampler_seed_idx, dom
 
 def get_top_k_epochs(weight_dir, k):
     if os.path.isfile(weight_dir + 'top_k_epochs.pkl'):
-        top_k_epochs = pickle.load(open(weight_dir + 'top_k_epochs.pkl', 'r'))
+        top_k_epochs = pickle.load(open(weight_dir + 'top_k_epochs.pkl', 'r'))[:k]
     else:
         saved_epochs = [f.split('_')[-1].split('.pt')[0] for f in os.listdir(weight_dir) if
                         '.pt' in f and 'best' not in f]
@@ -55,7 +55,7 @@ def get_top_k_epochs(weight_dir, k):
     return top_k_epochs
 
 
-def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, algo_name):
+def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, algo_name, n_objs):
     if atype == 'pick':
         learned_sampler_atype = 'pick'
     elif atype == 'place':
@@ -75,7 +75,8 @@ def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, algo_
           '-sampler_seed_idx {} ' \
           '-planner_seeds_to_run {} '\
           '-train_type {} '\
-          '-epochs {}'.format(learned_sampler_atype, sampler_seed_idx, 0, algo_name, top_k_epoch_cmd)
+          '-n_objs_pack {} '\
+          '-epochs {}'.format(learned_sampler_atype, sampler_seed_idx, 0, algo_name, n_objs, top_k_epoch_cmd)
     print cmd
     os.system(cmd)
 
@@ -116,6 +117,10 @@ def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_obj
     test_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_{}/' \
                'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True' \
                '/using_learned_sampler/{}/{}/'.format(n_objs, num_episode, algo_name)
+    test_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_{}/' \
+               'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/' \
+               'using_learned_sampler/' \
+               '{}/{}/'.format(n_objs, num_episode, algo_name)
     seed_dirs = get_action_seed_dirs(atype, region, test_dir)
     seeds = [np.max([int(i) for i in sd_dir.split('sampler_seed_')[1].split('_')]) for sd_dir in seed_dirs]
     sorted_seed_idxs = np.argsort(seeds)
@@ -126,7 +131,7 @@ def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_obj
     best_epoch_dir = None
     min_n_nodes = np.inf
     for epoch_dir in epoch_dirs:
-        target_dir = target_sd_dir + epoch_dir + '/' + algo_name + '/n_mp_limit_5_n_iter_limit_2000/'
+        target_dir = target_sd_dir + epoch_dir +  '/n_mp_limit_5_n_iter_limit_2000/'
         pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir, is_valid_idxs=True)
         condition = np.median(n_nodes) < np.median(min_n_nodes) and np.mean(successes) == 1
         if condition:
@@ -136,7 +141,7 @@ def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_obj
     return best_epoch
 
 
-def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, algo_name):
+def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, algo_name, n_objs):
     if atype == 'pick':
         learned_sampler_atype = 'pick'
     elif atype == 'place':
@@ -156,7 +161,8 @@ def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, algo_name
           '-epochs {} ' \
           '-use_test_pidxs ' \
           '-train_type {} ' \
-          '-planner_seeds_to_run {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd, algo_name, planner_seeds)
+          '-n_objs_pack {} ' \
+          '-planner_seeds_to_run {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd, algo_name, n_objs, planner_seeds)
     print cmd
     os.system(cmd)
 
@@ -179,11 +185,12 @@ def main():
     sampler_seed_idxs = [0, 1, 2, 3]
     k = 100
     for sampler_seed_idx in sampler_seed_idxs:
+        print "******Next sampler seed******"
         weight_dir = get_weight_dir(atype, region, num_episode, train_type, sampler_seed_idx, domain)
         top_k_epochs = get_top_k_epochs(weight_dir, k)
-        evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, train_type)
+        evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, train_type, n_objs)
         top_epoch = get_top_epoch(atype, region, sampler_seed_idx, train_type, num_episode, n_objs)
-        evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch)
+        evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, train_type, n_objs)
 
     upload_test_results()
 
