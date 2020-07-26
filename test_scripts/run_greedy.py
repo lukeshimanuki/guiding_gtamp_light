@@ -189,13 +189,13 @@ def parse_arguments():
 
     # planning budget setup
     parser.add_argument('-num_node_limit', type=int, default=3000)
-    parser.add_argument('-num_train', type=int, default=5000)
     parser.add_argument('-timelimit', type=float, default=2000)
     parser.add_argument('-mse_weight', type=float, default=0.0)
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
 
     # abstract Q setup
+    parser.add_argument('-num_train', type=int, default=5000)
     parser.add_argument('-dontsimulate', action='store_true', default=False)
     parser.add_argument('-loss', type=str, default='largemargin')
     parser.add_argument('-absq_seed', type=int, default=0)

@@ -68,6 +68,8 @@ def determine_action_name(config):
 def get_all_configs(target_pidx_idxs, setup):
     configs = []
     epochs_to_run = setup.epochs_to_evaluate
+    if epochs_to_run is None:
+        epochs_to_run = [0]
     print "Total number of epochs", len(epochs_to_run)
     sampler_seed_idx_to_run = setup.sampler_seed_idx
     planner_seeds_to_run = [int(i) for i in setup.planner_seeds_to_run]
