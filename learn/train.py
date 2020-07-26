@@ -160,4 +160,8 @@ if __name__ == '__main__':
 
     donttrain = configs.donttrain
 
-    train(configs)
+    num_trains = [100, 1000, 2000, 3000, 4000]
+    num_trains = num_trains
+    for num_train in num_trains:
+        configs.num_train = num_train
+        train(configs)
