@@ -70,6 +70,7 @@ def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, algo_
     for epoch in top_k_epochs:
         top_k_epoch_cmd += epoch + ' '
     cmd = 'python test_scripts/multithreaded/run_sahs.py ' \
+          '-abs_q_seed 2' \
           '-use_learning ' \
           '-learned_sampler_atype {} ' \
           '-sampler_seed_idx {} ' \
@@ -155,6 +156,7 @@ def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, algo_name
     top_k_epoch_cmd = top_epoch
     planner_seeds = '0 1 2 3'
     cmd = 'python test_scripts/multithreaded/run_sahs.py ' \
+          '-abs_q_seed 2' \
           '-use_learning ' \
           '-learned_sampler_atype {} ' \
           '-sampler_seed_idx {} ' \
