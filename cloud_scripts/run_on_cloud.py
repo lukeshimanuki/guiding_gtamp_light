@@ -254,7 +254,7 @@ def main():
     sampler_types = ['wgandi']
     n_objs_packs = [1]
     domain = 'two-arm-mover'
-    abs_q_loss = 'mse'
+    abs_q_loss = 'largemargin'
     sampler_seeds = [0]
     for sampler_train_data in [200]:  # [10, 50, 200]:
         for algorithm in algos:

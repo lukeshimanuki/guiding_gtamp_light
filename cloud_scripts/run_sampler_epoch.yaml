@@ -30,8 +30,7 @@ spec:
           && python move_best_weights_on_s3.py download two_arm_mover
           && export PYTHONPATH=/guiding_gtamp_light/openrave_wrapper/manipulation:/guiding_gtamp_light/openrave_wrapper:/guiding_gtamp_light:/guiding_gtamp_light/mover_library:/pddlstream
           && export CUDA_VISIBLE_DEVICES=""
-          && python download_test_results.py
-          && python test_scripts/multithreaded/select_sampler_epoch.py ATYPE REGION'
+          && python test_scripts/multithreaded/select_sampler_epoch.py ATYPE REGION ALGO'
           envFrom:
             - secretRef:
                 name: openstack-s3

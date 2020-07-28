@@ -28,16 +28,18 @@ def main():
     cpus = '60'
     memory = '300Gi'
 
-    atype = 'place'
-    region_name = 'home-region'
-    region = 'home_region'
+    atype = 'pick'
+    region_name = 'none'
+    region = 'none'
+    algo_name = 'wgandi'
     cmd = 'cat cloud_scripts/{} | ' \
           'sed \"s/NAME/select-epoch-atype-{}-region-{}/\" |  ' \
           'sed \"s/ATYPE/{}/\" |  ' \
           'sed \"s/REGION/{}/\" |  ' \
           'sed \"s/CPUS/{}/\" |  ' \
           'sed \"s/MEMORY/{}/\" |  ' \
-          'kubectl apply -f - -n beomjoon;'.format(yaml_file, atype, region_name, atype, region, cpus, memory)
+          'sed \"s/ALGO/{}/\" |  ' \
+          'kubectl apply -f - -n beomjoon;'.format(yaml_file, atype, region_name, atype, region, cpus, memory, algo_name)
     print cmd
     os.system(cmd)
 
