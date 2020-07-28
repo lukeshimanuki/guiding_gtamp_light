@@ -13,6 +13,7 @@ def worker_p(config):
         option = ' -' + str(key) + ' ' + str(value)
         command += option
     print command
+    print '\n'
     os.system(command)
 
 
@@ -107,7 +108,6 @@ def main():
 
     setup = parse_arguments()
     setup.use_region_agnostic = True
-    setup.absq_seed = 2
 
     setup.timelimit = np.inf
     setup.num_node_limit = 100
