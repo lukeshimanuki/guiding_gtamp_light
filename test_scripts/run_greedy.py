@@ -233,6 +233,7 @@ def parse_arguments():
 
     ## used for evaluating samplers
     parser.add_argument('-use_test_pidxs', action='store_true', default=False)
+    parser.add_argument('-use_best_epochs', action='store_true', default=False)
     parser.add_argument('-epochs_to_evaluate', nargs='+')
     parser.add_argument('-planner_seeds_to_run', nargs='+')
 
