@@ -12,9 +12,7 @@ def main():
     for num_train in num_trains:
         for algorithm in algos:
             for absq_seed in absqseeds:
-                if 'hcount' in algorithm:
-                    hoption = 'hcount_old_number_in_goal'
-                elif algorithm == 'greedy-qlearned':
+                if algorithm == 'greedy-qlearned':
                     hoption = 'qlearned'
                 else:
                     hoption = 'qlearned_hcount_old_number_in_goal'
@@ -32,7 +30,6 @@ def main():
                                                                num_train)
                 print cmd
                 os.system(cmd)
-
 
 if __name__ == '__main__':
     main()
