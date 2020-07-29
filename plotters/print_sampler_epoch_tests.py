@@ -173,12 +173,12 @@ def get_target_epoch_dir(seed_dir, is_valid_idxs):
     for epoch_dir in os.listdir(seed_dir):
         if 'wgandi' in seed_dir:
             try:
-                epoch_dir = seed_dir + '/' + epoch_dir + '/n_mp_limit_5_n_iter_limit_2000/'
-                n_data = len(os.listdir(epoch_dir))
-            except OSError:
-                epoch_dir_try = seed_dir + '/' + epoch_dir + '/wgandi/n_mp_limit_5_n_iter_limit_2000/'
+                epoch_dir_try = seed_dir + '/' + epoch_dir + '/n_mp_limit_5_n_iter_limit_2000/'
                 n_data = len(os.listdir(epoch_dir_try))
                 epoch_dir = epoch_dir_try
+            except OSError:
+                epoch_dir = seed_dir + '/' + epoch_dir + '/wgandi/n_mp_limit_5_n_iter_limit_2000/'
+                n_data = len(os.listdir(epoch_dir))
         else:
             epoch_dir = seed_dir + '/' + epoch_dir + '/' + 'n_mp_limit_5_n_iter_limit_2000/'
             n_data = len(os.listdir(epoch_dir))
