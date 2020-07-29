@@ -8,6 +8,7 @@ while True:
     print "inside the loop for uploading files"
 
     file_name = 'test_results_{}.zip'.format(socket.gethostname())
+    os.system('rm {}'.format(file_name))
     cmd = 'zip -r -qq {} ./test_results'.format(file_name)
     os.system(cmd)
 
