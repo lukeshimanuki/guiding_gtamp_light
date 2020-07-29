@@ -121,14 +121,14 @@ def get_all_configs(target_pidx_idxs, setup):
                             config[k] = ''
                         elif type(v) is not bool:
                             config[k] = v
-
-                    if setup.use_best_epochs:
-                        config['pick_epoch'] = pick_action_epoch
-                        config['place_obj_region_epoch'] = place_obj_region_epoch
-                        config['place_goal_region_epoch'] = place_goal_region_epoch
-                    else:
-                        action_name = determine_action_name(setup)
-                        config[action_name + '_epoch'] = int(epoch)
+                    if setup.use_learning:
+                        if setup.use_best_epochs:
+                            config['pick_epoch'] = pick_action_epoch
+                            config['place_obj_region_epoch'] = place_obj_region_epoch
+                            config['place_goal_region_epoch'] = place_goal_region_epoch
+                        else:
+                            action_name = determine_action_name(setup)
+                            config[action_name + '_epoch'] = int(epoch)
                     config['sampler_seed_idx'] = sampler_seed_idx_to_run
                     config['pidx'] = idx
                     config['planner_seed'] = planner_seed
