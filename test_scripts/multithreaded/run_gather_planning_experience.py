@@ -7,8 +7,8 @@ from threaded_test_utils import get_sahs_configs
 
 
 def worker_p(config):
-    del_cmd = 'rm -rf /tmp/*'
-    os.system(del_cmd)
+    #del_cmd = 'rm -rf /tmp/*'
+    #os.system(del_cmd)
     command = 'python ./test_scripts/run_greedy.py'
 
     for key, value in zip(config.keys(), config.values()):
@@ -21,7 +21,7 @@ def worker_p(config):
 
     print command
   
-    os.system(command)
+    #os.system(command)
 
 
 def worker_wrapper_multi_input(multi_args):
