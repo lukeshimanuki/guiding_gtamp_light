@@ -13,6 +13,7 @@ def get_top_epoch(algo_name, learned_sampler_atype, sampler_seed_idx):
     target_dirs = get_target_epoch_dir(seed_dir, is_valid_idxs=False)
     top_n_nodes = np.inf
     top_epoch = None
+    print seed_dir
     for target_dir in target_dirs:
         print target_dir
         pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir, is_valid_idxs=False)
