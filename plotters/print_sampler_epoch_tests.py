@@ -1,6 +1,6 @@
 import numpy as np
-from compare_n_nodes import get_n_nodes
 import os
+import pickle
 
 
 def get_n_nodes(target_dir, is_valid_idxs):
@@ -105,7 +105,6 @@ def get_n_nodes(target_dir, is_valid_idxs):
         successes.append(fin['success'])
         timetaken = fin['tottime']
 
-
         times.append(timetaken)
         if pidx in pidx_times:
             pidx_nodes[pidx].append(n_node)
@@ -124,6 +123,7 @@ def get_n_nodes(target_dir, is_valid_idxs):
 
     return pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks
 
+
 def get_sampler_dir(algo_name, learned_sampler_atype):
     # place loading
     if algo_name == 'wgandi':
@@ -135,7 +135,7 @@ def get_sampler_dir(algo_name, learned_sampler_atype):
             seed = '-1_-1_12'  # best epoch: 9232 - median 13, mean 19, success rate 1; evaluated 487 epochs; I may have to evaluate more
             seeds = ['-1_-1_3', '-1_-1_4', '-1_-1_5', '-1_-1_12']
         elif learned_sampler_atype == 'pick':
-            seed = '2_-1_-1'  # best epoch 26613
+            seed = '2_-1_-1'  # best epoch 26613 27213??
             seed = '11_-1_-1'  # best_epoch 9840 evaluated 290 epochs; smpler seed idx 1
             seed = '15_-1_-1'  # best epoch 7935
             seed = '20_-1_-1'  # best epoch 8854
@@ -146,14 +146,14 @@ def get_sampler_dir(algo_name, learned_sampler_atype):
             seed = '-1_6_-1'  # 8395 0.93 34 40.19; 8389 0.93 34 42.09
             seed = '-1_10_-1'  # 6013 0.9 35.5 44.51
             seed = '-1_2_-1'  # 11138 0.83 39 48.83; 10945 0.9375 31.5 38.5
-            seeds = ['-1_4_-1', '-1_6_-1', '-1_10_-1', '-1_2_-1']
+            seeds = ['-1_2_-1', '-1_4_-1', '-1_6_-1', '-1_10_-1']
     else:
         if learned_sampler_atype == 'place_loading':
-            seeds = ['-1_-1_4', '-1_-1_2', '-1_-1_0', '-1_-1_5']
+            seeds = ['-1_-1_0', '-1_-1_2',  '-1_-1_4', '-1_-1_5']
         elif learned_sampler_atype == 'pick':
-            seeds = ['31_-1_-1', '12_-1_-1']
+            seeds = ['8_-1_-1', '12_-1_-1', '31_-1_-1']
         elif learned_sampler_atype == 'place_home':
-            seeds = ['-1_6_-1', '-1_7_-1', '-1_2_-1', '-1_-1_0', '-1_1_-1']
+            seeds = ['-1_1_-1', '-1_2_-1', '-1_6_-1', '-1_7_-1', ]
 
     if learned_sampler_atype == 'place_loading' or learned_sampler_atype == 'pick':
         n_objs = 1
@@ -186,16 +186,16 @@ def get_target_epoch_dir(seed_dir, is_valid_idxs):
             condition = n_data >= 9
         else:
             condition = n_data > 36
-        #print epoch_dir, n_data
+        # print epoch_dir, n_data
         if condition:
             target_dirs.append(epoch_dir)
-    print len(target_dirs)
+    print "Number of epoch dirs with sufficient data", len(target_dirs)
     return target_dirs
 
 
 def print_epoch_test_results():
     # print all the epochs that have more than 36 problems?
-    algo_name = 'wgandi'
+    algo_name = 'wgangp'
     learned_sampler_atype = 'pick'
     seed_dirs = get_sampler_dir(algo_name, learned_sampler_atype)
     is_valid_idxs = False
@@ -227,12 +227,16 @@ def print_epoch_test_results():
             target_dirs = get_target_epoch_dir(sd_dir, is_valid_idxs)
             for target_dir in target_dirs:
                 pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir, is_valid_idxs)
-                print 'n_data {} successes {} n nodes median {} mean {} std {} n_iks {}'.format(n_data, np.mean(successes),
+                print target_dir.split('sampler_epoch_')[1].split('/')[0]
+                print 'n_data {} successes {} n nodes median {} mean {} std {} n_iks {}'.format(n_data,
+                                                                                                np.mean(successes),
                                                                                                 np.median(n_nodes),
                                                                                                 np.mean(n_nodes),
-                                                                                                np.std(n_nodes) * 1.96 / np.sqrt(n_data),
-                                                                                                np.mean(np.hstack(pidx_iks.values())))
-
+                                                                                                np.std(
+                                                                                                    n_nodes) * 1.96 / np.sqrt(
+                                                                                                    n_data),
+                                                                                                np.mean(np.hstack(
+                                                                                                    pidx_iks.values())))
 
 
 if __name__ == '__main__':

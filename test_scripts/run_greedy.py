@@ -116,6 +116,7 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     # todo sort the candidate seeds in order
     candidate_seeds = np.sort(candidate_seeds)
     seed = int(candidate_seeds[config.sampler_seed_idx])
+    import pdb;pdb.set_trace()
 
     if config.sampler_epoch_idx == -1:
         if atype =='pick':

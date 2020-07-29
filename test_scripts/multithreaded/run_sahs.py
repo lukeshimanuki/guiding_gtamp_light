@@ -4,6 +4,33 @@ import numpy as np
 from multiprocessing.pool import ThreadPool  # dummy is nothing but multiprocessing but wrapper around threading
 import argparse
 from test_scripts.run_greedy import parse_arguments
+from plotters.print_sampler_epoch_tests import get_n_nodes, get_sampler_dir, get_target_epoch_dir
+
+
+def get_top_epoch(algo_name, learned_sampler_atype, sampler_seed_idx):
+    seed_dirs = get_sampler_dir(algo_name, learned_sampler_atype)
+    seed_dir = seed_dirs[sampler_seed_idx]
+    target_dirs = get_target_epoch_dir(seed_dir, is_valid_idxs=False)
+    top_n_nodes = np.inf
+    top_epoch = None
+    for target_dir in target_dirs:
+        pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir, is_valid_idxs=False)
+        n_nodes = np.median(n_nodes)
+        print 'n_data {} successes {} n nodes median {} mean {} std {} n_iks {}'.format(n_data,
+                                                                                        np.mean(successes),
+                                                                                        np.median(n_nodes),
+                                                                                        np.mean(n_nodes),
+                                                                                        np.std(
+                                                                                            n_nodes) * 1.96 / np.sqrt(
+                                                                                            n_data),
+                                                                                        np.mean(np.hstack(
+                                                                                            pidx_iks.values())))
+
+        if n_nodes < top_n_nodes:
+            top_n_nodes = n_nodes
+            top_epoch = np.max([int(i) for i in target_dir.split('sampler_epoch_')[1].split('/')[0].split('_')])
+    print top_epoch
+    return top_epoch
 
 
 def worker_p(config):
@@ -55,15 +82,14 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
 
 
 def determine_action_name(config):
+    action_name = ''
     if 'pick' in config.learned_sampler_atype:
-        return 'pick'
-    elif 'place' in config.learned_sampler_atype:
-        if 'loading' in config.learned_sampler_atype:
-            return 'place_obj_region'
-        elif 'home' in config.learned_sampler_atype:
-            return 'place_goal_region'
-        else:
-            raise NotImplementedError
+        action_name += 'pick'
+    if 'loading' in config.learned_sampler_atype:
+        action_name += '_place_obj_region'
+    if 'home' in config.learned_sampler_atype:
+        action_name += '_place_goal_region'
+    return action_name
 
 
 def get_all_configs(target_pidx_idxs, setup):
@@ -78,6 +104,13 @@ def get_all_configs(target_pidx_idxs, setup):
         num_trains_to_run = [5000]
     else:
         num_trains_to_run = [int(i) for i in setup.num_trains_to_run]
+    # I need to set pick epoch, place obj region epoch, and place goal region epoch separately
+
+    if setup.use_best_epochs:
+        pick_action_epoch = get_top_epoch(setup.train_type, 'pick', setup.sampler_seed_idx)
+        place_obj_region_epoch = get_top_epoch(setup.train_type, 'place_loading', setup.sampler_seed_idx)
+        place_goal_region_epoch = get_top_epoch(setup.train_type, 'place_home', setup.sampler_seed_idx)
+
     for num_train in num_trains_to_run:
         for epoch in epochs_to_run:
             for planner_seed in planner_seeds_to_run:
@@ -88,8 +121,14 @@ def get_all_configs(target_pidx_idxs, setup):
                             config[k] = ''
                         elif type(v) is not bool:
                             config[k] = v
-                    action_name = determine_action_name(setup)
-                    config[action_name+'_epoch'] = int(epoch)
+
+                    if setup.use_best_epochs:
+                        config['pick_epoch'] = pick_action_epoch
+                        config['place_obj_region_epoch'] = place_obj_region_epoch
+                        config['place_goal_region_epoch'] = place_goal_region_epoch
+                    else:
+                        action_name = determine_action_name(setup)
+                        config[action_name + '_epoch'] = int(epoch)
                     config['sampler_seed_idx'] = sampler_seed_idx_to_run
                     config['pidx'] = idx
                     config['planner_seed'] = planner_seed

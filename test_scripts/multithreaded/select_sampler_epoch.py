@@ -4,7 +4,7 @@ import pickle
 import re
 import sys
 
-from plotters.compare_n_nodes import get_n_nodes
+from plotters.print_sampler_epoch_tests import get_n_nodes
 
 
 def get_weight_dir(atype, region, num_episode, train_type, sampler_seed_idx, domain):
@@ -74,9 +74,9 @@ def evaluate_on_valid_pidxs(atype, region, sampler_seed_idx, top_k_epochs, algo_
           '-use_learning ' \
           '-learned_sampler_atype {} ' \
           '-sampler_seed_idx {} ' \
-          '-planner_seeds_to_run {} '\
-          '-train_type {} '\
-          '-n_objs_pack {} '\
+          '-planner_seeds_to_run {} ' \
+          '-train_type {} ' \
+          '-n_objs_pack {} ' \
           '-epochs {}'.format(learned_sampler_atype, sampler_seed_idx, 0, algo_name, n_objs, top_k_epoch_cmd)
     print cmd
     os.system(cmd)
@@ -116,9 +116,6 @@ def get_epoch_dir(atype, region, target_dir):
 
 def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_objs):
     test_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_{}/' \
-               'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True' \
-               '/using_learned_sampler/{}/{}/'.format(n_objs, num_episode, algo_name)
-    test_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_{}/' \
                'qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/' \
                'using_learned_sampler/' \
                '{}/{}/'.format(n_objs, num_episode, algo_name)
@@ -127,18 +124,32 @@ def get_top_epoch(atype, region, sampler_seed_idx, algo_name, num_episode, n_obj
     sorted_seed_idxs = np.argsort(seeds)
     target_seed_dir = np.array(seed_dirs)[sorted_seed_idxs][sampler_seed_idx]
     target_sd_dir = test_dir + target_seed_dir + '/'
+    """
+    if os.path.isfile(target_sd_dir + 'top_epoch.pkl'):
+        top_epoch, n_nodes, n_data = pickle.load(open(target_sd_dir + 'top_epoch.pkl', 'r'))
+        print "Best epoch result n_nodes {} n_data {}".format(n_nodes, n_data)
+        return top_epoch
+    """
 
     epoch_dirs = get_epoch_dir(atype, region, target_sd_dir)
     best_epoch_dir = None
     min_n_nodes = np.inf
+    min_n_data = None
     for epoch_dir in epoch_dirs:
-        target_dir = target_sd_dir + epoch_dir +  '/n_mp_limit_5_n_iter_limit_2000/'
+        try:
+            target_dir = target_sd_dir + epoch_dir + '/n_mp_limit_5_n_iter_limit_2000/'
+            os.listdir(target_dir)
+        except:
+            target_dir = target_sd_dir + epoch_dir + '/{}/n_mp_limit_5_n_iter_limit_2000/'.format(algo_name)
         pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir, is_valid_idxs=True)
         condition = np.median(n_nodes) < np.median(min_n_nodes) and np.mean(successes) == 1
         if condition:
             best_epoch_dir = epoch_dir
             min_n_nodes = np.median(n_nodes)
+            min_n_data = n_data
+    print "Best epoch result n_nodes {} n_data {}".format(min_n_nodes, min_n_data)
     best_epoch = np.max([int(i) for i in best_epoch_dir.split('sampler_epoch_')[1].split('_')])
+    #pickle.dump([best_epoch, min_n_nodes, min_n_data], open(target_sd_dir + 'top_epoch.pkl', 'wb'))
     return best_epoch
 
 
@@ -164,7 +175,8 @@ def evaluate_on_test_pidxs(atype, region, sampler_seed_idx, top_epoch, algo_name
           '-use_test_pidxs ' \
           '-train_type {} ' \
           '-n_objs_pack {} ' \
-          '-planner_seeds_to_run {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd, algo_name, n_objs, planner_seeds)
+          '-planner_seeds_to_run {}'.format(learned_sampler_atype, sampler_seed_idx, top_k_epoch_cmd, algo_name, n_objs,
+                                            planner_seeds)
     print cmd
     os.system(cmd)
 
@@ -175,10 +187,10 @@ def upload_test_results():
 
 def main():
     # this scripts evaluates top 100 epochs on validation idxs, determines the best one, and run it on top epochs
-    atype = sys.argv[1] #'place'
-    region = sys.argv[2] #'loading_region'
+    atype = sys.argv[1]  # 'place'
+    region = sys.argv[2]  # 'loading_region'
     num_episode = 1000
-    if 'home' in region:  
+    if 'home' in region:
         n_objs = 4
     else:
         n_objs = 1
