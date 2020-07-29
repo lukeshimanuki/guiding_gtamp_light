@@ -14,6 +14,7 @@ def get_top_epoch(algo_name, learned_sampler_atype, sampler_seed_idx):
     top_n_nodes = np.inf
     top_epoch = None
     for target_dir in target_dirs:
+        print target_dir
         pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir, is_valid_idxs=False)
         n_nodes = np.median(n_nodes)
         print 'n_data {} successes {} n nodes median {} mean {} std {} n_iks {}'.format(n_data,
@@ -141,9 +142,9 @@ def main():
     # specify configs.sampler_seed_idx and configs.planner_seed and test_multiple_epochs for testing across epochs
     # specify a particular epoch, or use use_best_kde_sampler option for choosing an epoch to run across problems
     cmd = 'python upload_greedy_results.py &'
-    os.system(cmd)
+    #os.system(cmd)
     cmd = 'python delete_openrave_tmp_files.py &'
-    os.system(cmd)
+    #os.system(cmd)
 
     setup = parse_arguments()
     setup.use_region_agnostic = True
