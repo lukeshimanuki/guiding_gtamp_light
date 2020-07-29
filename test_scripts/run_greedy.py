@@ -62,7 +62,8 @@ def get_solution_file_name(config):
 
     q_config = '/q_config_num_train_' + str(config.num_train) + \
                '_mse_weight_' + str(config.mse_weight) + \
-               '_use_region_agnostic_' + str(config.use_region_agnostic) + '/'
+               '_use_region_agnostic_' + str(config.use_region_agnostic) + \
+               '_loss_' + str(config.loss) + '/'
     solution_file_dir += q_config
 
     if config.use_learning:
@@ -116,7 +117,6 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     # todo sort the candidate seeds in order
     candidate_seeds = np.sort(candidate_seeds)
     seed = int(candidate_seeds[config.sampler_seed_idx])
-    import pdb;pdb.set_trace()
 
     if config.sampler_epoch_idx == -1:
         if atype =='pick':
