@@ -4,8 +4,42 @@ from gtamp_utils.utils import get_pick_domain
 import numpy as np
 import time
 from gtamp_utils import utils
-from trajectory_representation.one_arm_sampler_trajectory import compute_v_manip as one_arm_compute_v_manip
 
+# this function also exsits in one_arm_sampler_traj. I copy-pasted it here because one_arm_sampler_traj imports from run_greedy
+def one_arm_compute_v_manip(abs_state, goal_objs):
+    key_configs = abs_state.prm_vertices
+    v_manip = np.zeros((len(key_configs), 1))
+    stime = time.time()
+    goal_obj = goal_objs[0]
+
+    xmax_diff = np.max(np.array(key_configs)[:, -3:], axis=0)[0] - np.min(np.array(key_configs)[:, -3:], axis=0)[0]
+    ymax_diff = np.max(np.array(key_configs)[:, -3:], axis=0)[1] - np.min(np.array(key_configs)[:, -3:], axis=0)[1]
+    arm_max_diff = np.max(np.array(key_configs)[:, :-3], axis=0) - np.min(np.array(key_configs)[:, :-3], axis=0)
+
+    if goal_obj in abs_state.nocollision_pick_op:
+        pick_op = abs_state.nocollision_pick_op[goal_obj]
+    else:
+        pick_op, objs_in_way = abs_state.collision_pick_op[goal_obj]
+    pick_op_config = pick_op.continuous_parameters['q_goal']
+
+    best_arm_dist = np.inf
+    best_base_dist = np.inf
+    minidx = 0
+    base_dist_threshold = 0.1
+    while best_arm_dist == np.inf:
+        for idx, k in enumerate(key_configs):
+            base_dist, arm_dist = rightarm_torso_base_distance(pick_op_config, k, xmax_diff, ymax_diff, arm_max_diff)
+            if base_dist < base_dist_threshold:
+                if arm_dist < best_arm_dist:
+                    minidx = idx
+                    best_arm_dist = arm_dist
+                    best_base_dist = base_dist
+        if best_arm_dist == np.inf:
+            base_dist_threshold += 0.01
+
+    v_manip[minidx] = 1
+    print 'v_manip creation time', time.time() - stime
+    return v_manip
 
 
 def two_arm_compute_v_manip(abs_state, goal_objs):
