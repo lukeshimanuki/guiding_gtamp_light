@@ -101,7 +101,10 @@ def get_all_configs(target_pidx_idxs, setup):
         epochs_to_run = [0]
     print "Total number of epochs", len(epochs_to_run)
     sampler_seed_idx_to_run = setup.sampler_seed_idx
-    planner_seeds_to_run = [int(i) for i in setup.planner_seeds_to_run]
+    if setup.planner_seeds_to_run is not None:
+        planner_seeds_to_run = [int(i) for i in setup.planner_seeds_to_run]
+    else:
+        planner_seeds_to_run = [setup.planner_seed]
     if setup.num_trains_to_run is None:
         num_trains_to_run = [5000]
     else:
