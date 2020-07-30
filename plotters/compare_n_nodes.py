@@ -3,6 +3,7 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
+
 def get_n_nodes(target_dir):
     test_files = os.listdir(target_dir)
     n_iks = []
@@ -100,7 +101,6 @@ def get_n_nodes(target_dir):
         successes.append(fin['success'])
         timetaken = fin['tottime']
 
-
         times.append(timetaken)
         if pidx in pidx_times:
             pidx_nodes[pidx].append(n_node)
@@ -176,7 +176,8 @@ def plot_two_arm():
     pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir)
     print np.mean(np.hstack(pidx_times.values())), np.mean(np.hstack(pidx_times.values())), np.median(
         np.hstack(pidx_times.values())), np.median(np.hstack(pidx_times.values())), np.mean(n_nodes), np.mean(successes)
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
 
     print  "****Ranking function****"
     target_dir = 'cloud_results/1533b3c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
@@ -332,10 +333,68 @@ def plot_two_arm():
         plt.savefig("../IJRR_GTAMP/figures/{}_arm_{}_obj.eps".format('two_arm_mover', n_objs))
 
 
+def get_target_dirs(root_dir):
+    target_dirs = []
+    for seed_dir in os.listdir(root_dir):
+        target_dir = root_dir + seed_dir
+        for epoch_dir in os.listdir(target_dir):
+            eval_dir = target_dir + '/' + epoch_dir + '/n_mp_limit_5_n_iter_limit_2000/'
+            n_evaled_files = len(os.listdir(eval_dir))
+            if n_evaled_files >= 25:
+                target_dirs.append(eval_dir)
+    return target_dirs
+
+
+def get_results(target_dirs):
+    successes = []
+    num_nodes = []
+    pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018, 40020,
+             40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
+    for target_dir in target_dirs:
+        eval_files = os.listdir(target_dir)
+        print target_dir
+        for eval_file in eval_files:
+            eval_file_pidx = int(eval_file.split('pidx_')[1].split('_')[0])
+            if eval_file_pidx in pidxs:
+                result = pickle.load(open(target_dir + eval_file, 'r'))
+                successes.append(result['success'])
+                num_nodes.append(result['num_nodes'])
+    print len(successes)
+    print np.mean(successes)
+    print np.median(num_nodes)
+
+
+def wgangp_vs_wgandi():
+    uniform_target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+    get_results([uniform_target_dir])
+
+    root_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/using_learned_sampler/1000/'
+    wgangp_dir = root_dir + '/wgangp/'
+    wgandi_dir = root_dir + '/wgandi/'
+    wgangp_dirs = get_target_dirs(wgangp_dir)
+    wgandi_dirs = get_target_dirs(wgandi_dir)
+    get_results(wgangp_dirs)
+    get_results(wgandi_dirs)
+
+
+def compare_task_guidance():
+    qlearned_lm = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    qlearned_mse = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
+    get_results([qlearned_lm])
+    get_results([qlearned_mse])
+
+    qleanred_hcount_mse = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_mse/n_mp_limit_5_n_iter_limit_2000/'
+    get_results([qleanred_hcount_mse])
+
+    import pdb;
+    pdb.set_trace()
+
 
 def main():
+    #wgangp_vs_wgandi()
+    compare_task_guidance()
     # plot_one_arm()
-    plot_two_arm()
+    # plot_two_arm()
 
 
 if __name__ == '__main__':
