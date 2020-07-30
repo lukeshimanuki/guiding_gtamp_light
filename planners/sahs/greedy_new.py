@@ -267,12 +267,20 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                     node.is_goal_traj = True
                     nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
                     plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
+                    if config.gather_planning_exp:
+                        newstate = statecls(mover, goal, node.state, action)
+                        newnode = Node(node, action, newstate)
+                        newnode.is_goal_traj = True
+                        nodes_to_goal.append(newnode)
+                        nodes.append(newnode)
+                        plan = [nd.parent_action for nd in nodes_to_goal[1:]]
                     return nodes_to_goal, plan, iter, nodes
                 else:
                     newstate = statecls(mover, goal, node.state, action)
                     newnode = Node(node, action, newstate)
                     newactions = get_actions(mover, goal, config)
                     update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
+                    nodes.append(newnode)
 
             if not success:
                 print('failed to execute action')
