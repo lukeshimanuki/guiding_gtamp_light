@@ -142,8 +142,7 @@ def get_all_configs(target_pidx_idxs, setup):
 def main():
     # specify configs.sampler_seed_idx and configs.planner_seed and test_multiple_epochs for testing across epochs
     # specify a particular epoch, or use use_best_kde_sampler option for choosing an epoch to run across problems
-    cmd = 'python upload_greedy_results.py &'
-    os.system(cmd)
+
     cmd = 'python delete_openrave_tmp_files.py &'
     os.system(cmd)
 
@@ -170,6 +169,9 @@ def main():
     results = pool.map(worker_wrapper_multi_input, configs)
     pool.close()
     pool.join()
+
+    cmd = 'python upload_greedy_results.py &'
+    os.system(cmd)
 
 
 if __name__ == '__main__':
