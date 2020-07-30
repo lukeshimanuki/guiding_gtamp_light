@@ -170,7 +170,7 @@ def main():
     pool.close()
     pool.join()
 
-    cmd = 'python upload_greedy_results.py &'
+    cmd = 'python upload_greedy_results.py'
     os.system(cmd)
 
 

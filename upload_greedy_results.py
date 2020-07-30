@@ -12,7 +12,9 @@ print 'Done!'
 os.system(cmd)
 
 cmd = 'mc rm csail/bkim/guiding-gtamp/{}'.format(file_name)
+print cmd
 os.system(cmd)
 
 cmd = 'mc cp {} csail/bkim/guiding-gtamp/ --recursive'.format(file_name)
+print cmd
 os.system(cmd)
