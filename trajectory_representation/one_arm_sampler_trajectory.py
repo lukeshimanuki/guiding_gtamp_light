@@ -2,8 +2,8 @@ from sampler_trajectory import SamplerTrajectory
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
 from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from gtamp_utils import utils
-from openravepy import DOFAffine, RaveCreateKinBody, RaveCreateRobot
 from trajectory_representation.concrete_node_state import OneArmConcreteNodeState
+from test_scripts.run_greedy import get_problem_env, get_goal_obj_and_region
 
 import os
 import pickle
@@ -29,7 +29,8 @@ def rightarm_torso_base_distance(c1, c2, xmax_diff, ymax_diff, arm_max_diff):
     return base_dist, arm_dist
 
 
-def compute_v_manip(abs_state, goal_objs, key_configs):
+def compute_v_manip(abs_state, goal_objs):
+    key_configs = abs_state.prm_vertices
     v_manip = np.zeros((len(key_configs), 1))
     stime = time.time()
     goal_obj = goal_objs[0]
@@ -148,6 +149,54 @@ class OneArmSAHSSamplerTrajectory(SamplerTrajectory):
             pick_op, objs_in_way = abs_state.collision_pick_op[goal_obj]
             n_in_way = int(object_moved in objs_in_way)
         return n_in_way
+
+    def get_greedy_data(self, nodes, config):
+        goal_objs, goal_region = get_goal_obj_and_region(config)
+        problem_env = get_problem_env(config, goal_region, goal_objs)
+        self.problem_env = problem_env
+
+        nodes_ = [n for n in nodes if n.parent is not None]
+        for n in nodes:
+            if n.state is not None:
+                n.state.problem_env = problem_env
+        positive_data = []
+        neutral_data = []
+        for node in nodes_:
+            action = node.parent_action
+            action_info = self.get_action_info(action)
+
+            # Getting parent state info
+            parent_node = node.parent
+            parent_abs_state = parent_node.state
+            parent_state_saver = parent_node.state.state_saver
+            parent_state_saver.Restore()
+            parent_concrete_state = OneArmConcreteNodeState(parent_abs_state, action, )
+            parent_n_in_way = self.compute_n_in_way_for_object_moved(action.discrete_parameters['object'],
+                                                                     parent_abs_state, goal_objs)
+            parent_v_manip = compute_v_manip(parent_abs_state, goal_objs)
+
+            abs_state = node.state
+            abs_state.state_saver.Restore()
+            v_manip = compute_v_manip(abs_state, goal_objs)
+            n_in_way = self.compute_n_in_way_for_object_moved(action.discrete_parameters['object'], abs_state,
+                                                              goal_objs)
+            data = {"abs_state": parent_abs_state,
+                    "concrete_state": parent_concrete_state,
+                    "action_info": action_info,
+                    "action": action,
+                    "parent_n_in_way": parent_n_in_way,
+                    "n_in_way": n_in_way,
+                    "parent_v_manip": parent_v_manip,
+                    "v_manip": v_manip}
+            if node.is_goal_traj:
+                positive_data.append(data)
+            else:
+                neutral_data.append(data)
+        for n in nodes: n.state.problem_env = None
+        for d in positive_data: d['concrete_state'].problem_env = None
+        for d in neutral_data: d['concrete_state'].problem_env = None
+
+        return positive_data, neutral_data
 
     def add_trajectory(self, plan):
         print "Problem idx", self.problem_idx
