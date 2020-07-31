@@ -2,7 +2,7 @@ import pickle
 import os
 import numpy as np
 from matplotlib import pyplot as plt
-
+from print_sampler_epoch_tests import get_n_nodes
 
 def get_n_nodes(target_dir):
     test_files = os.listdir(target_dir)
@@ -351,18 +351,28 @@ def get_results(target_dirs):
     pidxs = [40064, 40071, 40077, 40078, 40080, 40083, 40088, 40097, 40098, 40003, 40007, 40012, 40018, 40020,
              40023, 40030, 40032, 40033, 40036, 40038, 40047, 40055, 40059, 40060, 40062]
     for target_dir in target_dirs:
+        if '-1' in target_dir:
+            continue
         eval_files = os.listdir(target_dir)
         print target_dir
+        seed_n_nodes=[]
         for eval_file in eval_files:
+            #if 'gnn_seed_2' not in eval_file:
+            #    continue
             eval_file_pidx = int(eval_file.split('pidx_')[1].split('_')[0])
             if eval_file_pidx in pidxs:
                 result = pickle.load(open(target_dir + eval_file, 'r'))
                 successes.append(result['success'])
                 num_nodes.append(result['num_nodes'])
+                seed_n_nodes.append(result['num_nodes'])
+        #print np.median(num_nodes)
+        #print len(seed_n_nodes)
+
     print len(successes)
     print np.mean(successes)
     print np.median(num_nodes)
-
+    print np.mean(num_nodes)
+    import pdb;pdb.set_trace()
 
 def wgangp_vs_wgandi():
     uniform_target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
@@ -370,12 +380,12 @@ def wgangp_vs_wgandi():
 
     root_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/using_learned_sampler/1000/'
     wgangp_dir = root_dir + '/wgangp/'
-    wgandi_dir = root_dir + '/wgandi/'
     wgangp_dirs = get_target_dirs(wgangp_dir)
-    wgandi_dirs = get_target_dirs(wgandi_dir)
     get_results(wgangp_dirs)
-    get_results(wgandi_dirs)
 
+    wgandi_dir = root_dir + '/wgandi/'
+    wgandi_dirs = get_target_dirs(wgandi_dir)
+    get_results(wgandi_dirs)
 
 def compare_task_guidance():
     qlearned_lm = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
@@ -385,6 +395,8 @@ def compare_task_guidance():
 
     qleanred_hcount_mse = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_mse/n_mp_limit_5_n_iter_limit_2000/'
     get_results([qleanred_hcount_mse])
+    qleanred_hcount_lm = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    get_results([qleanred_hcount_lm])
 
     import pdb;
     pdb.set_trace()
