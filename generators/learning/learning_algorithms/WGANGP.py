@@ -7,7 +7,7 @@ import pickle
 
 import socket
 
-if socket.gethostname() == 'phaedra':
+if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey':
     from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
@@ -61,15 +61,6 @@ class WGANgp:
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
-
-    def load_best_weights(self):
-        weight_file = 'gen.pt'
-        print "Loading", self.weight_dir + '/' + weight_file
-        if 'cpu' in self.device.type:
-            self.generator.load_state_dict(
-                torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
-        else:
-            self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
 
     def create_models(self):
         if self.architecture == 'fc':
@@ -142,8 +133,17 @@ class WGANgp:
         samples = self.generator(konf_obsts, poses, noise).cpu().data.numpy()
         return samples
 
-    def load_weights(self, iteration, verbose=True):
-        weight_file = self.weight_dir + '/gen_iter_%d.pt' % iteration
+    def load_best_weights(self):
+        weight_file = 'gen_best_kde.pt'
+        print "Loading", self.weight_dir + '/' + weight_file
+        if 'cpu' in self.device.type:
+            self.generator.load_state_dict(
+                torch.load(self.weight_dir + '/' + weight_file, map_location=torch.device('cpu')))
+        else:
+            self.generator.load_state_dict(torch.load(self.weight_dir + '/' + weight_file))
+
+    def load_weights(self, verbose=True):
+        weight_file = self.weight_dir + '/gen_epoch_%d.pt' % self.config.epoch
         if verbose:
             print "Loading weight file", weight_file
         if 'cpu' in self.device.type:
@@ -245,6 +245,25 @@ class WGANgp:
 
         return np.mean(min_mses), np.mean(real_data_scores), np.mean(entropies)
 
+    def get_target_kde_and_entropy(self):
+        is_pick = 'pick' in self.weight_dir
+        # do these values data-dependent?
+        if 'two_arm_mover' in self.weight_dir:
+            if is_pick:
+                target_kde = -150
+                target_entropy = 3.8
+            else:
+                if 'home_region' in self.weight_dir:
+                    target_kde = -40
+                    target_entropy = 3.53
+                else:
+                    target_kde = -42
+                    target_entropy = 3.15
+        else:
+
+            raise NotImplementedError
+        return target_kde, target_entropy
+
     def train(self, data_loader, test_set, n_train):
         batch_size = 32  # Batch size
 
@@ -262,7 +281,7 @@ class WGANgp:
 
         n_data_dim = self.n_dim_actions
         total_n_data = n_train
-        total_iterations = 1000 * (total_n_data + 1)
+        total_iterations = 10000 * (total_n_data + 1)/batch_size # 100 epochs
 
         def data_generator():
             while True:
@@ -272,7 +291,11 @@ class WGANgp:
         data_gen = data_generator()
         patience = 0
         best_kde = -np.inf
+        best_entropy = -np.inf
+        best_mse = -np.inf
+        target_kde, target_entropy = self.get_target_kde_and_entropy()
         stime = time.time()
+        there_exists_cond_satisfied = False
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -294,7 +317,6 @@ class WGANgp:
                 poses_v = autograd.Variable(poses)
                 konf_obsts_v = autograd.Variable(konf_obsts)
                 actions_v = autograd.Variable(actions)
-
                 self.discriminator.zero_grad()
 
                 # train with real
@@ -352,19 +374,35 @@ class WGANgp:
             optimizerG.step()
 
             # Write logs and save samples
-            if iteration % 100 == 0:
+            if True:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
-                print "Best KDE", best_kde
-                if kde > best_kde:
+                open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
+                print "Best MSE {} KDE {} Entropy {}".format(best_mse, best_kde, best_entropy)
+                print "Current KDE {} Entropy {}".format(kde, entropy)
+                print "Iteration %d / %d" % (iteration, total_iterations)
+
+                cond_satisfied = kde >= target_kde and entropy >= target_entropy and entropy != np.inf
+
+                if cond_satisfied:
+                    # save everything that satisfies the condition
+                    there_exists_cond_satisfied = True
+                    path = self.weight_dir + '/gen_epoch_{}.pt'.format(iteration)
+                    torch.save(self.generator.state_dict(), path)
+
+                if kde >= best_kde:
+                    patience = 0
                     best_kde = kde
-                    print "Iteration %d / %d" % (iteration, total_iterations)
-                    path = self.weight_dir + '/disc.pt'
-                    torch.save(self.discriminator.state_dict(), path)
-                    path = self.weight_dir + '/gen.pt'
+                    best_entropy = entropy
+                    best_mse = mse
+                    path = self.weight_dir + '/gen_best_kde.pt'.format(iteration)
                     torch.save(self.generator.state_dict(), path)
                 else:
                     patience += 1
-                if patience >= 100:
-                    break
-                print 'Time taken', time.time() - stime
+
+                if patience >= self.config.patience:
+                    return there_exists_cond_satisfied
+
+                print 'Time taken {} Patience {} Iteration {}'.format(time.time() - stime, patience, iteration)
                 stime = time.time()
+
+        return there_exists_cond_satisfied

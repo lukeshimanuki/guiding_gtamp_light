@@ -36,10 +36,10 @@ class TwoArmConcreteNodeState(ConcreteNodeState):
 
 
 class OneArmConcreteNodeState(ConcreteNodeState):
-    def __init__(self, abstract_state, abstract_action, key_configs, parent_state=None):
+    def __init__(self, abstract_state, abstract_action, parent_state=None):
         ConcreteNodeState.__init__(self, abstract_state, abstract_action)
+        self.key_configs = self.abstract_state.prm_vertices
         self.parent_state = parent_state
-        self.key_configs = key_configs
         init_config = utils.get_rightarm_torso_config(abstract_state.problem_env.robot)
         self.pick_collision_vector = self.get_konf_obstacles_from_key_configs()
         #self.konf_collisions_with_obj_poses = self.get_object_pose_collisions()

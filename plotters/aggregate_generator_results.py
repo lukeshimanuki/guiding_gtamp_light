@@ -2,25 +2,27 @@ import numpy as np
 import os
 import socket
 import pickle
+import collections
+
+# from test_scripts.run_generator import convert_seed_epoch_idxs_to_seed_and_epoch
 
 fdir = './generators/sampler_performances/'
 
 
-def get_results(fin):
-    data = open(fdir + fin, 'r').read().splitlines()
+def get_results(fin_list):
     result = {'iks': [], 'actions': [], 'pick_mps': [], 'pick_infeasible_mps': [], 'place_mps': [],
-              'place_infeasible_mps': [], 'success': []}
+              'place_infeasible_mps': [], 'success': [], 'pidx': []}
+    target_pidxs = range(9)
 
-    pidxs = [60053, 60023, 60081, 60001, 60021, 60008, 60062, 60079, 60033, 60044, 60031, 60018, 60075, 60050, 60030, 60020, 60098, 60016, 60067, 60061, 60024, 60096, 60005, 60088, 60091, 60010, 60011, 60045, 60006, 60099, 60038, 60083, 60058, 60046, 60029, 60032, 60097, 60039]
-    pidxs = [60089, 60061, 60094, 60075, 60074, 60050, 60096, 60057, 60008, 60088, 60026, 60003, 60010, 60067, 60091,
-             60031, 60006, 60024, 60030, 60062, 60099, 60018, 60011, 60029, 60098, 60083, 60079, 60016, 60045, 60038,
-             60046, 60032, 60058, 60097, 60039]
+    for fin in fin_list:
+        data = open(fdir + fin, 'r').read().splitlines()
 
-    for l in data:
-        pidx = int(l.split(',')[0])
-        #if True:  # int(l.split(',')[-1]) == 1:
-        #if 60000<= pidx < 60100:
-        if pidx in pidxs:
+        for l in data:
+            pidx = int(l.split(',')[0])
+
+            # if pidx not in target_pidxs:
+            #    continue
+            result['pidx'].append(pidx)
             result['iks'].append(int(l.split(',')[2]))
             result['pick_mps'].append(int(l.split(',')[3]))
             result['pick_infeasible_mps'].append(int(l.split(',')[4]))
@@ -35,71 +37,103 @@ def get_results(fin):
 def print_results(results, result_file):
     iks = results['iks']
     n_data = len(iks)
-    print 'n data',n_data
-    print "****Summary****"
-    print result_file
+    if n_data < 9:
+        return
+    print 'n data', n_data
+    # print "****Summary****"
     keys = ['iks', 'actions', 'pick_mps', 'pick_infeasible_mps', 'place_mps', 'place_infeasible_mps', 'success']
+    keys = ['actions']
     for key in keys:
-        print "%s %.3f %.3f" % (key, np.mean(results[key]), np.std(results[key]) * 1.96 / np.sqrt(n_data))
+        print result_file, "%s %.3f %.3f" % (key, np.mean(results[key]), np.std(results[key]) * 1.96 / np.sqrt(n_data))
 
 
-def average_over_problems(fin):
+def average_over_problems(fin_list):
     raw_dir = './planning_experience/for_testing_generators/'
-    data = open(fdir + fin, 'r').read().splitlines()
 
     result = {}
-    for l in data:
-        pidx = int(l.split(',')[0])
-        if pidx in result:
-            result[pidx].append(int(l.split(',')[9]))
-        else:
-            result[pidx] = [int(l.split(',')[9])]
+    for fin in fin_list:
+        data = open(fdir + fin, 'r').read().splitlines()
+
+        for l in data:
+            pidx = int(l.split(',')[0])
+            if pidx in result:
+                result[pidx].append(int(l.split(',')[9]))
+            else:
+                result[pidx] = [int(l.split(',')[9])]
     return result
 
 
 def main():
-    file2 = 'phaedra//uniform_sqrt_pap_mps_n_mp_limit_5.txt'.format(socket.gethostname())
-    #file2 = 'phaedra//uniform_sqrt_pap_mps_n_mp_limit_5.txt'
-    results2 = get_results(file2)
-    print_results(results2, file2)
-    file2_avg = average_over_problems(file2)
+    #unif_file = 'phaedra//pick_place_home_place_loading//uniform.txt'.format(socket.gethostname())
+    #unif_results = get_results([unif_file])
+    #print_results(unif_results, unif_file)
 
+    #print "Uniform {} number of actions with {} success rate".format(np.mean(unif_results['actions']), np.mean(unif_results['success']))
+    # Uniform is 23
     print '============================================================'
-    file1 = 'phaedra/pap_pick_fc_place_fc.txt'.format(socket.gethostname())
-    results1 = get_results(file1)
-    print_results(results1, file1)
-    file1_avg = average_over_problems(file1)
 
-    diff_sorted_idxs = np.argsort([np.mean(file2_avg[k]) - np.mean(file1_avg[k]) for k in file1_avg])
-    sorted_keys = np.array(file1_avg.keys())[diff_sorted_idxs]
-    print 'former:',file2
-    print 'latter:',file1
+    atype = 'pick'
+    if atype == 'place_loading':
+        seeds = [3, 4, 5, 12]
+    elif atype == 'place_home':
+        raise NotImplementedError
+    else:
+        seeds = [2]
+
+    for seed in seeds:
+        target_path = '{}/sampler_seed_{}/wgandi/'.format(atype, seed)
+        file_list = [target_path + f for f in os.listdir(fdir+target_path)]
+        epoch_n_actions = []
+        avg_n_data = []
+        for f in file_list:
+            epoch = int(f.split('epoch_')[1].split('.txt')[0])
+            results = get_results([f])
+            iks = results['iks']
+            n_data = len(iks)
+            n_probs_covered = len(np.unique(results['pidx']))
+            # I need to make sure all problems have been covered
+            if n_probs_covered < 9 or n_data < 9:
+                continue
+            epoch_n_actions.append([epoch, np.mean(results['actions']), np.mean(results['success']), n_data])
+            avg_n_data.append(n_data)
+        if len(epoch_n_actions) == 0:
+            continue
+
+        epoch_n_actions = np.array(epoch_n_actions)
+        epoch_n_actions = epoch_n_actions[np.argsort(epoch_n_actions[:, 1]), :]
+        best_epoch = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 0]
+        n_actions = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 1]
+        success_rate = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 2]
+        n_data = epoch_n_actions[np.argmin(epoch_n_actions[:, 1]), 3]
+        print "best_epoch n data {}".format(n_data)
+        print "Best epoch for seed {} is {} with {} number of actions and {} success rate".format(seed, best_epoch, n_actions, success_rate)
+    import pdb;
+    pdb.set_trace()
+
+    smpler_avg = average_over_problems(file_list)
+    unif_avg = average_over_problems([unif_file])
+
+    diff_sorted_idxs = np.argsort([np.mean(smpler_avg[k]) - np.mean(unif_avg[k]) for k in unif_avg])
+    sorted_keys = np.array(unif_avg.keys())[diff_sorted_idxs]
+    print 'former:', unif_file
+    print 'latter:', file_list
     hard_keys = []
+    print "{} {} {} {}".format("PIDX", "Smpler", "unif", "Smpler-unif")
     for k in sorted_keys:
-        """
-        raw_dir = './planning_experience/for_testing_generators/'
-        fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % k
-        try:
-            plan_data = pickle.load(open(raw_dir + fname, 'r'))
-        except:
-            plan_data = pickle.load(open(raw_dir+'sampling_strategy_uniform'+fname,'r'))
-        plan = plan_data['plan']
-        plan_length = len(plan)
-        """
-        if np.mean(file2_avg[k]) - np.mean(file1_avg[k]) > 5:
-            unif_lb = np.mean(file2_avg[k]) - 1.96 / np.sqrt(len(file2_avg[k])) * np.std(file2_avg[k])
-            learned_ub = np.mean(file1_avg[k]) + np.std(file1_avg[k]) * 1.96 / np.sqrt(len(file2_avg[k]))
-            unif_ub = np.mean(file2_avg[k]) + 1.96 / np.sqrt(len(file2_avg[k])) * np.std(file2_avg[k])
-            learned_lb = np.mean(file1_avg[k]) - np.std(file1_avg[k]) * 1.96 / np.sqrt(len(file2_avg[k]))
-            print "%10d %15.2f+-%.4f %15.2f+-%.4f %15.4f %15.4f %15.4f  better? %2d worse? %2d" % (
-            k, 
-            np.mean(file2_avg[k]), 1.96 / np.sqrt(len(file2_avg[k])) * np.std(file2_avg[k]), 
-            np.mean(file1_avg[k]), np.std(file1_avg[k]) * 1.96 / np.sqrt(len(file2_avg[k])), 
-            np.mean(file2_avg[k]) - np.mean(file1_avg[k]),
-            unif_lb, learned_ub, unif_lb > learned_ub, learned_lb > unif_ub)
+        if abs(np.mean(smpler_avg[k]) - np.mean(unif_avg[k])) > 10:
+            # unif_lb = np.mean(smpler_avg[k]) - 1.96 / np.sqrt(len(smpler_avg[k])) * np.std(smpler_avg[k])
+            # learned_ub = np.mean(unif_avg[k]) + np.std(unif_avg[k]) * 1.96 / np.sqrt(len(smpler_avg[k]))
+            # unif_ub = np.mean(smpler_avg[k]) + 1.96 / np.sqrt(len(smpler_avg[k])) * np.std(smpler_avg[k])
+            # learned_lb = np.mean(unif_avg[k]) - np.std(unif_avg[k]) * 1.96 / np.sqrt(len(smpler_avg[k]))
+            print "%10d %15.2f+-%.4f %15.2f+-%.4f %15.4f " % (
+                k,
+                np.mean(smpler_avg[k]), 1.96 / np.sqrt(len(smpler_avg[k])) * np.std(smpler_avg[k]),
+                np.mean(unif_avg[k]), np.std(unif_avg[k]) * 1.96 / np.sqrt(len(smpler_avg[k])),
+                np.mean(smpler_avg[k]) - np.mean(unif_avg[k]),
+                # unif_lb, learned_ub, unif_lb > learned_ub, learned_lb > unif_ub
+            )
             hard_keys.append(k)
     print hard_keys
-          
 
 
 if __name__ == '__main__':

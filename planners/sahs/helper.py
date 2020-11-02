@@ -1,8 +1,8 @@
-from learn.data_traj_retired import extract_individual_example
+from learn.data_traj import extract_individual_example
 from planners.heuristics import compute_hcount_with_action, compute_hcount, get_goal_objs_not_in_goal_region
 from trajectory_representation.shortest_path_pick_and_place_state import ShortestPathPaPState
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
-from learn.data_traj_retired import get_actions as convert_action_to_predictable_form
+from learn.data_traj import get_actions as convert_action_to_predictable_form
 import numpy as np
 import openravepy
 
@@ -113,7 +113,7 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         hval = analytical_heuristic
     elif h_option == 'qlearned':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
-        #nodes = nodes[..., 6:]
+        nodes = nodes[..., 6:]
         hval = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
 
     return hval

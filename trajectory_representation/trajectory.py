@@ -118,15 +118,6 @@ class Trajectory:
         return True
 
     def compute_state(self, parent_state, parent_action, goal_entities, problem_env, paps_used, idx):
-        # Debugging purpose
-        fstate = './%s_pidx_%d_node_idx_%d_state.pkl' % (self.filename, self.problem_idx, idx)
-        """
-        if os.path.isfile(fstate):
-            state = pickle.load(open(fstate, 'r'))
-            state.problem_env = problem_env
-            state.make_plannable(problem_env)
-        else:
-        """
         if parent_action is not None:
             parent_action.discrete_parameters['two_arm_place_object'] = parent_action.discrete_parameters['object']
 
@@ -134,10 +125,6 @@ class Trajectory:
             state = ShortestPathPaPState(problem_env, goal_entities, parent_state, parent_action)
         elif self.statetype == 'mc':
             state = MinimiumConstraintPaPState(problem_env, goal_entities, parent_state, parent_action, paps_used)
-        # state.make_pklable()  # removing openrave files to pkl
-        # pickle.dump(state, open(fstate, 'wb'))
-        # state.make_plannable(problem_env)
-        # End of debugging
 
         return state
 

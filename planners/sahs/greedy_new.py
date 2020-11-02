@@ -33,27 +33,50 @@ MAX_DISTANCE = 1.0
 
 def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
     if not config.use_learning:
-        if 'uniform' in config.sampling_strategy:
-            target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
-            if 'two_arm' in config.domain:
-                sampler = UniformSampler(atype='two_arm_pick_and_place', target_region=target_region)
-            else:
-                sampler = {'pick': UniformSampler(target_region=None, atype='one_arm_pick'),
-                           'place': UniformSampler(target_region=target_region, atype='one_arm_place')}
-        elif 'voo' in config.sampling_strategy:
-            raise NotImplementedError
+        target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+        if 'two_arm' in config.domain:
+            pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+            place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
         else:
-            raise NotImplementedError
+            pick_sampler = UniformSampler(target_region=None, atype='one_arm_pick')
+            place_sampler = UniformSampler(target_region=target_region, atype='one_arm_place')
     else:
         if 'two_arm' in config.domain:
-            sampler = PickPlaceLearnedSampler('two_arm_pick_and_place', learned_sampler_model, abstract_state,
-                                              abstract_action)
+            target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+            """
+            if 'pick' in config.learned_sampler_atype and 'place_loading' in config.learned_sampler_atype\
+                    and 'place_home' in config.learned_sampler_atype:
+                pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
+                                                      abstract_action)
+                place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
+                                                        abstract_action, smpler_state=pick_sampler.smpler_state,
+                                                        pick_sampler=pick_sampler)
+            """
+            pick_sampler = UniformSampler(target_region=None, atype='two_arm_pick')
+            place_sampler = UniformSampler(target_region=target_region, atype='two_arm_place')
+
+            if 'pick' in config.learned_sampler_atype:
+                pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
+                                                      abstract_action)
+
+            if 'place_home' in config.learned_sampler_atype:
+                if 'home' in target_region.name:
+                    place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
+                                                            abstract_action, smpler_state=None,
+                                                            pick_sampler=pick_sampler)
+
+            if 'place_loading' in config.learned_sampler_atype:
+                if 'loading' in target_region.name:
+                    place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
+                                                            abstract_action, smpler_state=None,
+                                                            pick_sampler=pick_sampler)
         else:
             pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state,
                                                   abstract_action)
             place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state,
-                                                    abstract_action, smpler_state=pick_sampler.smpler_state)
-            sampler = {'pick': pick_sampler, 'place': place_sampler}
+                                                    abstract_action, smpler_state=pick_sampler.smpler_state,
+                                                    pick_sampler = pick_sampler)
+    sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
 
@@ -61,7 +84,6 @@ def get_generator(abstract_state, action, sampler_model, config):
     sampler = get_sampler(config, abstract_state, action, sampler_model)
     if 'unif' in config.sampling_strategy:
         if 'two_arm' in config.domain:
-            sampler.infeasible_action_value = -9999
             generator = TwoArmPaPGenerator(abstract_state, action, sampler,
                                            n_parameters_to_try_motion_planning=config.n_mp_limit,
                                            n_iter_limit=config.n_iter_limit, problem_env=abstract_state.problem_env,
@@ -109,12 +131,12 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
     print "State computation..."
 
-    #if os.path.isfile('tmp.pkl'):
+    # if os.path.isfile('tmp.pkl'):
     #    state = pickle.load(open('tmp.pkl', 'r'))
-    #else:
+    # else:
     state = statecls(mover, goal)
-    #state.make_pklable()
-    #pickle.dump(state, open('tmp.pkl', 'wb'))
+    # state.make_pklable()
+    # pickle.dump(state, open('tmp.pkl', 'wb'))
 
     state.make_plannable(mover)
 
@@ -213,7 +235,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                 stime = time.time()
                 pick_params, place_params, status = sample_continuous_parameters(state, action, node,
                                                                                  learned_sampler_model, config)
-                print "Sampling time", time.time()-stime
+                print "Sampling time", time.time() - stime
                 if status == 'HasSolution':
                     pap_params = pick_params, place_params
                 else:
@@ -245,6 +267,13 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                     node.is_goal_traj = True
                     nodes_to_goal = list(node.backtrack())[::-1]  # plan of length 0 is possible I think
                     plan = [nd.parent_action for nd in nodes_to_goal[1:]] + [action]
+                    if config.gather_planning_exp:
+                        newstate = statecls(mover, goal, node.state, action)
+                        newnode = Node(node, action, newstate)
+                        newnode.is_goal_traj = True
+                        nodes_to_goal.append(newnode)
+                        nodes.append(newnode)
+                        plan = [nd.parent_action for nd in nodes_to_goal[1:]]
                     return nodes_to_goal, plan, iter, nodes
                 else:
                     newstate = statecls(mover, goal, node.state, action)
@@ -253,6 +282,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
                     nodes.append(newnode)
                     newactions = get_actions(mover, goal, config)
                     update_search_queue(newstate, newactions, newnode, search_queue, pap_model, mover, config)
+                    nodes.append(newnode)
 
             if not success:
                 print('failed to execute action')

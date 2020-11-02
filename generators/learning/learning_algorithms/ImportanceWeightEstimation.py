@@ -3,6 +3,7 @@ import socket
 import torch
 import torch.optim as optim
 import os
+import time
 
 
 class ImportanceWeightEstimation:
@@ -32,6 +33,7 @@ class ImportanceWeightEstimation:
 
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
+        open(self.weight_dir+'/clip_{}'.format(config.wclip), 'wb')
 
     def evaluate_on_testset(self, iteration, te_poses, te_konf_obsts, te_actions, te_labels):
         w_values = self.model(te_actions, te_konf_obsts, te_poses)
@@ -73,6 +75,7 @@ class ImportanceWeightEstimation:
         best_loss = 99999
         use_cuda = 'cuda' in self.device.type
 
+        stime=time.time()
         for iteration in range(100000):
             _data = data_gen.next()
             poses = _data['poses'].float()
@@ -86,15 +89,17 @@ class ImportanceWeightEstimation:
                 labels = labels.cuda()
 
             w_values = self.model(actions, konf_obsts, poses)
+            w_values = torch.clamp(w_values, max=self.config.wclip)
             pos_w_values = w_values[labels == 1]
             neg_w_values = w_values[labels == 0]
-
+            
             loss = torch.mean(neg_w_values ** 2) - 2 * torch.mean(pos_w_values)
             self.model.zero_grad()
             loss.backward()
             optimizer.step()
 
-            if iteration % 100 == 0:
+            save_iter = min(len(data_loader.dataset), 100)
+            if iteration % save_iter == 0:
                 testloss = self.evaluate_on_testset(iteration, all_poses, all_konf_obsts, all_actions, all_labels)
                 if testloss < best_loss:
                     best_loss = testloss
@@ -105,4 +110,5 @@ class ImportanceWeightEstimation:
                     patience += 1
                     if patience == patience_limit:
                         break
-                print "Best loss so far", best_loss
+                print "Best loss so far", best_loss, time.time()-stime
+                stime=time.time()

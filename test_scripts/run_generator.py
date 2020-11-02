@@ -19,35 +19,78 @@ from run_greedy import get_problem_env, get_goal_obj_and_region
 from gtamp_utils import utils
 
 
+def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
+    if atype == 'pick':
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/fc/'.format(config.domain,
+                                                                                                          config.num_episode,
+                                                                                                          atype,
+                                                                                                          config.train_type)
+    else:
+        sampler_weight_path = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/fc/'.format(
+            config.domain,
+            config.num_episode,
+            atype,
+            region,
+            config.train_type)
+
+    seed_dirs = os.listdir(sampler_weight_path)
+    candidate_seeds = []
+    for sd_dir in seed_dirs:
+        weight_files = [f for f in os.listdir(sampler_weight_path + sd_dir) if 'epoch' in f and '.pt' in f]
+        if len(weight_files) > 1:
+            seed = int(sd_dir.split('_')[1])
+            candidate_seeds.append(seed)
+    # todo sort the candidate seeds in order
+    candidate_seeds = np.sort(candidate_seeds)
+    seed = int(candidate_seeds[config.sampler_seed_idx])
+    epochs = [f for f in os.listdir(sampler_weight_path + 'seed_{}'.format(seed)) if 'epoch' in f and '.pt' in f]
+    epoch = int(epochs[config.sampler_epoch_idx].split('_')[-1].split('.pt')[0])
+    print sampler_weight_path
+    print "Candidate seeds {}".format(candidate_seeds)
+    print "Selected seed {} epoch {}".format(seed, epoch)
+
+    return seed, epoch, epochs
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Greedy planner')
     parser.add_argument('-v', action='store_true', default=False)
-    parser.add_argument('-pidx', type=int, default=20000)
     parser.add_argument('-architecture', type=str, default='fc')
-    parser.add_argument('-seed', type=int, default=0)
+    parser.add_argument('-planner_seed', type=int, default=0)
     parser.add_argument('-sampling_strategy', type=str, default='uniform')
     parser.add_argument('-use_learning', action='store_true', default=False)
-    parser.add_argument('-atype', type=str, default="place")
+    parser.add_argument('-test_multiple_epochs', action='store_true', default=False)
     parser.add_argument('-n_mp_limit', type=int, default=5)
     parser.add_argument('-n_iter_limit', type=int, default=2000)
-    parser.add_argument('-sampler_seed', type=int, default=0)
     parser.add_argument('-domain', type=str, default='two_arm_mover')
     parser.add_argument('-n_objs_pack', type=int, default=1)
     parser.add_argument('-train_type', type=str, default='wgandi')
+    parser.add_argument('-num_episode', type=int, default=1000)
+    parser.add_argument('-target_pidx_idx', type=int, default=0)
+    parser.add_argument('-atype', type=str, default='UsedOnlyByWGANGP')
+
+    parser.add_argument('-learned_sampler_atype', type=str, default='pick_place_home_place_loading')
+    parser.add_argument('-sampler_seed_idx', type=int, default=0)
+    parser.add_argument('-sampler_epoch_idx', type=int, default=0)
+
     config = parser.parse_args()
     return config
 
 
 def load_planning_experience_data(config):
     if 'two_arm' in config.domain:
-        raw_dir = './planning_experience/raw/two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/' \
-                  'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
-    else:
-        raw_dir = 'planning_experience/raw/one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
-                  'q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/' \
+        raw_dir = 'planning_experience/for_testing_generators//' \
+                  'sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+                  'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/' \
                   'n_mp_limit_5_n_iter_limit_2000/'
+        target_pidxs = [40200,40201,40202,40204,40205,40206,40207,40208,40209]
+    else:
+        raise NotImplementedError
 
-    fname = 'pidx_%d_planner_seed_0_gnn_seed_0.pkl' % config.pidx
+    pidx = target_pidxs[config.target_pidx_idx]
+    config.pidx = pidx
+
+    fname = 'pidx_%d_planner_seed_0_gnn_seed_2.pkl' % pidx
     try:
         plan_data = pickle.load(open(raw_dir + fname, 'r'))
     except:
@@ -78,15 +121,32 @@ def make_abstract_state(problem_env, goal_entities, parent_state=None, parent_ac
     return abstract_state
 
 
-def execute_policy(plan, problem_env, goal_entities, config):
-    try:
-        init_abstract_state = pickle.load(open('temp111.pkl', 'r'))
-    except:
-        init_abstract_state = make_abstract_state(problem_env, goal_entities)
-        init_abstract_state.make_pklable()
-        pickle.dump(init_abstract_state, open('temp111.pkl', 'wb'))
+def setup_seed_and_epoch(config):
+    if 'pick' in config.learned_sampler_atype:
+        pick_seed, pick_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('pick', '', config)  
+    else:
+        pick_seed, pick_epoch = -1, -1
 
-    init_abstract_state.make_plannable(problem_env)
+    if 'place_loading' in config.learned_sampler_atype:
+        place_obj_region_seed, place_obj_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'loading_region', config) 
+    else:
+        place_obj_region_seed, place_obj_region_epoch = -1, -1
+
+    if 'place_home' in config.learned_sampler_atype:
+        place_goal_region_seed, place_goal_region_epoch, _ = convert_seed_epoch_idxs_to_seed_and_epoch('place', 'home_region', config)
+    else:
+        place_goal_region_seed, place_goal_region_epoch = -1, -1
+
+    config.pick_seed = pick_seed
+    config.pick_epoch = pick_epoch
+    config.place_obj_region_seed = place_obj_region_seed
+    config.place_obj_region_epoch = place_obj_region_epoch
+    config.place_goal_region_seed = place_goal_region_seed
+    config.place_goal_region_epoch = place_goal_region_epoch
+
+
+def execute_policy(plan, learned_sampler_model, problem_env, goal_entities, config):
+    init_abstract_state = make_abstract_state(problem_env, goal_entities)
 
     abstract_state = init_abstract_state
     total_ik_checks = 0
@@ -104,7 +164,6 @@ def execute_policy(plan, problem_env, goal_entities, config):
     samples_tried = {i: [] for i in range(len(plan))}
     sample_values = {i: [] for i in range(len(plan))}
 
-    learned_sampler_model = get_learned_sampler_models(config)
     problem_env.set_motion_planner(BaseMotionPlanner(problem_env, 'rrt'))
     while plan_idx < len(plan):
         goal_reached = problem_env.is_goal_reached()
@@ -115,6 +174,7 @@ def execute_policy(plan, problem_env, goal_entities, config):
 
         action = plan[plan_idx]
         generator = get_generator(abstract_state, action, learned_sampler_model, config)
+        print action.discrete_parameters
         if 'two_arm' in config.domain:
             cont_smpl = generator.sample_next_point(samples_tried[plan_idx], sample_values[plan_idx])
         else:
@@ -136,7 +196,6 @@ def execute_policy(plan, problem_env, goal_entities, config):
             print "Action executed"
             action.continuous_parameters = cont_smpl
             action.execute()
-            import pdb;pdb.set_trace()
             plan_idx += 1
             abstract_state = make_abstract_state(problem_env, goal_entities,
                                                  parent_state=abstract_state,
@@ -145,16 +204,9 @@ def execute_policy(plan, problem_env, goal_entities, config):
             print "No feasible action"
             problem_env.init_saver.Restore()
             plan_idx = 0
-            """
-            for s in cont_smpl['samples']:
-                samples_tried[plan_idx].append(s)
-                sample_values[plan_idx].append(generator.sampler.infeasible_action_value)
-            """
             abstract_state = init_abstract_state
         goal_reached = plan_idx == len(plan)
         print "Total IK checks {} Total actions {}".format(total_ik_checks, n_total_actions)
-    import pdb;
-    pdb.set_trace()
     print time.time() - stime
     return total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
            total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
@@ -168,23 +220,42 @@ def set_seeds(seed):
 
 
 def get_logfile_name(config):
-    logfile_dir = 'generators/sampler_performances/{}/'.format(socket.gethostname())
+    logfile_dir = 'generators/sampler_performances/{}/{}/'.format(socket.gethostname(), config.learned_sampler_atype)
     if not os.path.isdir(logfile_dir):
         os.makedirs(logfile_dir)
 
+    # todo save the log file using true epoch and true seed, instead of indices
+
     if config.use_learning:
-        if 'pick' in config.atype and 'place' in config.atype:
-            logfile = open(logfile_dir + 'pap_pick_%s_place_%s.txt' % (
-                config.pick_architecture, config.place_architecture), 'a')
-        elif 'pick' in config.atype:
-            logfile = open(logfile_dir + '%s_pick_%s.txt' % (config.atype, config.pick_architecture), 'a')
-        elif 'place' in config.atype:
-            logfile = open(logfile_dir + '%s_place_%s.txt' % (config.atype, config.place_architecture), 'a')
-        else:
-            raise NotImplementedError
+        if config.learned_sampler_atype == 'pick':
+            sampler_seed = config.pick_seed
+            sampler_epoch = config.pick_epoch
+        elif config.learned_sampler_atype == 'place_loading':
+            sampler_seed = config.place_obj_region_seed
+            sampler_epoch = config.place_obj_region_epoch
+        elif config.learned_sampler_atype == 'place_home':
+            sampler_seed = config.place_goal_region_seed
+            sampler_epoch = config.place_goal_region_epoch
+        elif config.learned_sampler_atype == 'pick_place_loading':
+            sampler_seed = '{}_{}'.format(config.pick_seed, config.place_obj_region_seed)
+            sampler_epoch = '{}_{}'.format(config.pick_epoch, config.place_obj_region_epoch)
+        elif config.learned_sampler_atype == 'pick_place_loading_place_home':
+            sampler_seed = '{}_{}_{}'.format(config.pick_seed, config.place_obj_region_seed, config.place_goal_region_seed)
+            sampler_epoch = '{}_{}'.format(config.pick_epoch, config.place_obj_region_epoch, config.place_goal_region_epoch)
+        elif config.learned_sampler_atype == 'place_loading_place_home':
+            sampler_seed = '{}_{}'.format(config.place_obj_region_seed, config.place_goal_region_seed)
+            sampler_epoch = '{}_{}'.format(config.place_obj_region_epoch, config.place_goal_region_epoch)
+            
+            
+
+        sampler_epoch = 'best'
+        logfile_dir += '/sampler_seed_{}/{}'.format(sampler_seed, config.train_type)
+        if not os.path.isdir(logfile_dir):
+            os.makedirs(logfile_dir)
+        logfile = open(logfile_dir + '/epoch_{}.txt'.format(sampler_epoch), 'a')
     else:
-        logfile = open(logfile_dir + config.sampling_strategy + '_sqrt_pap_mps_n_mp_limit_%d.txt' % config.n_mp_limit,
-                       'a')
+        logfile = open(logfile_dir + config.sampling_strategy + '.txt', 'a')
+
     return logfile
 
 
@@ -194,23 +265,33 @@ def main():
     plan, problem_env = load_planning_experience_data(config)
     goal_objs = problem_env.goal_objects
     goal_region = problem_env.goal_region
+    planning_seed = config.planner_seed
 
     if config.v:
         utils.viewer()
+    set_seeds(config.planner_seed)
 
-    set_seeds(config.seed)
+    setup_seed_and_epoch(config)
+    #config.pick_seed = 2
+    #config.pick_epoch = 26607
+    #config.place_obj_region_seed = 4
+    #config.place_obj_region_epoch = 8787
+    # currently running: seed3, epoch 10294
+
+    learned_sampler_model = get_learned_sampler_models(config)
+    logfile = get_logfile_name(config)
 
     total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible, total_place_mp_checks, \
     total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached = \
-        execute_policy(plan, problem_env, goal_objs + [goal_region], config)
+        execute_policy(plan, learned_sampler_model, problem_env, goal_objs + [goal_region], config)
 
-    logfile = get_logfile_name(config)
     result_log = "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n" % (
-        config.pidx, config.seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
+        config.target_pidx_idx, planning_seed, total_ik_checks, total_pick_mp_checks, total_pick_mp_infeasible,
         total_place_mp_checks,
         total_place_mp_infeasible, total_mp_checks, total_infeasible_mp, n_total_actions, goal_reached
     )
     logfile.write(result_log)
+    logfile.close()
 
 
 if __name__ == '__main__':

@@ -305,6 +305,8 @@ class PaPGNN(GNN):
             return hinge_loss
 
         def compute_mse_loss(msgs, target_msg, costs):
+            # why minus costs?
+            # Because we take the action that maximizes the reward; reward=-costs
             return tf.losses.mean_squared_error(target_msg, -costs)
 
         # https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf

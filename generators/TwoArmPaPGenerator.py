@@ -1,6 +1,7 @@
 from generator import Generator
 from feasibility_checkers.two_arm_pap_feasiblity_checker import TwoArmPaPFeasibilityChecker
 import time
+import numpy as np
 
 
 class TwoArmPaPGenerator(Generator):
@@ -26,11 +27,13 @@ class TwoArmPaPGenerator(Generator):
         self.feasibility_checker.feasible_pick = []
         for _ in range(self.n_iter_limit):
             self.n_ik_checks += 1
-            sampled_op_parameters = self.sampler.sample()
+            # todo separate out the pick and place sampler
+            pick_sample = self.sampler['pick'].sample()
+            place_sample = self.sampler['place'].sample()
+            sampled_op_parameters = np.hstack([pick_sample, place_sample])
 
             stime2 = time.time()
-            op_parameters, status = self.feasibility_checker.check_feasibility(self.abstract_action,
-                                                                               sampled_op_parameters)
+            op_parameters, status = self.feasibility_checker.check_feasibility(self.abstract_action, sampled_op_parameters)
             feasibility_check_time += time.time() - stime2
 
             if status == 'HasSolution':
