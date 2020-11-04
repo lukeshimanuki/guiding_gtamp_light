@@ -115,7 +115,6 @@ def get_all_configs(target_pidx_idxs, setup):
         pick_action_epoch = get_top_epoch(setup.train_type, 'pick', setup.sampler_seed_idx)
         place_obj_region_epoch = get_top_epoch(setup.train_type, 'place_loading', setup.sampler_seed_idx)
         place_goal_region_epoch = get_top_epoch(setup.train_type, 'place_home', setup.sampler_seed_idx)
-
     for num_train in num_trains_to_run:
         for epoch in epochs_to_run:
             for planner_seed in planner_seeds_to_run:
@@ -167,14 +166,15 @@ def main():
 
     configs = get_all_configs(pidxs, setup)
 
-    n_workers = multiprocessing.cpu_count()
+    n_workers = multiprocessing.cpu_count() #* float(2.0/3.0)
+    n_workers = int(n_workers)
     pool = ThreadPool(n_workers)
     results = pool.map(worker_wrapper_multi_input, configs)
     pool.close()
     pool.join()
 
-    cmd = 'python upload_greedy_results.py'
-    os.system(cmd)
+    #cmd = 'python upload_greedy_results.py'
+    #os.system(cmd)
 
 
 if __name__ == '__main__':
