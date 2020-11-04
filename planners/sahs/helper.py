@@ -76,11 +76,57 @@ def compute_hcount_old_number_in_goal(state, action):
     return analytical_heuristic
 
 
+def compute_heuristic_without_geometric_predicates(state, action):
+    problem_env = state.problem_env
+    number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
+
+    target_o = action.discrete_parameters['object']
+    if type(target_o) != str and type(target_o) != unicode:
+        target_o = target_o.GetName()
+    target_r = action.discrete_parameters['place_region']
+    if type(target_r) != str and type(target_r) != unicode:
+        target_r = target_r.name
+
+    goal_region = problem_env.goal_region
+    given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
+    analytical_heuristic = -number_in_goal + given_obj_already_in_goal
+    return analytical_heuristic
+
+
+def compute_hand_designed_action_values(state, action):
+    target_o = action.discrete_parameters['object']
+    if type(target_o) != str and type(target_o) != unicode:
+        target_o = target_o.GetName()
+    target_r = action.discrete_parameters['place_region']
+    if type(target_r) != str and type(target_r) != unicode:
+        target_r = target_r.name
+
+    given_obj_is_goal_obj = state.nodes[target_o][-3]
+    given_obj_reachable = state.nodes[target_o][-2]
+    given_obj_manipfree_to_target_r = state.binary_edges[(target_o, target_r)][-1]  # The target object is already in goal
+    action_val = given_obj_is_goal_obj + given_obj_reachable + given_obj_manipfree_to_target_r
+    return action_val
+
+
+def compute_normalized_hand_designed_action_values(state, action):
+    problem_env = state.problem_env
+    all_actions = get_actions(problem_env, None, None)
+    exp_q_vals = []
+    for a in all_actions:
+        action_val = compute_hand_designed_action_values(state, a)
+        exp_q_vals.append(np.exp(action_val))
+
+    curr_action_value = compute_hand_designed_action_values(state, action)
+    return np.exp(curr_action_value) / np.sum(exp_q_vals)
+    
+
 def compute_heuristic(state, action, pap_model, h_option, mixrate):
-    # parameters used for CoRL
     assert h_option == 'qlearned_hcount_old_number_in_goal' or \
            h_option == 'hcount_old_number_in_goal' or\
-           h_option == 'qlearned'
+           h_option == 'qlearned' or\
+           h_option == 'h_without_predicates' or\
+           h_option == 'hcount_old_number_in_goal_hand_desigend_action_values'
+
     assert mixrate == 1
 
     is_two_arm_domain = 'two_arm_' in action.type
@@ -108,8 +154,16 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic - mixrate * q_bonus
+    elif h_option == 'hcount_old_number_in_goal_hand_desigend_action_values':
+        q_bonus = compute_normalized_hand_designed_action_values(state, action)
+        analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
+        hval = analytical_heuristic - mixrate * q_bonus
+        
     elif h_option == 'hcount_old_number_in_goal':
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
+        hval = analytical_heuristic
+    elif h_option == 'h_without_predicates':
+        analytical_heuristic = compute_heuristic_without_geometric_predicates(state, action)
         hval = analytical_heuristic
     elif h_option == 'qlearned':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
