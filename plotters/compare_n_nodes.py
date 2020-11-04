@@ -1,7 +1,7 @@
 import pickle
 import os
 import numpy as np
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 from print_sampler_epoch_tests import get_n_nodes
 
 def get_n_nodes(target_dir):
@@ -32,7 +32,7 @@ def get_n_nodes(target_dir):
                         20080, 20083, 20084, 20086, 20093, 20094, 20095]
         target_pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20047, 20051,
                         20053, 20057, 20061, 20063, 20066, 20069, 20072, 20075, 20084, 20086, 20093, 20094, 20095]
-        target_pidxs = range(20000, 20100)
+        #target_pidxs = range(20000, 20100)
 
         # target_pidxs = [20002, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20051, 20061, 20063, 20066, 20069, 20072, 20075,
         # 20093]
@@ -53,6 +53,7 @@ def get_n_nodes(target_dir):
     pidx_times = {}
     pidx_nodes = {}
     pidx_iks = {}
+    #target_pidxs = range(40200, 40210)
     for filename in test_files:
         if 'pkl' not in filename:
             print 'File skipped', filename
@@ -116,7 +117,7 @@ def get_n_nodes(target_dir):
     # for pidx in targets:
     #    pidx_times[pidx_times.keys()[0]].append(timelimit)
     #    successes.append(False)
-
+    print n_data
     return pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks
 
 
@@ -141,8 +142,6 @@ def plot_one_arm():
     pidx_nodes_3, pidx_times_3 = get_n_nodes(target_dir)
     target_dir = 'cloud_results/ea42d4e/sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/n_mp_limit_5_n_iter_limit_50/'
     pidx_nodes_2, pidx_times_2 = get_n_nodes(target_dir)
-    import pdb;
-    pdb.set_trace()
 
     target_dir = 'cloud_results/ea42d4e/sahs_results/uses_rrt/domain_one_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_1.0_use_region_agnostic_False_mix_rate_1.0/using_learned_sampler/n_mp_limit_5_n_iter_limit_50/'
     pidx_nodes_1, pidx_times_1 = get_n_nodes(target_dir)
@@ -155,8 +154,6 @@ def plot_one_arm():
 
     target_dir = 'cloud_results/3c193cf/irsc/one_arm_mover/n_objs_pack_1/'
     pidx_nodes_4, pidx_times_4 = get_n_nodes(target_dir)
-    import pdb;
-    pdb.set_trace()
 
     plt.figure()
     plt.boxplot([np.hstack(pidx_times_1.values()), np.hstack(pidx_times_2.values()), np.hstack(pidx_times_3.values()),
@@ -176,8 +173,6 @@ def plot_two_arm():
     pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir)
     print np.mean(np.hstack(pidx_times.values())), np.mean(np.hstack(pidx_times.values())), np.median(
         np.hstack(pidx_times.values())), np.median(np.hstack(pidx_times.values())), np.mean(n_nodes), np.mean(successes)
-    import pdb;
-    pdb.set_trace()
 
     print  "****Ranking function****"
     target_dir = 'cloud_results/1533b3c/sahs_results/uses_rrt/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_mix_rate_1.0/n_mp_limit_5_n_iter_limit_2000/'
@@ -189,8 +184,6 @@ def plot_two_arm():
     print np.mean(np.hstack(pidx_nodes.values())), np.mean(np.hstack(pidx_nodes2.values())), np.median(
         np.hstack(pidx_nodes.values())), np.median(np.hstack(pidx_nodes2.values()))
     print np.mean(successes), np.mean(successes)
-    import pdb;
-    pdb.set_trace()
 
     print  "****WGANGP 1000 data points****"
     target_dir = 'cloud_results/8db0c37/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/using_learned_sampler/1000/sampler_seed_0/wgangp/n_mp_limit_5_n_iter_limit_2000/'
@@ -402,9 +395,27 @@ def compare_task_guidance():
     pdb.set_trace()
 
 
+def print_results(target_dir):
+    pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir)
+    print np.mean(successes), np.mean(n_nodes), np.median(n_nodes)
+
+
 def main():
-    #wgangp_vs_wgandi()
-    compare_task_guidance()
+    n_objss = [1]
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    print_results(target_dir)
+
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/h_without_predicates/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    print_results(target_dir)
+
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal_hand_desigend_action_values/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    print_results(target_dir)
+
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    print_results(target_dir)
+
+    # wgangp_vs_wgandi()
+    # compare_task_guidance()
     # plot_one_arm()
     # plot_two_arm()
 
