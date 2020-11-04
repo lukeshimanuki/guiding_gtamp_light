@@ -103,7 +103,7 @@ def compute_hand_designed_action_values(state, action):
 
     given_obj_is_goal_obj = state.nodes[target_o][-3]
     given_obj_reachable = state.nodes[target_o][-2]
-    given_obj_manipfree_to_target_r = state.binary_edges[(target_o, target_r)][-1]  # The target object is already in goal
+    given_obj_manipfree_to_target_r = state.binary_edges[(target_o, target_r)][-1]
     action_val = given_obj_is_goal_obj + given_obj_reachable + given_obj_manipfree_to_target_r
     return action_val
 
@@ -137,7 +137,6 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         target_r = action.discrete_parameters['place_region']
 
     nodes, edges, actions, _ = extract_individual_example(state, action)
-    #nodes = nodes[..., 6:]
 
     region_is_goal = state.nodes[target_r][8]
 
