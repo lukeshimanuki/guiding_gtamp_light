@@ -414,6 +414,8 @@ def main():
     target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
     print_results(target_dir)
 
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_h_without_predicates/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
+    print_results(target_dir)
     # wgangp_vs_wgandi()
     # compare_task_guidance()
     # plot_one_arm()

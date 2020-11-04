@@ -58,6 +58,15 @@ def get_state_class(domain):
 
 
 def compute_hcount_old_number_in_goal(state, action):
+    h_without_geometric_predicates = compute_heuristic_without_geometric_predicates(state, action)
+    hcount = compute_hcount(state)
+    analytical_heuristic = h_without_geometric_predicates + hcount
+    # print target_o, target_r
+    # print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
+    return analytical_heuristic
+
+
+def compute_heuristic_without_geometric_predicates(state, action):
     problem_env = state.problem_env
     target_o = action.discrete_parameters['object']
     if type(target_o) != str and type(target_o) != unicode:
@@ -67,28 +76,8 @@ def compute_hcount_old_number_in_goal(state, action):
         target_r = target_r.name
     region_is_goal = state.nodes[target_r][8]
     goal_region = problem_env.goal_region
-    hcount = compute_hcount(state)
     given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
     number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
-    analytical_heuristic = -number_in_goal + given_obj_already_in_goal + hcount
-    # print target_o, target_r
-    # print "HCount %d number_in_goal %d given_objs_already_in_goal %d" % (hcount, number_in_goal, given_obj_already_in_goal)
-    return analytical_heuristic
-
-
-def compute_heuristic_without_geometric_predicates(state, action):
-    problem_env = state.problem_env
-    number_in_goal = len(problem_env.goal_objects) - len(get_goal_objs_not_in_goal_region(state))
-
-    target_o = action.discrete_parameters['object']
-    if type(target_o) != str and type(target_o) != unicode:
-        target_o = target_o.GetName()
-    target_r = action.discrete_parameters['place_region']
-    if type(target_r) != str and type(target_r) != unicode:
-        target_r = target_r.name
-
-    goal_region = problem_env.goal_region
-    given_obj_already_in_goal = state.binary_edges[(target_o, goal_region)][0]  # The target object is already in goal
     analytical_heuristic = -number_in_goal + given_obj_already_in_goal
     return analytical_heuristic
 
@@ -121,11 +110,14 @@ def compute_normalized_hand_designed_action_values(state, action):
     
 
 def compute_heuristic(state, action, pap_model, h_option, mixrate):
+    """
     assert h_option == 'qlearned_hcount_old_number_in_goal' or \
            h_option == 'hcount_old_number_in_goal' or\
            h_option == 'qlearned' or\
            h_option == 'h_without_predicates' or\
            h_option == 'hcount_old_number_in_goal_hand_desigend_action_values'
+    """
+
 
     assert mixrate == 1
 
@@ -146,18 +138,22 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
     else:
         goal_objs = [tmp_o for tmp_o in state.goal_entities if 'region' not in tmp_o]
         goal_region = 'rectangular_packing_box1_region'
-
     if h_option == 'qlearned_hcount_old_number_in_goal':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic - mixrate * q_bonus
+    elif h_option == 'qlearned_h_without_predicates':
+        analytical_heuristic = compute_heuristic_without_geometric_predicates(state, action)
+        nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
+        nodes = nodes[..., 6:]
+        q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
+        hval = analytical_heuristic - mixrate * q_bonus
     elif h_option == 'hcount_old_number_in_goal_hand_desigend_action_values':
         q_bonus = compute_normalized_hand_designed_action_values(state, action)
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic - mixrate * q_bonus
-        
     elif h_option == 'hcount_old_number_in_goal':
         analytical_heuristic = compute_hcount_old_number_in_goal(state, action)
         hval = analytical_heuristic
@@ -168,6 +164,8 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
         hval = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)
+    else:
+        raise NotImplementedError
 
     return hval
 
