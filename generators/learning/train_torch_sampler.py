@@ -3,6 +3,7 @@ import argparse
 
 from datasets.GeneratorDataset import StandardDataset, ImportanceEstimatorDataset, GivenDataset
 from generators.learning.learning_algorithms.WGANGP import WGANgp
+from generators.learning.learning_algorithms.ActorCritic import ActorCritic
 from learning_algorithms.ImportanceWeightEstimation import ImportanceWeightEstimation
 import numpy as np
 import os
@@ -151,6 +152,9 @@ def main():
             elif config.train_type == 'wgangp':
                 model = WGANgp(config)
                 trainloader, testloader, trainset, testset = get_data_generator(config)
+            elif config.train_type == 'actorcritic':
+                model = ActorCritic(config)
+                trainloader, testloader, trainset, testset = get_data_generator(config)
             else:
                 raise NotImplementedError
 
@@ -162,9 +166,6 @@ def main():
 
             if achieved_counter >= 4:
                 break
-
-
-
 
 
 if __name__ == '__main__':
