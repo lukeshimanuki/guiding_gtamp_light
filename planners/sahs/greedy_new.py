@@ -125,7 +125,7 @@ def search(mover, config, pap_model, goal_objs, goal_region_name, learned_sample
     n_objs_pack = config.n_objs_pack
     statecls = get_state_class(config.domain)
     goal = mover.goal_entities
-    mover.reset_to_init_state_stripstream()
+    #mover.reset_to_init_state_stripstream()
     depth_limit = 60
     # lowest valued items are retrieved first in PriorityQueue
     search_queue = Queue.PriorityQueue()  # (heuristic, nan, operator skeleton, state. trajectory);a
