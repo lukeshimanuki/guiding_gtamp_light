@@ -18,7 +18,7 @@ class GivenDataset(Dataset):
 
     def __len__(self):
         return len(self.konf_obsts)
-    
+
     def __getitem__(self, idx):
         data = {
             'konf_obsts': self.konf_obsts[idx],
@@ -28,14 +28,13 @@ class GivenDataset(Dataset):
         return data
 
 
-
 class GeneratorDataset(Dataset):
     def __init__(self, config, use_filter, is_testing):
         self.use_filter = use_filter
         self.is_testing = is_testing
         self.config = config
         # if self.config.train_type == 'w':
-        self.konf_obsts, self.poses, self.actions, self.labels = self.get_data()
+        self.konf_obsts, self.poses, self.actions, self.labels, self.dists_to_goal = self.get_data()
         # else:
         #    self.konf_obsts, self.poses, self.actions = self.get_data()
 
@@ -50,11 +49,11 @@ class GeneratorDataset(Dataset):
         else:
             assert use_filter
             cache_file_name = 'hard_cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (
-            state_data_mode,
-            action_data_mode,
-            action_type,
-            desired_region,
-            self.config.num_episode)
+                state_data_mode,
+                action_data_mode,
+                action_type,
+                desired_region,
+                self.config.num_episode)
         return cache_file_name
 
     def get_data_dir(self):
@@ -64,9 +63,11 @@ class GeneratorDataset(Dataset):
                            'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
                 return [data_dir]
             else:
-                data_dir_4_objs = 'planning_experience/processed/two_arm_mover/n_objs_pack_4/sahs/uses_rrt/' \
+                data_dir_4_objs = 'planning_experience_phaedra/planning_experience/processed/two_arm_mover/' \
+                                  'n_objs_pack_4/sahs/uses_rrt/' \
                                   'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
-                data_dir_1_obj = 'planning_experience/processed/two_arm_mover/n_objs_pack_1/sahs/uses_rrt/' \
+                data_dir_1_obj = 'planning_experience_phaedra/planning_experience/processed/two_arm_mover/' \
+                                 'n_objs_pack_1/sahs/uses_rrt/' \
                                  'sampler_trajectory_data/includes_n_in_way/includes_vmanip/'
                 return [data_dir_4_objs, data_dir_1_obj]
         else:
@@ -111,6 +112,7 @@ class GeneratorDataset(Dataset):
         all_actions = []
         all_poses_ids = []
         all_labels = []
+        all_dists_to_goal = []
         n_episodes_included = 0
         for traj_file_idx, traj_file in enumerate(traj_files):
             if 'pidx' not in traj_file:
@@ -122,7 +124,8 @@ class GeneratorDataset(Dataset):
             try:
                 traj = pickle.load(open(traj_dir + traj_file, 'r'))
             except:
-                cmd = 'python data_processing/sampler/process_planning_experience.py -n_objs_pack 1 -pidx {} -domain two_arm_mover -planner greedy -absq_seed 2 -f'.format(pidx)
+                cmd = 'python data_processing/sampler/process_planning_experience.py -n_objs_pack 1 -pidx {} ' \
+                      '-domain two_arm_mover -planner greedy -absq_seed 2 -f'.format(pidx)
                 os.system(cmd)
                 try:
                     traj = pickle.load(open(traj_dir + traj_file, 'r'))
@@ -135,14 +138,22 @@ class GeneratorDataset(Dataset):
             actions = []
             data = traj['positive_data'] + traj['neutral_data']
             temp_labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
+            dists_to_goal = []
+
             labels = []
             assert 'two_arm' in data[0]['action'].type, 'change the reward condition on region for one_arm'
             print "traj file:", traj_file
+            pos_data_idx = 1
             for node, temp_label in zip(data, temp_labels):
-                #is_neutral_data = temp_label == 0
                 reward = (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
-                         (node['parent_n_in_way'] == 0 and node['n_in_way'] == 0 and \
+                         (node['parent_n_in_way'] == 0 and node['n_in_way'] == 0 and
                           node['action'].discrete_parameters['place_region'] == 'home_region')
+                if temp_label == 1:
+                    dist_to_goal = len(traj['positive_data']) - pos_data_idx
+                    pos_data_idx += 1
+                    dists_to_goal.append(dist_to_goal)
+                else:
+                    dists_to_goal.append(-999)
                 s = node['concrete_state']
                 if self.we_should_skip_this_state_and_action(s, reward):
                     continue
@@ -173,6 +184,7 @@ class GeneratorDataset(Dataset):
             all_states.append(states)
             all_actions.append(actions)
             all_labels.append(labels)
+            all_dists_to_goal.append(dists_to_goal)
             assert len(np.hstack(all_labels)) == len(np.vstack(all_poses_ids))
 
             try:
@@ -184,7 +196,7 @@ class GeneratorDataset(Dataset):
                 pdb.set_trace()
             print 'action shape', np.vstack(all_actions).shape
             n_episodes_included += 1
-            print 'n_episodes included %d/%d' %(n_episodes_included, self.config.num_episode)
+            print 'n_episodes included %d/%d' % (n_episodes_included, self.config.num_episode)
             if n_episodes_included >= self.config.num_episode:
                 break
 
@@ -192,8 +204,10 @@ class GeneratorDataset(Dataset):
         all_actions = np.vstack(all_actions).squeeze()
         all_poses_ids = np.vstack(all_poses_ids).squeeze()
         all_labels = np.hstack(all_labels).squeeze()
-        pickle.dump((all_states, all_poses_ids, all_actions, all_labels), open(traj_dir + cache_file_name, 'wb'))
-        return all_states, all_poses_ids, all_actions, all_labels
+        all_dists_to_goal = np.hstack(all_dists_to_goal).squeeze()
+        pickle.dump((all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal),
+                    open(traj_dir + cache_file_name, 'wb'))
+        return all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal
 
     def load_pos_neu_data(self, action_data_mode):
         traj_dirs = self.get_data_dir()
@@ -201,17 +215,20 @@ class GeneratorDataset(Dataset):
         all_actions = []
         all_poses_ids = []
         all_labels = []
+        all_dists_to_goal = []
         for traj_dir in traj_dirs:
-            states, poses_ids, actions, labels = self.get_data_from_traj_dir(traj_dir, action_data_mode)
+            states, poses_ids, actions, labels, dists_to_goal = self.get_data_from_traj_dir(traj_dir, action_data_mode)
             all_states.append(states)
             all_actions.append(actions)
             all_poses_ids.append(poses_ids)
             all_labels.append(labels)
+            all_dists_to_goal.append(dists_to_goal)
         all_states = np.vstack(all_states)
         all_actions = np.vstack(all_actions)
         all_poses_ids = np.vstack(all_poses_ids)
         all_labels = np.hstack(all_labels)
-        return all_states, all_poses_ids, all_actions, all_labels
+        all_dists_to_goal = np.hstack(all_dists_to_goal)
+        return all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal
 
     def get_data(self):
         if self.config.atype == 'pick':
@@ -219,7 +236,7 @@ class GeneratorDataset(Dataset):
         else:
             action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
-        states, poses, actions, labels = self.load_pos_neu_data(action_data_mode)
+        states, poses, actions, labels, dists_to_goal = self.load_pos_neu_data(action_data_mode)
 
         if self.config.atype == 'pick':
             actions = actions[:, :-4]
@@ -230,7 +247,7 @@ class GeneratorDataset(Dataset):
         else:
             raise NotImplementedError
 
-        return states, poses, actions, labels
+        return states, poses, actions, labels, dists_to_goal
 
     def __len__(self):
         return len(self.konf_obsts)
@@ -245,12 +262,14 @@ class StandardDataset(GeneratorDataset):
         self.konf_obsts = self.konf_obsts[self.labels == 1]
         self.poses = self.poses[self.labels == 1]
         self.actions = self.actions[self.labels == 1]
+        self.dists_to_goal = self.dists_to_goal[self.labels == 1]
 
     def __getitem__(self, idx):
         data = {
             'konf_obsts': self.konf_obsts[idx],
             'poses': self.poses[idx],
             'actions': self.actions[idx],
+            'dists_to_goal': self.dists_to_goal[idx],
         }
         return data
 
