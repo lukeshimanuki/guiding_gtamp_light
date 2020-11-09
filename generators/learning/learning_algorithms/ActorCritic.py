@@ -8,8 +8,10 @@ import socket
 import torch
 import numpy as np
 import time
+from matplotlib import pyplot as plt
 
 from gtamp_utils import utils
+import torch.nn as nn
 
 
 class ActorCritic:
@@ -90,7 +92,15 @@ class ActorCritic:
                                                                                                      self.architecture,
                                                                                                      self.seed)
         return dir
-    
+
+    def get_data_from_dataloader(self, dataloader):
+        dataset = dataloader.dataset[:]
+        poses = torch.from_numpy(dataset['poses']).float().to(self.device)
+        konf_obsts = torch.from_numpy(dataset['konf_obsts']).float().to(self.device)
+        actions = torch.from_numpy(dataset['actions']).float().to(self.device)
+        dist_to_goal = torch.from_numpy(dataset['dists_to_goal']).float().to(self.device)
+        return poses, konf_obsts, actions, dist_to_goal
+
     def train(self, data_loader, test_set, n_train):
 
         batch_size = 32  # Batch size
@@ -119,12 +129,11 @@ class ActorCritic:
         data_gen = data_generator()
         there_exists_cond_satisfied = False
 
-        te_poses = torch.from_numpy(test_set['poses']).float().to(self.device)
-        te_konf_obsts = torch.from_numpy(test_set['konf_obsts']).float().to(self.device)
-        te_actions = torch.from_numpy(test_set['actions']).float().to(self.device)
-        te_dist_to_goal = torch.from_numpy(test_set['dist_to_goal']).float().to(self.device)
+        te_poses, te_konf_obsts, te_actions, te_dist_to_goal = self.get_data_from_dataloader(test_set)
+        tr_poses, tr_konf_obsts, tr_actions, tr_dist_to_goal = self.get_data_from_dataloader(data_loader)
 
         test_losses = []
+        train_losses = []
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -138,7 +147,7 @@ class ActorCritic:
             poses = _data['poses'].float()
             konf_obsts = _data['konf_obsts'].float()
             actions = _data['actions'].float()
-            dist_to_goal = _data['dist_to_goal'].float()
+            dist_to_goal = _data['dists_to_goal'].float()
             if use_cuda:
                 poses = poses.cuda()
                 konf_obsts = konf_obsts.cuda()
@@ -146,19 +155,35 @@ class ActorCritic:
             poses_v = autograd.Variable(poses)
             konf_obsts_v = autograd.Variable(konf_obsts)
             actions_v = autograd.Variable(actions)
-            self.discriminator.zero_grad()
+            #self.discriminator.zero_grad()
+            optimizerD.zero_grad()
 
-            # train with real
+            # train with MSE loss
+            # 15 minutes remaining - fix this bug!
             D_real = self.discriminator(actions_v, konf_obsts_v, poses_v)
-            D_real = torch.mean((D_real - dist_to_goal)*2)
-            D_real.backward()
+            loss = nn.MSELoss()
+            D_loss = loss(D_real, dist_to_goal.reshape((32,1)))
+            D_loss.backward()
             optimizerD.step()
 
-            import pdb;pdb.set_trace()
-            test_loss = torch.mean((self.discriminator(te_actions, te_konf_obsts, te_poses) - dist_to_goal)*2)
-            # stopping criteria using test data
-            test_losses.append(test_loss)
+            # Evaluation
+            te_val = self.discriminator(te_actions, te_konf_obsts, te_poses).squeeze()
+            test_loss = loss(te_val, te_dist_to_goal)
+            
+            tr_val = self.discriminator(tr_actions, tr_konf_obsts, tr_poses).squeeze() 
+            train_loss = loss(tr_val, tr_dist_to_goal)
 
+            test_losses.append(test_loss.detach().numpy())
+            train_losses.append(train_loss.detach().numpy())
+            # stopping criteria using test data
+            print test_losses[-1], train_losses[-1]
+            plt.plot(test_losses, 'r', label='test')
+            plt.plot(train_losses, 'b', label='train')
+            plt.savefig('./losses.png')
+
+        # Why is training loss larger than test loss?
+        # Why are the shapes of test and training losses almost identical?
+        import pdb; pdb.set_trace()
 
         ############################
         # (2) Update G network
@@ -187,7 +212,6 @@ class ActorCritic:
             G = self.discriminator(fake, konf_obsts_v, poses_v)
             G = G.mean()
             G.backward()
-            G_cost = -G
             optimizerG.step()
 
         return there_exists_cond_satisfied
