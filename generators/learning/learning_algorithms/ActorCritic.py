@@ -244,13 +244,14 @@ class ActorCritic:
             if test_loss < min_test_loss:
                 min_test_loss = test_loss
                 patience = 0
+                path = self.weight_dir + '/gen.pt'
+                torch.save(self.generator.state_dict(), path)
             else:
                 patience += 1
 
             if patience >= 50:
                 break
 
-        path = self.weight_dir + '/gen.pt'
-        torch.save(self.generator.state_dict(), path)
+
 
         return True
