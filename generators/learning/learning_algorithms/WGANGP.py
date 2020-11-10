@@ -50,7 +50,7 @@ class WGANgp:
         self.seed = config.seed
         self.architecture = config.architecture
         self.region_name = config.region
-        if socket.gethostname() == 'lab':
+        if socket.gethostname() == 'lab' or 'office' in socket.gethostname():
             self.device = torch.device('cpu')  # somehow even if I delete CUDA_VISIBLE_DEVICES, it still detects it?
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
