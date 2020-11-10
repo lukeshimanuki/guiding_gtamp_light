@@ -107,6 +107,7 @@ class GeneratorDataset(Dataset):
             f = pickle.load(open(traj_dir + cache_file_name, 'r'))
             print "Cache data loaded"
             return f
+
         n_episodes = 0
         all_states = []
         all_actions = []
@@ -148,12 +149,7 @@ class GeneratorDataset(Dataset):
                 reward = (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
                          (node['parent_n_in_way'] == 0 and node['n_in_way'] == 0 and
                           node['action'].discrete_parameters['place_region'] == 'home_region')
-                if temp_label == 1:
-                    dist_to_goal = len(traj['positive_data']) - pos_data_idx
-                    pos_data_idx += 1
-                    dists_to_goal.append(dist_to_goal)
-                else:
-                    dists_to_goal.append(-999)
+
                 s = node['concrete_state']
                 if self.we_should_skip_this_state_and_action(s, reward):
                     continue
@@ -178,6 +174,14 @@ class GeneratorDataset(Dataset):
                     poses_from_state_and_id = np.hstack([poses_from_state, object_id])
                     poses_ids.append(poses_from_state_and_id)
                     actions.append(get_processed_poses_from_action(s, a, action_data_mode))
+
+                    if temp_label == 1:
+                        dist_to_goal = len(traj['positive_data']) - pos_data_idx
+                        pos_data_idx += 1
+                        dists_to_goal.append(dist_to_goal)
+                    else:
+                        dists_to_goal.append(-999)
+
             if len(poses_ids) == 0:
                 continue
             all_poses_ids.append(poses_ids)
