@@ -57,7 +57,7 @@ def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
     # cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
     if os.path.isfile(cachefile):
         print "Loading the cached file:", cachefile
-        return pickle.load(open(cachefile, 'rb'))
+        #return pickle.load(open(cachefile, 'rb'))
     print "Caching file..."
     file_list = glob.glob("{}/pap_traj_*.pkl".format(dirname))
 
@@ -79,6 +79,8 @@ def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
             for obj_name in obj_list:
                 pose = state.nodes[obj_name][3:6]
                 pose_based_state += pose
+            robot_pose = state.robot_pose.squeeze()
+            pose_based_state += robot_pose.tolist()
             pose_based_states.append(pose_based_state)
 
             # action processing
