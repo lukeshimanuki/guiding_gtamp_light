@@ -16,6 +16,7 @@ from gtamp_problem_environments.one_arm_mover_env import PaPOneArmMoverEnv
 from planners.subplanners.motion_planner import BaseMotionPlanner
 from gtamp_utils import utils
 from test_scripts.run_mcts import get_commit_hash
+from generators.learning.learning_algorithms.ActorCritic import ActorCritic
 
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
@@ -42,10 +43,6 @@ def get_problem_env(config, goal_region, goal_objs):
 
 def get_solution_file_name(config):
     root_dir = './'
-    # if hostname in {'dell-XPS-15-9560', 'phaedra', 'shakey', 'lab', 'glaucus', 'luke-laptop-1'}:
-    #    root_dir = './'
-    # else:
-    #    root_dir = '/data/public/rw/pass.port/guiding_gtamp_light/'
     if config.timelimit == np.inf:
         commit_hash = ''
     else:
@@ -339,11 +336,15 @@ def get_total_n_feasibility_checks(nodes):
 
 
 def make_sampler_model_and_load_weights(config):
-    model = WGANgp(config)
-    if config.use_best_kde_sampler:
-        model.load_best_weights()
-    else:
+    if config.train_type == 'actorcritic':
+        model = ActorCritic(config)
         model.load_weights()
+    else:
+        model = WGANgp(config)
+        if config.use_best_kde_sampler:
+            model.load_best_weights()
+        else:
+            model.load_weights()
     return model
 
 
