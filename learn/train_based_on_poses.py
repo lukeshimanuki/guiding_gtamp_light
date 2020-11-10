@@ -2,20 +2,20 @@
 
 import argparse
 import random
-import tensorflow as tf
 import numpy as np
 import sys
 import os
-
-# from . import data_traj
-from learn import data_traj
-from learn.pap_gnn import PaPGNN
-import csv
 import pickle
+import glob
+
+from learn.pose_based_models.fc import FullyConnected
+from data_traj import get_actions
+import csv
 
 
 def top_k_accuracy(q_model, nodes, edges, actions, k):
     print "Testing on %d number of data" % len(nodes)
+    """
     q_target_action = q_model.predict_with_raw_input_format(nodes, edges, actions)
     n_data = len(nodes)
     q_all_actions = q_model.alt_msg_layer.predict([nodes, edges, actions])
@@ -31,89 +31,93 @@ def top_k_accuracy(q_model, nodes, edges, actions, k):
         top_two_accuracy.append(n_actions_bigger_than_target <= 2)
 
     return np.mean(accuracy), np.mean(top_zero_accuracy), np.mean(top_one_accuracy), np.mean(top_two_accuracy)
+    """
+    raise NotImplementedError
 
 
-def create_callbacks(q_weight_file):
-    callbacks = [
-        tf.keras.callbacks.TerminateOnNaN(),
-        tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=1e-2, patience=100, ),
-        tf.keras.callbacks.ModelCheckpoint(filepath=q_weight_file, verbose=False, save_best_only=True,
-                                           save_weights_only=True),
-        tf.keras.callbacks.TensorBoard()
-    ]
-    return callbacks
-
-
-# def create_gnn_model(nodes, edges, config):
-def create_gnn_model(config, nodes, edges):
-    num_entities = nodes.shape[1]
-    m = PaPGNN(num_entities, nodes.shape[-1], edges.shape[-1], config)
-    #pap_model = PaPGNN(num_entities, num_node_features, num_edge_features, pap_mconfig, entity_names, n_regions)
+def create_model(config):
+    if 'two_arm' in config.domain:
+        m = FullyConnected(num_actions=8)
+    else:
+        raise NotImplementedError
     if os.path.isfile(m.weight_file_name) and not config.donttrain and not config.f:
         print "Quitting because we've already trained with the given configuration"
         sys.exit(-1)
     return m
 
 
-def create_train_data(nodes, edges, actions, costs, num_training):
-    training_inputs = [nodes[:num_training], edges[:num_training], actions[:num_training], costs[:num_training]]
-    n_data = len(nodes[:num_training])
-    training_targets = np.zeros(n_data, dtype=np.float32)
+def create_train_data(inputs, targets, num_training):
+    training_inputs = inputs[:num_training]
+    training_targets = targets[:num_training]
     return training_inputs, training_targets
 
 
+def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
+    cachefile = "{}{}-pose_based_num_data_{}_retired.pkl".format(dirname, desired_operator_type, num_data)
+    # cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
+    if os.path.isfile(cachefile):
+        print "Loading the cached file:", cachefile
+        return pickle.load(open(cachefile, 'rb'))
+    print "Caching file..."
+    file_list = glob.glob("{}/pap_traj_*.pkl".format(dirname))
+
+    pose_based_states = []
+    actions = []
+    obj_list = [
+        u'rectangular_packing_box4', u'rectangular_packing_box2', u'rectangular_packing_box3',
+        u'rectangular_packing_box1', u'square_packing_box2', u'square_packing_box3', u'square_packing_box1',
+        u'square_packing_box4'
+    ]
+    n_traj = 0
+    for traj_data in file_list:
+        data = pickle.load(open(traj_data, 'r'))
+        assert len(data.states) == len(data.actions)
+
+        for state, op_instance in zip(data.states, data.actions):
+            # state processing
+            pose_based_state = []
+            for obj_name in obj_list:
+                pose = state.nodes[obj_name][3:6]
+                pose_based_state += pose
+            pose_based_states.append(pose_based_state)
+
+            # action processing
+            entity_names = list(state.nodes.keys())[::-1]
+            action = get_actions(op_instance, entity_names)
+            actions.append(action)
+        n_traj += 1
+        n_data = len(np.vstack(pose_based_states))
+
+        print "n episodes included {}/{} n_data {}".format(n_traj, len(file_list), n_data)
+        if n_data >= num_data:
+            break
+
+    data = (pose_based_states, actions)
+    pickle.dump(data, open(cachefile, 'wb'))
+    return data
+
 
 def train(config):
-    seed = config.seed
+    data_path = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/'
+    pose_based_states, actions = load_data(data_path, config.num_train+config.num_test)
 
-    nodes, edges, actions, rewards = data_traj.load_data(
-        #'./planning_experience/irsc/two_arm_mover/n_objs_pack_1/trajectory_data/',
-        #'./planning_experience/hcount/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
-        #'./planning_experience/irsc/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
-        #'./planning_experience/hcount/mc/domain_two_arm_mover/n_objs_pack_1/trajectory_data/',
-        #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
-        #'./planning_experience/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/shortest/',
-        #'./planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/irsc/trajectory_data/mc/',
-        #'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/hcount/trajectory_data/shortest/',
-        #'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc_prm/trajectory_data/shortest/',
-        'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/',
-        desired_operator_type=config.operator,
-        num_data=config.num_train+config.num_test)
-    """
-    print "Loading data..."
-    nodes, edges, actions, rewards = pickle.load(open('tmp.pkl', 'r'))
-    """
-
-    print "Total number of data", len(nodes)
-
-    # num_test = min(config.num_test, len(nodes))
     num_training = config.num_train
-    num_test = len(nodes) - num_training
     assert num_training > 0
     config.num_train = num_training
-    config.num_test = num_test
-    nodes = nodes[:, :, 6:] # excluding the poses
-    model = create_gnn_model(config, nodes, edges)
-    callbacks = create_callbacks(model.weight_file_name)
-    training_inputs, training_targets = create_train_data(nodes, edges, actions, rewards, num_training)
-    tnodes = nodes[-num_test:]
-    tedges = edges[-num_test:]
-    tactions = actions[-num_test:]
-
-    if not donttrain:
-        model.loss_model.fit(
-            training_inputs, training_targets, config.batch_size, epochs=500, verbose=2,
-            callbacks=callbacks,
-            validation_split=config.val_portion)
-
+    model = create_model(config)
+    training_inputs, training_targets = create_train_data(pose_based_states, actions, num_training)
     model.load_weights()
-    _, post_top_zero_acc, post_top_one_acc, post_top_two_acc = top_k_accuracy(model, tnodes, tedges, tactions,
-                                                                              config.top_k)
 
-    #write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
+    """
+    num_test = len(nodes) - num_training
+    config.num_test = num_test
+    _, post_top_zero_acc, post_top_one_acc, post_top_two_acc = top_k_accuracy(model, t_inputs, t_targets, config.top_k)
+
+    # write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
     print "Post-training top-0 accuracy %.2f" % post_top_zero_acc
     print "Post-training top-1 accuracy %.2f" % post_top_one_acc
     print "Post-training top-2 accuracy %.2f" % post_top_two_acc
+    """
 
 
 def write_test_results_in_csv(top0, top1, top2, seed, num_training, loss_fcn):
@@ -147,7 +151,6 @@ def parse_args():
     parser.add_argument('-loss', type=str, default='largemargin')
     parser.add_argument('-mse_weight', type=float, default=0.0)
     parser.add_argument('-statetype', type=str, default='shortest')
-
     configs = parser.parse_args()
     return configs
 
@@ -156,12 +159,6 @@ if __name__ == '__main__':
     configs = parse_args()
     np.random.seed(configs.seed)
     random.seed(configs.seed)
-    tf.set_random_seed(configs.seed)
 
     donttrain = configs.donttrain
-
-    num_trains = [100, 1000, 2000, 3000, 4000]
-    num_trains = num_trains
-    for num_train in num_trains:
-        configs.num_train = num_train
-        train(configs)
+    train(configs)
