@@ -106,7 +106,6 @@ class ActorCritic:
         return poses, konf_obsts, actions, dist_to_goal
 
     def train(self, data_loader, test_set, n_train):
-
         batch_size = 32  # Batch size
 
         optimizerD = optim.Adam(self.discriminator.parameters(), lr=1e-4, betas=(0.5, 0.9))
@@ -249,5 +248,5 @@ class ActorCritic:
 
         path = self.weight_dir + '/gen.pt'
         torch.save(self.discriminator.state_dict(), path)
-        import pdb;pdb.set_trace()
-        return there_exists_cond_satisfied
+
+        return True
