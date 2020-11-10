@@ -6,50 +6,34 @@ import numpy as np
 import sys
 import os
 import pickle
+import torch
 import glob
+import torch.optim as optim
 
+from datasets.dataset import PoseBasedDataset
 from learn.pose_based_models.fc import FullyConnected
 from data_traj import get_actions
 import csv
 
 
-def top_k_accuracy(q_model, nodes, edges, actions, k):
-    print "Testing on %d number of data" % len(nodes)
-    """
-    q_target_action = q_model.predict_with_raw_input_format(nodes, edges, actions)
-    n_data = len(nodes)
-    q_all_actions = q_model.alt_msg_layer.predict([nodes, edges, actions])
-    accuracy = []
-    top_zero_accuracy = []
-    top_one_accuracy = []
-    top_two_accuracy = []
-    for i in range(n_data):
-        n_actions_bigger_than_target = np.sum(q_target_action[i] < q_all_actions[i])
-        accuracy.append(n_actions_bigger_than_target <= k)
-        top_zero_accuracy.append(n_actions_bigger_than_target == 0)
-        top_one_accuracy.append(n_actions_bigger_than_target <= 1)
-        top_two_accuracy.append(n_actions_bigger_than_target <= 2)
-
-    return np.mean(accuracy), np.mean(top_zero_accuracy), np.mean(top_one_accuracy), np.mean(top_two_accuracy)
-    """
-    raise NotImplementedError
-
-
 def create_model(config):
-    if 'two_arm' in config.domain:
-        m = FullyConnected(num_actions=8)
-    else:
-        raise NotImplementedError
-    if os.path.isfile(m.weight_file_name) and not config.donttrain and not config.f:
-        print "Quitting because we've already trained with the given configuration"
-        sys.exit(-1)
+    m = FullyConnected(config)
+    # if os.path.isfile(m.weight_file_name) and not config.donttrain and not config.f:
+    #    print "Quitting because we've already trained with the given configuration"
+    #    sys.exit(-1)
     return m
 
 
-def create_train_data(inputs, targets, num_training):
-    training_inputs = inputs[:num_training]
-    training_targets = targets[:num_training]
-    return training_inputs, training_targets
+def create_dataset(inputs, targets, num_training):
+    train_inputs = np.array(inputs[:num_training])
+    train_targets = np.array(targets[:num_training])
+    train_dataset = PoseBasedDataset(train_inputs, train_targets)
+
+    test_inputs = np.array(inputs[num_training:])
+    test_targets = np.array(targets[num_training:])
+    test_dataset = PoseBasedDataset(test_inputs, test_targets)
+
+    return train_dataset, test_dataset
 
 
 def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
@@ -57,7 +41,7 @@ def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
     # cachefile = './planning_experience/two_arm_pick_two_arm_place_before_submission.pkl'
     if os.path.isfile(cachefile):
         print "Loading the cached file:", cachefile
-        #return pickle.load(open(cachefile, 'rb'))
+        return pickle.load(open(cachefile, 'rb'))
     print "Caching file..."
     file_list = glob.glob("{}/pap_traj_*.pkl".format(dirname))
 
@@ -99,27 +83,71 @@ def load_data(dirname, num_data, desired_operator_type='two_arm_pick'):
     return data
 
 
-def train(config):
-    data_path = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/'
-    pose_based_states, actions = load_data(data_path, config.num_train+config.num_test)
-
-    num_training = config.num_train
-    assert num_training > 0
-    config.num_train = num_training
+def train(config, train_dataloader, test_dataloader):
     model = create_model(config)
-    training_inputs, training_targets = create_train_data(pose_based_states, actions, num_training)
-    model.load_weights()
 
-    """
-    num_test = len(nodes) - num_training
-    config.num_test = num_test
-    _, post_top_zero_acc, post_top_one_acc, post_top_two_acc = top_k_accuracy(model, t_inputs, t_targets, config.top_k)
+    optimizerD = optim.Adam(model.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
-    # write_test_results_in_csv(post_top_zero_acc, post_top_one_acc, post_top_two_acc, seed, num_training, config.loss)
-    print "Post-training top-0 accuracy %.2f" % post_top_zero_acc
-    print "Post-training top-1 accuracy %.2f" % post_top_one_acc
-    print "Post-training top-2 accuracy %.2f" % post_top_two_acc
-    """
+    dataset = test_dataloader.dataset[:]
+    te_inputs = torch.from_numpy(dataset['inputs']).float()
+    te_targets = torch.from_numpy(dataset['targets']).float()
+
+    def data_generator():
+        while True:
+            for d in train_dataloader:
+                yield d
+
+    data_gen = data_generator()
+
+    n_iters_per_epoch = 5000 / train_dataloader.batch_size
+    n_epochs = 1000
+    n_iters = n_iters_per_epoch * n_epochs
+    k = 1
+    best_performance = -np.inf
+    patience = 0
+    for i in range(n_iters):
+        _data = data_gen.next()
+        inputs = _data['inputs'].float()
+        targets = _data['targets'].float()
+
+        model.zero_grad()
+
+        # how can I test if this is doing it correctly?
+
+        # compute the loss
+        pred = model(inputs)
+        target_action_value = torch.sum(torch.sum(pred * targets, axis=-1), axis=-1)
+        alternate_action_values = pred * (1 - targets) + -2e32 * targets
+        max_of_alternate_action_values = torch.max(torch.max(alternate_action_values, axis=-1)[0], axis=-1)[0]
+        action_value_delta = target_action_value - max_of_alternate_action_values
+        action_ranking_cost = 1 - action_value_delta
+        hinge_loss = torch.mean(torch.max(torch.zeros(action_ranking_cost.size()), action_ranking_cost))
+
+        hinge_loss.backward()
+        optimizerD.step()
+
+        # compute the ranking loss - what is the top k rank?
+        if i % n_iters_per_epoch == 0:
+            te_pred = model(te_inputs)
+            target_val = torch.sum(torch.sum(te_targets * te_pred, axis=-1), axis=-1)
+            te_pred = te_pred.reshape((len(te_pred), 22))
+            top_k_values = torch.sort(te_pred, -1)[0][:, -k:]
+            target_values_repeated = target_val.reshape((len(target_val), 1)).repeat((1, k))
+
+            target_value_in_top_k = torch.sum(target_values_repeated == top_k_values, axis=-1)
+            percentage_in_top_k = torch.mean(target_value_in_top_k.float())
+            print 'top ' + str(k) + ' loss', percentage_in_top_k
+
+            if percentage_in_top_k > best_performance:
+                torch.save(model.state_dict(), model.weight_file_name)
+                best_performance = percentage_in_top_k
+                patience = 0
+            else:
+                patience += 1
+
+            if patience >= 50:
+                print "Patience reached. Best performance is",best_performance
+                break
 
 
 def write_test_results_in_csv(top0, top1, top2, seed, num_training, loss_fcn):
@@ -162,5 +190,17 @@ if __name__ == '__main__':
     np.random.seed(configs.seed)
     random.seed(configs.seed)
 
+    data_path = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/'
+    pose_based_states, actions = load_data(data_path, configs.num_train + configs.num_test)
+    assert configs.num_train > 0
+    train_dataset, test_dataset = create_dataset(pose_based_states, actions, configs.num_train)
+
+    batch_size = 32
+    num_workers = 10
+    train_dataloder = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
+                                                  num_workers=num_workers, pin_memory=False)
+    test_dataloder = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=True,
+                                                 num_workers=num_workers, pin_memory=False)
+
     donttrain = configs.donttrain
-    train(configs)
+    train(configs, train_dataloder, test_dataloder)
