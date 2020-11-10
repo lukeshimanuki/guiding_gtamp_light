@@ -35,6 +35,10 @@ class ActorCritic:
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
 
+    def load_weights(self):
+        import pdb;pdb.set_trace()
+        self.generator.load_state_dict(torch.load(self.weight_dir + '/gen.pt'))
+
     @staticmethod
     def get_dim_action(action_type):
         if 'pick' in action_type:
@@ -247,6 +251,6 @@ class ActorCritic:
                 break
 
         path = self.weight_dir + '/gen.pt'
-        torch.save(self.discriminator.state_dict(), path)
+        torch.save(self.generator.state_dict(), path)
 
         return True
