@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 
 from gtamp_utils import utils
 import torch.nn as nn
+import os
 
 
 class ActorCritic:
@@ -30,6 +31,9 @@ class ActorCritic:
         self.discriminator, self.generator = self.create_models()
         self.weight_dir = self.get_weight_dir(self.action_type, self.region_name)
         self.domain = self.get_domain(self.action_type, self.region_name)
+        
+        if not os.path.isdir(self.weight_dir):
+            os.makedirs(self.weight_dir)
 
     @staticmethod
     def get_dim_action(action_type):
@@ -120,6 +124,7 @@ class ActorCritic:
         n_data_dim = self.n_dim_actions
         total_n_data = n_train
         total_iterations = 10000 * (total_n_data + 1) / batch_size  # 100 epochs
+        total_iterations = 500
 
         def data_generator():
             while True:
@@ -134,6 +139,8 @@ class ActorCritic:
 
         test_losses = []
         train_losses = []
+        min_test_loss = np.inf
+        patience = 0
         for iteration in xrange(total_iterations):
             ############################
             # (1) Update D network
@@ -162,41 +169,53 @@ class ActorCritic:
             # 15 minutes remaining - fix this bug!
             D_real = self.discriminator(actions_v, konf_obsts_v, poses_v)
             loss = nn.MSELoss()
-            D_loss = loss(D_real, dist_to_goal.reshape((32,1)))
+            D_loss = loss(D_real, dist_to_goal.reshape((len(dist_to_goal), 1)))
             D_loss.backward()
             optimizerD.step()
 
             # Evaluation
             te_val = self.discriminator(te_actions, te_konf_obsts, te_poses).squeeze()
             test_loss = loss(te_val, te_dist_to_goal)
+
+            if test_loss < min_test_loss:
+                min_test_loss = test_loss
+                patience = 0
+            else:
+                patience += 1
+
+            if patience >= 50:
+                break
             
             tr_val = self.discriminator(tr_actions, tr_konf_obsts, tr_poses).squeeze() 
             train_loss = loss(tr_val, tr_dist_to_goal)
 
             test_losses.append(test_loss.detach().numpy())
             train_losses.append(train_loss.detach().numpy())
+
             # stopping criteria using test data
-            print test_losses[-1], train_losses[-1]
+            print "Test %.2f Train %.2f" % (test_losses[-1], train_losses[-1])
+            plt.figure()
             plt.plot(test_losses, 'r', label='test')
             plt.plot(train_losses, 'b', label='train')
+            plt.legend()
             plt.savefig('./losses.png')
+            plt.close('all')
 
-        # Why is training loss larger than test loss?
-        # Why are the shapes of test and training losses almost identical?
-        import pdb; pdb.set_trace()
+        path = self.weight_dir + '/disc.pt'
+        torch.save(self.discriminator.state_dict(), path)
 
         ############################
         # (2) Update G network
         ###########################
+        patience = 0
+        min_test_loss = np.inf
         for iteration in xrange(total_iterations):
             _data = data_gen.next()
             poses = _data['poses'].float()
             konf_obsts = _data['konf_obsts'].float()
-            actions = _data['actions'].float()
             if use_cuda:
                 poses = poses.cuda()
                 konf_obsts = konf_obsts.cuda()
-                actions = actions.cuda()
             poses_v = autograd.Variable(poses)
             konf_obsts_v = autograd.Variable(konf_obsts)
 
@@ -208,10 +227,27 @@ class ActorCritic:
             if use_cuda:
                 noise = noise.cuda()
             noisev = autograd.Variable(noise)
-            fake = self.generator(konf_obsts_v, poses_v, noisev)
-            G = self.discriminator(fake, konf_obsts_v, poses_v)
+
+            generated = self.generator(konf_obsts_v, poses_v, noisev)
+            G = self.discriminator(generated, konf_obsts_v, poses_v)  # keep in mind that I am minimizing
             G = G.mean()
             G.backward()
             optimizerG.step()
 
+            noise = torch.randn(len(te_konf_obsts), n_data_dim)
+            te_generated = self.generator(te_konf_obsts, te_poses, noise).squeeze()
+            test_loss = torch.mean(self.discriminator(te_generated, te_konf_obsts, te_poses))
+            print "generator test value", test_loss
+            if test_loss < min_test_loss:
+                min_test_loss = test_loss
+                patience = 0
+            else:
+                patience += 1
+
+            if patience >= 50:
+                break
+
+        path = self.weight_dir + '/gen.pt'
+        torch.save(self.discriminator.state_dict(), path)
+        import pdb;pdb.set_trace()
         return there_exists_cond_satisfied
