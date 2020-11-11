@@ -8,7 +8,8 @@ import socket
 import torch
 import numpy as np
 import time
-from matplotlib import pyplot as plt
+if 'office' in socket.gethostname():
+    from matplotlib import pyplot as plt
 
 from gtamp_utils import utils
 import torch.nn as nn
