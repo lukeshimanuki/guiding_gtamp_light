@@ -34,22 +34,21 @@ class GeneratorDataset(Dataset):
         self.is_testing = is_testing
         self.config = config
         # if self.config.train_type == 'w':
-        self.konf_obsts, self.poses, self.actions, self.labels, self.dists_to_goal = self.get_data()
-        # else:
-        #    self.konf_obsts, self.poses, self.actions = self.get_data()
+        self.konf_obsts, self.poses, self.actions, self.labels, self.dists_to_goal, self.all_object_robot_poses \
+            = self.get_data()
 
     def get_cache_file_name(self, action_data_mode):
-        state_data_mode = 'absolute'
+        state_mode = self.config.state_mode
         action_type = self.config.atype
         desired_region = self.config.region
         use_filter = self.use_filter
         if 'pick' in action_type:
             cache_file_name = 'hard_cache_smode_%s_amode_%s_atype_%s_num_data_%d.pkl' % (
-                state_data_mode, action_data_mode, action_type, self.config.num_episode)
+                state_mode, action_data_mode, action_type, self.config.num_episode)
         else:
             assert use_filter
             cache_file_name = 'hard_cache_smode_%s_amode_%s_atype_%s_region_%s_filtered_num_episode_%d.pkl' % (
-                state_data_mode,
+                state_mode,
                 action_data_mode,
                 action_type,
                 desired_region,
@@ -98,6 +97,23 @@ class GeneratorDataset(Dataset):
 
         return False
 
+    def get_object_poses(self, abstract_state, manipulated_object_name):
+        obj_list = [
+            u'rectangular_packing_box4', u'rectangular_packing_box2', u'rectangular_packing_box3',
+            u'rectangular_packing_box1', u'square_packing_box2', u'square_packing_box3', u'square_packing_box1',
+            u'square_packing_box4'
+        ]
+
+        pose_based_state = abstract_state.nodes[manipulated_object_name][3:6]
+        for obj_name in obj_list:
+            if obj_name == manipulated_object_name:
+                continue
+            pose = abstract_state.nodes[obj_name][3:6]
+            pose_based_state += pose
+        robot_pose = abstract_state.robot_pose.squeeze()
+        pose_based_state += robot_pose.tolist()
+        return pose_based_state
+
     def get_data_from_traj_dir(self, traj_dir, action_data_mode):
         # todo fix this;
         traj_files = os.listdir(traj_dir)
@@ -114,6 +130,7 @@ class GeneratorDataset(Dataset):
         all_poses_ids = []
         all_labels = []
         all_dists_to_goal = []
+        all_traj_all_object_and_robot_poses = []
         n_episodes_included = 0
         for traj_file_idx, traj_file in enumerate(traj_files):
             if 'pidx' not in traj_file:
@@ -134,18 +151,20 @@ class GeneratorDataset(Dataset):
                     continue
             if len(traj['positive_data'] + traj['neutral_data']) == 0:
                 continue
-            states = []
-            poses_ids = []
-            actions = []
-            data = traj['positive_data'] + traj['neutral_data']
-            temp_labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
-            dists_to_goal = []
+
+            traj_states = []
+            traj_poses_ids = []  # includes only current obj, goal obj, and robot poses
+            traj_all_object_and_robot_poses = []
+            traj_actions = []
+            traj_data = traj['positive_data'] + traj['neutral_data']
+            traj_temp_labels = [1] * len(traj['positive_data']) + [0] * len(traj['neutral_data'])
+            traj_dists_to_goal = []
 
             labels = []
-            assert 'two_arm' in data[0]['action'].type, 'change the reward condition on region for one_arm'
+            assert 'two_arm' in traj_data[0]['action'].type, 'change the reward condition on region for one_arm'
             print "traj file:", traj_file
             pos_data_idx = 1
-            for node, temp_label in zip(data, temp_labels):
+            for node, temp_label in zip(traj_data, traj_temp_labels):
                 reward = (node['parent_n_in_way'] - node['n_in_way'] > 0) or \
                          (node['parent_n_in_way'] == 0 and node['n_in_way'] == 0 and
                           node['action'].discrete_parameters['place_region'] == 'home_region')
@@ -164,7 +183,7 @@ class GeneratorDataset(Dataset):
                         v_manip_vec = utils.convert_binary_vec_to_one_hot(v_manip_goal.squeeze()).reshape(
                             (1, 355, 2, 1))
                     state_vec = np.concatenate([collision_vec, v_manip_vec], axis=2)
-                    states.append(state_vec)
+                    traj_states.append(state_vec)
                     poses_from_state = get_processed_poses_from_state(s, 'absolute')
                     a = node['action_info']
                     if 'rectangular' in a['object_name']:
@@ -172,23 +191,33 @@ class GeneratorDataset(Dataset):
                     else:
                         object_id = [0, 1]
                     poses_from_state_and_id = np.hstack([poses_from_state, object_id])
-                    poses_ids.append(poses_from_state_and_id)
-                    actions.append(get_processed_poses_from_action(s, a, action_data_mode))
+                    traj_poses_ids.append(poses_from_state_and_id)
+                    traj_actions.append(get_processed_poses_from_action(s, a, action_data_mode))
 
                     if temp_label == 1:
                         dist_to_goal = len(traj['positive_data']) - pos_data_idx
                         pos_data_idx += 1
-                        dists_to_goal.append(dist_to_goal)
+                        traj_dists_to_goal.append(dist_to_goal)
                     else:
-                        dists_to_goal.append(-999)
+                        traj_dists_to_goal.append(-999)
 
-            if len(poses_ids) == 0:
+                    # get the object poses
+                    all_object_poses = self.get_object_poses(node['abs_state'],
+                                                             node['concrete_state'].abstract_action.discrete_parameters[
+                                                                 'object'])
+                    robot_pose = node['abs_state'].robot_pose.squeeze()
+                    all_object_and_robot_poses = all_object_poses + robot_pose.tolist()
+                    traj_all_object_and_robot_poses.append(np.array(all_object_and_robot_poses))
+
+            if len(traj_poses_ids) == 0:
                 continue
-            all_poses_ids.append(poses_ids)
-            all_states.append(states)
-            all_actions.append(actions)
+            all_poses_ids.append(traj_poses_ids)
+            all_states.append(traj_states)
+            all_actions.append(traj_actions)
             all_labels.append(labels)
-            all_dists_to_goal.append(dists_to_goal)
+            all_dists_to_goal.append(traj_dists_to_goal)
+            all_traj_all_object_and_robot_poses.append(traj_all_object_and_robot_poses)
+
             assert len(np.hstack(all_labels)) == len(np.vstack(all_poses_ids))
 
             try:
@@ -198,6 +227,7 @@ class GeneratorDataset(Dataset):
             except:
                 import pdb;
                 pdb.set_trace()
+
             print 'action shape', np.vstack(all_actions).shape
             n_episodes_included += 1
             print 'n_episodes included %d/%d' % (n_episodes_included, self.config.num_episode)
@@ -209,9 +239,12 @@ class GeneratorDataset(Dataset):
         all_poses_ids = np.vstack(all_poses_ids).squeeze()
         all_labels = np.hstack(all_labels).squeeze()
         all_dists_to_goal = np.hstack(all_dists_to_goal).squeeze()
-        pickle.dump((all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal),
+        all_traj_all_object_and_robot_poses = np.vstack(all_traj_all_object_and_robot_poses)
+        pickle.dump((all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal,
+                     all_traj_all_object_and_robot_poses),
                     open(traj_dir + cache_file_name, 'wb'))
-        return all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal
+        return all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal, \
+               all_traj_all_object_and_robot_poses
 
     def load_pos_neu_data(self, action_data_mode):
         traj_dirs = self.get_data_dir()
@@ -220,19 +253,23 @@ class GeneratorDataset(Dataset):
         all_poses_ids = []
         all_labels = []
         all_dists_to_goal = []
+        all_all_object_robot_poses = []
         for traj_dir in traj_dirs:
-            states, poses_ids, actions, labels, dists_to_goal = self.get_data_from_traj_dir(traj_dir, action_data_mode)
+            states, poses_ids, actions, labels, dists_to_goal, all_object_robot_poses = self.get_data_from_traj_dir(
+                traj_dir, action_data_mode)
             all_states.append(states)
             all_actions.append(actions)
             all_poses_ids.append(poses_ids)
             all_labels.append(labels)
             all_dists_to_goal.append(dists_to_goal)
+            all_all_object_robot_poses.append(all_object_robot_poses)
         all_states = np.vstack(all_states)
         all_actions = np.vstack(all_actions)
         all_poses_ids = np.vstack(all_poses_ids)
         all_labels = np.hstack(all_labels)
         all_dists_to_goal = np.hstack(all_dists_to_goal)
-        return all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal
+        all_all_object_robot_poses = np.vstack(all_all_object_robot_poses)
+        return all_states, all_poses_ids, all_actions, all_labels, all_dists_to_goal, all_all_object_robot_poses
 
     def get_data(self):
         if self.config.atype == 'pick':
@@ -240,7 +277,7 @@ class GeneratorDataset(Dataset):
         else:
             action_data_mode = 'PICK_grasp_params_and_abs_base_PLACE_abs_base'
 
-        states, poses, actions, labels, dists_to_goal = self.load_pos_neu_data(action_data_mode)
+        states, poses, actions, labels, dists_to_goal, all_object_robot_poses = self.load_pos_neu_data(action_data_mode)
 
         if self.config.atype == 'pick':
             actions = actions[:, :-4]
@@ -251,7 +288,7 @@ class GeneratorDataset(Dataset):
         else:
             raise NotImplementedError
 
-        return states, poses, actions, labels, dists_to_goal
+        return states, poses, actions, labels, dists_to_goal, all_object_robot_poses
 
     def __len__(self):
         return len(self.konf_obsts)
@@ -267,6 +304,7 @@ class StandardDataset(GeneratorDataset):
         self.poses = self.poses[self.labels == 1]
         self.actions = self.actions[self.labels == 1]
         self.dists_to_goal = self.dists_to_goal[self.labels == 1]
+        self.all_object_robot_poses = self.all_object_robot_poses[self.labels == 1]
 
     def __getitem__(self, idx):
         data = {
@@ -274,6 +312,7 @@ class StandardDataset(GeneratorDataset):
             'poses': self.poses[idx],
             'actions': self.actions[idx],
             'dists_to_goal': self.dists_to_goal[idx],
+            'all_object_robot_poses': self.all_object_robot_poses[idx]
         }
         return data
 
