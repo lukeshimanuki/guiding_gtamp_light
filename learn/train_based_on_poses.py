@@ -112,8 +112,6 @@ def train(config, train_dataloader, test_dataloader):
 
         model.zero_grad()
 
-        # how can I test if this is doing it correctly?
-
         # compute the loss
         pred = model(inputs)
         target_action_value = torch.sum(torch.sum(pred * targets, axis=-1), axis=-1)
@@ -189,6 +187,7 @@ if __name__ == '__main__':
     configs = parse_args()
     np.random.seed(configs.seed)
     random.seed(configs.seed)
+    torch.manual_seed(configs.seed)
 
     data_path = 'planning_experience/processed/domain_two_arm_mover/n_objs_pack_1/rsc/trajectory_data/shortest/'
     pose_based_states, actions = load_data(data_path, configs.num_train + configs.num_test)
