@@ -83,8 +83,9 @@ class WGANgp:
 
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/{}/seed_{}'.format(
+            dir = './generators/learning/learned_weights/{}/state_mode_{}/num_episodes_{}/{}/{}/{}/{}/seed_{}'.format(
                 self.problem_name,
+                self.config.state_mode,
                 self.config.num_episode,
                 action_type,
                 region_name,
@@ -92,12 +93,14 @@ class WGANgp:
                 self.architecture,
                 self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/seed_{}'.format(self.problem_name,
-                                                                                                     self.config.num_episode,
-                                                                                                     action_type,
-                                                                                                     self.config.train_type,
-                                                                                                     self.architecture,
-                                                                                                     self.seed)
+            dir = './generators/learning/learned_weights/{}/state_mode_{}/num_episodes_{}/{}/{}/{}/seed_{}'.format(
+                self.problem_name,
+                self.config.state_mode,
+                self.config.num_episode,
+                action_type,
+                self.config.train_type,
+                self.architecture,
+                self.seed)
         return dir
 
     def get_domain(self, action_type, region_name):
@@ -281,7 +284,7 @@ class WGANgp:
 
         n_data_dim = self.n_dim_actions
         total_n_data = n_train
-        total_iterations = 10000 * (total_n_data + 1)/batch_size # 100 epochs
+        total_iterations = 10000 * (total_n_data + 1) / batch_size  # 100 epochs
 
         def data_generator():
             while True:
@@ -310,6 +313,9 @@ class WGANgp:
                 poses = _data['poses'].float()
                 konf_obsts = _data['konf_obsts'].float()
                 actions = _data['actions'].float()
+                # todo use all object and robot poses
+                import pdb;pdb.set_trace()
+
                 if use_cuda:
                     poses = poses.cuda()
                     konf_obsts = konf_obsts.cuda()
@@ -376,7 +382,7 @@ class WGANgp:
             # Write logs and save samples
             if True:
                 mse, kde, entropy = self.evaluate_generator(test_set.dataset, iteration=None)
-                open(self.weight_dir+'/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
+                open(self.weight_dir + '/mse_{}_kde_{}_entropy_{}_epoch_{}'.format(mse, kde, entropy, iteration), 'wb')
                 print "Best MSE {} KDE {} Entropy {}".format(best_mse, best_kde, best_entropy)
                 print "Current KDE {} Entropy {}".format(kde, entropy)
                 print "Iteration %d / %d" % (iteration, total_iterations)
