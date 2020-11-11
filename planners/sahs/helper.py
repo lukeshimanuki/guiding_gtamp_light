@@ -4,6 +4,7 @@ from trajectory_representation.shortest_path_pick_and_place_state import Shortes
 from trajectory_representation.one_arm_pap_state import OneArmPaPState
 from learn.data_traj import get_actions as convert_action_to_predictable_form
 import numpy as np
+import torch
 import openravepy
 
 
@@ -13,8 +14,13 @@ def get_actions(mover, goal, config):
     return permuted_actions
 
 
-def compute_bonus_val(pap_model, nodes, edges, a_raw_form):
-    q_val = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...], a_raw_form[None, ...])[0]
+def compute_bonus_val(pap_model, state, nodes, edges, a_raw_form):
+    is_pose_based_model = type(pap_model).__name__ == 'FullyConnected'
+    if is_pose_based_model:
+        poses = state.get_object_and_robot_poses()
+        q_val = pap_model.predict(poses, a_raw_form)
+    else:
+        q_val = pap_model.predict_with_raw_input_format(nodes[None, ...], edges[None, ...], a_raw_form[None, ...])[0]
     if abs(q_val) > 10:
         bonus_val = np.exp(q_val / 100.0)
     else:
@@ -30,10 +36,10 @@ def compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env):
         a_raw_form = convert_action_to_predictable_form(a, entity_names)
         if np.all(a_raw_form == actions):
             continue
-        bonus_val = compute_bonus_val(pap_model, nodes, edges, a_raw_form)
+        bonus_val = compute_bonus_val(pap_model, state, nodes, edges, a_raw_form)
         exp_q_vals.append(bonus_val)
 
-    bonus_val_on_curr_a = compute_bonus_val(pap_model, nodes, edges, actions)
+    bonus_val_on_curr_a = compute_bonus_val(pap_model, state, nodes, edges, actions)
     q_bonus = bonus_val_on_curr_a / (np.sum(exp_q_vals) + 1e-5)
     return q_bonus
 
@@ -117,8 +123,6 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
            h_option == 'h_without_predicates' or\
            h_option == 'hcount_old_number_in_goal_hand_desigend_action_values'
     """
-
-
     assert mixrate == 1
 
     is_two_arm_domain = 'two_arm_' in action.type
@@ -130,15 +134,7 @@ def compute_heuristic(state, action, pap_model, h_option, mixrate):
 
     nodes, edges, actions, _ = extract_individual_example(state, action)
 
-    region_is_goal = state.nodes[target_r][8]
-
-    if 'two_arm' in problem_env.name:
-        goal_objs = [tmp_o for tmp_o in state.goal_entities if 'box' in tmp_o]
-        goal_region = 'home_region'
-    else:
-        goal_objs = [tmp_o for tmp_o in state.goal_entities if 'region' not in tmp_o]
-        goal_region = 'rectangular_packing_box1_region'
-    if h_option == 'qlearned_hcount_old_number_in_goal':
+    if h_option == 'qlearned_hcount_old_number_in_goal' or h_option == 'pose_qlearned_hcount_old_number_in_goal':
         nodes, edges, actions, _ = extract_individual_example(state, action)  # why do I call this again?
         nodes = nodes[..., 6:]
         q_bonus = compute_q_bonus(state, nodes, edges, actions, pap_model, problem_env)

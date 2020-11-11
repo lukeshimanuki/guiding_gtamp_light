@@ -20,8 +20,12 @@ from generators.learning.learning_algorithms.ActorCritic import ActorCritic
 
 from planners.sahs.greedy_new import search
 from learn.pap_gnn import PaPGNN
+from learn.pose_based_models.fc import FullyConnected as PoseBasedRankFunction
+
 from generators.learning.learning_algorithms.WGANGP import WGANgp
 from generators.samplers.uniform_sampler import UniformSampler
+
+
 
 
 def get_problem_env(config, goal_region, goal_objs):
@@ -247,39 +251,41 @@ def set_problem_env_config(problem_env, config):
     problem_env.init_saver = DynamicEnvironmentStateSaver(problem_env.env)
 
 
-def get_pap_gnn_model(mover, config):
-    is_use_gnn = 'qlearned' in config.h_option
+def get_pap_model(mover, config):
+    is_use_gnn = 'qlearned' in config.h_option and 'pose' not in config.h_option
+    mconfig_type = collections.namedtuple('mconfig_type',
+                                          'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes '
+                                          'top_k optimizer lr use_mse batch_size seed num_train val_portion '
+                                          'mse_weight diff_weight_msg_passing same_vertex_model '
+                                          'weight_initializer loss use_region_agnostic')
+
+    mconfig = mconfig_type(
+        operator='two_arm_pick_two_arm_place',
+        n_msg_passing=1,
+        n_layers=2,
+        num_fc_layers=2,
+        n_hidden=32,
+        no_goal_nodes=False,
+
+        top_k=1,
+        optimizer='adam',
+        lr=1e-4,
+        use_mse=True,
+
+        batch_size='32',
+        seed=config.absq_seed,
+        num_train=config.num_train,
+        val_portion=.1,
+        mse_weight=config.mse_weight,
+        diff_weight_msg_passing=False,
+        same_vertex_model=False,
+        weight_initializer='glorot_uniform',
+        loss=config.loss,
+        use_region_agnostic=config.use_region_agnostic
+    )
+
     if is_use_gnn:
-        mconfig_type = collections.namedtuple('mconfig_type',
-                                              'operator n_msg_passing n_layers num_fc_layers n_hidden no_goal_nodes '
-                                              'top_k optimizer lr use_mse batch_size seed num_train val_portion '
-                                              'mse_weight diff_weight_msg_passing same_vertex_model '
-                                              'weight_initializer loss use_region_agnostic')
 
-        pap_mconfig = mconfig_type(
-            operator='two_arm_pick_two_arm_place',
-            n_msg_passing=1,
-            n_layers=2,
-            num_fc_layers=2,
-            n_hidden=32,
-            no_goal_nodes=False,
-
-            top_k=1,
-            optimizer='adam',
-            lr=1e-4,
-            use_mse=True,
-
-            batch_size='32',
-            seed=config.absq_seed,
-            num_train=config.num_train,
-            val_portion=.1,
-            mse_weight=config.mse_weight,
-            diff_weight_msg_passing=False,
-            same_vertex_model=False,
-            weight_initializer='glorot_uniform',
-            loss=config.loss,
-            use_region_agnostic=config.use_region_agnostic
-        )
         if config.domain == 'two_arm_mover':
             num_entities = 11  # 8
             n_regions = 2
@@ -295,10 +301,11 @@ def get_pap_gnn_model(mover, config):
         entity_names = mover.entity_names
 
         with tf.variable_scope('pap'):
-            pap_model = PaPGNN(num_entities, num_node_features, num_edge_features, pap_mconfig, entity_names, n_regions)
+            pap_model = PaPGNN(num_entities, num_node_features, num_edge_features, mconfig, entity_names, n_regions)
         pap_model.load_weights()
     else:
-        pap_model = None
+        pap_model = PoseBasedRankFunction(mconfig)
+        pap_model.load_state_dict(torch.load(pap_model.weight_file_name))
 
     return pap_model
 
@@ -449,11 +456,7 @@ def main():
     if config.v:
         utils.viewer()
 
-    is_use_gnn = 'qlearned' in config.h_option
-    if is_use_gnn:
-        pap_model = get_pap_gnn_model(problem_env, config)
-    else:
-        pap_model = None
+    pap_model = get_pap_model(problem_env, config)
 
     t = time.time()
     np.random.seed(config.planner_seed)
