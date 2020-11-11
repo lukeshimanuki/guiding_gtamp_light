@@ -7,13 +7,13 @@ import pickle
 
 import socket
 
-if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey':
+if socket.gethostname() == 'phaedra' or socket.gethostname() == 'shakey' or 'office' in socket.gethostname():
     from sklearn.neighbors import KernelDensity
 import os
 import scipy as sp
 
 from torch_wgangp_models.fc_models import Generator, Discriminator
-from torch_wgangp_models.cnn_models import CNNGenerator, CNNDiscriminator
+from torch_wgangp_models import pose_models
 
 from gtamp_utils import utils
 
@@ -63,13 +63,17 @@ class WGANgp:
             os.makedirs(self.weight_dir)
 
     def create_models(self):
-        if self.architecture == 'fc':
-            discriminator = Discriminator(self.n_dim_actions, self.action_type, self.region_name,
-                                          self.problem_name)
-            generator = Generator(self.n_dim_actions, self.action_type, self.region_name,
-                                  self.problem_name)
+        if self.config.state_mode == 'pose':
+            discriminator = pose_models.Discriminator(self.n_dim_actions, self.action_type, self.region_name,
+                                                      self.problem_name)
+            generator = pose_models.Generator(self.n_dim_actions, self.action_type, self.region_name,
+                                              self.problem_name)
         else:
-            raise NotImplementedError
+            if self.architecture == 'fc':
+                discriminator = Discriminator(self.n_dim_actions, self.action_type, self.region_name, self.problem_name)
+                generator = Generator(self.n_dim_actions, self.action_type, self.region_name, self.problem_name)
+            else:
+                raise NotImplementedError
         discriminator.to(self.device)
         generator.to(self.device)
         return discriminator, generator
@@ -181,7 +185,10 @@ class WGANgp:
             test_data['konf_obsts'] = test_data['konf_obsts'].numpy()
             test_data['actions'] = test_data['actions'].numpy()
 
-        poses = torch.from_numpy(test_data['poses']).float().to(self.device)
+        if self.config.state_mode == 'pose':
+            poses = torch.from_numpy(test_data['all_object_robot_poses']).float().to(self.device)
+        else:
+            poses = torch.from_numpy(test_data['poses']).float().to(self.device)
         konf_obsts = torch.from_numpy(test_data['konf_obsts']).float().to(self.device)
 
         n_data = len(poses)
@@ -231,7 +238,6 @@ class WGANgp:
             else:
                 place_x, place_y = unnormalized_smpls_from_state[:, 0], unnormalized_smpls_from_state[:, 1]
                 encoded_theta = unnormalized_smpls_from_state[:, 1:]
-                # H_theta, _, _ = np.histogram2d(encoded_theta[:, 0], encoded_theta[:, 1], bins=10, range=self.domain[:, 2:].transpose())
                 H, _, _ = np.histogram2d(place_x, place_y, bins=10, range=self.domain[:, 0:2].transpose())
 
                 # I think the angle entropy is more important
@@ -310,11 +316,12 @@ class WGANgp:
 
             for iter_d in xrange(CRITIC_ITERS):
                 _data = data_gen.next()
-                poses = _data['poses'].float()
                 konf_obsts = _data['konf_obsts'].float()
                 actions = _data['actions'].float()
-                # todo use all object and robot poses
-                import pdb;pdb.set_trace()
+                if self.config.state_mode == 'pose':
+                    poses = _data['all_object_robot_poses'].float()
+                else:
+                    poses = _data['poses'].float()
 
                 if use_cuda:
                     poses = poses.cuda()
@@ -354,9 +361,13 @@ class WGANgp:
             # (2) Update G network
             ###########################
             _data = data_gen.next()
-            poses = _data['poses'].float()
             konf_obsts = _data['konf_obsts'].float()
             actions = _data['actions'].float()
+            if self.config.state_mode == 'pose':
+                poses = _data['all_object_robot_poses'].float()
+            else:
+                poses = _data['poses'].float()
+
             if use_cuda:
                 poses = poses.cuda()
                 konf_obsts = konf_obsts.cuda()
