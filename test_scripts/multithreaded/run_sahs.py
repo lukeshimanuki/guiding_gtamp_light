@@ -149,7 +149,7 @@ def main():
     os.system(cmd)
 
     setup = parse_arguments()
-    setup.use_region_agnostic = True
+    #setup.use_region_agnostic = True
 
     setup.timelimit = np.inf
     setup.num_node_limit = 100
