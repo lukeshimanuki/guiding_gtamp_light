@@ -89,6 +89,21 @@ class ShortestPathPaPState(PaPState):
         self.binary_edges = self.get_binary_edges()
         self.ternary_edges = self.get_ternary_edges()
 
+    def get_object_and_robot_poses(self):
+        obj_list = [
+            u'rectangular_packing_box4', u'rectangular_packing_box2', u'rectangular_packing_box3',
+            u'rectangular_packing_box1', u'square_packing_box2', u'square_packing_box3', u'square_packing_box1',
+            u'square_packing_box4'
+        ]
+        pose_based_state = []
+        for obj_name in obj_list:
+            pose = self.nodes[obj_name][3:6]
+            pose_based_state += pose
+        robot_pose = self.robot_pose.squeeze()
+        pose_based_state += robot_pose.tolist()
+        return pose_based_state
+
+
     def initialize_parent_predicates(self, moved_obj, parent_state, parent_action):
         assert parent_action is not None
 
