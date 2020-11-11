@@ -1,6 +1,7 @@
 from torch import nn
 
 import torch
+import numpy as np
 import os
 
 
@@ -20,7 +21,7 @@ class FullyConnected(nn.Module):
                 nn.ReLU(),
                 torch.nn.Linear(self.n_hidden, 11*2))
 
-        self.weight_dir,  self.weight_file_name = self.create_weight_file_name()
+        self.weight_dir, self.weight_file_name = self.create_weight_file_name()
         if not os.path.isdir(self.weight_dir):
             os.makedirs(self.weight_dir)
 
@@ -49,6 +50,12 @@ class FullyConnected(nn.Module):
         pose_val = self.pose_net(poses)
         pose_val = pose_val.reshape((len(pose_val), 11, 2))
         return pose_val
+
+    def predict(self, poses, action):
+        poses = torch.from_numpy(np.array(poses))
+        q_val = self.forward(poses.reshape((1, 27)).float()).squeeze()
+        q_val = np.sum(q_val.detach().numpy() * action) # selection
+        return q_val
 
     def load_weights(self):
         raise NotImplementedError
