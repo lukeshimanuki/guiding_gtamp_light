@@ -36,7 +36,6 @@ class ActorCritic:
             os.makedirs(self.weight_dir)
 
     def load_weights(self):
-        import pdb;pdb.set_trace()
         self.generator.load_state_dict(torch.load(self.weight_dir + '/gen.pt'))
 
     @staticmethod
