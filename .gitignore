@@ -34,3 +34,4 @@ generators/learning/learned_weights/*
 generators/sampler_performances/*/*
 plotters/plots/*
 *.zip
+planning_experience_phaedra/*
