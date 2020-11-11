@@ -181,6 +181,8 @@ class ActorCritic:
 
             if test_loss < min_test_loss:
                 min_test_loss = test_loss
+                path = self.weight_dir + '/disc.pt'
+                torch.save(self.discriminator.state_dict(), path)
                 patience = 0
             else:
                 patience += 1
@@ -202,9 +204,6 @@ class ActorCritic:
             plt.legend()
             plt.savefig('./losses.png')
             plt.close('all')
-
-        path = self.weight_dir + '/disc.pt'
-        torch.save(self.discriminator.state_dict(), path)
 
         ############################
         # (2) Update G network
@@ -250,7 +249,5 @@ class ActorCritic:
 
             if patience >= 50:
                 break
-
-
 
         return True
