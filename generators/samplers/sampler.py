@@ -49,8 +49,9 @@ class Sampler:
         raise NotImplementedError
 
 class LearnedSampler(Sampler):
-    def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state=None):
+    def __init__(self, atype, sampler, abstract_state, abstract_action, config, smpler_state=None):
         target_region = abstract_state.problem_env.regions[abstract_action.discrete_parameters['place_region']]
+        self.config = config
         Sampler.__init__(self, atype,  target_region, sampler)
         self.abstract_state = abstract_state
         self.obj = abstract_action.discrete_parameters['object']
