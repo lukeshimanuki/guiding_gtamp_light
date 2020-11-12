@@ -7,7 +7,7 @@ class Discriminator(BaseModel):
     def __init__(self, dim_data, atype, region, problem_name):
         BaseModel.__init__(self, atype, region, problem_name)
 
-        dim_all_object_and_robot_poses = 30
+        dim_all_object_and_robot_poses = 27
         self.pose_net = \
             nn.Sequential(
                 torch.nn.Linear(dim_all_object_and_robot_poses, self.n_hidden),
