@@ -82,10 +82,18 @@ class ActorCritic:
         generator.to(self.device)
         return discriminator, generator
 
+    def generate(self, konf_obsts, poses):
+        noise = torch.randn(len(konf_obsts), self.n_dim_actions).to(self.device)
+        konf_obsts = torch.Tensor(konf_obsts).to(self.device)
+        poses = torch.Tensor(poses).to(self.device)
+        samples = self.generator(konf_obsts, poses, noise).cpu().data.numpy()
+        return samples
+
     def get_weight_dir(self, action_type, region_name):
         if 'place' in action_type:
-            dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/{}/seed_{}'.format(
+            dir = './generators/learning/learned_weights/{}/state_mode_{}/num_episodes_{}/{}/{}/{}/{}/seed_{}'.format(
                 self.problem_name,
+                self.config.state_mode,
                 self.config.num_episode,
                 action_type,
                 region_name,
@@ -93,12 +101,14 @@ class ActorCritic:
                 self.architecture,
                 self.seed)
         else:
-            dir = './generators/learning/learned_weights/{}/num_episodes_{}/{}/{}/{}/seed_{}'.format(self.problem_name,
-                                                                                                     self.config.num_episode,
-                                                                                                     action_type,
-                                                                                                     self.config.train_type,
-                                                                                                     self.architecture,
-                                                                                                     self.seed)
+            dir = './generators/learning/learned_weights/{}/state_mode_{}/num_episodes_{}/{}/{}/{}/seed_{}'.format(
+                self.problem_name,
+                self.config.state_mode,
+                self.config.num_episode,
+                action_type,
+                self.config.train_type,
+                self.architecture,
+                self.seed)
         return dir
 
     def get_data_from_dataloader(self, dataloader):

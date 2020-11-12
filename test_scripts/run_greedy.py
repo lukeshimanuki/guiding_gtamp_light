@@ -26,8 +26,6 @@ from generators.learning.learning_algorithms.WGANGP import WGANgp
 from generators.samplers.uniform_sampler import UniformSampler
 
 
-
-
 def get_problem_env(config, goal_region, goal_objs):
     np.random.seed(config.pidx)
     random.seed(config.pidx)
@@ -77,7 +75,7 @@ def get_solution_file_name(config):
             config.pick_epoch,
             config.place_goal_region_epoch,
             config.place_obj_region_epoch
-            )
+        )
     solution_file_dir += '/n_mp_limit_%d_n_iter_limit_%d/' % (config.n_mp_limit, config.n_iter_limit)
 
     solution_file_name = 'pidx_' + str(config.pidx) + \
@@ -120,7 +118,7 @@ def convert_seed_epoch_idxs_to_seed_and_epoch(atype, region, config):
     seed = int(candidate_seeds[config.sampler_seed_idx])
 
     if config.sampler_epoch_idx == -1:
-        if atype =='pick':
+        if atype == 'pick':
             epoch = config.pick_epoch
         elif atype == 'place':
             if 'home' in region:
@@ -154,7 +152,7 @@ def setup_seed_and_epoch(config):
                                                                                                      config)
         if config.place_obj_region_epoch != -1:
             place_obj_region_epoch = config.place_obj_region_epoch
-            
+
     else:
         place_obj_region_seed, place_obj_region_epoch = -1, -1
 
@@ -215,7 +213,8 @@ def parse_arguments():
     parser.add_argument('-explr_p', type=float, default=0.3)
     parser.add_argument('-architecture', type=str, default='fc')
     parser.add_argument('-train_type', type=str, default='wgandi')
-    parser.add_argument('-num_episode', type=int, default=1000)
+    parser.add_argument('-state_mode', type=str, default='keyconfigs')
+    parser.add_argument('-num_episode', type=int, default=1500)
 
     parser.add_argument('-pick_seed', type=int, default=0)  # used for threaded runs
     parser.add_argument('-place_obj_region_seed', type=int, default=0)  # used for threaded runs
@@ -285,7 +284,6 @@ def get_pap_model(mover, config):
     )
 
     if is_use_gnn:
-
         if config.domain == 'two_arm_mover':
             num_entities = 11  # 8
             n_regions = 2
