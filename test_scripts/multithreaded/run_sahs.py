@@ -131,8 +131,9 @@ def get_all_configs(target_pidx_idxs, setup):
                             config['place_obj_region_epoch'] = place_obj_region_epoch
                             config['place_goal_region_epoch'] = place_goal_region_epoch
                         else:
-                            action_name = determine_action_name(setup)
-                            config[action_name + '_epoch'] = int(epoch)
+                            pass
+                            #action_name = determine_action_name(setup)
+                            #config[action_name + '_epoch'] = int(epoch)
                     config['sampler_seed_idx'] = sampler_seed_idx_to_run
                     config['pidx'] = idx
                     config['planner_seed'] = planner_seed
@@ -165,7 +166,6 @@ def main():
         pidxs = [40200, 40201, 40202, 40204, 40205, 40206, 40207, 40208, 40209]
 
     configs = get_all_configs(pidxs, setup)
-
     n_workers = multiprocessing.cpu_count() #* float(2.0/3.0)
     n_workers = int(n_workers)
     pool = ThreadPool(n_workers)

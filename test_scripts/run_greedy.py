@@ -344,12 +344,14 @@ def make_sampler_model_and_load_weights(config):
     if config.train_type == 'actorcritic':
         model = ActorCritic(config)
         model.load_weights()
-    else:
+    elif config.train_type == 'wgangp':
         model = WGANgp(config)
         if config.use_best_kde_sampler:
             model.load_best_weights()
         else:
             model.load_weights()
+    else:
+        raise NotImplementedError
     return model
 
 
