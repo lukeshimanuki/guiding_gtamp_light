@@ -1,8 +1,9 @@
 import pickle
 import os
 import numpy as np
-#from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 from print_sampler_epoch_tests import get_n_nodes
+
 
 def get_n_nodes(target_dir):
     test_files = os.listdir(target_dir)
@@ -32,7 +33,7 @@ def get_n_nodes(target_dir):
                         20080, 20083, 20084, 20086, 20093, 20094, 20095]
         target_pidxs = [20001, 20002, 20003, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20047, 20051,
                         20053, 20057, 20061, 20063, 20066, 20069, 20072, 20075, 20084, 20086, 20093, 20094, 20095]
-        #target_pidxs = range(20000, 20100)
+        # target_pidxs = range(20000, 20100)
 
         # target_pidxs = [20002, 20004, 20008, 20009, 20011, 20019, 20021, 20024, 20035, 20051, 20061, 20063, 20066, 20069, 20072, 20075,
         # 20093]
@@ -53,7 +54,7 @@ def get_n_nodes(target_dir):
     pidx_times = {}
     pidx_nodes = {}
     pidx_iks = {}
-    #target_pidxs = range(40200, 40210)
+    # target_pidxs = range(40200, 40210)
     for filename in test_files:
         if 'pkl' not in filename:
             print 'File skipped', filename
@@ -348,9 +349,9 @@ def get_results(target_dirs):
             continue
         eval_files = os.listdir(target_dir)
         print target_dir
-        seed_n_nodes=[]
+        seed_n_nodes = []
         for eval_file in eval_files:
-            #if 'gnn_seed_2' not in eval_file:
+            # if 'gnn_seed_2' not in eval_file:
             #    continue
             eval_file_pidx = int(eval_file.split('pidx_')[1].split('_')[0])
             if eval_file_pidx in pidxs:
@@ -358,14 +359,16 @@ def get_results(target_dirs):
                 successes.append(result['success'])
                 num_nodes.append(result['num_nodes'])
                 seed_n_nodes.append(result['num_nodes'])
-        #print np.median(num_nodes)
-        #print len(seed_n_nodes)
+        # print np.median(num_nodes)
+        # print len(seed_n_nodes)
 
     print len(successes)
     print np.mean(successes)
     print np.median(num_nodes)
     print np.mean(num_nodes)
-    import pdb;pdb.set_trace()
+    import pdb;
+    pdb.set_trace()
+
 
 def wgangp_vs_wgandi():
     uniform_target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True/n_mp_limit_5_n_iter_limit_2000/'
@@ -379,6 +382,7 @@ def wgangp_vs_wgandi():
     wgandi_dir = root_dir + '/wgandi/'
     wgandi_dirs = get_target_dirs(wgandi_dir)
     get_results(wgandi_dirs)
+
 
 def compare_task_guidance():
     qlearned_lm = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
@@ -397,11 +401,11 @@ def compare_task_guidance():
 
 def print_results(target_dir):
     pidx_nodes, pidx_times, successes, n_nodes, n_data, pidx_iks = get_n_nodes(target_dir)
-    print np.mean(successes), np.mean(n_nodes), np.median(n_nodes)
+    print 'Success rate %.2f mean number of nodes %.2f median nodes %.2f' % (
+        np.mean(successes), np.mean(n_nodes), np.median(n_nodes))
 
 
-def main():
-    n_objss = [1]
+def compare_hand_designed_vs_learned_abstract_q():
     target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
     print_results(target_dir)
 
@@ -411,15 +415,57 @@ def main():
     target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/hcount_old_number_in_goal_hand_desigend_action_values/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
     print_results(target_dir)
 
-    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
-    print_results(target_dir)
-
     target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_h_without_predicates/q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/n_mp_limit_5_n_iter_limit_2000/'
     print_results(target_dir)
-    # wgangp_vs_wgandi()
-    # compare_task_guidance()
-    # plot_one_arm()
-    # plot_two_arm()
+
+
+def compare_abstract_q_representations():
+    # pose-based abstract q with large margin loss
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/pose_qlearned_hcount_old_number_in_goal/' \
+                 'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_False_loss_largemargin/' \
+                 'n_mp_limit_5_n_iter_limit_2000/'
+    print "Pose based abstract Q"
+    print_results(target_dir)
+
+    # GNN-based abstract q with large margin loss
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+                 'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/' \
+                 'n_mp_limit_5_n_iter_limit_2000/'
+    print "GNN based abstract Q"
+    print_results(target_dir)
+
+
+def compare_abstract_q_losses():
+    # GNN-based with MSE loss -  we already have data for this, we just don't know where
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+                 'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_mse/' \
+                 'n_mp_limit_5_n_iter_limit_2000/'
+    print "Abstract Q MSE loss"
+    print_results(target_dir)
+
+    target_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+                 'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/' \
+                 'n_mp_limit_5_n_iter_limit_2000/'
+    print "Abstract Q pessimistic loss"
+    print_results(target_dir)
+
+
+def compare_sampler_losses():
+    root_dir = 'test_results/sahs_results/domain_two_arm_mover/n_objs_pack_1/qlearned_hcount_old_number_in_goal/' \
+               'q_config_num_train_5000_mse_weight_0.0_use_region_agnostic_True_loss_largemargin/' \
+               'using_learned_sampler/1000/'
+    wgangp_dir = root_dir + '/wgangp/'
+    wgangp_dirs = get_target_dirs(wgangp_dir)
+    get_results(wgangp_dirs)
+
+
+def compare_sampler_representations():
+    pass
+
+
+def main():
+    compare_abstract_q_losses()
+    compare_abstract_q_representations()
 
 
 if __name__ == '__main__':
