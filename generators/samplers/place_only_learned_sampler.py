@@ -81,8 +81,8 @@ def two_arm_compute_v_manip(abs_state, goal_objs):
 
 
 class PlaceOnlyLearnedSampler(LearnedSampler):
-    def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state, pick_sampler):
-        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action, smpler_state)
+    def __init__(self, atype, sampler, abstract_state, abstract_action, smpler_state, pick_sampler, config):
+        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action, config, smpler_state)
         self.atype = atype
         self.v_manip = None
         self.pick_sampler = pick_sampler
@@ -91,7 +91,8 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
     def sample_placements(self, pose_ids, collisions, n_smpls):
         if self.v_manip is None:
             if 'one_arm' in self.atype:
-                v_manip = one_arm_compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1], self.key_configs)
+                v_manip = one_arm_compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1],
+                                                  self.key_configs)
             else:
                 v_manip = two_arm_compute_v_manip(self.abstract_state, self.abstract_state.goal_entities[:-1])
             v_manip = utils.convert_binary_vec_to_one_hot(v_manip.squeeze()).reshape((1, len(self.key_configs), 2, 1))
@@ -142,5 +143,13 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         pose_ids[:, -6:-2] = encoded_pick_abs_poses
         ###
 
-        place_samples = self.sample_placements(pose_ids, collisions, n_smpls)
+        if self.config.state_mode == 'pose':
+            poses = self.abstract_state.get_object_and_robot_poses()
+            poses = np.tile(np.array(poses)[None, :], (n_smpls, 1))
+            # todo continue here
+            import pdb;pdb.set_trace()
+            place_samples = self.sample_placements(poses, collisions, n_smpls)
+        else:
+            place_samples = self.sample_placements(pose_ids, collisions, n_smpls)
+
         return place_samples

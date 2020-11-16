@@ -3,11 +3,13 @@ import numpy as np
 from generators.learning.utils import data_processing_utils
 from gtamp_utils import utils
 import time
+from generators.learning.datasets.GeneratorDataset import GeneratorDataset
+
 
 
 class PickOnlyLearnedSampler(LearnedSampler):
-    def __init__(self, atype, sampler, abstract_state, abstract_action, pick_abs_base_pose=None):
-        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action)
+    def __init__(self, atype, sampler, abstract_state, abstract_action, config, pick_abs_base_pose=None):
+        LearnedSampler.__init__(self, atype, sampler, abstract_state, abstract_action, config)
         self.samples = self.sample_new_points(self.n_smpl_per_iter)
         """
         ### Debugging purpose
@@ -38,15 +40,22 @@ class PickOnlyLearnedSampler(LearnedSampler):
         print "Generating new pick points"
         stime = time.time()
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
-        poses = np.tile(poses, (n_smpls, 1))
-        if 'rectangular' in self.obj:
-            object_id = [1, 0]
+        if self.config.state_mode == 'pose':
+            poses = GeneratorDataset.get_object_poses(self.abstract_state, self.obj)
+            poses = np.tile(np.array(poses)[None, :], (n_smpls, 1))
         else:
-            object_id = [0, 1]
-        object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
-        poses = np.hstack([poses, object_id])
+            poses = np.tile(poses, (n_smpls, 1))
+            if 'rectangular' in self.obj:
+                object_id = [1, 0]
+            else:
+                object_id = [0, 1]
+            object_id = np.tile(np.array(object_id)[None, :], (n_smpls, 1))
+            poses = np.hstack([poses, object_id])
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
+        import pdb;pdb.set_trace()
+
+        # todo continue here - I think I need to be using poses
         pick_samples = self.sample_picks(poses, collisions)
         print 'pick prediction time', time.time() - stime
         return pick_samples

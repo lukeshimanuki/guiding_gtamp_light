@@ -57,25 +57,25 @@ def get_sampler(config, abstract_state, abstract_action, learned_sampler_model):
 
             if 'pick' in config.learned_sampler_atype:
                 pick_sampler = PickOnlyLearnedSampler('two_arm_pick', learned_sampler_model, abstract_state,
-                                                      abstract_action)
+                                                      abstract_action, config=config)
 
             if 'place_home' in config.learned_sampler_atype:
                 if 'home' in target_region.name:
                     place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
                                                             abstract_action, smpler_state=None,
-                                                            pick_sampler=pick_sampler)
+                                                            pick_sampler=pick_sampler, config=config)
 
             if 'place_loading' in config.learned_sampler_atype:
                 if 'loading' in target_region.name:
                     place_sampler = PlaceOnlyLearnedSampler('two_arm_place', learned_sampler_model, abstract_state,
                                                             abstract_action, smpler_state=None,
-                                                            pick_sampler=pick_sampler)
+                                                            pick_sampler=pick_sampler, config=config)
         else:
             pick_sampler = PickOnlyLearnedSampler('one_arm_pick', learned_sampler_model, abstract_state,
-                                                  abstract_action)
+                                                  abstract_action, config)
             place_sampler = PlaceOnlyLearnedSampler('one_arm_place', learned_sampler_model, abstract_state,
                                                     abstract_action, smpler_state=pick_sampler.smpler_state,
-                                                    pick_sampler = pick_sampler)
+                                                    pick_sampler=pick_sampler, config=config)
     sampler = {'pick': pick_sampler, 'place': place_sampler}
     return sampler
 
