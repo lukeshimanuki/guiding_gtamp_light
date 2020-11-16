@@ -66,7 +66,8 @@ def get_solution_file_name(config):
     solution_file_dir += q_config
 
     if config.use_learning:
-        solution_file_dir += '/using_learned_sampler/{}/{}/sampler_seed_{}_{}_{}/sampler_epoch_{}_{}_{}/'.format(
+        solution_file_dir += '/using_learned_sampler/state_mode_{}/{}/{}/sampler_seed_{}_{}_{}/sampler_epoch_{}_{}_{}/'.format(
+            config.state_mode,
             config.num_episode,
             config.train_type,
             config.pick_seed,
@@ -86,8 +87,6 @@ def get_solution_file_name(config):
         os.makedirs(solution_file_dir)
     solution_file_dir += '/sampling_strategy_' + config.sampling_strategy
     solution_file_name = solution_file_dir + solution_file_name
-    print "Solution file name", solution_file_name
-    print "Solution file name", solution_file_name
     print "Solution file name", solution_file_name
     return solution_file_name
 
