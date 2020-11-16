@@ -44,7 +44,7 @@ class Generator(BaseModel):
     def __init__(self, dim_data, atype, region, problem_name):
         BaseModel.__init__(self, atype, region, problem_name)
 
-        dim_all_object_and_robot_poses_and_noise = 30
+        dim_all_object_and_robot_poses_and_noise = 27
         self.pose_net = \
             nn.Sequential(
                 torch.nn.Linear(dim_all_object_and_robot_poses_and_noise, self.n_hidden),
