@@ -41,7 +41,9 @@ class PickOnlyLearnedSampler(LearnedSampler):
         stime = time.time()
         poses = data_processing_utils.get_processed_poses_from_state(self.smpler_state, None)[None, :]
         if self.config.state_mode == 'pose':
-            poses = GeneratorDataset.get_object_poses(self.abstract_state, self.obj)
+            all_object_poses = GeneratorDataset.get_object_poses(self.abstract_state, self.obj)
+            robot_pose = self.abstract_state.robot_pose.squeeze()
+            poses = all_object_poses + robot_pose.tolist()
             poses = np.tile(np.array(poses)[None, :], (n_smpls, 1))
         else:
             poses = np.tile(poses, (n_smpls, 1))
