@@ -97,7 +97,8 @@ class GeneratorDataset(Dataset):
 
         return False
 
-    def get_object_poses(self, abstract_state, manipulated_object_name):
+    @staticmethod
+    def get_object_poses(abstract_state, manipulated_object_name):
         obj_list = [
             u'rectangular_packing_box4', u'rectangular_packing_box2', u'rectangular_packing_box3',
             u'rectangular_packing_box1', u'square_packing_box2', u'square_packing_box3', u'square_packing_box1',
@@ -110,8 +111,6 @@ class GeneratorDataset(Dataset):
                 continue
             pose = abstract_state.nodes[obj_name][3:6]
             pose_based_state += pose
-        robot_pose = abstract_state.robot_pose.squeeze()
-        pose_based_state += robot_pose.tolist()
         return pose_based_state
 
     def get_data_from_traj_dir(self, traj_dir, action_data_mode):
