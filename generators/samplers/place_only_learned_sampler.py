@@ -4,6 +4,7 @@ from gtamp_utils.utils import get_pick_domain
 import numpy as np
 import time
 from gtamp_utils import utils
+from generators.learning.datasets.GeneratorDataset import GeneratorDataset
 
 # this function also exsits in one_arm_sampler_traj. I copy-pasted it here because one_arm_sampler_traj imports from run_greedy
 def one_arm_compute_v_manip(abs_state, goal_objs):
@@ -144,11 +145,12 @@ class PlaceOnlyLearnedSampler(LearnedSampler):
         ###
 
         if self.config.state_mode == 'pose':
-            poses = self.abstract_state.get_object_and_robot_poses()
+            all_object_poses = GeneratorDataset.get_object_poses(self.abstract_state, self.obj)
+            robot_pose = self.abstract_state.robot_pose.squeeze()
+            poses = all_object_poses + robot_pose.tolist()
             poses = np.tile(np.array(poses)[None, :], (n_smpls, 1))
-            # todo continue here
-            import pdb;pdb.set_trace()
             place_samples = self.sample_placements(poses, collisions, n_smpls)
+
         else:
             place_samples = self.sample_placements(pose_ids, collisions, n_smpls)
 
