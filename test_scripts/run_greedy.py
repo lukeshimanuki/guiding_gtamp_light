@@ -212,7 +212,7 @@ def parse_arguments():
     parser.add_argument('-use_learning', action='store_true', default=False)
     parser.add_argument('-explr_p', type=float, default=0.3)
     parser.add_argument('-architecture', type=str, default='fc')
-    parser.add_argument('-train_type', type=str, default='wgandi')
+    parser.add_argument('-train_type', type=str, default='wgangp')
     parser.add_argument('-state_mode', type=str, default='keyconfigs')
     parser.add_argument('-num_episode', type=int, default=1500)
 
@@ -391,12 +391,12 @@ def get_learned_sampler_models(config):
     else:
         goal_region_place_model = UniformSampler(target_region='rectangular_packing_box1_region',
                                                  atype='one_arm_place')  # how does this actually get used?
-        config.atype = 'place';
-        config.region = 'center_shelf_region';
+        config.atype = 'place'
+        config.region = 'center_shelf_region'
         config.seed = config.sampler_seed
         obj_region_place_model = make_sampler_model_and_load_weights(config)
-        config.atype = 'pick';
-        config.region = '';
+        config.atype = 'pick'
+        config.region = ''
         config.seed = config.sampler_seed
         pick_model = make_sampler_model_and_load_weights(config)
 
@@ -428,6 +428,7 @@ def main():
     if config.use_learning:
         if config.sampler_seed_idx != -1:
             setup_seed_and_epoch(config)
+
     learned_sampler_model = get_learned_sampler_models(config)
 
     solution_file_name = get_solution_file_name(config)
