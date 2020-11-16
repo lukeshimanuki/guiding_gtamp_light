@@ -53,7 +53,6 @@ class PickOnlyLearnedSampler(LearnedSampler):
             poses = np.hstack([poses, object_id])
         collisions = self.smpler_state.pick_collision_vector
         collisions = np.tile(collisions, (n_smpls, 1, 1, 1))
-        import pdb;pdb.set_trace()
 
         # todo continue here - I think I need to be using poses
         pick_samples = self.sample_picks(poses, collisions)
