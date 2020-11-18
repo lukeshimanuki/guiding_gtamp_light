@@ -1,0 +1,44 @@
+***Abstract Q MSE loss***
+Success rate 0.55125
+Median number of nodes 58.0
+Average number of nodes 58.32
+***Abstract Q pessimistic loss***
+Success rate 0.9070588235294118
+Median number of nodes 32.0
+Average number of nodes 39.29882352941176
+***Sampler actor critic loss***
+500
+Success rate 0.0
+Median number of nodes 101.0
+Average number of nodes 101.0
+***Sampler GAN loss***
+500
+Success rate 0.97
+Median number of nodes 23.0
+Average number of nodes 30.196
+****Pose based abstract Q***
+Success rate 0.626
+Median number of nodes 46.0
+Average number of nodes 50.898
+Success rate 0.626
+Median number of nodes 46.0
+Average number of nodes 50.898
+Success rate 0.63 mean number of nodes 50.90 median nodes 46.00
+***GNN based abstract Q***
+Success rate 0.9070588235294118
+Median number of nodes 32.0
+Average number of nodes 39.29882352941176
+Success rate 0.9070588235294118
+Median number of nodes 32.0
+Average number of nodes 39.29882352941176
+Success rate 0.91 mean number of nodes 39.30 median nodes 32.00
+***Pose based sampler***
+500
+Success rate 0.0
+Median number of nodes 101.0
+Average number of nodes 101.0
+***Konf based sampler***
+500
+Success rate 0.97
+Median number of nodes 23.0
+Average number of nodes 30.196
