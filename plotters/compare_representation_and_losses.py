@@ -118,14 +118,14 @@ def compare_representations():
     plt.figure()
     plt.boxplot(
         [n_nodes_pose_heuristic, n_nodes_pose_sampler, n_nodes_gnn_heuristic, n_nodes_konf],
-        labels=['SAHS\nPoseRank', 'SAHS\nRank\nPoseSampler', 'SAHS\nRANK', 'SAHS\nRANK\nWGANGP'],
+        labels=['SAHS\nPoseRank', 'SAHS\nRank\nPoseSampler', 'SAHS\nRank', 'SAHS\nRank\nWGANGP'],
         positions=[0, 1, 2, 3],
         whis=(10, 90), medianprops={'linewidth': 4.})
     plt.xticks(fontsize=16)
     plt.yticks(fontsize=16)
-
-    plt.savefig("./plotters/plots/poses_vs_konf.eps")
-    plt.savefig("../IJRR_GTAMP/figures/poses_vs_konf.eps")
+    plt.tight_layout()
+    plt.savefig("./plotters/plots/poses_vs_relaxed.eps")
+    plt.savefig("../IJRR_GTAMP/figures/poses_vs_relaxed.eps")
 
 
 def main():
